@@ -20,7 +20,14 @@ export interface InputController {
   gamepadName(): string | null;
 }
 
-function deadzone(value: number, threshold = 0.14): number {
+// A small center buffer filters resting-stick noise without the original large
+// deadzone. Camera and menu navigation keep their own separate thresholds.
+const STEERING_DEADZONE = 0.05;
+// Only recognize a released stick when entering/resuming driving; this never
+// filters steering after the gate opens, even if the pad has a resting offset.
+const DRIVING_GATE_STEERING_NEUTRAL = 0.1;
+
+function deadzone(value: number, threshold: number): number {
   if (Math.abs(value) <= threshold) return 0;
   return Math.sign(value) * (Math.abs(value) - threshold) / (1 - threshold);
 }
@@ -34,14 +41,15 @@ function buttonPressed(gamepad: Gamepad | null, index: number): boolean {
 }
 
 export function mapGamepad(gamepad: Gamepad | null): Input {
-  const analogSteer = deadzone(gamepad?.axes[0] ?? 0);
-  const dpadSteer = (buttonPressed(gamepad, 14) ? -1 : 0) +
-    (buttonPressed(gamepad, 15) ? 1 : 0);
+  const analogSteer = deadzone(gamepad?.axes[0] ?? 0, STEERING_DEADZONE);
+  const dpadLeft = buttonPressed(gamepad, 14);
+  const dpadRight = buttonPressed(gamepad, 15);
+  const dpadSteer = (dpadLeft ? -1 : 0) + (dpadRight ? 1 : 0);
 
   return {
     throttle: buttonValue(gamepad, 7),
     brake: buttonValue(gamepad, 6),
-    steer: analogSteer !== 0 ? analogSteer : dpadSteer,
+    steer: dpadLeft || dpadRight ? dpadSteer : analogSteer,
     handbrake: buttonValue(gamepad, 0),
   };
 }
@@ -153,7 +161,7 @@ export function createInputController(): InputController {
 
     if (drivingInputGated) {
       const neutral = nextInput.throttle < 0.01 && nextInput.brake < 0.01 &&
-        Math.abs(nextInput.steer) < 0.01 && nextInput.handbrake < 0.01;
+        Math.abs(nextInput.steer) < DRIVING_GATE_STEERING_NEUTRAL && nextInput.handbrake < 0.01;
       if (neutral) drivingInputGated = false;
       return { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
     }

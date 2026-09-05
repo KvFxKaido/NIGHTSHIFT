@@ -275,23 +275,52 @@ The driving model should feel responsive, exaggerated, and readable.
 
 The target is not simulation accuracy. The target is giving the player enough control to intentionally drive close to danger.
 
-### 8.2 Proposed Vehicle Model
+Current browser prototype: a force-based four-wheel model supplies independent
+tire forces to Rapier at a fixed 60 Hz. Steering angles the front tires; chassis yaw
+is the result of those forces and collisions, not a commanded rotation. Each
+tire shares finite grip between cornering, propulsion and braking. ABS-style
+allocation prioritizes steering grip, so braking while turning remains useful
+but costs stopping distance. Mild longitudinal and lateral load transfer change
+individual tire loads; load sensitivity makes heavily loaded tires less efficient.
 
-The vehicle uses:
+Service braking retains its progressive, immediate analog response and pedal
+overlap cuts engine drive. The handbrake cuts drive and reduces rear lateral
+stiffness/grip while applying rear braking: it creates extra rotation with a
+speed cost. Automatic countersteering has been removed for the current handling
+comparison: the player owns steering during and after a slide. Ordinary turn-in
+retains input smoothing and the speed-dependent steering envelope. Unwinding is
+quicker, and explicit countersteering gets faster response and extra manual range
+as slip builds. The stick still chooses direction and proportion of wheel angle;
+no slip-derived steering is added, and neutral input targets straight wheels.
+Weak/late corrections and prolonged high-speed handbrake holds can still leave
+the car broadside; these remain limitations, not automatic recoveries. Gas/brake remain
+analog and steering retains the 5% center deadzone. This is approachable
+sim-cade, not a requirement for the player to understand mechanical tuning.
 
-- A rigid chassis body
-- Ground-detection raycasts
-- Artificial lateral grip
-- Speed-dependent steering
-- Tunable acceleration curves
-- Assisted countersteering
-- Controlled weight transfer
-- Downforce at high speed
-- Separate visual wheel animation
-- Simplified suspension presentation
-- Custom collision recovery
+### 8.2 Vehicle Model
 
-The system may use Rapier for collision detection and rigid-body behavior while applying custom forces for most vehicle handling.
+Implemented in the browser prototype:
+
+- A planar rigid chassis integrated by Rapier, including contact response
+- Four virtual tire contact points with independent point velocity, slip and combined grip limits
+- Speed-dependent front steering with inside/outside Ackermann angles, not a yaw-rate command
+- AWD (45% front / 55% rear) by default, with FWD/RWD comparison options; equal left/right axle drive torque and traction limiting
+- Progressive front-biased service brakes, limited by each tire's own remaining grip
+- Mild longitudinal/lateral load transfer, tire load sensitivity and low-speed force stabilization
+- A rear-axle handbrake and shared brake/reverse control
+- Authored road-height/pitch constraint and grade acceleration
+- Individual visual wheel angles and free-rolling distance drawn from simulation state
+
+Pause's handling comparison changes only the propulsion split, restarts the run
+and clears its old replay. It is prototype tuning, not a purchased drivetrain
+swap or garage upgrade. Physics revision and drivetrain identify the simulation
+setup; ordinary restart/replay retain that layout.
+
+There are no suspension raycasts, wheel inertia/spin/lockup simulation, downforce
+or airborne tire contact detection yet. Ride height customization remains visual.
+Wheel lift, kerb impacts and suspension are possible next refinements, not part
+of this planar four-wheel handling pass. See `design/HANDLING.md` for tuning,
+replay boundaries and regression coverage.
 
 ### 8.3 Driving States
 

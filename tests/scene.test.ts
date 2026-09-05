@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { createCar } from "../src/render/car.ts";
+import { CAR_GEOMETRY, createCar } from "../src/render/car.ts";
 import { addCourse } from "../src/render/course.ts";
 import { createGarageScene } from "../src/render/garage.ts";
 import { parseDriveScript } from "../src/debug/debug.ts";
@@ -57,6 +57,17 @@ test("every course mesh has a name", () => {
   addCourse(scene);
   const unnamed = meshesOf(scene).filter((mesh) => !mesh.name);
   assert.deepEqual(unnamed.map((mesh) => mesh.geometry.type), [], "unnamed course meshes");
+});
+
+// Long overhangs are most of what makes a car read as boxy rather than designed.
+// The reference model sits at 0.67; below about 0.60 the nose and tail sag.
+test("the wheels sit near the corners rather than under a long overhang", () => {
+  const car = createCar();
+  car.car.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(car.bodyShell).getSize(new THREE.Vector3());
+  const length = Math.max(size.x, size.z);
+  const ratio = (CAR_GEOMETRY.axleZ * 2) / length;
+  assert.ok(ratio > 0.6 && ratio < 0.72, `wheelbase / length is ${ratio.toFixed(3)}`);
 });
 
 test("drive scripts parse into held inputs and tick counts", () => {

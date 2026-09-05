@@ -163,6 +163,15 @@
             <button class="menu-button" data-menu-action="track-select">Track Select</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
+          <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
+            <legend>Handling comparison</legend>
+            <div class="garage-options text-options">
+              <button class="garage-option" data-drivetrain="awd" aria-pressed="true" aria-label="AWD: 45% front, 55% rear">AWD</button>
+              <button class="garage-option" data-drivetrain="fwd" aria-pressed="false" aria-label="FWD: front-wheel drive">FWD</button>
+              <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
+            </div>
+            <p id="drivetrain-note" class="handling-note">Changing layout restarts the run and clears its replay. Auto-countersteer is off for every layout.</p>
+          </fieldset>
           <p class="menu-footer">Esc / Options to resume</p>
         </section>
       </main>

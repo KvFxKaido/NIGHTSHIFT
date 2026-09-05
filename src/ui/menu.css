@@ -375,6 +375,21 @@ body[data-game-screen="pause"] #hud {
   min-height: 40px;
 }
 
+.handling-comparison {
+  margin-top: 22px;
+}
+
+.handling-comparison .garage-option {
+  min-height: 44px;
+}
+
+.handling-note {
+  margin: 10px 0 0;
+  color: var(--menu-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .menu-root[data-screen="garage"] .menu-footer {
   margin-top: 14px;
   font-size: 8px;

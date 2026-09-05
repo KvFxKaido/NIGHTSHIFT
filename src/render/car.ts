@@ -14,13 +14,19 @@ export const CAR_GEOMETRY = {
   wheelCenterY: 0.4,
   tireRadius: 0.36,
   tireHalfWidth: 0.125,
-  axleZ: 1.35,
+  // Wheelbase over length was 0.58 against 0.67 on the reference model: long
+  // overhangs are most of what reads as boxy. Pushing the axles out costs
+  // nothing else, because the arches and wheel wells derive from this.
+  axleZ: 1.48,
   halfTrack: 0.92,
   maxSteerAngle: 0.42,
   wheelWellMargin: 0.02,
   /** Visible tyre-to-fender gap at Street stance. Lowering spends this. */
   archClearance: 0.1,
 } as const;
+
+/** Shallow rearward slope shared by every roof piece so they read as one plane. */
+const ROOF_RAKE = 0.105;
 
 export const ARCH_INNER_RADIUS = CAR_GEOMETRY.tireRadius + CAR_GEOMETRY.archClearance;
 /** Top of the tyre in body-shell space; nothing solid may sit below this. */
@@ -29,6 +35,19 @@ export const TIRE_CROWN_Y = CAR_GEOMETRY.wheelCenterY + CAR_GEOMETRY.tireRadius;
 // Full-lock tyres sweep inward farther than their straight-ahead sidewalls.
 // Reserve that space at the deepest inset, with a little air to the liner.
 const MAX_WHEEL_INSET = Math.max(...STANCE_OPTIONS.map((stance) => stance.wheelInset));
+// How far forward a front tyre reaches at full lock. Bodywork ahead of the
+// wheel has to start beyond this or it grows into the wheel well the moment
+// the axles or the steering angle move.
+export const FRONT_WHEEL_REACH_Z = CAR_GEOMETRY.axleZ
+  + CAR_GEOMETRY.tireRadius * Math.cos(CAR_GEOMETRY.maxSteerAngle)
+  + CAR_GEOMETRY.tireHalfWidth * Math.sin(CAR_GEOMETRY.maxSteerAngle)
+  + CAR_GEOMETRY.wheelWellMargin;
+
+/** The rear wheels do not steer, so their reach is just the tyre. */
+export const REAR_WHEEL_REACH_Z = CAR_GEOMETRY.axleZ
+  + CAR_GEOMETRY.tireRadius
+  + CAR_GEOMETRY.wheelWellMargin;
+
 export const FRONT_WELL_INNER_X = CAR_GEOMETRY.halfTrack - MAX_WHEEL_INSET
   - CAR_GEOMETRY.tireHalfWidth * Math.cos(CAR_GEOMETRY.maxSteerAngle)
   - CAR_GEOMETRY.tireRadius * Math.sin(CAR_GEOMETRY.maxSteerAngle)
@@ -47,10 +66,139 @@ export interface CarView {
 
 // Every mesh carries its own name. Identifying a panel by its dimensions and
 // position is possible but slow; `__ns.pick(x, y)` should be able to say "hood".
+// A box has six faces and every one of them points down a world axis, which is
+// what makes stacked boxes read as assembled rather than sculpted. Lofting
+// scales the cross-section along one axis so the side faces lean instead. It
+// costs no extra triangles; it just stops them being square to the world.
+function loft(
+  geometry: THREE.BoxGeometry,
+  axis: "x" | "y" | "z",
+  atStart: readonly [number, number],
+  atEnd: readonly [number, number],
+): THREE.BoxGeometry {
+  const { width, height, depth } = geometry.parameters;
+  const extent = axis === "x" ? width : axis === "y" ? height : depth;
+  const others = axis === "x"
+    ? (["y", "z"] as const)
+    : axis === "y"
+      ? (["x", "z"] as const)
+      : (["x", "y"] as const);
+  const position = geometry.getAttribute("position");
+  const vertex = new THREE.Vector3();
+  for (let index = 0; index < position.count; index++) {
+    vertex.fromBufferAttribute(position, index);
+    const t = extent > 0 ? vertex[axis] / extent + 0.5 : 0;
+    others.forEach((other, slot) => {
+      vertex[other] *= atStart[slot]! + (atEnd[slot]! - atStart[slot]!) * t;
+    });
+    position.setXYZ(index, vertex.x, vertex.y, vertex.z);
+  }
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+// A loft along X has to be mirrored for the left side. Without this both halves
+// taper the same way in world space, which reads as a twisted nose rather than
+// a symmetrical one.
+function acrossBody(
+  side: number,
+  inboard: readonly [number, number],
+  outboard: readonly [number, number],
+): [readonly [number, number], readonly [number, number]] {
+  return side < 0 ? [outboard, inboard] : [inboard, outboard];
+}
+
 function part(name: string, geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = name;
   return mesh;
+}
+
+// Real door glass is a raked quadrilateral rather than a rectangular box.
+// A rectangle whose front edge is vertical pokes its top-front corner past the
+// raked A-pillar into open air while leaving a triangular gap at the cowl.
+function createRakedWindowGeometry(
+  thickness: number,
+  bottomFrontZ: number,
+  bottomFrontY: number,
+  topFrontZ: number,
+  topFrontY: number,
+  topRearZ: number,
+  topRearY: number,
+  bottomRearZ: number,
+  bottomRearY: number,
+): THREE.BufferGeometry {
+  const hx = thickness * 0.5;
+  const corners: [number, number][] = [
+    [bottomFrontY, bottomFrontZ], // 0: Bottom-Front
+    [topFrontY, topFrontZ],       // 1: Top-Front
+    [topRearY, topRearZ],         // 2: Top-Rear
+    [bottomRearY, bottomRearZ],   // 3: Bottom-Rear
+  ];
+
+  const positions: number[] = [];
+  const indices: number[] = [];
+
+  function addQuad(
+    p0: [number, number, number],
+    p1: [number, number, number],
+    p2: [number, number, number],
+    p3: [number, number, number],
+  ): void {
+    const base = positions.length / 3;
+    positions.push(...p0, ...p1, ...p2, ...p3);
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+
+  // Face 0: -X inner
+  addQuad(
+    [-hx, corners[0]![0], corners[0]![1]],
+    [-hx, corners[3]![0], corners[3]![1]],
+    [-hx, corners[2]![0], corners[2]![1]],
+    [-hx, corners[1]![0], corners[1]![1]],
+  );
+  // Face 1: +X outer
+  addQuad(
+    [hx, corners[0]![0], corners[0]![1]],
+    [hx, corners[1]![0], corners[1]![1]],
+    [hx, corners[2]![0], corners[2]![1]],
+    [hx, corners[3]![0], corners[3]![1]],
+  );
+  // Face 2: Front (along A-pillar)
+  addQuad(
+    [-hx, corners[0]![0], corners[0]![1]],
+    [-hx, corners[1]![0], corners[1]![1]],
+    [hx, corners[1]![0], corners[1]![1]],
+    [hx, corners[0]![0], corners[0]![1]],
+  );
+  // Face 3: Top (along roof rail)
+  addQuad(
+    [-hx, corners[1]![0], corners[1]![1]],
+    [-hx, corners[2]![0], corners[2]![1]],
+    [hx, corners[2]![0], corners[2]![1]],
+    [hx, corners[1]![0], corners[1]![1]],
+  );
+  // Face 4: Rear (along B-pillar / sail panel)
+  addQuad(
+    [-hx, corners[2]![0], corners[2]![1]],
+    [-hx, corners[3]![0], corners[3]![1]],
+    [hx, corners[3]![0], corners[3]![1]],
+    [hx, corners[2]![0], corners[2]![1]],
+  );
+  // Face 5: Bottom (along beltline)
+  addQuad(
+    [-hx, corners[3]![0], corners[3]![1]],
+    [-hx, corners[0]![0], corners[0]![1]],
+    [hx, corners[0]![0], corners[0]![1]],
+    [hx, corners[3]![0], corners[3]![1]],
+  );
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 export function createCar(): CarView {
@@ -190,14 +338,22 @@ export function createCar(): CarView {
   // --- Side Rockers & Doors ---
   for (const side of [-1, 1]) {
     // Dark lower rocker skirt
-    const skirt = part("skirt", new THREE.BoxGeometry(0.12, 0.14, 1.84), darkAero);
+    const skirt = part(
+      "skirt",
+      loft(new THREE.BoxGeometry(0.12, 0.14, 2.00), "y", [1.7, 1], [0.7, 0.97]),
+      darkAero,
+    );
     skirt.position.set(side * 0.91, 0.32, 0);
     skirt.castShadow = true;
     bodyShell.add(skirt);
 
     // Body-colored door section between wheel arches. The top edge has to reach
     // the glass; anything less leaves a slot straight into the cabin.
-    const door = part("door", new THREE.BoxGeometry(0.14, 0.48, 1.84), paintMaterial);
+    const door = part(
+      "door",
+      loft(new THREE.BoxGeometry(0.14, 0.48, 2.00), "y", [1.25, 1], [0.5, 0.94]),
+      paintMaterial,
+    );
     door.position.set(side * 0.90, 0.63, 0);
     door.castShadow = true;
     bodyShell.add(door);
@@ -205,24 +361,54 @@ export function createCar(): CarView {
     // Beltline shelf closing the step from door skin out to the inset glass.
     // Matte, not metallic: a half-metal upward-facing strip blows out to a
     // white slab under the garage key light.
-    const beltline = part("beltline", new THREE.BoxGeometry(0.26, 0.05, 1.74), darkAero);
+    const beltline = part(
+      "beltline",
+      // Angled so the top face sheds toward the centreline. Tilting it the other
+      // way aims a full-length strip straight at the bay lights, and a matte
+      // near-black trim renders as a pale band down the whole car.
+      loft(new THREE.BoxGeometry(0.26, 0.05, 1.90), "x", ...acrossBody(side, [0.45, 0.92], [1.45, 1])),
+      darkAero,
+    );
     beltline.position.set(side * 0.86, 0.855, 0);
     beltline.castShadow = true;
     bodyShell.add(beltline);
 
     // Front fender section (ahead of front wheel)
-    const frontFender = part("front-fender", new THREE.BoxGeometry(0.16, 0.36, 0.36), paintMaterial);
-    frontFender.position.set(side * 0.90, 0.57, -1.96);
+    const frontFender = part(
+      "front-fender",
+      loft(new THREE.BoxGeometry(0.16, 0.36, 0.36), "y", [1.3, 1], [0.55, 0.8]),
+      paintMaterial,
+    );
+    frontFender.position.set(side * 0.90, 0.57, -(FRONT_WHEEL_REACH_Z + 0.18));
     frontFender.castShadow = true;
     bodyShell.add(frontFender);
 
     addWheelArch(side * (1 + FRONT_WELL_INNER_X) * 0.5, -CAR_GEOMETRY.axleZ, 1 - FRONT_WELL_INNER_X);
 
     // Rear fender quarter panel (muscular wide hip)
-    const rearQuarter = part("rear-quarter", new THREE.BoxGeometry(0.18, 0.38, 0.42), paintMaterial);
-    rearQuarter.position.set(side * 0.93, 0.59, 1.94);
+    const rearQuarter = part(
+      "rear-quarter",
+      loft(new THREE.BoxGeometry(0.18, 0.38, 0.34), "y", [1.35, 1], [0.6, 0.85]),
+      paintMaterial,
+    );
+    rearQuarter.position.set(side * 0.93, 0.59, REAR_WHEEL_REACH_Z + 0.17);
     rearQuarter.castShadow = true;
     bodyShell.add(rearQuarter);
+
+    const rearShoulder = part(
+      "rear-shoulder",
+      loft(new THREE.BoxGeometry(0.30, 0.30, 0.52), "y", [1.2, 1], [0.68, 0.88]),
+      paintMaterial,
+    );
+    // Sits on the arch line, not the tyre line: the body drops with the stance
+    // but the wheels do not, so clearance has to be measured the way the arch is.
+    rearShoulder.position.set(
+      side * 0.80,
+      CAR_GEOMETRY.wheelCenterY + ARCH_INNER_RADIUS + 0.15,
+      CAR_GEOMETRY.axleZ - 0.28,
+    );
+    rearShoulder.castShadow = true;
+    bodyShell.add(rearShoulder);
 
     addWheelArch(side * 0.865, CAR_GEOMETRY.axleZ, 0.33);
 
@@ -278,7 +464,11 @@ export function createCar(): CarView {
   // --- Front Nose & Bumper Valance ---
   // Aerodynamic pointed wedge beak (split into angled left/right prow)
   for (const side of [-1, 1]) {
-    const prow = part("prow", new THREE.BoxGeometry(0.86, 0.22, 0.22), paintMaterial);
+    const prow = part(
+      "prow",
+      loft(new THREE.BoxGeometry(0.86, 0.22, 0.22), "x", ...acrossBody(side, [1.35, 1.2], [0.55, 0.7])),
+      paintMaterial,
+    );
     prow.position.set(side * 0.43, 0.55, -2.18);
     prow.rotation.y = side * 0.085; // angled forward to create center prow
     prow.castShadow = true;
@@ -299,7 +489,11 @@ export function createCar(): CarView {
   bodyShell.add(scannerGlow);
 
   // Lower front chin splitter
-  const chinSplitter = part("chin-splitter", new THREE.BoxGeometry(1.82, 0.06, 0.32), darkAero);
+  const chinSplitter = part(
+    "chin-splitter",
+    loft(new THREE.BoxGeometry(1.82, 0.06, 0.32), "z", [0.86, 0.7], [1, 1.3]),
+    darkAero,
+  );
   chinSplitter.position.set(0, 0.27, -2.12);
   chinSplitter.castShadow = true;
   bodyShell.add(chinSplitter);
@@ -376,7 +570,8 @@ export function createCar(): CarView {
 
   // T-Top Roof: Center spine in body paint, glass removable panels
   const tTopSpine = part("t-top-spine", new THREE.BoxGeometry(0.18, 0.05, 0.58), paintMaterial);
-  tTopSpine.position.set(0, 1.23, 0.18);
+  tTopSpine.position.set(0, 1.222, 0.18);
+  tTopSpine.rotation.x = ROOF_RAKE;
   tTopSpine.castShadow = true;
   bodyShell.add(tTopSpine);
 
@@ -385,32 +580,48 @@ export function createCar(): CarView {
   bodyShell.add(roofFrontHeader);
 
   const roofRearBarch = part("roof-rear-barch", new THREE.BoxGeometry(1.36, 0.06, 0.10), paintMaterial);
-  roofRearBarch.position.set(0, 1.22, 0.46);
+  roofRearBarch.position.set(0, 1.192, 0.46);
+  roofRearBarch.rotation.x = ROOF_RAKE;
   roofRearBarch.castShadow = true;
   bodyShell.add(roofRearBarch);
 
   // Longitudinal roof rails. A T-top needs them structurally, and without them
   // the door glass never meets the roof and the panels float on open air.
   for (const side of [-1, 1]) {
-    const roofRail = part("roof-rail", new THREE.BoxGeometry(0.16, 0.07, 0.68), paintMaterial);
-    roofRail.position.set(side * 0.68, 1.215, 0.185);
+    const roofRail = part(
+      "roof-rail",
+      loft(new THREE.BoxGeometry(0.16, 0.07, 0.68), "z", [1.15, 1.2], [0.8, 0.75]),
+      paintMaterial,
+    );
+    roofRail.position.set(side * 0.68, 1.207, 0.185);
+    roofRail.rotation.x = ROOF_RAKE;
     roofRail.castShadow = true;
     bodyShell.add(roofRail);
   }
 
   // Tinted T-Top glass roof panels
   for (const side of [-1, 1]) {
-    const tGlass = part("t-glass", new THREE.BoxGeometry(0.54, 0.03, 0.50), glass);
-    tGlass.position.set(side * 0.355, 1.23, 0.18);
+    const tGlass = part(
+      "t-glass",
+      loft(new THREE.BoxGeometry(0.54, 0.03, 0.50), "x", ...acrossBody(side, [1.7, 1], [0.5, 1])),
+      glass,
+    );
+    tGlass.position.set(side * 0.355, 1.222, 0.18);
+    tGlass.rotation.x = ROOF_RAKE;
     bodyShell.add(tGlass);
   }
 
   // Fastback Rear Glass Hatch (sloping from roof down to rear deck)
-  const rearHatch = part("rear-hatch", new THREE.BoxGeometry(1.32, 0.04, 1.10), glass);
-  rearHatch.position.set(0, 1.03, 0.96);
-  rearHatch.rotation.x = 0.34; // ~19.5 degree fastback slope
-  rearHatch.castShadow = true;
-  bodyShell.add(rearHatch);
+  for (const [name, depth, z, y, rake] of [
+    ["rear-hatch-upper", 0.52, 0.72, 1.150, 0.24],
+    ["rear-hatch-lower", 0.70, 1.24, 0.977, 0.40],
+  ] as const) {
+    const pane = part(name, new THREE.BoxGeometry(1.32, 0.04, depth), glass);
+    pane.position.set(0, y, z);
+    pane.rotation.x = rake;
+    pane.castShadow = true;
+    bodyShell.add(pane);
+  }
 
   // Triangular B/C-pillar Sail Panels (classic 3rd-gen F-body fastback silhouette)
   for (const side of [-1, 1]) {
@@ -422,7 +633,24 @@ export function createCar(): CarView {
     bodyShell.add(sailPanel);
 
     // Side door glass
-    const sideGlass = part("side-glass", new THREE.BoxGeometry(0.03, 0.32, 0.74), glass);
+    // Follows the rake of the A-pillar from cowl to roof rail, tucks under the
+    // roof rail, and meets the sail panel at the rear. A rectangular box pokes
+    // its top-front corner past the A-pillar into space and leaves a cowl gap.
+    const sideGlass = part(
+      "side-glass",
+      createRakedWindowGeometry(
+        0.03,
+        -0.64, // bottomFrontZ (reaches cleanly into base of A-pillar)
+        -0.16, // bottomFrontY
+        -0.20, // topFrontZ (reaches cleanly into top of A-pillar / roof rail)
+        0.16,  // topFrontY
+        0.46,  // topRearZ (tucks into sail panel)
+        0.13,  // topRearY
+        0.48,  // bottomRearZ (tucks into sail panel at beltline)
+        -0.16, // bottomRearY
+      ),
+      glass,
+    );
     sideGlass.position.set(side * 0.74, 1.03, 0.02);
     sideGlass.rotation.z = side * 0.12; // tumblehome tilt
     bodyShell.add(sideGlass);
@@ -430,13 +658,23 @@ export function createCar(): CarView {
 
   // --- Rear Deck, Taillights & Wrap-Around Wing ---
   // Rear decklid surface
-  const decklid = part("decklid", new THREE.BoxGeometry(1.50, 0.08, 0.64), paintMaterial);
+  const decklid = part(
+    "decklid",
+    loft(new THREE.BoxGeometry(1.50, 0.08, 0.64), "z", [1, 2.7], [0.9, 0.35]),
+    paintMaterial,
+  );
   decklid.position.set(0, 0.81, 1.76);
   decklid.castShadow = true;
   bodyShell.add(decklid);
 
   // Wrap-around aerodynamic 3-piece pedestal wing
-  const wingBlade = part("wing-blade", new THREE.BoxGeometry(1.92, 0.05, 0.28), paintMaterial);
+  // Thick at the leading edge, thin at the trailing: an aerofoil section rather
+  // than a plank, and it puts an angle on the largest flat panel on the car.
+  const wingBlade = part(
+    "wing-blade",
+    loft(new THREE.BoxGeometry(1.92, 0.05, 0.28), "z", [1, 2.1], [0.95, 0.5]),
+    paintMaterial,
+  );
   wingBlade.position.set(0, 0.94, 2.02);
   wingBlade.castShadow = true;
   bodyShell.add(wingBlade);
@@ -455,8 +693,10 @@ export function createCar(): CarView {
   }
 
   // Full-width Smoked Taillight Panel
-  const tailHousing = part("tail-housing", new THREE.BoxGeometry(1.76, 0.20, 0.08), tailDark);
-  tailHousing.position.set(0, 0.61, 2.12);
+  // Tall enough to reach the underside of the decklid; a short panel leaves a
+  // slot you can see into the boot through from behind.
+  const tailHousing = part("tail-housing", new THREE.BoxGeometry(1.76, 0.36, 0.08), tailDark);
+  tailHousing.position.set(0, 0.63, 2.12);
   bodyShell.add(tailHousing);
 
   // Segmented Glowing Taillight Bars
@@ -478,7 +718,11 @@ export function createCar(): CarView {
   bodyShell.add(tailGlow);
 
   // Lower rear diffuser & bumper
-  const rearDiffuser = part("rear-diffuser", new THREE.BoxGeometry(1.78, 0.16, 0.24), darkAero);
+  const rearDiffuser = part(
+    "rear-diffuser",
+    loft(new THREE.BoxGeometry(1.78, 0.16, 0.24), "z", [1, 0.6], [0.93, 1.25]),
+    darkAero,
+  );
   rearDiffuser.position.set(0, 0.38, 2.06);
   rearDiffuser.castShadow = true;
   bodyShell.add(rearDiffuser);

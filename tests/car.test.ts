@@ -158,7 +158,61 @@ test("stance can never drop the body far enough to cut into the wheels", () => {
   assert.equal(TIRE_CROWN_Y, CAR_GEOMETRY.wheelCenterY + CAR_GEOMETRY.tireRadius);
 });
 
-test("the cabin shell has no holes an outside viewer could see through", () => {
+// A loft along X applied inside the mirrored side loop tapers both halves the
+// same way in world space. It typechecks, it clears the wheels, it seals — and
+// the nose comes out visibly twisted. Only a symmetry check catches it.
+// The leak test casts outward and tolerates 1%, so a narrow slot at the end of
+// a window passes it while still being a clear line of sight to a seat from
+// outside. Cast inward instead and name what a viewer actually lands on.
+test("no cabin interior is the first thing a viewer sees from outside", () => {
+  const car = posed("street");
+  const shell = meshesOf(car.bodyShell);
+  const interior = /^(seat-base|seat-back|headrest|dash|floor-tub|wheel-hub)/;
+
+  const raycaster = new THREE.Raycaster();
+  const target = new THREE.Vector3(0, 0.85, 0.1);
+  const exposed = new Set<string>();
+  const samples = 3000;
+  for (let index = 0; index < samples; index++) {
+    const y = 1 - (index / (samples - 1)) * 2;
+    const radius = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = Math.PI * (1 + Math.sqrt(5)) * index;
+    const direction = new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius);
+    if (direction.y < 0) continue; // nobody looks up at the car from below
+    const origin = target.clone().addScaledVector(direction, 6);
+    raycaster.set(origin, direction.clone().negate());
+    const hit = raycaster.intersectObjects(shell, false)[0];
+    const name = (hit?.object as THREE.Mesh | undefined)?.name ?? "";
+    if (interior.test(name)) exposed.add(name);
+  }
+  assert.deepEqual([...exposed], [], "interior parts reachable without passing through glass or body");
+});
+
+test("the body is bilaterally symmetric apart from the driver-side details", () => {
+  const car = posed("street");
+  const asymmetric = new Set(["cowl-scoop", "cowl-vent", "wheel-hub"]);
+  const key = (v: THREE.Vector3) => `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+
+  const points = new Map<string, string>();
+  for (const mesh of meshesOf(car.bodyShell)) {
+    const position = mesh.geometry.getAttribute("position");
+    const vertex = new THREE.Vector3();
+    for (let index = 0; index < position.count; index++) {
+      vertex.fromBufferAttribute(position, index).applyMatrix4(mesh.matrixWorld);
+      points.set(key(vertex), mesh.name);
+    }
+  }
+
+  const offenders = new Set<string>();
+  for (const [point, owner] of points) {
+    if (asymmetric.has(owner.replace(/-(left|right|\d+)$/g, ""))) continue;
+    const [x, y, z] = point.split(",").map(Number) as [number, number, number];
+    if (!points.has(`${(-x).toFixed(3)},${y.toFixed(3)},${z.toFixed(3)}`)) offenders.add(owner);
+  }
+  assert.deepEqual([...offenders], [], "meshes with no mirrored counterpart");
+});
+
+test("the body has no holes an outside viewer could see through", () => {
   const car = posed("street");
   const shell = meshesOf(car.bodyShell);
   // Rays leaving the cabin strike panels from behind, so read both faces.
@@ -166,10 +220,15 @@ test("the cabin shell has no holes an outside viewer could see through", () => {
 
   const raycaster = new THREE.Raycaster();
   raycaster.far = 12;
+  // Cabin, both head positions, and the volumes fore and aft of it. Testing
+  // only the cabin let a slot open under the rear deck without anything failing.
   const origins = [
     new THREE.Vector3(0, 0.95, 0.05),
     new THREE.Vector3(-0.36, 1.05, 0.2),
     new THREE.Vector3(0.36, 1.05, 0.2),
+    new THREE.Vector3(0, 0.8, CAR_GEOMETRY.axleZ - 0.03),
+    new THREE.Vector3(0, 0.55, 1.8),
+    new THREE.Vector3(0, 0.55, -1.9),
   ];
   const samples = 1500;
 

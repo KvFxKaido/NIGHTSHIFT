@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@dimforge/rapier3d-compat':
-        specifier: ^0.19.3
+        specifier: 0.19.3
         version: 0.19.3
       three:
         specifier: ^0.185.1

@@ -7,7 +7,7 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController } from "./input/input.ts";
 import { applyCarCustomization } from "./render/car.ts";
 import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
-import { createSim, resetSim, step, DT, TICK_HZ, type Input } from "./sim/sim.ts";
+import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createMenuController } from "./ui/menu.ts";
 
 await RAPIER.init();
@@ -24,7 +24,7 @@ let customization = createDefaultCustomization();
 applyCarCustomization(view, customization);
 
 const inputLog: Input[] = [];
-let lastRun: Input[] = [];
+let lastRun: { drivetrain: Drivetrain; inputs: Input[] } | null = null;
 let replay: Input[] | null = null;
 let replayTick = 0;
 let debugVisible = false;
@@ -32,21 +32,26 @@ let debugVisible = false;
 // state is the same image every time.
 let frozen = false;
 
-function reset(archive = true): void {
-  if (archive && inputLog.length > 0) lastRun = inputLog.slice();
+function reset(archive = true, drivetrain = sim.state.drivetrain): void {
+  // A comparison is a new run, never a mid-replay physics change.
+  if (drivetrain !== sim.state.drivetrain) lastRun = null;
+  else if (archive && inputLog.length > 0) {
+    lastRun = { drivetrain, inputs: inputLog.slice() };
+  }
   inputLog.length = 0;
   replay = null;
   replayTick = 0;
-  resetSim(sim);
+  resetSim(sim, drivetrain);
   resetViewCamera(view);
 }
 
 function beginReplay(): void {
-  const source = inputLog.length > 0 ? inputLog : lastRun;
-  if (source.length === 0) return;
-  lastRun = source.slice();
-  reset(false);
-  replay = lastRun;
+  const source = inputLog.length > 0
+    ? { drivetrain: sim.state.drivetrain, inputs: inputLog.slice() } : lastRun;
+  if (!source) return;
+  reset(false, source.drivetrain);
+  lastRun = source;
+  replay = source.inputs;
 }
 
 const menu = createMenuController({
@@ -60,6 +65,12 @@ const menu = createMenuController({
   },
   returnToMain: () => reset(),
   resumeRun: () => input.armDrivingInputGate(),
+  getDrivetrain: () => sim.state.drivetrain,
+  selectDrivetrain: (drivetrain) => {
+    if (drivetrain === sim.state.drivetrain) return;
+    reset(false, drivetrain);
+    input.armDrivingInputGate();
+  },
   customize: (category, optionId) => {
     customization = updateCustomization(customization, category, optionId);
     applyCarCustomization(view, customization);
@@ -75,15 +86,19 @@ function updateHud(): void {
   const car = sim.state.vehicle;
   speedElement.textContent = Math.round(car.speed * 2.237).toString().padStart(3, "0");
   gearElement.textContent = car.forwardSpeed < -0.5 ? "R" : car.speed < 0.5 ? "N" : "D";
-  modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%` : "LIVE";
+  modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%`
+    : `LIVE / ${sim.state.drivetrain.toUpperCase()}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "No standard gamepad detected";
   telemetryElement.textContent =
+    `auto-countersteer OFF\n` +
     `forward ${car.forwardSpeed.toFixed(1)} m/s\n` +
     `lateral ${car.lateralSpeed.toFixed(1)} m/s\n` +
     `slip ${(car.slipAngle * 180 / Math.PI).toFixed(1)}°\n` +
     `yaw ${car.yawRate.toFixed(2)} rad/s\n` +
+    `load F/R ${Math.round(car.frontLoadFraction * 100)}/${Math.round((1 - car.frontLoadFraction) * 100)}%\n` +
+    `load L/R ${Math.round((1 - car.rightLoadFraction) * 100)}/${Math.round(car.rightLoadFraction * 100)}%\n` +
     `altitude ${car.y.toFixed(1)} m\n` +
     `grade ${(Math.tan(car.pitch) * 100).toFixed(1)}%\n` +
     `tick ${sim.state.tick}`;
@@ -169,10 +184,11 @@ installDebugApi({
   setFrozen: (value) => { frozen = value; },
   isFrozen: () => frozen,
   setTelemetry: (visible) => { debugVisible = visible; },
+  pause: () => menu.pause(),
 });
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
 applyDeepLink(debugApi, location.search);
 
-modeElement.title = `Rapier ${RAPIER.version()} · ${TICK_HZ} Hz fixed simulation`;
+modeElement.title = `${sim.state.physicsVersion} · Rapier ${RAPIER.version()} · ${TICK_HZ} Hz fixed simulation`;
 requestAnimationFrame(frame);

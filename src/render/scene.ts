@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { CameraLook } from "../input/input.ts";
-import type { SimState } from "../sim/sim.ts";
+import { HANDLING, type SimState } from "../sim/sim.ts";
 import { COURSE } from "../sim/track.ts";
 import {
   createCameraOrbitState,
@@ -8,9 +8,10 @@ import {
   updateCameraOrbit,
   type CameraOrbitState,
 } from "./camera.ts";
-import { CAR_GEOMETRY, createCar, type CarView } from "./car.ts";
+import { createCar, type CarView } from "./car.ts";
 import { addCourse } from "./course.ts";
 import { createGarageScene } from "./garage.ts";
+import { updateWheelPresentation } from "./wheels.ts";
 
 export type ViewMode = "track" | "garage";
 
@@ -23,7 +24,6 @@ export interface View extends CarView {
   cameraPosition: THREE.Vector3;
   cameraTarget: THREE.Vector3;
   cameraOrbit: CameraOrbitState;
-  wheelSpin: number;
   mode: ViewMode;
 }
 
@@ -78,7 +78,6 @@ export function createView(canvas: HTMLCanvasElement): View {
     cameraPosition: initialBehind,
     cameraTarget: new THREE.Vector3(COURSE.start.x, COURSE.start.y + 0.9, COURSE.start.z),
     cameraOrbit: createCameraOrbitState(),
-    wheelSpin: 0,
     mode: "track",
   };
 
@@ -91,6 +90,13 @@ export function createView(canvas: HTMLCanvasElement): View {
   resize();
   return view;
 }
+
+/**
+ * How much the chase camera trails the direction of travel instead of the car's
+ * heading. 0 bolts it to the body and hides every slide; 1 ignores the body
+ * entirely and makes straight-line driving feel loose.
+ */
+const CAMERA_SLIP_FOLLOW = 0.7;
 
 export function resetViewCamera(view: View): void {
   resetCameraOrbit(view.cameraOrbit);
@@ -177,18 +183,28 @@ export function render(
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);
 
-  const speedRatio = Math.min(1, car.speed / 53);
+  const speedRatio = Math.min(1, car.speed / HANDLING.topSpeed);
   view.carVisual.rotation.z = -car.steering * speedRatio * 0.045;
   view.carVisual.rotation.x = -Math.sign(car.forwardSpeed) * speedRatio * 0.018;
-  view.frontWheels.forEach((wheel) => { wheel.rotation.y = -car.steering * CAR_GEOMETRY.maxSteerAngle; });
-  view.wheelSpin -= car.forwardSpeed * frameDelta / 0.36;
-  view.allWheels.forEach((wheel) => { wheel.rotation.x = view.wheelSpin; });
+  updateWheelPresentation(view, car);
 
   const forwardX = -Math.sin(car.heading);
   const forwardZ = -Math.cos(car.heading);
   updateCameraOrbit(view.cameraOrbit, cameraLook, car.speed, frameDelta);
   const distance = 7.2 + speedRatio * 2.7;
-  const orbitHeading = car.heading + view.cameraOrbit.yawOffset;
+  // Follow where the car is travelling, not where it is pointing. Locked to the
+  // heading, a slide rotates the camera with the body: the car sits square in
+  // frame and the whole world swings, so slip reads as the car translating
+  // sideways instead of rotating. Trailing the velocity instead lets the nose
+  // visibly point into the corner, which is what makes a slide legible.
+  const velocityX = -Math.sin(car.heading) * car.forwardSpeed + Math.cos(car.heading) * car.lateralSpeed;
+  const velocityZ = -Math.cos(car.heading) * car.forwardSpeed - Math.sin(car.heading) * car.lateralSpeed;
+  const travelHeading = car.speed > 1.5 ? Math.atan2(-velocityX, -velocityZ) : car.heading;
+  let towardTravel = travelHeading - car.heading;
+  while (towardTravel > Math.PI) towardTravel -= Math.PI * 2;
+  while (towardTravel < -Math.PI) towardTravel += Math.PI * 2;
+  const chaseHeading = car.heading + towardTravel * CAMERA_SLIP_FOLLOW;
+  const orbitHeading = chaseHeading + view.cameraOrbit.yawOffset;
   const horizontalDistance = distance * Math.cos(view.cameraOrbit.pitchOffset);
   const targetPosition = new THREE.Vector3(
     car.x + Math.sin(orbitHeading) * horizontalDistance,

@@ -6,7 +6,7 @@
 
 import * as THREE from "three";
 import type { View } from "../render/scene.ts";
-import type { Input, Sim } from "../sim/sim.ts";
+import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
 
 export type DebugScreen = "main" | "garage" | "track" | "pause";
 
@@ -20,6 +20,7 @@ export interface DebugBridge {
   setFrozen(frozen: boolean): void;
   isFrozen(): boolean;
   setTelemetry(visible: boolean): void;
+  pause(): void;
 }
 
 interface PickResult {
@@ -34,7 +35,14 @@ const NEUTRAL: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
 
 function describeGeometry(geometry: THREE.BufferGeometry): string {
   const p = (geometry as { parameters?: Record<string, number | undefined> }).parameters;
-  if (!p) return geometry.type;
+  // Hand-built geometry carries no parameters, so measure it rather than
+  // reporting a bare "BufferGeometry" and losing the size readout.
+  if (!p) {
+    geometry.computeBoundingBox();
+    const size = geometry.boundingBox!.getSize(new THREE.Vector3());
+    const vertices = geometry.getAttribute("position").count;
+    return `mesh ${size.x.toFixed(2)}x${size.y.toFixed(2)}x${size.z.toFixed(2)} (${vertices} verts)`;
+  }
   // Planes carry width/height but no depth, so presence has to be checked per
   // field rather than inferred from the first one that happens to exist.
   const n = (value: number | undefined) => (value === undefined ? "?" : value.toFixed(2));
@@ -95,6 +103,9 @@ export function installDebugApi(bridge: DebugBridge): void {
       click('[data-menu-action="start"]');
     } else if (screen === "main") {
       click('[data-menu-screen="pause"] [data-menu-action="main-menu"]');
+    } else if (screen === "pause") {
+      if (document.body.dataset.gameScreen !== "playing" && document.body.dataset.gameScreen !== "pause") go("track");
+      bridge.pause();
     }
     bridge.renderOnce();
     return document.body.dataset.gameScreen ?? "unknown";
@@ -187,6 +198,9 @@ export function installDebugApi(bridge: DebugBridge): void {
       // pick() takes these coordinates. A screenshot is often scaled from them.
       viewport: { width: Math.round(rect.width), height: Math.round(rect.height) },
       frozen: bridge.isFrozen(),
+      physicsVersion: sim.state.physicsVersion,
+      drivetrain: sim.state.drivetrain,
+      autoCountersteer: false,
       tick: sim.state.tick,
       customization: {
         paint: selected("paint"),
@@ -200,6 +214,15 @@ export function installDebugApi(bridge: DebugBridge): void {
         heading: Number(car.heading.toFixed(3)),
         speed: Number(car.speed.toFixed(2)),
         slipAngle: Number(car.slipAngle.toFixed(3)),
+        wheels: Object.fromEntries(Object.entries(car.wheels).map(([id, tyre]) => [id, {
+          steeringAngle: Number(tyre.steeringAngle.toFixed(3)),
+          slipAngle: Number(tyre.slipAngle.toFixed(3)),
+          normalLoad: Math.round(tyre.normalLoad),
+          longitudinalForce: Math.round(tyre.longitudinalForce),
+          lateralForce: Math.round(tyre.lateralForce),
+          longitudinalSpeed: Number(tyre.longitudinalSpeed.toFixed(2)),
+          gripUsed: Number((Math.hypot(tyre.longitudinalForce, tyre.lateralForce) / Math.max(1, tyre.gripLimit)).toFixed(3)),
+        }])),
       },
     };
   }
@@ -230,6 +253,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     url.search = "";
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");
+    url.searchParams.set("drivetrain", sim.state.drivetrain);
     for (const category of ["paint", "wheels", "stance"]) {
       const option = selected(category);
       if (option) url.searchParams.set(category, option);
@@ -244,6 +268,17 @@ export function installDebugApi(bridge: DebugBridge): void {
     state,
     go,
     set,
+    drivetrain: (layout: Drivetrain) => {
+      if (!isDrivetrain(layout)) throw new RangeError(`Unknown drivetrain: ${layout}`);
+      // Use the same button and new-run boundary as the human comparison flow.
+      const previous = document.body.dataset.gameScreen;
+      go("pause");
+      click(`[data-drivetrain="${layout}"]`);
+      if (previous === "playing") click('[data-menu-action="resume"]');
+      else if (previous === "main" || previous === "garage") go(previous);
+      bridge.renderOnce();
+      return state();
+    },
     tick,
     drive,
     shot,
@@ -259,13 +294,14 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.state()           screen, tick, customization, vehicle",
       "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause'",
       "__ns.set({paint:'ice', stance:'slammed', wheels:'alloy'})",
+      "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
       "__ns.tick(60)          advance 60 fixed ticks (works in a hidden tab)",
       "__ns.drive('W600,WD90') hold throttle 600 ticks, then throttle+right 90",
       "__ns.freeze()          stop the loop advancing, for stable captures",
       "__ns.shot()            PNG data URL of the current frame",
       "__ns.link()            a URL that reproduces the current state",
       "url: ?scene=garage&paint=blackglass&stance=slammed&telemetry=1",
-      "url: ?scene=track&drive=W600,WD90&freeze=1",
+      "url: ?scene=track&drivetrain=rwd&drive=W600,WD90&freeze=1",
     ].join("\n"),
   };
 
@@ -278,11 +314,17 @@ export function applyDeepLink(api: {
   drive(script: string): unknown;
   freeze(frozen?: boolean): boolean;
   telemetry(visible?: boolean): void;
+  drivetrain(layout: Drivetrain): unknown;
 }, search: string): void {
   const params = new URLSearchParams(search);
   if (params.size === 0) return;
 
   const scene = params.get("scene");
+  const drivetrain = params.get("drivetrain");
+  if (drivetrain !== null) {
+    if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
+    api.drivetrain(drivetrain);
+  }
   // Customization lives on the garage screen, so select it there before leaving.
   const wantsCustomization = ["paint", "wheels", "stance"].some((key) => params.has(key));
   if (wantsCustomization) api.go("garage");

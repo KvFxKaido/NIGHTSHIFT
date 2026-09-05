@@ -1,5 +1,6 @@
 import type { MenuCommand } from "../input/input.ts";
 import type { CustomizationCategory } from "../customization/customization.ts";
+import { isDrivetrain, type Drivetrain } from "../sim/sim.ts";
 import {
   createInitialMenuState,
   transitionMenu,
@@ -13,6 +14,8 @@ interface MenuCallbacks {
   restartRun(): void;
   returnToMain(): void;
   resumeRun(): void;
+  getDrivetrain(): Drivetrain;
+  selectDrivetrain(drivetrain: Drivetrain): void;
   customize(category: CustomizationCategory, optionId: string): void;
   screenChanged(screen: MenuScreen): void;
 }
@@ -44,6 +47,12 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   let state: MenuState = createInitialMenuState();
 
+  function renderDrivetrain(): void {
+    root.querySelectorAll<HTMLButtonElement>("[data-drivetrain]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.drivetrain === callbacks.getDrivetrain()));
+    });
+  }
+
   function visibleItems(): HTMLButtonElement[] {
     const screen = screens.get(state.screen);
     return screen
@@ -56,6 +65,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   }
 
   function renderState(previousScreen?: MenuScreen): void {
+    renderDrivetrain();
     document.body.dataset.gameScreen = state.screen;
     root.hidden = state.screen === "playing";
     root.setAttribute("aria-hidden", String(state.screen === "playing"));
@@ -125,6 +135,15 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   root.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
+    const drivetrainButton = event.target.closest<HTMLButtonElement>("[data-drivetrain]");
+    if (drivetrainButton) {
+      const drivetrain = drivetrainButton.dataset.drivetrain;
+      if (isDrivetrain(drivetrain)) {
+        callbacks.selectDrivetrain(drivetrain);
+        renderDrivetrain();
+      }
+      return;
+    }
     const button = event.target.closest<HTMLButtonElement>("[data-menu-action]");
     const customizationButton = event.target.closest<HTMLButtonElement>("[data-customization]");
     if (customizationButton) {
