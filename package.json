@@ -5,6 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.13.0",
   "scripts": {
+    "car:export": "node scripts/export-car.mjs",
+    "assets:car": "node scripts/optimize-car.mjs",
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc && vite build",
@@ -15,7 +17,11 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@gltf-transform/core": "4.5.0",
+    "@gltf-transform/extensions": "4.5.0",
+    "@gltf-transform/functions": "4.5.0",
     "@types/three": "^0.185.1",
+    "gltf-validator": "2.0.0-dev.3.10",
     "typescript": "^7.0.2",
     "vite": "^8.1.5"
   }

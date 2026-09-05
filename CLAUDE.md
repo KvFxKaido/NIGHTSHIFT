@@ -63,6 +63,14 @@ uses a dedicated presentation scene and the same car mesh as the track; paint,
 wheel finish, and visual ride height carry across views for the current session.
 They do not alter simulation handling or represent purchased performance parts.
 Menu state gates fixed simulation ticks rather than living inside the renderer.
+The default car is the original NS-01 Blender asset (`assets/cars/ns-coupe-01.blend`
+-> `public/assets/cars/ns-coupe-01.glb` -> `src/render/blender-car.ts`). The old
+procedural `src/render/car.ts` body is retained behind `?car=classic`; its geometry
+tests do not validate the new model. Read `assets/cars/README.md` before editing
+or exporting the Blender car. `pnpm car:export` exports saved hand edits without
+regenerating the source; `scripts/build-coupe.py` deliberately overwrites it.
+New body clearance uses triangle-vs-convex-wheel tests because its wheel arches
+make it concave. Neither asset changes the simulation collider or handling.
 The sampled course has
 automated centerline, road-clearance, corner-envelope, and reference-driver
 checks. It also owns a 24 m elevation profile used by vehicle height,

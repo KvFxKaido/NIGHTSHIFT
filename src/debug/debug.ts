@@ -195,6 +195,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     return {
       screen: document.body.dataset.gameScreen ?? "unknown",
       mode: view.mode,
+      carModel: view.car.userData.model ?? "classic",
       // pick() takes these coordinates. A screenshot is often scaled from them.
       viewport: { width: Math.round(rect.width), height: Math.round(rect.height) },
       frozen: bridge.isFrozen(),
@@ -251,6 +252,7 @@ export function installDebugApi(bridge: DebugBridge): void {
   function link(): string {
     const url = new URL(location.href);
     url.search = "";
+    if (view.car.userData.model !== "ns-01") url.searchParams.set("car", "classic");
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");
     url.searchParams.set("drivetrain", sim.state.drivetrain);

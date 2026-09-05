@@ -11,6 +11,13 @@
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; background: #070910; overflow: hidden; }
       body { color: #f2eee3; }
+      #asset-status {
+        position: fixed; z-index: 20; inset: 40% 12% auto;
+        padding: 24px; text-align: center; line-height: 1.6;
+        background: #101520; border-left: 2px solid #59d8ff;
+      }
+      body:not([data-asset-state="ready"]) #menu-root,
+      body:not([data-asset-state="ready"]) #hud { visibility: hidden; }
       canvas { display: block; width: 100%; height: 100%; }
       #vignette {
         position: fixed; inset: 0; pointer-events: none;
@@ -61,7 +68,8 @@
       }
     </style>
   </head>
-  <body data-game-screen="main">
+  <body data-game-screen="main" data-asset-state="loading">
+    <div id="asset-status" role="status">Loading NS-01…</div>
     <canvas id="view" tabindex="-1" aria-label="NIGHTSHIFT handling course"></canvas>
     <div id="vignette"></div>
     <div id="hud">

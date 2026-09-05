@@ -61,6 +61,12 @@ car mesh as the track and currently offers paint, wheel finish, and visual ride
 height. Choices carry into the driving view for the current session; performance
 parts, prices, and save persistence are intentionally not implied yet.
 
+The default car is the original **NS-01 Blender coupe**. Its editable source,
+export workflow and small hands-on guide are in
+[`assets/cars/README.md`](assets/cars/README.md). Paint, wheels and stance work on
+the imported GLB; the original procedural car is still available at
+`?scene=garage&car=classic` for comparison. This changes visuals, not handling.
+
 Controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
 and Space/A applies the handbrake. The right stick orbits the camera; R3/C
 recenters it. R/Y resets, P/View replays the current run, and H/LB toggles

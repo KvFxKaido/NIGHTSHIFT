@@ -5,16 +5,34 @@ import {
 } from "./customization/customization.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController } from "./input/input.ts";
-import { applyCarCustomization } from "./render/car.ts";
+import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
+import { BLENDER_CAR_PATH, loadBlenderCar } from "./render/blender-car.ts";
 import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
 import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createMenuController } from "./ui/menu.ts";
 
-await RAPIER.init();
+const assetStatus = document.getElementById("asset-status")!;
+let carParts: CarView;
+try {
+  await RAPIER.init();
+  const model = new URLSearchParams(location.search).get("car") ?? "blender";
+  if (model !== "blender" && model !== "classic") throw new Error(`Unknown car model '${model}'`);
+  carParts = model === "classic" ? createCar()
+    : await loadBlenderCar(new URL(BLENDER_CAR_PATH, document.baseURI).href);
+} catch (error) {
+  document.body.dataset.assetState = "error";
+  assetStatus.setAttribute("role", "alert");
+  assetStatus.textContent = `Car loading failed: ${error instanceof Error ? error.message : String(error)}. ` +
+    "Refresh to retry, or use ?car=classic for the original procedural car.";
+  // No invisible model or silent replacement when an authored asset breaks.
+  throw error;
+}
 
 const input = createInputController();
 const sim = createSim();
-const view = createView(document.getElementById("view") as HTMLCanvasElement);
+const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts);
+document.body.dataset.assetState = "ready";
+assetStatus.remove();
 const speedElement = document.getElementById("speed")!;
 const gearElement = document.getElementById("gear")!;
 const modeElement = document.getElementById("mode")!;

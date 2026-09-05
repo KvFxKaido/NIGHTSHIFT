@@ -8,7 +8,7 @@ import {
   updateCameraOrbit,
   type CameraOrbitState,
 } from "./camera.ts";
-import { createCar, type CarView } from "./car.ts";
+import type { CarView } from "./car.ts";
 import { addCourse } from "./course.ts";
 import { createGarageScene } from "./garage.ts";
 import { updateWheelPresentation } from "./wheels.ts";
@@ -27,7 +27,7 @@ export interface View extends CarView {
   mode: ViewMode;
 }
 
-export function createView(canvas: HTMLCanvasElement): View {
+export function createView(canvas: HTMLCanvasElement, carParts: CarView): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -58,7 +58,6 @@ export function createView(canvas: HTMLCanvasElement): View {
   scene.add(moon.target);
   const garageScene = createGarageScene();
 
-  const carParts = createCar();
   carParts.car.rotation.order = "YXZ";
   scene.add(carParts.car);
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 650);
