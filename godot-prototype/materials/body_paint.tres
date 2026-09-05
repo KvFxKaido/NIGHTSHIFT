@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "BodyPaint"
+albedo_color = Color(0.6588235, 0.0509804, 0.1843137, 1)
+metallic = 0.72
+roughness = 0.2

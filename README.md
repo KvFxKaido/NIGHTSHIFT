@@ -1,6 +1,6 @@
 # NIGHTSHIFT
 
-**Status: Early Concept — Phase 0 (wiring).**
+**Status: Early Prototype — Phase 1 (handling lab).**
 Working title: *Project Nightshift.*
 
 A compact arcade street racer: illegal nighttime racing, one car worth
@@ -35,16 +35,42 @@ carries the physics, it steps inside this tick, never in the render loop.
 
 ```bash
 pnpm install
-pnpm dev        # → http://localhost:5173 — WASD / arrows drive
+pnpm dev        # → http://localhost:5173
+pnpm test       # deterministic simulation smoke tests
 pnpm build      # typecheck + production build
 ```
 
-What's on screen today is Phase 0: a placeholder box on a night grid,
-proving input → fixed-tick sim → chase camera end to end, with Rapier's
-wasm pipeline initialized. The placeholder kinematics are explicitly not
-the handling model — that is Phase 1's entire job, and it is the
-project's first quality gate: **poor handling cannot be rescued by more
-content.**
+What's on screen today is the first Phase 1 environment prototype: a low-poly
+tuner on the 1.70 km Blackglass Circuit, with physical barriers, a long lit
+tunnel, a genuinely elevated steel-frame bridge, rolling district grades, an
+urban skyline, custom arcade vehicle forces resolved through Rapier, a
+grip-limited steering envelope, speed-sensitive chase camera,
+keyboard and standard gamepad controls, a controller-navigable title, track,
+garage, and pause flow, instant reset, replay, and optional handling
+telemetry. The handling values are deliberately exposed together in
+`src/sim/sim.ts`; this is a tuning surface, not a finished vehicle model. The
+course brief and current prototype boundaries live in `design/BLACKGLASS.md`.
+
+The proposed core gameplay hook is documented in
+[`design/LIVE_CRED.md`](design/LIVE_CRED.md): stylish racing creates temporary
+Cred that can be burned on Surge or carried across the finish line to buy
+parts. It is a design target, not functionality in the current build.
+
+The garage is a functional first visual-customization slice. It uses the same
+car mesh as the track and currently offers paint, wheel finish, and visual ride
+height. Choices carry into the driving view for the current session; performance
+parts, prices, and save persistence are intentionally not implied yet.
+
+Controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
+and Space/A applies the handbrake. The right stick orbits the camera; R3/C
+recenters it. R/Y resets, P/View replays the current run, and H/LB toggles
+telemetry. Escape/Options pauses; arrows or the D-pad navigate menus, and
+Enter/Cross selects. The HUD confirms when a standard gamepad is ready.
+In the garage, the right stick orbits the inspection camera and R3/C recenters it.
+Headless tests also measure road-surface clearance and exercise both a paced
+reference lap and a deliberately doomed throttle-pinned lap.
+The elevation profile is simulation-owned: the road, car, barriers, camera, and
+small uphill/downhill acceleration effect all use the same sampled course data.
 
 ## Structure
 
@@ -54,10 +80,26 @@ NIGHTSHIFT/
 │   └── GDD.md        # the design document — source of truth
 ├── src/
 │   ├── sim/          # the game: deterministic, renderless, testable
+│   ├── input/        # physical controls → simulation actions
 │   ├── render/       # the picture: three.js, knows nothing else
 │   └── main.ts       # wiring: input → fixed tick → render + input log
+├── tests/             # headless deterministic simulation checks
 └── index.html
 ```
+
+## Godot trial and third-party assets
+
+The separate [Godot workshop](godot-prototype/README.md) is an editor-workflow
+trial, not a replacement for the browser build. Its reference sports sedan and
+palette texture come from [Kenney's Car Kit](https://kenney.nl/assets/car-kit)
+under CC0; the [license](godot-prototype/assets/kenney-car-kit/License.txt) and
+[source/processing notes](godot-prototype/assets/kenney-car-kit/README.md) are
+included beside the model.
+
+The local `car inspiration/` and `track inspiration/` folders are not cleared
+project assets and are excluded from version control. Generated screenshots,
+test reports, build output, and Godot caches are also excluded. Do not remove
+these exclusions when preparing a public source release.
 
 ## Production order
 

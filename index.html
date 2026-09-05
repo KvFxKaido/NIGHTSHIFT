@@ -3,20 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NIGHTSHIFT</title>
+    <meta name="theme-color" content="#070910" />
+    <title>NIGHTSHIFT — Blackglass Circuit</title>
+    <link rel="stylesheet" href="/src/ui/menu.css" />
     <style>
-      html, body { margin: 0; height: 100%; background: #0a0a12; overflow: hidden; }
-      canvas { display: block; }
-      #boot {
-        position: fixed; left: 12px; bottom: 10px;
-        color: #4a5568; font: 11px/1.4 monospace; letter-spacing: 1px;
-        pointer-events: none; white-space: pre;
+      :root { color-scheme: dark; font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: #070910; overflow: hidden; }
+      body { color: #f2eee3; }
+      canvas { display: block; width: 100%; height: 100%; }
+      #vignette {
+        position: fixed; inset: 0; pointer-events: none;
+        background: radial-gradient(circle at center, transparent 48%, rgba(2, 3, 8, .62) 125%);
+      }
+      #brand {
+        position: fixed; top: 22px; left: 26px; pointer-events: none;
+        display: flex; align-items: center; gap: 12px;
+        color: rgba(242, 238, 227, .82); font-size: 12px; font-weight: 800;
+        letter-spacing: .26em; text-transform: uppercase;
+      }
+      #brand::before { content: ""; width: 30px; height: 2px; background: #ff2850; box-shadow: 0 0 14px #ff2850; }
+      #mode { color: #59d8ff; font-size: 10px; letter-spacing: .18em; }
+      #device {
+        padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .15);
+        color: rgba(242, 238, 227, .52); font-size: 9px; letter-spacing: .14em;
+      }
+      #controls {
+        position: fixed; left: 26px; bottom: 24px; pointer-events: none;
+        max-width: 390px; color: rgba(230, 229, 220, .62);
+        font: 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+        letter-spacing: .06em; text-transform: uppercase;
+      }
+      #controls strong { color: rgba(255, 255, 255, .92); font-weight: 600; }
+      #speedometer {
+        position: fixed; right: 28px; bottom: 22px; pointer-events: none;
+        display: grid; grid-template-columns: auto auto; align-items: end; column-gap: 10px;
+        filter: drop-shadow(0 3px 15px rgba(0, 0, 0, .8));
+      }
+      #speed { font-size: clamp(52px, 7vw, 82px); font-weight: 900; line-height: .76; letter-spacing: -.06em; }
+      #unit { color: rgba(242, 238, 227, .58); font: 10px/1 ui-monospace, monospace; letter-spacing: .14em; }
+      #gear {
+        grid-column: 2; grid-row: 1; min-width: 28px; color: #ff3158;
+        font-size: 34px; font-weight: 900; line-height: .75; text-align: center;
+      }
+      #telemetry {
+        position: fixed; top: 60px; left: 26px; padding: 11px 13px;
+        border-left: 2px solid #59d8ff; background: rgba(5, 8, 15, .72);
+        color: rgba(215, 241, 248, .74); font: 10px/1.55 ui-monospace, monospace;
+        white-space: pre; pointer-events: none; opacity: 0; transform: translateX(-8px);
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+      #telemetry.visible { opacity: 1; transform: translateX(0); }
+      @media (max-width: 640px) {
+        #brand { top: 15px; left: 16px; }
+        #controls { left: 16px; bottom: 15px; max-width: 235px; font-size: 9px; }
+        #speedometer { right: 17px; bottom: 17px; }
       }
     </style>
   </head>
-  <body>
-    <canvas id="view"></canvas>
-    <div id="boot"></div>
+  <body data-game-screen="main">
+    <canvas id="view" tabindex="-1" aria-label="NIGHTSHIFT handling course"></canvas>
+    <div id="vignette"></div>
+    <div id="hud">
+      <div id="brand">
+        <span>NIGHTSHIFT / BLACKGLASS</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
+      </div>
+      <div id="telemetry"></div>
+      <div id="controls">
+        <strong>WASD / arrows · left stick / D-pad</strong> steer<br />
+        <strong>W / RT</strong> gas &nbsp; <strong>S / LT</strong> brake &nbsp; <strong>space / A</strong> handbrake<br />
+        <strong>right stick</strong> camera &nbsp; <strong>R3 / C</strong> recenter<br />
+        <strong>esc / options</strong> pause &nbsp; <strong>R / Y</strong> reset &nbsp; <strong>P / View</strong> replay &nbsp; <strong>H / LB</strong> telemetry
+      </div>
+      <div id="speedometer" aria-label="Vehicle speed">
+        <span id="speed">000</span><span id="gear">N</span><span id="unit">MPH</span>
+      </div>
+    </div>
+
+    <div id="menu-root" class="menu-root" data-screen="main" aria-label="Game menu">
+      <main class="menu-shell">
+        <section class="menu-screen" data-menu-screen="main" aria-labelledby="main-menu-title">
+          <p class="menu-kicker">Blackglass District / 01:13</p>
+          <h1 id="main-menu-title" class="menu-title">Night<br /><span>Shift</span></h1>
+          <p class="menu-lede">One car. One district. Every corner becomes currency when you drive it like you mean it.</p>
+          <nav class="menu-actions" aria-label="Main menu">
+            <button class="menu-button primary" data-menu-action="track-select">Drive</button>
+            <button class="menu-button" data-menu-action="garage">Garage</button>
+          </nav>
+          <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
+        </section>
+
+        <section class="menu-screen" data-menu-screen="track-select" aria-labelledby="track-menu-title" hidden>
+          <p class="menu-kicker">Route Select / District 01</p>
+          <h2 id="track-menu-title" class="menu-heading">Choose the run</h2>
+          <div class="track-card" aria-label="Selected track: Blackglass Circuit">
+            <p class="menu-meta">Selected / Night circuit</p>
+            <h3 class="track-name">Blackglass Circuit</h3>
+            <div class="track-stats">
+              <span class="track-stat"><span class="track-stat-label">Distance</span>1.70 km</span>
+              <span class="track-stat"><span class="track-stat-label">Vertical</span>24 m</span>
+              <span class="track-stat"><span class="track-stat-label">Signature</span>Tunnel</span>
+            </div>
+          </div>
+          <nav class="menu-actions" aria-label="Track selection actions">
+            <button class="menu-button primary" data-menu-action="start">Start Run</button>
+            <button class="menu-button" data-menu-action="back">Back</button>
+          </nav>
+          <p class="menu-footer">More routes arrive when the district earns them.</p>
+        </section>
+
+        <section class="menu-screen garage-menu" data-menu-screen="garage" aria-labelledby="garage-menu-title" hidden>
+          <p class="menu-kicker">Garage / Bay 01</p>
+          <h2 id="garage-menu-title" class="menu-heading">Street build</h2>
+          <p class="menu-meta garage-car-label">Project car / Visual setup</p>
+
+          <div class="garage-controls">
+            <fieldset class="garage-control">
+              <legend>Paint</legend>
+              <div class="garage-options paint-options">
+                <button class="garage-option paint-option" style="--option-color: #a80d2f" data-customization="paint" data-option="signal" aria-label="Signal Red paint" aria-pressed="true"><span>Signal</span></button>
+                <button class="garage-option paint-option" style="--option-color: #111722" data-customization="paint" data-option="blackglass" aria-label="Blackglass paint" aria-pressed="false"><span>Black</span></button>
+                <button class="garage-option paint-option" style="--option-color: #c47a18" data-customization="paint" data-option="sodium" aria-label="Sodium Gold paint" aria-pressed="false"><span>Gold</span></button>
+                <button class="garage-option paint-option" style="--option-color: #d8dde2" data-customization="paint" data-option="ice" aria-label="Ice White paint" aria-pressed="false"><span>Ice</span></button>
+                <button class="garage-option paint-option" style="--option-color: #4a2378" data-customization="paint" data-option="ultraviolet" aria-label="Ultraviolet paint" aria-pressed="false"><span>Ultra</span></button>
+              </div>
+            </fieldset>
+
+            <fieldset class="garage-control">
+              <legend>Wheel finish</legend>
+              <div class="garage-options text-options">
+                <button class="garage-option" data-customization="wheels" data-option="graphite" aria-pressed="true">Graphite</button>
+                <button class="garage-option" data-customization="wheels" data-option="alloy" aria-pressed="false">Alloy</button>
+                <button class="garage-option" data-customization="wheels" data-option="white" aria-pressed="false">White</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="garage-control">
+              <legend>Ride height <span>visual</span></legend>
+              <div class="garage-options text-options">
+                <button class="garage-option" data-customization="stance" data-option="street" aria-pressed="true">Street</button>
+                <button class="garage-option" data-customization="stance" data-option="low" aria-pressed="false">Low</button>
+                <button class="garage-option" data-customization="stance" data-option="slammed" aria-pressed="false">Slammed</button>
+              </div>
+            </fieldset>
+          </div>
+
+          <nav class="menu-actions garage-actions" aria-label="Garage actions">
+            <button class="menu-button primary" data-menu-action="back">Back</button>
+          </nav>
+          <p class="menu-footer">Right stick inspects · R3 / C recenters · changes carry to the street</p>
+        </section>
+
+        <section class="menu-screen" data-menu-screen="pause" role="dialog" aria-modal="true" aria-labelledby="pause-menu-title" hidden>
+          <p class="menu-kicker">Blackglass Circuit</p>
+          <h2 id="pause-menu-title" class="menu-heading">Paused</h2>
+          <nav class="menu-actions" aria-label="Pause menu">
+            <button class="menu-button primary" data-menu-action="resume">Resume</button>
+            <button class="menu-button" data-menu-action="restart">Restart Run</button>
+            <button class="menu-button" data-menu-action="track-select">Track Select</button>
+            <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
+          </nav>
+          <p class="menu-footer">Esc / Options to resume</p>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

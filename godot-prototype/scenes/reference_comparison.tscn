@@ -1,0 +1,96 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/reference_comparison.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/car.tscn" id="Car"]
+[ext_resource type="PackedScene" path="res://scenes/reference_car.tscn" id="Reference"]
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.055, 0.069, 0.09, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.75, 0.78, 0.82, 1)
+ambient_light_energy = 0.6
+reflected_light_source = 2
+tonemap_mode = 3
+
+[sub_resource type="StandardMaterial3D" id="Clay"]
+resource_name = "ComparisonClay"
+albedo_color = Color(0.62, 0.64, 0.66, 1)
+metallic = 0.0
+metallic_specular = 0.25
+roughness = 0.78
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.12, 0.14, 0.17, 1)
+roughness = 1.0
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(200, 0.1, 200)
+material = SubResource("FloorMaterial")
+
+[sub_resource type="StandardMaterial3D" id="PlinthMaterial"]
+albedo_color = Color(0.18, 0.21, 0.25, 1)
+roughness = 0.9
+
+[sub_resource type="CylinderMesh" id="PlinthMesh"]
+top_radius = 2.75
+bottom_radius = 2.78
+height = 0.12
+radial_segments = 64
+material = SubResource("PlinthMaterial")
+
+[sub_resource type="StandardMaterial3D" id="DividerMaterial"]
+albedo_color = Color(0.29, 0.41, 0.46, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="DividerMesh"]
+size = Vector3(0.025, 0.005, 7)
+material = SubResource("DividerMaterial")
+
+[node name="ReferenceComparison" type="Node3D"]
+script = ExtResource("Script")
+environment = SubResource("Environment")
+clay_material = SubResource("Clay")
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.05, 0)
+mesh = SubResource("FloorMesh")
+
+[node name="Divider" type="MeshInstance3D" parent="."]
+mesh = SubResource("DividerMesh")
+
+[node name="OurPlinth" type="MeshInstance3D" parent="."]
+position = Vector3(3.2, 0.06, 0)
+mesh = SubResource("PlinthMesh")
+
+[node name="ReferencePlinth" type="MeshInstance3D" parent="."]
+position = Vector3(-3.2, 0.06, 0)
+mesh = SubResource("PlinthMesh")
+
+[node name="OurTurntable" type="Node3D" parent="."]
+position = Vector3(3.2, 0.12, 0)
+rotation = Vector3(0, -0.55, 0)
+
+[node name="Car" parent="OurTurntable" instance=ExtResource("Car")]
+position = Vector3(0, -0.04, 0.0155544)
+
+[node name="ReferenceTurntable" type="Node3D" parent="."]
+position = Vector3(-3.2, 0.12, 0)
+rotation = Vector3(0, -0.55, 0)
+
+[node name="ReferenceCar" parent="ReferenceTurntable" instance=ExtResource("Reference")]
+
+[node name="Key" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-50, -30, 0)
+light_color = Color(1, 0.97, 0.92, 1)
+light_energy = 1.1
+shadow_enabled = true
+directional_shadow_max_distance = 35.0
+
+[node name="Fill" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-30, 140, 0)
+light_color = Color(0.88, 0.94, 1, 1)
+light_energy = 0.5
+
+[editable path="OurTurntable/Car"]
+[editable path="ReferenceTurntable/ReferenceCar"]

@@ -1,0 +1,353 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/workshop.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/garage.tscn" id="Garage"]
+[ext_resource type="PackedScene" path="res://scenes/circuit.tscn" id="Circuit"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="Player"]
+[ext_resource type="PackedScene" path="res://scenes/reference_comparison.tscn" id="Comparison"]
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.022, 0.03, 0.05, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.4, 0.5, 0.7, 1)
+ambient_light_energy = 0.65
+reflected_light_source = 2
+tonemap_mode = 3
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.022, 0.03, 0.05, 0.92)
+border_width_right = 2
+border_color = Color(0.35, 0.85, 1, 1)
+corner_radius_top_left = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyle"]
+bg_color = Color(0.05, 0.07, 0.105, 1)
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+border_width_left = 2
+border_color = Color(0.85, 0.12, 0.28, 1)
+
+[sub_resource type="StyleBoxFlat" id="FocusStyle"]
+bg_color = Color(0.10, 0.20, 0.27, 0.7)
+border_width_left = 2
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.85, 1, 1)
+
+[sub_resource type="Theme" id="Theme"]
+default_font_size = 15
+Button/styles/normal = SubResource("ButtonStyle")
+Button/styles/focus = SubResource("FocusStyle")
+Button/styles/hover = SubResource("FocusStyle")
+OptionButton/styles/normal = SubResource("ButtonStyle")
+OptionButton/styles/focus = SubResource("FocusStyle")
+OptionButton/styles/hover = SubResource("FocusStyle")
+Label/colors/font_color = Color(0.92, 0.91, 0.87, 1)
+
+[sub_resource type="LabelSettings" id="BrandText"]
+font_size = 19
+font_color = Color(0.95, 0.93, 0.88, 1)
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 4
+
+[sub_resource type="LabelSettings" id="SpeedText"]
+font_size = 56
+font_color = Color(0.96, 0.95, 0.92, 1)
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 5
+
+[node name="Workshop" type="Node3D"]
+script = ExtResource("Script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -35, 0)
+light_color = Color(0.55, 0.69, 0.95, 1)
+light_energy = 0.6
+shadow_enabled = true
+directional_shadow_max_distance = 180.0
+
+[node name="Garage" parent="." instance=ExtResource("Garage")]
+
+[node name="Circuit" parent="." instance=ExtResource("Circuit")]
+visible = false
+
+[node name="Comparison" parent="." instance=ExtResource("Comparison")]
+visible = false
+
+[node name="Player" parent="." instance=ExtResource("Player")]
+position = Vector3(0, 0.14, 0)
+
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(5.4, 2.9, -5.4)
+current = true
+fov = 48.0
+far = 600.0
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="Brand" type="Label" parent="Interface"]
+offset_left = 28.0
+offset_top = 23.0
+text = "NIGHTSHIFT / WORKSHOP"
+label_settings = SubResource("BrandText")
+mouse_filter = 2
+
+[node name="Mode" type="Label" parent="Interface"]
+offset_left = 29.0
+offset_top = 51.0
+theme_override_colors/font_color = Color(0.35, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "GARAGE / BAY 01"
+mouse_filter = 2
+
+[node name="Hint" type="Label" parent="Interface"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -61.0
+offset_right = 1050.0
+offset_bottom = -18.0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.75, 0.79, 1)
+mouse_filter = 2
+
+[node name="Speed" type="Label" parent="Interface"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -100.0
+offset_right = -30.0
+offset_bottom = -25.0
+text = "000 MPH"
+label_settings = SubResource("SpeedText")
+horizontal_alignment = 2
+mouse_filter = 2
+
+[node name="GaragePanel" type="PanelContainer" parent="Interface"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -328.0
+offset_top = -231.0
+offset_right = -24.0
+offset_bottom = 231.0
+theme = SubResource("Theme")
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Margin" type="MarginContainer" parent="Interface/GaragePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Controls" type="VBoxContainer" parent="Interface/GaragePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "STREET BUILD"
+
+[node name="Subtitle" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.62, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "PROJECT CAR / VISUAL SETUP"
+
+[node name="PaintLabel" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+text = "Paint"
+
+[node name="Paint" type="OptionButton" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+item_count = 5
+selected = 0
+popup/item_0/text = "Signal Red"
+popup/item_1/text = "Blackglass"
+popup/item_1/id = 1
+popup/item_2/text = "Sodium Gold"
+popup/item_2/id = 2
+popup/item_3/text = "Ice White"
+popup/item_3/id = 3
+popup/item_4/text = "Ultraviolet"
+popup/item_4/id = 4
+
+[node name="WheelsLabel" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+text = "Wheel finish"
+
+[node name="Wheels" type="OptionButton" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+item_count = 3
+selected = 0
+popup/item_0/text = "Graphite"
+popup/item_1/text = "Bright Alloy"
+popup/item_1/id = 1
+popup/item_2/text = "Chalk White"
+popup/item_2/id = 2
+
+[node name="StanceLabel" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+text = "Ride height"
+
+[node name="Stance" type="OptionButton" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+item_count = 3
+selected = 0
+popup/item_0/text = "Street"
+popup/item_1/text = "Low"
+popup/item_1/id = 1
+popup/item_2/text = "Slammed"
+popup/item_2/id = 2
+
+[node name="Spacer" type="Control" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 5)
+
+[node name="Drive" type="Button" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+text = "DRIVE THE LOOP  >"
+
+[node name="Compare" type="Button" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+text = "COMPARE REFERENCE BODY"
+
+[node name="Footnote" type="Label" parent="Interface/GaragePanel/Margin/Controls"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.62, 0.7, 1)
+text = "D-PAD / LEFT STICK  navigate\nCROSS / ENTER  select"
+
+[node name="PausePanel" type="PanelContainer" parent="Interface"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -140.0
+offset_right = 170.0
+offset_bottom = 140.0
+theme = SubResource("Theme")
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Margin" type="MarginContainer" parent="Interface/PausePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Controls" type="VBoxContainer" parent="Interface/PausePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Interface/PausePanel/Margin/Controls"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "PAUSED"
+
+[node name="Resume" type="Button" parent="Interface/PausePanel/Margin/Controls"]
+layout_mode = 2
+text = "RESUME"
+
+[node name="Restart" type="Button" parent="Interface/PausePanel/Margin/Controls"]
+layout_mode = 2
+text = "RESET CAR"
+
+[node name="Garage" type="Button" parent="Interface/PausePanel/Margin/Controls"]
+layout_mode = 2
+text = "RETURN TO GARAGE"
+
+[node name="ComparisonUI" type="Control" parent="Interface"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme = SubResource("Theme")
+
+[node name="Title" type="Label" parent="Interface/ComparisonUI"]
+offset_left = 28.0
+offset_top = 88.0
+theme_override_font_sizes/font_size = 27
+text = "BODY / SHAPE STUDY"
+mouse_filter = 2
+
+[node name="Description" type="Label" parent="Interface/ComparisonUI"]
+offset_left = 29.0
+offset_top = 126.0
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.66, 0.72, 0.78, 1)
+text = "Matched length. Original proportions. Shared lighting. Orthographic view."
+mouse_filter = 2
+
+[node name="OurLabel" type="Label" parent="Interface/ComparisonUI"]
+anchor_top = 0.78
+anchor_right = 0.5
+anchor_bottom = 0.78
+offset_top = -12.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 17
+text = "NIGHTSHIFT\nCURRENT BODY"
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="ReferenceLabel" type="Label" parent="Interface/ComparisonUI"]
+anchor_left = 0.5
+anchor_top = 0.78
+anchor_right = 1.0
+anchor_bottom = 0.78
+offset_top = -12.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 17
+text = "KENNEY / SPORTS SEDAN\nCC0 REFERENCE"
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Actions" type="HBoxContainer" parent="Interface/ComparisonUI"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -285.0
+offset_top = -112.0
+offset_right = 285.0
+offset_bottom = -68.0
+theme_override_constants/separation = 12
+
+[node name="Material" type="OptionButton" parent="Interface/ComparisonUI/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+item_count = 2
+selected = 0
+popup/item_0/text = "CLAY / SHAPE STUDY"
+popup/item_1/text = "ORIGINAL MATERIALS"
+popup/item_1/id = 1
+
+[node name="Back" type="Button" parent="Interface/ComparisonUI/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "BACK TO GARAGE"
+
+[editable path="Garage"]
+[editable path="Circuit"]
+[editable path="Player"]
+[editable path="Player/Car"]

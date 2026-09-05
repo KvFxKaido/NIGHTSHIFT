@@ -1,58 +1,178 @@
-/* The wiring: input → fixed-tick sim → render. Nothing here decides
-   gameplay either — it samples input, advances the sim at TICK_HZ with
-   an accumulator, and hands the latest state to the renderer.
-
-   The input log is the ghost door, open from commit one: every tick's
-   input is recorded, so (start state + log) IS the run. Phase 2 turns
-   this into restarts and ghosts; the witness-style share/verify layer
-   can come later, but only because this array exists now. */
-
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, step, DT, TICK_HZ, type Input } from "./sim/sim.ts";
-import { createView, render } from "./render/scene.ts";
+import {
+  createDefaultCustomization,
+  updateCustomization,
+} from "./customization/customization.ts";
+import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
+import { createInputController } from "./input/input.ts";
+import { applyCarCustomization } from "./render/car.ts";
+import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
+import { createSim, resetSim, step, DT, TICK_HZ, type Input } from "./sim/sim.ts";
+import { createMenuController } from "./ui/menu.ts";
 
-// Prove the wasm pipeline early (dev AND build) — the physics itself
-// arrives with the Phase 1 handling prototype, stepping inside the sim
-// tick, never in the render loop.
 await RAPIER.init();
 
-const boot = document.getElementById("boot")!;
-boot.textContent =
-  `NIGHTSHIFT — phase 0 wiring\n` +
-  `rapier ${RAPIER.version()} ready · sim ${TICK_HZ}Hz fixed tick · WASD / arrows drive`;
+const input = createInputController();
+const sim = createSim();
+const view = createView(document.getElementById("view") as HTMLCanvasElement);
+const speedElement = document.getElementById("speed")!;
+const gearElement = document.getElementById("gear")!;
+const modeElement = document.getElementById("mode")!;
+const deviceElement = document.getElementById("device")!;
+const telemetryElement = document.getElementById("telemetry")!;
+let customization = createDefaultCustomization();
+applyCarCustomization(view, customization);
 
-const held = new Set<string>();
-addEventListener("keydown", (e) => held.add(e.code));
-addEventListener("keyup", (e) => held.delete(e.code));
+const inputLog: Input[] = [];
+let lastRun: Input[] = [];
+let replay: Input[] | null = null;
+let replayTick = 0;
+let debugVisible = false;
+// Set by __ns.freeze(): holds the fixed simulation still so a capture of a given
+// state is the same image every time.
+let frozen = false;
 
-function sampleInput(): Input {
-  return {
-    throttle: held.has("KeyW") || held.has("ArrowUp") ? 1 : 0,
-    brake: held.has("KeyS") || held.has("ArrowDown") ? 1 : 0,
-    steer:
-      (held.has("KeyA") || held.has("ArrowLeft") ? -1 : 0) +
-      (held.has("KeyD") || held.has("ArrowRight") ? 1 : 0),
-  };
+function reset(archive = true): void {
+  if (archive && inputLog.length > 0) lastRun = inputLog.slice();
+  inputLog.length = 0;
+  replay = null;
+  replayTick = 0;
+  resetSim(sim);
+  resetViewCamera(view);
 }
 
-const sim = createSim();
-const inputLog: Input[] = [];
-const view = createView(document.getElementById("view") as HTMLCanvasElement);
+function beginReplay(): void {
+  const source = inputLog.length > 0 ? inputLog : lastRun;
+  if (source.length === 0) return;
+  lastRun = source.slice();
+  reset(false);
+  replay = lastRun;
+}
+
+const menu = createMenuController({
+  startTrack: () => {
+    reset();
+    input.armDrivingInputGate();
+  },
+  restartRun: () => {
+    reset();
+    input.armDrivingInputGate();
+  },
+  returnToMain: () => reset(),
+  resumeRun: () => input.armDrivingInputGate(),
+  customize: (category, optionId) => {
+    customization = updateCustomization(customization, category, optionId);
+    applyCarCustomization(view, customization);
+  },
+  screenChanged: (screen) => setViewMode(view, screen === "garage" ? "garage" : "track"),
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) menu.pause();
+});
+
+function updateHud(): void {
+  const car = sim.state.vehicle;
+  speedElement.textContent = Math.round(car.speed * 2.237).toString().padStart(3, "0");
+  gearElement.textContent = car.forwardSpeed < -0.5 ? "R" : car.speed < 0.5 ? "N" : "D";
+  modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%` : "LIVE";
+  const gamepadName = input.gamepadName();
+  deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
+  deviceElement.title = gamepadName ?? "No standard gamepad detected";
+  telemetryElement.textContent =
+    `forward ${car.forwardSpeed.toFixed(1)} m/s\n` +
+    `lateral ${car.lateralSpeed.toFixed(1)} m/s\n` +
+    `slip ${(car.slipAngle * 180 / Math.PI).toFixed(1)}°\n` +
+    `yaw ${car.yawRate.toFixed(2)} rad/s\n` +
+    `altitude ${car.y.toFixed(1)} m\n` +
+    `grade ${(Math.tan(car.pitch) * 100).toFixed(1)}%\n` +
+    `tick ${sim.state.tick}`;
+  telemetryElement.classList.toggle("visible", debugVisible);
+}
 
 let last = performance.now();
-let acc = 0;
+let accumulator = 0;
 
-function frame(now: number) {
-  // real time stays out here; the sim only ever sees whole ticks of DT
-  acc += Math.min(0.25, (now - last) / 1000);
+function frame(now: number): void {
+  const frameDelta = Math.min(0.1, (now - last) / 1000);
   last = now;
-  while (acc >= DT) {
-    const input = sampleInput();
-    inputLog.push(input);
-    step(sim, input);
-    acc -= DT;
+
+  input.update();
+  menu.handleCommands(input.consumeMenuCommands());
+  const gameplayActive = menu.isGameplayActive();
+  const garageActive = menu.isGarageActive();
+  const resetRequested = input.consumeReset();
+  const cameraResetRequested = input.consumeCameraReset();
+  const replayRequested = input.consumeReplay();
+  const debugToggleRequested = input.consumeDebugToggle();
+  if (gameplayActive && resetRequested) reset();
+  if ((gameplayActive || garageActive) && cameraResetRequested) resetViewCamera(view);
+  if (gameplayActive && replayRequested) beginReplay();
+  if (gameplayActive && debugToggleRequested) debugVisible = !debugVisible;
+
+  if (gameplayActive && !frozen) accumulator += frameDelta;
+  else accumulator = 0;
+
+  while (gameplayActive && accumulator >= DT) {
+    let tickInput: Input;
+    if (replay) {
+      tickInput = replay[replayTick] ?? { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+      replayTick++;
+      if (replayTick >= replay.length) {
+        replay = null;
+        replayTick = 0;
+        inputLog.length = 0;
+      }
+    } else {
+      tickInput = input.sample();
+      inputLog.push(tickInput);
+    }
+    step(sim, tickInput);
+    accumulator -= DT;
   }
-  render(view, sim);
+
+  updateHud();
+  render(
+    view,
+    sim.state,
+    frameDelta,
+    gameplayActive || garageActive ? input.cameraLook() : { x: 0, y: 0 },
+  );
   requestAnimationFrame(frame);
 }
+
+function renderFrame(frameDelta: number): void {
+  updateHud();
+  render(
+    view,
+    sim.state,
+    frameDelta,
+    menu.isGameplayActive() || menu.isGarageActive() ? input.cameraLook() : { x: 0, y: 0 },
+  );
+}
+
+installDebugApi({
+  view,
+  sim,
+  canvas: view.renderer.domElement,
+  // Ticks the same way the live loop does, so a scripted run stays a real run:
+  // the input still lands in the log and replay reproduces it.
+  advance: (ticks, tickInput) => {
+    for (let index = 0; index < ticks; index++) {
+      inputLog.push(tickInput);
+      step(sim, tickInput);
+    }
+  },
+  renderOnce: (frames = 1) => {
+    for (let index = 0; index < frames; index++) renderFrame(DT);
+  },
+  setFrozen: (value) => { frozen = value; },
+  isFrozen: () => frozen,
+  setTelemetry: (visible) => { debugVisible = visible; },
+});
+
+const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
+applyDeepLink(debugApi, location.search);
+
+modeElement.title = `Rapier ${RAPIER.version()} · ${TICK_HZ} Hz fixed simulation`;
 requestAnimationFrame(frame);

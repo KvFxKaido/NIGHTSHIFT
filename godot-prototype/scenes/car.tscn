@@ -1,0 +1,1330 @@
+[gd_scene load_steps=141 format=3]
+
+[ext_resource type="Script" path="res://scripts/car_visual.gd" id="External_1"]
+
+[ext_resource type="Material" path="res://materials/body_paint.tres" id="External_2"]
+
+[ext_resource type="Material" path="res://materials/wheel_finish.tres" id="External_3"]
+
+[sub_resource type="BoxMesh" id="Resource_2"]
+size = Vector3(1.5, 0.12, 0.215)
+
+[sub_resource type="StandardMaterial3D" id="Resource_3"]
+albedo_color = Color(0.0392157, 0.0470588, 0.0627451, 1)
+metallic = 0.25
+roughness = 0.65
+
+[sub_resource type="BoxMesh" id="Resource_5"]
+size = Vector3(1.2081402, 0.12, 0.92)
+
+[sub_resource type="BoxMesh" id="Resource_7"]
+size = Vector3(1.5, 0.12, 2.915)
+
+[sub_resource type="BoxMesh" id="Resource_9"]
+size = Vector3(0.12, 0.6, 0.82)
+
+[sub_resource type="BoxMesh" id="Resource_11"]
+size = Vector3(0.12, 0.6, 0.82)
+
+[sub_resource type="BoxMesh" id="Resource_13"]
+size = Vector3(0.12, 0.6, 0.82)
+
+[sub_resource type="BoxMesh" id="Resource_15"]
+size = Vector3(0.12, 0.6, 0.82)
+
+[sub_resource type="BoxMesh" id="Resource_17"]
+size = Vector3(0.12, 0.14, 1.84)
+
+[sub_resource type="BoxMesh" id="Resource_19"]
+size = Vector3(0.14, 0.48, 1.84)
+
+[sub_resource type="BoxMesh" id="Resource_21"]
+size = Vector3(0.26, 0.05, 1.74)
+
+[sub_resource type="BoxMesh" id="Resource_23"]
+size = Vector3(0.16, 0.36, 0.36)
+
+[sub_resource type="BoxMesh" id="Resource_25"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_27"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_29"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_31"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_33"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_35"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_37"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_39"]
+size = Vector3(0.18, 0.38, 0.42)
+
+[sub_resource type="BoxMesh" id="Resource_41"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_43"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_45"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_47"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_49"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_51"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_53"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_55"]
+size = Vector3(0.04, 0.04, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Resource_56"]
+albedo_color = Color(1, 0.5803922, 0, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_58"]
+size = Vector3(0.04, 0.04, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Resource_59"]
+albedo_color = Color(1, 0.1176471, 0, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_61"]
+size = Vector3(0.18, 0.08, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_63"]
+size = Vector3(0.12, 0.14, 1.84)
+
+[sub_resource type="BoxMesh" id="Resource_65"]
+size = Vector3(0.14, 0.48, 1.84)
+
+[sub_resource type="BoxMesh" id="Resource_67"]
+size = Vector3(0.26, 0.05, 1.74)
+
+[sub_resource type="BoxMesh" id="Resource_69"]
+size = Vector3(0.16, 0.36, 0.36)
+
+[sub_resource type="BoxMesh" id="Resource_71"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_73"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_75"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_77"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_79"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_81"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_83"]
+size = Vector3(0.3959299, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_85"]
+size = Vector3(0.18, 0.38, 0.42)
+
+[sub_resource type="BoxMesh" id="Resource_87"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_89"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_91"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_93"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_95"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_97"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_99"]
+size = Vector3(0.33, 0.1, 0.2407684)
+
+[sub_resource type="BoxMesh" id="Resource_101"]
+size = Vector3(0.04, 0.04, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_103"]
+size = Vector3(0.04, 0.04, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_105"]
+size = Vector3(0.18, 0.08, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_107"]
+size = Vector3(1.2081402, 0.08, 1.54)
+
+[sub_resource type="BoxMesh" id="Resource_109"]
+size = Vector3(0.34, 0.06, 0.86)
+
+[sub_resource type="BoxMesh" id="Resource_111"]
+size = Vector3(0.3, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="Resource_113"]
+size = Vector3(0.38, 0.015, 0.38)
+
+[sub_resource type="BoxMesh" id="Resource_115"]
+size = Vector3(0.4, 0.01, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="Resource_116"]
+albedo_color = Color(0.0784314, 0.0941176, 0.1254902, 1)
+metallic = 0.5
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="Resource_118"]
+size = Vector3(0.38, 0.015, 0.38)
+
+[sub_resource type="BoxMesh" id="Resource_120"]
+size = Vector3(0.4, 0.01, 0.4)
+
+[sub_resource type="BoxMesh" id="Resource_122"]
+size = Vector3(0.86, 0.22, 0.22)
+
+[sub_resource type="BoxMesh" id="Resource_124"]
+size = Vector3(0.86, 0.22, 0.22)
+
+[sub_resource type="BoxMesh" id="Resource_126"]
+size = Vector3(0.56, 0.05, 0.08)
+
+[sub_resource type="BoxMesh" id="Resource_128"]
+size = Vector3(0.5, 0.024, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="Resource_129"]
+albedo_color = Color(1, 0.0627451, 0.1411765, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_132"]
+size = Vector3(1.82, 0.06, 0.32)
+
+[sub_resource type="BoxMesh" id="Resource_134"]
+size = Vector3(1.52, 0.14, 0.16)
+
+[sub_resource type="BoxMesh" id="Resource_136"]
+size = Vector3(0.14, 0.08, 0.03)
+
+[sub_resource type="StandardMaterial3D" id="Resource_137"]
+albedo_color = Color(1, 0.9803922, 0.8784314, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_139"]
+size = Vector3(0.14, 0.08, 0.03)
+
+[sub_resource type="BoxMesh" id="Resource_141"]
+size = Vector3(0.14, 0.08, 0.03)
+
+[sub_resource type="BoxMesh" id="Resource_143"]
+size = Vector3(0.14, 0.08, 0.03)
+
+[sub_resource type="BoxMesh" id="Resource_145"]
+size = Vector3(1.44, 0.06, 1.76)
+
+[sub_resource type="StandardMaterial3D" id="Resource_146"]
+albedo_color = Color(0.0627451, 0.0745098, 0.0941176, 1)
+metallic = 0.1
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Resource_148"]
+size = Vector3(1.36, 0.22, 0.38)
+
+[sub_resource type="BoxMesh" id="Resource_150"]
+size = Vector3(0.18, 0.18, 0.04)
+
+[sub_resource type="BoxMesh" id="Resource_152"]
+size = Vector3(0.42, 0.14, 0.44)
+
+[sub_resource type="StandardMaterial3D" id="Resource_153"]
+albedo_color = Color(0.5803922, 0.454902, 0.3215686, 1)
+metallic = 0.05
+roughness = 0.78
+
+[sub_resource type="BoxMesh" id="Resource_155"]
+size = Vector3(0.4, 0.46, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_157"]
+size = Vector3(0.24, 0.14, 0.1)
+
+[sub_resource type="BoxMesh" id="Resource_159"]
+size = Vector3(0.42, 0.14, 0.44)
+
+[sub_resource type="BoxMesh" id="Resource_161"]
+size = Vector3(0.4, 0.46, 0.12)
+
+[sub_resource type="BoxMesh" id="Resource_163"]
+size = Vector3(0.24, 0.14, 0.1)
+
+[sub_resource type="BoxMesh" id="Resource_165"]
+size = Vector3(1.42, 0.04, 0.68)
+
+[sub_resource type="StandardMaterial3D" id="Resource_166"]
+albedo_color = Color(0.0313725, 0.0627451, 0.0941176, 0.78)
+metallic = 0.85
+roughness = 0.12
+transparency = 1
+cull_mode = 2
+
+[sub_resource type="BoxMesh" id="Resource_168"]
+size = Vector3(0.06, 0.06, 0.7)
+
+[sub_resource type="BoxMesh" id="Resource_170"]
+size = Vector3(0.06, 0.06, 0.7)
+
+[sub_resource type="BoxMesh" id="Resource_172"]
+size = Vector3(0.18, 0.05, 0.58)
+
+[sub_resource type="BoxMesh" id="Resource_174"]
+size = Vector3(1.32, 0.05, 0.08)
+
+[sub_resource type="BoxMesh" id="Resource_176"]
+size = Vector3(1.36, 0.06, 0.1)
+
+[sub_resource type="BoxMesh" id="Resource_178"]
+size = Vector3(0.16, 0.07, 0.68)
+
+[sub_resource type="BoxMesh" id="Resource_180"]
+size = Vector3(0.16, 0.07, 0.68)
+
+[sub_resource type="BoxMesh" id="Resource_182"]
+size = Vector3(0.54, 0.03, 0.5)
+
+[sub_resource type="BoxMesh" id="Resource_184"]
+size = Vector3(0.54, 0.03, 0.5)
+
+[sub_resource type="BoxMesh" id="Resource_186"]
+size = Vector3(1.32, 0.04, 1.1)
+
+[sub_resource type="BoxMesh" id="Resource_188"]
+size = Vector3(0.12, 0.4, 0.72)
+
+[sub_resource type="BoxMesh" id="Resource_190"]
+size = Vector3(0.03, 0.32, 0.74)
+
+[sub_resource type="BoxMesh" id="Resource_192"]
+size = Vector3(0.12, 0.4, 0.72)
+
+[sub_resource type="BoxMesh" id="Resource_194"]
+size = Vector3(0.03, 0.32, 0.74)
+
+[sub_resource type="BoxMesh" id="Resource_196"]
+size = Vector3(1.5, 0.08, 0.64)
+
+[sub_resource type="BoxMesh" id="Resource_198"]
+size = Vector3(1.92, 0.05, 0.28)
+
+[sub_resource type="BoxMesh" id="Resource_200"]
+size = Vector3(0.14, 0.14, 0.18)
+
+[sub_resource type="BoxMesh" id="Resource_202"]
+size = Vector3(0.08, 0.14, 0.42)
+
+[sub_resource type="BoxMesh" id="Resource_204"]
+size = Vector3(0.08, 0.14, 0.42)
+
+[sub_resource type="BoxMesh" id="Resource_206"]
+size = Vector3(1.76, 0.2, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="Resource_207"]
+albedo_color = Color(0.0784314, 0.0196078, 0.027451, 1)
+metallic = 0.4
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="Resource_209"]
+size = Vector3(0.54, 0.1, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="Resource_210"]
+albedo_color = Color(1, 0.0784314, 0.1568627, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_212"]
+size = Vector3(0.54, 0.1, 0.02)
+
+[sub_resource type="BoxMesh" id="Resource_214"]
+size = Vector3(0.36, 0.03, 0.02)
+
+[sub_resource type="BoxMesh" id="Resource_216"]
+size = Vector3(0.38, 0.08, 0.02)
+
+[sub_resource type="BoxMesh" id="Resource_219"]
+size = Vector3(1.78, 0.16, 0.24)
+
+[sub_resource type="CylinderMesh" id="Resource_221"]
+top_radius = 0.042
+bottom_radius = 0.042
+height = 0.22
+radial_segments = 12
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Resource_222"]
+albedo_color = Color(0.8156863, 0.8470588, 0.8784314, 1)
+metallic = 0.95
+roughness = 0.22
+
+[sub_resource type="CylinderMesh" id="Resource_224"]
+top_radius = 0.032
+bottom_radius = 0.032
+height = 0.03
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_226"]
+top_radius = 0.042
+bottom_radius = 0.042
+height = 0.22
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_228"]
+top_radius = 0.032
+bottom_radius = 0.032
+height = 0.03
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_229"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.25
+radial_segments = 16
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Resource_230"]
+albedo_color = Color(0.027451, 0.0313725, 0.0392157, 1)
+metallic = 0.05
+roughness = 0.82
+
+[sub_resource type="CylinderMesh" id="Resource_231"]
+top_radius = 0.24
+bottom_radius = 0.24
+height = 0.265
+radial_segments = 16
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Resource_232"]
+albedo_color = Color(0.8627451, 0.8862745, 0.9254902, 1)
+metallic = 0.95
+roughness = 0.18
+
+[sub_resource type="CylinderMesh" id="Resource_233"]
+top_radius = 0.2
+bottom_radius = 0.2
+height = 0.276
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_234"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.285
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_235"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.25
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_236"]
+top_radius = 0.24
+bottom_radius = 0.24
+height = 0.265
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_237"]
+top_radius = 0.2
+bottom_radius = 0.2
+height = 0.276
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_238"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.285
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_239"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.25
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_240"]
+top_radius = 0.24
+bottom_radius = 0.24
+height = 0.265
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_241"]
+top_radius = 0.2
+bottom_radius = 0.2
+height = 0.276
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_242"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.285
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_243"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.25
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_244"]
+top_radius = 0.24
+bottom_radius = 0.24
+height = 0.265
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_245"]
+top_radius = 0.2
+bottom_radius = 0.2
+height = 0.276
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Resource_246"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.285
+radial_segments = 8
+rings = 1
+
+[node name="Car" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("External_1")
+
+[node name="Visual" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="BodyShell" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="floor_pan_1" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.26, -1.9175)
+mesh = SubResource("Resource_2")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="floor_pan_4" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.26, -1.35)
+mesh = SubResource("Resource_5")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="floor_pan_6" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.26, 0.5675)
+mesh = SubResource("Resource_7")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="front_inner_liner_8" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5440701, 0.63, -1.35)
+mesh = SubResource("Resource_9")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="front_inner_liner_10" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5440701, 0.63, -1.35)
+mesh = SubResource("Resource_11")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="rear_inner_liner_12" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.69, 0.63, 1.35)
+mesh = SubResource("Resource_13")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="rear_inner_liner_14" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.69, 0.63, 1.35)
+mesh = SubResource("Resource_15")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_16" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.91, 0.32, 0)
+mesh = SubResource("Resource_17")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_18" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.63, 0)
+mesh = SubResource("Resource_19")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_20" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86, 0.855, 0)
+mesh = SubResource("Resource_21")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_22" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.57, -1.96)
+mesh = SubResource("Resource_23")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_0_24" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, 0.9659258, 0, -0.9659258, 0.258819, -0.8020351, 0.5319977, -1.8426222)
+mesh = SubResource("Resource_25")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_1_26" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, 0.7660444, 0, -0.7660444, 0.6427876, -0.8020351, 0.7278217, -1.7406827)
+mesh = SubResource("Resource_27")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_2_28" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, 0.4226183, 0, -0.4226183, 0.9063078, -0.8020351, 0.862217, -1.5655353)
+mesh = SubResource("Resource_29")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_3_30" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8020351, 0.91, -1.35)
+mesh = SubResource("Resource_31")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_4_32" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, -0.4226183, 0, 0.4226183, 0.9063078, -0.8020351, 0.862217, -1.1344647)
+mesh = SubResource("Resource_33")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_5_34" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, -0.7660444, 0, 0.7660444, 0.6427876, -0.8020351, 0.7278217, -0.9593173)
+mesh = SubResource("Resource_35")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_6_36" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, -0.9659258, 0, 0.9659258, 0.258819, -0.8020351, 0.5319977, -0.8573778)
+mesh = SubResource("Resource_37")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_38" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.93, 0.59, 1.94)
+mesh = SubResource("Resource_39")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_0_40" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, 0.9659258, 0, -0.9659258, 0.258819, -0.865, 0.5319977, 0.8573778)
+mesh = SubResource("Resource_41")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_1_42" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, 0.7660444, 0, -0.7660444, 0.6427876, -0.865, 0.7278217, 0.9593173)
+mesh = SubResource("Resource_43")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_2_44" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, 0.4226183, 0, -0.4226183, 0.9063078, -0.865, 0.862217, 1.1344647)
+mesh = SubResource("Resource_45")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_3_46" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.865, 0.91, 1.35)
+mesh = SubResource("Resource_47")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_4_48" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, -0.4226183, 0, 0.4226183, 0.9063078, -0.865, 0.862217, 1.5655353)
+mesh = SubResource("Resource_49")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_5_50" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, -0.7660444, 0, 0.7660444, 0.6427876, -0.865, 0.7278217, 1.7406827)
+mesh = SubResource("Resource_51")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_6_52" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, -0.9659258, 0, 0.9659258, 0.258819, -0.865, 0.5319977, 1.8426222)
+mesh = SubResource("Resource_53")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_54" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.985, 0.54, -1.98)
+mesh = SubResource("Resource_55")
+material_override = SubResource("Resource_56")
+cast_shadow = 0
+
+[node name="Mesh_57" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.015, 0.6, 1.96)
+mesh = SubResource("Resource_58")
+material_override = SubResource("Resource_59")
+cast_shadow = 0
+
+[node name="Mesh_60" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9887711, 0, 0.1494381, 0, 1, 0, -0.1494381, 0, 0.9887711, -0.86, 0.88, -0.58)
+mesh = SubResource("Resource_61")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_62" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.91, 0.32, 0)
+mesh = SubResource("Resource_63")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_64" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.63, 0)
+mesh = SubResource("Resource_65")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_66" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.86, 0.855, 0)
+mesh = SubResource("Resource_67")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_68" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.57, -1.96)
+mesh = SubResource("Resource_69")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_0_70" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, 0.9659258, 0, -0.9659258, 0.258819, 0.8020351, 0.5319977, -1.8426222)
+mesh = SubResource("Resource_71")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_1_72" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, 0.7660444, 0, -0.7660444, 0.6427876, 0.8020351, 0.7278217, -1.7406827)
+mesh = SubResource("Resource_73")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_2_74" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, 0.4226183, 0, -0.4226183, 0.9063078, 0.8020351, 0.862217, -1.5655353)
+mesh = SubResource("Resource_75")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_3_76" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8020351, 0.91, -1.35)
+mesh = SubResource("Resource_77")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_4_78" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, -0.4226183, 0, 0.4226183, 0.9063078, 0.8020351, 0.862217, -1.1344647)
+mesh = SubResource("Resource_79")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_5_80" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, -0.7660444, 0, 0.7660444, 0.6427876, 0.8020351, 0.7278217, -0.9593173)
+mesh = SubResource("Resource_81")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="front_arch_rib_6_82" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, -0.9659258, 0, 0.9659258, 0.258819, 0.8020351, 0.5319977, -0.8573778)
+mesh = SubResource("Resource_83")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_84" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.93, 0.59, 1.94)
+mesh = SubResource("Resource_85")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_0_86" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, 0.9659258, 0, -0.9659258, 0.258819, 0.865, 0.5319977, 0.8573778)
+mesh = SubResource("Resource_87")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_1_88" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, 0.7660444, 0, -0.7660444, 0.6427876, 0.865, 0.7278217, 0.9593173)
+mesh = SubResource("Resource_89")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_2_90" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, 0.4226183, 0, -0.4226183, 0.9063078, 0.865, 0.862217, 1.1344647)
+mesh = SubResource("Resource_91")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_3_92" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.865, 0.91, 1.35)
+mesh = SubResource("Resource_93")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_4_94" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9063078, -0.4226183, 0, 0.4226183, 0.9063078, 0.865, 0.862217, 1.5655353)
+mesh = SubResource("Resource_95")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_5_96" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.6427876, -0.7660444, 0, 0.7660444, 0.6427876, 0.865, 0.7278217, 1.7406827)
+mesh = SubResource("Resource_97")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="rear_arch_rib_6_98" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.258819, -0.9659258, 0, 0.9659258, 0.258819, 0.865, 0.5319977, 1.8426222)
+mesh = SubResource("Resource_99")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_100" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.985, 0.54, -1.98)
+mesh = SubResource("Resource_101")
+material_override = SubResource("Resource_56")
+cast_shadow = 0
+
+[node name="Mesh_102" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.015, 0.6, 1.96)
+mesh = SubResource("Resource_103")
+material_override = SubResource("Resource_59")
+cast_shadow = 0
+
+[node name="Mesh_104" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9887711, 0, -0.1494381, 0, 1, 0, 0.1494381, 0, 0.9887711, 0.86, 0.88, -0.58)
+mesh = SubResource("Resource_105")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="hood_106" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, 0, 0.7, -1.41)
+mesh = SubResource("Resource_107")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_108" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, -0.36, 0.77, -1.24)
+mesh = SubResource("Resource_109")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_110" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0.84, -0.8)
+mesh = SubResource("Resource_111")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_112" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, -0.3940701, 0.67, -1.82)
+mesh = SubResource("Resource_113")
+material_override = ExtResource("External_2")
+cast_shadow = 0
+
+[node name="Mesh_114" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, -0.3940701, 0.665, -1.82)
+mesh = SubResource("Resource_115")
+material_override = SubResource("Resource_116")
+cast_shadow = 0
+
+[node name="Mesh_117" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, 0.3940701, 0.67, -1.82)
+mesh = SubResource("Resource_118")
+material_override = ExtResource("External_2")
+cast_shadow = 0
+
+[node name="Mesh_119" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.980462, 0.1967088, 0, -0.1967088, 0.980462, 0.3940701, 0.665, -1.82)
+mesh = SubResource("Resource_120")
+material_override = SubResource("Resource_116")
+cast_shadow = 0
+
+[node name="Mesh_121" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9963897, 0, -0.0848977, 0, 1, 0, 0.0848977, 0, 0.9963897, -0.43, 0.55, -2.18)
+mesh = SubResource("Resource_122")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_123" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9963897, 0, 0.0848977, 0, 1, 0, -0.0848977, 0, 0.9963897, 0.43, 0.55, -2.18)
+mesh = SubResource("Resource_124")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_125" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, -2.26)
+mesh = SubResource("Resource_126")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_127" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, -2.285)
+mesh = SubResource("Resource_128")
+material_override = SubResource("Resource_129")
+cast_shadow = 0
+
+[node name="PointLight_130" type="OmniLight3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, -2.35)
+light_color = Color(1, 0.0823529, 0.145098, 1)
+light_energy = 0.65479
+shadow_enabled = false
+omni_range = 3.2
+omni_attenuation = 1.0
+
+[node name="Mesh_131" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, -2.12)
+mesh = SubResource("Resource_132")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_133" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.37, -2.16)
+mesh = SubResource("Resource_134")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_135" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0.37, -2.24)
+mesh = SubResource("Resource_136")
+material_override = SubResource("Resource_137")
+cast_shadow = 0
+
+[node name="Mesh_138" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.37, -2.24)
+mesh = SubResource("Resource_139")
+material_override = SubResource("Resource_137")
+cast_shadow = 0
+
+[node name="Mesh_140" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.37, -2.24)
+mesh = SubResource("Resource_141")
+material_override = SubResource("Resource_137")
+cast_shadow = 0
+
+[node name="Mesh_142" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0.37, -2.24)
+mesh = SubResource("Resource_143")
+material_override = SubResource("Resource_137")
+cast_shadow = 0
+
+[node name="Mesh_144" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0.18)
+mesh = SubResource("Resource_145")
+material_override = SubResource("Resource_146")
+cast_shadow = 0
+
+[node name="Mesh_147" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.74, -0.52)
+mesh = SubResource("Resource_148")
+material_override = SubResource("Resource_146")
+cast_shadow = 1
+
+[node name="Mesh_149" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9492354, -0.3145666, 0, 0.3145666, 0.9492354, -0.36, 0.82, -0.38)
+mesh = SubResource("Resource_150")
+material_override = SubResource("Resource_146")
+cast_shadow = 0
+
+[node name="Mesh_151" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0.48, 0.08)
+mesh = SubResource("Resource_152")
+material_override = SubResource("Resource_153")
+cast_shadow = 0
+
+[node name="Mesh_154" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9872273, -0.1593182, 0, 0.1593182, 0.9872273, -0.36, 0.76, 0.32)
+mesh = SubResource("Resource_155")
+material_override = SubResource("Resource_153")
+cast_shadow = 1
+
+[node name="Mesh_156" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9872273, -0.1593182, 0, 0.1593182, 0.9872273, -0.36, 1.02, 0.38)
+mesh = SubResource("Resource_157")
+material_override = SubResource("Resource_153")
+cast_shadow = 0
+
+[node name="Mesh_158" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.36, 0.48, 0.08)
+mesh = SubResource("Resource_159")
+material_override = SubResource("Resource_153")
+cast_shadow = 0
+
+[node name="Mesh_160" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9872273, -0.1593182, 0, 0.1593182, 0.9872273, 0.36, 0.76, 0.32)
+mesh = SubResource("Resource_161")
+material_override = SubResource("Resource_153")
+cast_shadow = 1
+
+[node name="Mesh_162" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9872273, -0.1593182, 0, 0.1593182, 0.9872273, 0.36, 1.02, 0.38)
+mesh = SubResource("Resource_163")
+material_override = SubResource("Resource_153")
+cast_shadow = 0
+
+[node name="Mesh_164" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.8020958, 0.5971954, 0, -0.5971954, 0.8020958, 0, 1.04, -0.38)
+mesh = SubResource("Resource_165")
+material_override = SubResource("Resource_166")
+cast_shadow = 1
+
+[node name="Mesh_167" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9928086, 0, 0.1197122, -0.0714916, 0.8020958, 0.5929008, -0.0960207, -0.5971954, 0.7963276, -0.68, 1.04, -0.38)
+mesh = SubResource("Resource_168")
+material_override = SubResource("Resource_116")
+cast_shadow = 0
+
+[node name="Mesh_169" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9928086, 0, -0.1197122, 0.0714916, 0.8020958, 0.5929008, 0.0960207, -0.5971954, 0.7963276, 0.68, 1.04, -0.38)
+mesh = SubResource("Resource_170")
+material_override = SubResource("Resource_116")
+cast_shadow = 0
+
+[node name="Mesh_171" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.23, 0.18)
+mesh = SubResource("Resource_172")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_173" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.23, -0.1)
+mesh = SubResource("Resource_174")
+material_override = SubResource("Resource_116")
+cast_shadow = 0
+
+[node name="Mesh_175" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, 0.46)
+mesh = SubResource("Resource_176")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_177" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.68, 1.215, 0.185)
+mesh = SubResource("Resource_178")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_179" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 1.215, 0.185)
+mesh = SubResource("Resource_180")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_181" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.355, 1.23, 0.18)
+mesh = SubResource("Resource_182")
+material_override = SubResource("Resource_166")
+cast_shadow = 0
+
+[node name="Mesh_183" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.355, 1.23, 0.18)
+mesh = SubResource("Resource_184")
+material_override = SubResource("Resource_166")
+cast_shadow = 0
+
+[node name="Mesh_185" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0.9427547, -0.3334871, 0, 0.3334871, 0.9427547, 0, 1.03, 0.96)
+mesh = SubResource("Resource_186")
+material_override = SubResource("Resource_166")
+cast_shadow = 1
+
+[node name="Mesh_187" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9950042, 0, 0.0998334, 0.0314043, 0.9492354, -0.312995, -0.0947654, 0.3145666, 0.9444932, -0.74, 1.01, 0.75)
+mesh = SubResource("Resource_188")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_189" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9928086, 0.1197122, 0, -0.1197122, 0.9928086, 0, 0, 0, 1, -0.74, 1.03, 0.02)
+mesh = SubResource("Resource_190")
+material_override = SubResource("Resource_166")
+cast_shadow = 0
+
+[node name="Mesh_191" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9950042, 0, -0.0998334, -0.0314043, 0.9492354, -0.312995, 0.0947654, 0.3145666, 0.9444932, 0.74, 1.01, 0.75)
+mesh = SubResource("Resource_192")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_193" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(0.9928086, -0.1197122, 0, 0.1197122, 0.9928086, 0, 0, 0, 1, 0.74, 1.03, 0.02)
+mesh = SubResource("Resource_194")
+material_override = SubResource("Resource_166")
+cast_shadow = 0
+
+[node name="Mesh_195" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.81, 1.76)
+mesh = SubResource("Resource_196")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_197" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.94, 2.02)
+mesh = SubResource("Resource_198")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_199" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, 1.98)
+mesh = SubResource("Resource_200")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_201" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.92, 0.88, 1.86)
+mesh = SubResource("Resource_202")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_203" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.92, 0.88, 1.86)
+mesh = SubResource("Resource_204")
+material_override = ExtResource("External_2")
+cast_shadow = 1
+
+[node name="Mesh_205" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.61, 2.12)
+mesh = SubResource("Resource_206")
+material_override = SubResource("Resource_207")
+cast_shadow = 0
+
+[node name="Mesh_208" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.54, 0.61, 2.165)
+mesh = SubResource("Resource_209")
+material_override = SubResource("Resource_210")
+cast_shadow = 0
+
+[node name="Mesh_211" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54, 0.61, 2.165)
+mesh = SubResource("Resource_212")
+material_override = SubResource("Resource_210")
+cast_shadow = 0
+
+[node name="Mesh_213" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.64, 2.165)
+mesh = SubResource("Resource_214")
+material_override = SubResource("Resource_210")
+cast_shadow = 0
+
+[node name="Mesh_215" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, 2.165)
+mesh = SubResource("Resource_216")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="PointLight_217" type="OmniLight3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.61, 2.26)
+light_color = Color(1, 0.0509804, 0.1254902, 1)
+light_energy = 0.5191339
+shadow_enabled = false
+omni_range = 2.8
+omni_attenuation = 1.0
+
+[node name="Mesh_218" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 2.06)
+mesh = SubResource("Resource_219")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_220" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.52, 0.33, 2.18)
+mesh = SubResource("Resource_221")
+material_override = SubResource("Resource_222")
+cast_shadow = 1
+
+[node name="Mesh_223" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.52, 0.33, 2.28)
+mesh = SubResource("Resource_224")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="Mesh_225" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.52, 0.33, 2.18)
+mesh = SubResource("Resource_226")
+material_override = SubResource("Resource_222")
+cast_shadow = 1
+
+[node name="Mesh_227" type="MeshInstance3D" parent="Visual/BodyShell"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.52, 0.33, 2.28)
+mesh = SubResource("Resource_228")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="FrontLeftPivot" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.92, 0.4, -1.35)
+
+[node name="Spin" type="Node3D" parent="Visual/FrontLeftPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Tire" type="MeshInstance3D" parent="Visual/FrontLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("Resource_229")
+material_override = SubResource("Resource_230")
+cast_shadow = 1
+
+[node name="RimLip" type="MeshInstance3D" parent="Visual/FrontLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.0075, 0, 0)
+mesh = SubResource("Resource_231")
+material_override = SubResource("Resource_232")
+cast_shadow = 1
+
+[node name="Dish" type="MeshInstance3D" parent="Visual/FrontLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.013, 0, 0)
+mesh = SubResource("Resource_233")
+material_override = ExtResource("External_3")
+cast_shadow = 1
+
+[node name="Hub" type="MeshInstance3D" parent="Visual/FrontLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.0175, 0, 0)
+mesh = SubResource("Resource_234")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="FrontRightPivot" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.92, 0.4, -1.35)
+
+[node name="Spin" type="Node3D" parent="Visual/FrontRightPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Tire" type="MeshInstance3D" parent="Visual/FrontRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("Resource_235")
+material_override = SubResource("Resource_230")
+cast_shadow = 1
+
+[node name="RimLip" type="MeshInstance3D" parent="Visual/FrontRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.0075, 0, 0)
+mesh = SubResource("Resource_236")
+material_override = SubResource("Resource_232")
+cast_shadow = 1
+
+[node name="Dish" type="MeshInstance3D" parent="Visual/FrontRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.013, 0, 0)
+mesh = SubResource("Resource_237")
+material_override = ExtResource("External_3")
+cast_shadow = 1
+
+[node name="Hub" type="MeshInstance3D" parent="Visual/FrontRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.0175, 0, 0)
+mesh = SubResource("Resource_238")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="RearLeftPivot" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.92, 0.4, 1.35)
+
+[node name="Spin" type="Node3D" parent="Visual/RearLeftPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Tire" type="MeshInstance3D" parent="Visual/RearLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("Resource_239")
+material_override = SubResource("Resource_230")
+cast_shadow = 1
+
+[node name="RimLip" type="MeshInstance3D" parent="Visual/RearLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.0075, 0, 0)
+mesh = SubResource("Resource_240")
+material_override = SubResource("Resource_232")
+cast_shadow = 1
+
+[node name="Dish" type="MeshInstance3D" parent="Visual/RearLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.013, 0, 0)
+mesh = SubResource("Resource_241")
+material_override = ExtResource("External_3")
+cast_shadow = 1
+
+[node name="Hub" type="MeshInstance3D" parent="Visual/RearLeftPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.0175, 0, 0)
+mesh = SubResource("Resource_242")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="RearRightPivot" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.92, 0.4, 1.35)
+
+[node name="Spin" type="Node3D" parent="Visual/RearRightPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Tire" type="MeshInstance3D" parent="Visual/RearRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("Resource_243")
+material_override = SubResource("Resource_230")
+cast_shadow = 1
+
+[node name="RimLip" type="MeshInstance3D" parent="Visual/RearRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.0075, 0, 0)
+mesh = SubResource("Resource_244")
+material_override = SubResource("Resource_232")
+cast_shadow = 1
+
+[node name="Dish" type="MeshInstance3D" parent="Visual/RearRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.013, 0, 0)
+mesh = SubResource("Resource_245")
+material_override = ExtResource("External_3")
+cast_shadow = 1
+
+[node name="Hub" type="MeshInstance3D" parent="Visual/RearRightPivot/Spin"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.0175, 0, 0)
+mesh = SubResource("Resource_246")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="SpotLight_247" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.999615, 0.027746, 0, -0.027746, 0.999615, 0, 0.78, -1.7)
+light_color = Color(0.8470588, 0.9686275, 1, 1)
+light_energy = 2.3216374
+shadow_enabled = false
+spot_range = 52
+spot_angle = 26.9290164
+spot_attenuation = 1.0

@@ -10,7 +10,7 @@ at `design/GDD.md` is the source of truth; when this file and the GDD
 disagree, the GDD wins, and when code and the GDD disagree, say so out
 loud instead of quietly picking one.
 
-Working title: Project Nightshift. Status: Early Concept — Phase 0.
+Working title: Project Nightshift. Status: Early Prototype — Phase 1.
 
 ## The two laws (non-negotiable)
 
@@ -42,15 +42,46 @@ Working title: Project Nightshift. Status: Early Concept — Phase 0.
 - **Handling is the first quality gate** (GDD §22). Poor handling cannot
   be rescued by more content. Phase 1 work outranks everything until the
   car feels good.
-- Phase 0's placeholder kinematics in `src/sim/sim.ts` are NOT the
-  handling model and set no precedent. Replace, don't extend.
+- Phase 1's handling values are intentionally centralized in `HANDLING` in
+  `src/sim/sim.ts`. Tune from evidence gathered on the handling course; do not
+  scatter feel constants through simulation or rendering code.
 
 ## Current state
 
-Phase 0 wiring: input → fixed-tick sim → chase camera, input log
-recording, Rapier wasm pipeline initialized (physics unused until
-Phase 1). `pnpm dev` to run, `pnpm build` to typecheck + build. CI runs
-the build on every push.
+Phase 1 environment prototype: one low-poly car on the 1.70 km Blackglass
+Circuit, including a long tunnel, steel-frame bridge, primitive city massing,
+custom arcade forces with a lateral-acceleration steering cap and Rapier
+collision resolution, keyboard and standard gamepad input, speed-sensitive
+chase camera with right-stick orbit, reset/replay, toggleable telemetry, and a
+light DOM menu shell for title, track selection, garage, and pause. The garage
+uses a dedicated presentation scene and the same car mesh as the track; paint,
+wheel finish, and visual ride height carry across views for the current session.
+They do not alter simulation handling or represent purchased performance parts.
+Menu state gates fixed simulation ticks rather than living inside the renderer.
+The sampled course has
+automated centerline, road-clearance, corner-envelope, and reference-driver
+checks. It also owns a 24 m elevation profile used by vehicle height,
+pitch, barriers, presentation, and deterministic grade acceleration. Vertical
+contact remains an arcade road constraint rather than a four-wheel suspension
+model. The course brief is `design/BLACKGLASS.md`.
+
+The proposed core gameplay/economy hook is Live Cred: style earned in a race
+can be burned on Surge or carried across the finish line as performance-parts
+currency. It is specified in `design/LIVE_CRED.md` and summarized in GDD
+sections 3.6, 5.1, and 8.4. **It is not implemented in the current prototype.**
+Keep Chain Cred, Live Cred, Banked Cred, and lifetime reputation distinct when
+working on it; race-time Surge must never consume the permanent wallet.
+Every mesh in the car and the course carries a kebab-case `name`, and
+`src/debug/debug.ts` installs `window.__ns` for inspection that both people and
+agents can drive: `__ns.pick(x, y, screenshotWidth)` names the mesh under a
+pixel, `__ns.find`, `__ns.state`, `__ns.drive("W600,WD90")`, `__ns.freeze()`,
+`__ns.shot()`. Scene state is reachable by URL — `?scene=garage&paint=blackglass
+&stance=slammed`, `?scene=track&drive=W600&freeze=1` — which is the supported
+way to reach a specific state; do not script menu clicks. The API clicks the
+real menu buttons, so a scripted jump cannot diverge from a human's.
+
+`pnpm dev` to run, `pnpm test` for deterministic simulation checks, and
+`pnpm build` to typecheck + build. CI runs the build on every push.
 
 ## Relationship to SENTINEL
 

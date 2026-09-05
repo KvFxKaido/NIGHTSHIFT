@@ -81,6 +81,15 @@ Reputation is expressed through cars, rivals, locations, music, UI treatment, an
 
 The game should feel like entering a local scene rather than advancing through a conventional sports championship.
 
+### 3.6 Style Becomes Speed
+
+Expressive driving produces Live Cred during a race. The player may burn that
+Cred on nitrous to improve the current result or carry it across the finish line
+as permanent upgrade currency.
+
+The hook is not merely scoring stylish actions. It is deciding when today's
+reputation is worth more as speed and when it is worth more as tomorrow's part.
+
 ---
 
 ## 4. Target Experience
@@ -94,7 +103,7 @@ The desired emotional rhythm is:
 5. Challenge them by flashing the headlights.
 6. Follow them to the starting location.
 7. Race through a familiar but newly configured part of the city.
-8. Earn cash, reputation, parts, or information.
+8. Earn Cred, reputation, parts, or information.
 9. Return to the garage or continue exploring.
 
 The player should regularly experience three distinct pleasures:
@@ -102,6 +111,7 @@ The player should regularly experience three distinct pleasures:
 - The immediate physical pleasure of driving
 - The strategic pleasure of recognizing a better route
 - The expressive pleasure of changing the car
+- The tactical pleasure of turning style into speed
 
 ---
 
@@ -129,6 +139,26 @@ Players earn reputation by:
 - Winning while using lower-tier equipment
 
 Major rivals act as chapter bosses. Defeating one unlocks the next level of the local racing scene.
+
+### 5.1 Live Cred Economy
+
+Cred is the first vertical slice's performance-parts currency. It exists in
+three forms during a race:
+
+- Chain Cred is provisional style value that can be lost through a collision.
+- Live Cred is secured during the current event and can fuel nitrous.
+- Banked Cred is permanent garage currency and cannot be consumed mid-race.
+
+Remaining Live Cred and the event's position payout are committed to Banked
+Cred only when the event finishes. Restarting or abandoning an attempt commits
+nothing. Replays reproduce the driving but never settle the economy.
+
+Reputation and lifetime style remain non-spendable progression records. For the
+first slice, a separate cash currency should not duplicate Cred without a
+distinct design purpose.
+
+The complete proposed rules, safeguards, interface requirements, and prototype
+plan live in [`LIVE_CRED.md`](LIVE_CRED.md). This system is not implemented yet.
 
 ---
 
@@ -278,7 +308,19 @@ The controller should support several overlapping states:
 
 Transitions between states should be predictable and forgiving.
 
-### 8.4 Car Personalities
+### 8.4 Live Cred and Surge
+
+Useful and expressive racing actions build a style chain. Cleanly completing
+the chain secures Live Cred; a collision can destroy only the unbanked portion.
+Valid sources include controlled slides, drafting, clean apex sequences,
+proximity driving, overtakes, shortcuts, and authored Nightlines.
+
+Holding Surge consumes Live Cred to provide nitrous acceleration. Surge cannot
+draw from the player's permanent Banked Cred and cannot generate enough style
+to sustain itself. The starter car should have access to this verb immediately;
+upgrades tune its delivery and efficiency rather than withholding the core hook.
+
+### 8.5 Car Personalities
 
 Cars should have distinct base characteristics.
 
@@ -337,6 +379,10 @@ Performance upgrades may include:
 - Differential tuning
 
 Each upgrade should change both numbers and perceived behavior.
+
+Performance parts are purchased with Banked Cred in the first vertical slice.
+Style should accelerate access to parts without becoming the only source of
+forward progress; base event payouts must keep weaker players moving.
 
 Examples:
 
@@ -474,6 +520,8 @@ Camera behavior should include:
 - Drift framing
 - Impact shake
 - Landing response
+- Right-stick orbit with automatic driving recenter
+- Persistent stopped-car inspection angle and explicit camera reset
 - Look-back control
 - Optional hood or bumper view
 
@@ -536,7 +584,9 @@ Core HUD information:
 - Gear
 - Position
 - Lap or checkpoint progress
-- Nitrous
+- Current style chain and multiplier
+- Live Cred and Surge state
+- Optional tracked-part price and projected post-race balance
 - Minimap or directional indicator
 - Rival status
 
@@ -671,7 +721,9 @@ The first playable vertical slice should include:
 - Headlight challenge interaction
 - Basic performance upgrades
 - Paint and wheel customization
-- Cash and reputation rewards
+- Live Cred and reputation rewards
+- Style-chain-to-Surge race loop
+- One Banked Cred performance-part purchase
 - Save and load
 - Controller support
 - A complete race restart loop
@@ -684,6 +736,8 @@ The slice is successful when:
 4. Upgrades create a perceptible handling difference.
 5. Moving between garage, hub, challenge, race, and rewards feels coherent.
 6. The district remains interesting after multiple races.
+7. Players sometimes burn Live Cred to improve a result and sometimes preserve
+   it for a part.
 
 ---
 
@@ -708,6 +762,7 @@ Phase 2: Race Prototype
 - Restart flow
 - Basic opponent
 - Timing and position tracking
+- Style chain, Live Cred, and Surge prototype
 
 Phase 3: District Prototype
 
@@ -725,6 +780,7 @@ Phase 4: Game Loop
 - Event selection
 - Rewards
 - Upgrades
+- Banked Cred settlement and purchase flow
 - Save system
 
 Phase 5: Vertical Slice Polish
@@ -785,6 +841,13 @@ Opponent Navigation
 
 Open-checkpoint racing creates more interesting decisions but substantially increases AI complexity. Early rivals may use authored route choices before more flexible navigation is attempted.
 
+Live Cred Hoarding
+
+If spending Cred is always optimal, there is no meaningful decision. If saving
+is always optimal, players avoid the game's signature mechanic. Position
+payouts, Surge cost, base earnings, and part prices must produce legible cases
+for both choices without creating an economic death spiral.
+
 ---
 
 ## 23. Success Criteria
@@ -795,6 +858,7 @@ Project Nightshift succeeds when players say:
 - "I found a faster way through that section."
 - "I knew that rival was going to take the alley."
 - "This is my car."
+- "I wanted to hit the nitrous, but I was saving for that part."
 - "I want to run that race again."
 
 The project does not need the largest city, the most vehicles, or the most realistic physics.

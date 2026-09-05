@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/car.tscn" id="2"]
+[ext_resource type="Resource" path="res://resources/handling.tres" id="3"]
+
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(1.84, 0.76, 4.16)
+
+[node name="Player" type="CharacterBody3D"]
+motion_mode = 1
+script = ExtResource("1")
+handling = ExtResource("3")
+
+[node name="ChassisCollision" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("Shape")
+
+[node name="Car" parent="." instance=ExtResource("2")]
+
+[editable path="Car"]

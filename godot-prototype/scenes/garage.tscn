@@ -1,0 +1,225 @@
+[gd_scene load_steps=23 format=3]
+
+[sub_resource type="QuadMesh" id="Resource_2"]
+size = Vector2(26, 22)
+
+[sub_resource type="StandardMaterial3D" id="Resource_3"]
+albedo_color = Color(0.0901961, 0.1019608, 0.1254902, 1)
+metallic = 0.06
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="Resource_6"]
+size = Vector3(18, 6.8, 0.35)
+
+[sub_resource type="BoxMesh" id="Resource_8"]
+size = Vector3(0.35, 6.8, 15)
+
+[sub_resource type="CylinderMesh" id="Resource_10"]
+top_radius = 3.45
+bottom_radius = 3.62
+height = 0.18
+radial_segments = 40
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Resource_11"]
+albedo_color = Color(0.0666667, 0.0823529, 0.1058824, 1)
+metallic = 0.78
+roughness = 0.42
+
+[sub_resource type="TorusMesh" id="Resource_13"]
+inner_radius = 3.465
+outer_radius = 3.535
+rings = 64
+ring_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="Resource_14"]
+albedo_color = Color(0.4588235, 0.8745098, 1, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_16"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_18"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_20"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_22"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_24"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_26"]
+size = Vector3(0.09, 5.8, 0.11)
+
+[sub_resource type="BoxMesh" id="Resource_28"]
+size = Vector3(3.4, 1.5, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="Resource_29"]
+albedo_color = Color(0.4352941, 0.0627451, 0.145098, 1)
+metallic = 0.62
+roughness = 0.36
+
+[sub_resource type="BoxMesh" id="Resource_31"]
+size = Vector3(2.1, 2.3, 0.7)
+
+[sub_resource type="BoxMesh" id="Resource_33"]
+size = Vector3(4.8, 0.22, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="Resource_34"]
+albedo_color = Color(1, 0.1921569, 0.345098, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_36"]
+size = Vector3(0.18, 0.08, 5.8)
+
+[sub_resource type="StandardMaterial3D" id="Resource_37"]
+albedo_color = Color(1, 0.7529412, 0.4431373, 1)
+metallic = 0
+roughness = 0.6
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="Resource_40"]
+size = Vector3(0.18, 0.08, 5.8)
+
+[node name="Garage" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Mesh_1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("Resource_2")
+material_override = SubResource("Resource_3")
+cast_shadow = 0
+
+[node name="GridHelper_4" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.008, 0)
+
+[node name="Mesh_5" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.4, 5.9)
+mesh = SubResource("Resource_6")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_7" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.8, 3.4, -1.4)
+mesh = SubResource("Resource_8")
+material_override = SubResource("Resource_3")
+cast_shadow = 1
+
+[node name="Mesh_9" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
+mesh = SubResource("Resource_10")
+material_override = SubResource("Resource_11")
+cast_shadow = 0
+
+[node name="Mesh_12" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0.19, 0)
+mesh = SubResource("Resource_13")
+material_override = SubResource("Resource_14")
+cast_shadow = 0
+
+[node name="Mesh_15" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.9, 2.9, 5.68)
+mesh = SubResource("Resource_16")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_17" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7, 2.9, 5.68)
+mesh = SubResource("Resource_18")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_19" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 2.9, 5.68)
+mesh = SubResource("Resource_20")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_21" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 2.9, 5.68)
+mesh = SubResource("Resource_22")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_23" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.9, 2.9, 5.68)
+mesh = SubResource("Resource_24")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_25" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.1, 2.9, 5.68)
+mesh = SubResource("Resource_26")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_27" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.6, 0.76, 4.98)
+mesh = SubResource("Resource_28")
+material_override = SubResource("Resource_29")
+cast_shadow = 1
+
+[node name="Mesh_30" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6, 1.16, 4.98)
+mesh = SubResource("Resource_31")
+material_override = SubResource("Resource_11")
+cast_shadow = 1
+
+[node name="Mesh_32" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 4.35, 5.68)
+mesh = SubResource("Resource_33")
+material_override = SubResource("Resource_34")
+cast_shadow = 1
+
+[node name="Mesh_35" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.8, 5.55, -0.2)
+mesh = SubResource("Resource_36")
+material_override = SubResource("Resource_37")
+cast_shadow = 0
+
+[node name="SpotLight_38" type="SpotLight3D" parent="."]
+transform = Transform3D(-0.0911935, 0.9162148, -0.390172, 0, 0.3918046, 0.9200485, 0.9958332, 0.0839025, -0.03573, -2.8, 5.35, -0.2)
+light_color = Color(1, 0.8392157, 0.627451, 1)
+light_energy = 1.7846568
+shadow_enabled = true
+spot_range = 16
+spot_angle = 41.2529612
+spot_attenuation = 1.0
+
+[node name="Mesh_39" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 5.55, -0.2)
+mesh = SubResource("Resource_40")
+material_override = SubResource("Resource_37")
+cast_shadow = 0
+
+[node name="SpotLight_41" type="SpotLight3D" parent="."]
+transform = Transform3D(-0.0911935, -0.9162148, 0.390172, 0, 0.3918046, 0.9200485, -0.9958332, 0.0839025, -0.03573, 2.8, 5.35, -0.2)
+light_color = Color(1, 0.8392157, 0.627451, 1)
+light_energy = 1.7846568
+shadow_enabled = true
+spot_range = 16
+spot_angle = 41.2529612
+spot_attenuation = 1.0
+
+[node name="PointLight_42" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.8, 1.7, -2.8)
+light_color = Color(0.3490196, 0.8470588, 1, 1)
+light_energy = 1.8520259
+shadow_enabled = false
+omni_range = 12
+omni_attenuation = 1.0
+
+[node name="PointLight_43" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 1.3, 3.5)
+light_color = Color(1, 0.1921569, 0.345098, 1)
+light_energy = 1.4849242
+shadow_enabled = false
+omni_range = 11
+omni_attenuation = 1.0

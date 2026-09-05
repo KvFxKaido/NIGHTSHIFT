@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "WheelFinish"
+albedo_color = Color(0.145098, 0.1647059, 0.1921569, 1)
+metallic = 0.88
+roughness = 0.3

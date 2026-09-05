@@ -2,3 +2,19 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Local inspiration/reference downloads; not project assets for redistribution.
+/car inspiration/
+/track inspiration/
+
+# Generated captures and test reports. Runtime asset textures stay tracked.
+/screenshots/
+/artifacts/
+/test-results/
+/playwright-report/
+*.log
+
+# Local credentials/configuration; sanitized examples may be committed.
+.env
+.env.*
+!.env.example

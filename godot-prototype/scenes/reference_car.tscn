@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/kenney-car-kit/sedan-sports.glb" id="Model"]
+
+[node name="ReferenceCar" type="Node3D"]
+
+[node name="NormalizedBody" parent="." instance=ExtResource("Model")]
+position = Vector3(0, 0, -0.045305)
+rotation = Vector3(0, 3.141592653589793, 0)
+scale = Vector3(1.8121996, 1.8121996, 1.8121996)
+
+[editable path="NormalizedBody"]
