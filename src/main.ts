@@ -1,36 +1,49 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
-  createDefaultCustomization,
   updateCustomization,
 } from "./customization/customization.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CAR_PATH, loadBlenderCar } from "./render/blender-car.ts";
+import { BLENDER_COURSE_PATH } from "./render/course-asset-contract.ts";
+import { loadBlenderCourse, type BlenderCourse } from "./render/blender-course.ts";
 import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
 import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createMenuController } from "./ui/menu.ts";
+import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
+  type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
+
+const settings = createSettingsStore(() => window.localStorage);
+const restored = settings.get();
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
+let course: BlenderCourse | null;
 try {
   await RAPIER.init();
   const model = new URLSearchParams(location.search).get("car") ?? "blender";
   if (model !== "blender" && model !== "classic") throw new Error(`Unknown car model '${model}'`);
-  carParts = model === "classic" ? createCar()
-    : await loadBlenderCar(new URL(BLENDER_CAR_PATH, document.baseURI).href);
+  const environment = new URLSearchParams(location.search).get("environment") ?? "blender";
+  if (environment !== "blender" && environment !== "classic") throw new Error(`Unknown environment '${environment}'`);
+  [carParts, course] = await Promise.all([
+    model === "classic" ? Promise.resolve(createCar())
+      : loadBlenderCar(new URL(BLENDER_CAR_PATH, document.baseURI).href),
+    environment === "classic" ? Promise.resolve(null)
+      : loadBlenderCourse(new URL(BLENDER_COURSE_PATH, document.baseURI).href),
+  ]);
 } catch (error) {
   document.body.dataset.assetState = "error";
   assetStatus.setAttribute("role", "alert");
-  assetStatus.textContent = `Car loading failed: ${error instanceof Error ? error.message : String(error)}. ` +
-    "Refresh to retry, or use ?car=classic for the original procedural car.";
+  assetStatus.textContent = `Asset loading failed: ${error instanceof Error ? error.message : String(error)}. ` +
+    "Refresh to retry. ?car=classic or ?environment=classic explicitly selects the original asset.";
   // No invisible model or silent replacement when an authored asset breaks.
   throw error;
 }
 
 const input = createInputController();
-const sim = createSim();
-const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts);
+const sim = createSim(restored.drivetrain);
+const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course);
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const speedElement = document.getElementById("speed")!;
@@ -38,7 +51,7 @@ const gearElement = document.getElementById("gear")!;
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
-let customization = createDefaultCustomization();
+let customization = restored.customization;
 applyCarCustomization(view, customization);
 
 const inputLog: Input[] = [];
@@ -49,6 +62,21 @@ let debugVisible = false;
 // Set by __ns.freeze(): holds the fixed simulation still so a capture of a given
 // state is the same image every time.
 let frozen = false;
+
+function renderSettingsStatus(): void {
+  document.querySelectorAll<HTMLElement>("[data-settings-status]").forEach(element => {
+    element.textContent = settingsStatusMessage(settings.status(), location.search);
+    element.dataset.saveState = settings.status();
+  });
+}
+
+function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
+  if (!settings.update(patch)) return;
+  // A saved choice must win on refresh even when the tab began as a preview
+  // link. Leave unrelated scene/drive/camera and other preview fields intact.
+  history.replaceState(history.state, "", withoutSettingsOverrides(location.href, keys));
+  renderSettingsStatus();
+}
 
 function reset(archive = true, drivetrain = sim.state.drivetrain): void {
   // A comparison is a new run, never a mid-replay physics change.
@@ -84,14 +112,18 @@ const menu = createMenuController({
   returnToMain: () => reset(),
   resumeRun: () => input.armDrivingInputGate(),
   getDrivetrain: () => sim.state.drivetrain,
+  getCustomization: () => customization,
   selectDrivetrain: (drivetrain) => {
-    if (drivetrain === sim.state.drivetrain) return;
-    reset(false, drivetrain);
-    input.armDrivingInputGate();
+    if (drivetrain !== sim.state.drivetrain) {
+      reset(false, drivetrain);
+      input.armDrivingInputGate();
+    }
+    saveSettings({ drivetrain }, ["drivetrain"]);
   },
   customize: (category, optionId) => {
     customization = updateCustomization(customization, category, optionId);
     applyCarCustomization(view, customization);
+    saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => setViewMode(view, screen === "garage" ? "garage" : "track"),
 });
@@ -206,7 +238,8 @@ installDebugApi({
 });
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
-applyDeepLink(debugApi, location.search);
+settings.preview(() => applyDeepLink(debugApi, location.search));
+renderSettingsStatus();
 
 modeElement.title = `${sim.state.physicsVersion} · Rapier ${RAPIER.version()} · ${TICK_HZ} Hz fixed simulation`;
 requestAnimationFrame(frame);

@@ -99,8 +99,8 @@ test("left and right tyres have independent local speeds and brake response duri
   } finally { sim.world.free(); }
 });
 
-test("axle drive stays balanced when cornering leaves unequal inside/outside grip", () => {
-  const sim = flatSim(30);
+test("AWD axle drive stays balanced when cornering leaves unequal inside/outside grip", () => {
+  const sim = flatSim(30, 0, "awd");
   try {
     for (let tick = 0; tick < 60; tick++) {
       flatStep(sim, { throttle: 1, steer: 0.8 });

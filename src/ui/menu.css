@@ -390,6 +390,16 @@ body[data-game-screen="pause"] #hud {
   line-height: 1.5;
 }
 
+.settings-status {
+  margin: 10px 0 0;
+  color: var(--menu-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.settings-status[data-save-state="unavailable"],
+.settings-status[data-save-state="recovered"] { color: #ffc071; }
+
 .menu-root[data-screen="garage"] .menu-footer {
   margin-top: 14px;
   font-size: 8px;

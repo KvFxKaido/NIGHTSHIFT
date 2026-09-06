@@ -60,7 +60,8 @@ response, keyboard and standard gamepad input, speed-sensitive
 chase camera with right-stick orbit, reset/replay, toggleable telemetry, and a
 light DOM menu shell for title, track selection, garage, and pause. The garage
 uses a dedicated presentation scene and the same car mesh as the track; paint,
-wheel finish, and visual ride height carry across views for the current session.
+wheel finish, and visual ride height carry across views and save locally alongside
+the selected drivetrain. FWD is the default; drivetrain tuning itself is unchanged.
 They do not alter simulation handling or represent purchased performance parts.
 Menu state gates fixed simulation ticks rather than living inside the renderer.
 The default car is the original NS-01 Blender asset (`assets/cars/ns-coupe-01.blend`
@@ -71,6 +72,23 @@ or exporting the Blender car. `pnpm car:export` exports saved hand edits without
 regenerating the source; `scripts/build-coupe.py` deliberately overwrites it.
 New body clearance uses triangle-vs-convex-wheel tests because its wheel arches
 make it concave. Neither asset changes the simulation collider or handling.
+The tunnel/bridge now load `public/assets/tracks/blackglass-rivergate.glb` via
+`src/render/blender-course.ts`. Read `assets/tracks/blackglass/README.md` before
+editing the source. `pnpm track:export` preserves saved hand edits; the original
+`build-blackglass.py` generator overwrites the .blend. `track:guide` exports
+reference road/barrier data but does not update the authored model. A quantized
+route fingerprint plus three anchors reject stale/misaligned exports. Do not
+silence that check by changing the stamp without reconciling geometry. The
+renderer keeps road/barrier meshes and all physics procedural; only tunnel,
+bridge and distant backdrop are authored. `?environment=classic` explicitly
+selects the old presentation. Export batches a temporary copy by spatial
+section/material; source pieces remain editable. There are four pooled runtime
+lights, no imported Blender lights/textures, and no silent asset fallback.
+`tests/blender-course.test.ts` checks actual GLB validity, inward winding,
+road-envelope clearance, alignment and unchanged road presentation. The browser
+harness is `scripts/check-track-browser.js`; staged poses are visual checks,
+not evidence of a completed driven lap. The reference-lap test remains the
+driving gate. Desktop/mobile screenshots do not certify mobile GPU performance.
 The sampled course has
 automated centerline, road-clearance, corner-envelope, and reference-driver
 checks. It also owns a 24 m elevation profile used by vehicle height,
@@ -88,6 +106,15 @@ buttons. Changing layout resets the run and clears replay history; ordinary
 reset/replay retain the run's drivetrain. Full countersteer can catch longer
 30 m/s slides; weak/late corrections and prolonged highway-speed slides remain
 limitations. Tests distinguish manual recovery from automatic intervention.
+`src/settings/settings.ts` owns versioned browser-local preferences, outside the
+simulation. Restore preferences before creating the sim/view; synchronize menu
+selections from that state. URL overrides are temporary: `settings.preview()`
+suppresses writes while `applyDeepLink()` drives the real menu callbacks. Deliberate
+menu edits save only their own fields and clear matching URL parameters. Do not
+persist physics snapshots, replay data, camera poses or debug flags in this store.
+Save failures are visible in Pause/Garage and do not block playing. Historical
+AWD performance/contact fixtures name that layout explicitly; default-FWD and
+all-layout behavioral coverage remain separate.
 
 The proposed core gameplay/economy hook is Live Cred: style earned in a race
 can be burned on Surge or carried across the finish line as performance-parts

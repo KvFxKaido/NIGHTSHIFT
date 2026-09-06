@@ -10,6 +10,7 @@ import {
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
 import { addCourse } from "./course.ts";
+import { updateCourseLighting, type BlenderCourse } from "./blender-course.ts";
 import { createGarageScene } from "./garage.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 
@@ -25,9 +26,10 @@ export interface View extends CarView {
   cameraTarget: THREE.Vector3;
   cameraOrbit: CameraOrbitState;
   mode: ViewMode;
+  course: BlenderCourse | null;
 }
 
-export function createView(canvas: HTMLCanvasElement, carParts: CarView): View {
+export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -43,7 +45,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView): View {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x10182a);
   scene.fog = new THREE.FogExp2(0x101522, 0.0019);
-  addCourse(scene);
+  addCourse(scene, course?.root);
 
   scene.add(new THREE.HemisphereLight(0x466488, 0x160e12, 1.08));
   const moon = new THREE.DirectionalLight(0xa9d2ff, 1.82);
@@ -54,6 +56,12 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView): View {
   moon.shadow.camera.right = 90;
   moon.shadow.camera.top = 90;
   moon.shadow.camera.bottom = -90;
+  if (course) {
+    // The authored chamfers and grazing-angle retaining walls need separation
+    // from their own shadow texels at the existing 180 m shadow-map footprint.
+    moon.shadow.normalBias = 0.06;
+    moon.shadow.bias = -0.0001;
+  }
   scene.add(moon);
   scene.add(moon.target);
   const garageScene = createGarageScene();
@@ -78,6 +86,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView): View {
     cameraTarget: new THREE.Vector3(COURSE.start.x, COURSE.start.y + 0.9, COURSE.start.z),
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
+    course,
   };
 
   const resize = () => {
@@ -176,6 +185,7 @@ export function render(
   }
 
   const car = state.vehicle;
+  if (view.course) updateCourseLighting(view.course, car);
   view.car.position.set(car.x, car.y, car.z);
   view.car.rotation.x = car.pitch;
   view.car.rotation.y = car.heading;

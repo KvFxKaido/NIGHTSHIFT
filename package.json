@@ -5,7 +5,10 @@
   "type": "module",
   "packageManager": "pnpm@11.13.0",
   "scripts": {
-    "car:export": "node scripts/export-car.mjs",
+    "track:guide": "node scripts/export-course-guide.mjs",
+    "track:export": "node --env-file-if-exists=.env scripts/export-track.mjs",
+    "assets:track": "node scripts/optimize-track.mjs",
+    "car:export": "node --env-file-if-exists=.env scripts/export-car.mjs",
     "assets:car": "node scripts/optimize-car.mjs",
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",

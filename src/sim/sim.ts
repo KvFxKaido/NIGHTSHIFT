@@ -91,8 +91,8 @@ export const HANDLING = {
   engineMidAcceleration: 11,
   highSpeedAcceleration: 13,
   reverseAcceleration: 8,
-  // Rear-biased AWD keeps the first prototype approachable. Each tyre shares
-  // finite grip between drive, brakes and cornering, including after impacts.
+  // Layout changes propulsion distribution only. FWD is the preferred default;
+  // each tyre still shares finite grip between drive, brakes and cornering.
   frontDriveFraction: { awd: 0.45, fwd: 1, rwd: 0 },
   frontBrakeFraction: 0.70,
   brakeDeceleration: 14,
@@ -124,7 +124,7 @@ export const HANDLING = {
 } as const;
 
 export type Drivetrain = keyof typeof HANDLING.frontDriveFraction;
-export const DEFAULT_DRIVETRAIN: Drivetrain = "awd";
+export const DEFAULT_DRIVETRAIN: Drivetrain = "fwd";
 
 export function isDrivetrain(value: unknown): value is Drivetrain {
   return typeof value === "string" && Object.hasOwn(HANDLING.frontDriveFraction, value);

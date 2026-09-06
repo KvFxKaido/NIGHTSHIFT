@@ -35,8 +35,8 @@ test("a recorded input sequence is deterministic", () => {
   assert.deepEqual(scriptedRun(), scriptedRun());
 });
 
-test("throttle accelerates the car along its starting direction", () => {
-  const sim = createSim();
+test("AWD reference throttle accelerates the car along its starting direction", () => {
+  const sim = createSim("awd");
   for (let tick = 0; tick < 45; tick++) {
     step(sim, { ...neutral, throttle: 1 });
   }
@@ -50,8 +50,8 @@ test("throttle accelerates the car along its starting direction", () => {
   assert.ok(Math.abs(lateralTravel) < 0.01);
 });
 
-test("full throttle reaches and holds the 140 mph limit on level ground", (t) => {
-  const sim = createSim();
+test("AWD reference full throttle reaches and holds the 140 mph limit on level ground", (t) => {
+  const sim = createSim("awd");
   const heading = -Math.PI / 2;
   sim.body.setRotation({ x: 0, y: Math.sin(heading / 2), z: 0, w: Math.cos(heading / 2) }, true);
   sim.body.collider(0).setCollisionGroups(0);
@@ -80,9 +80,9 @@ test("full throttle reaches and holds the 140 mph limit on level ground", (t) =>
   }
 });
 
-test("low and mid-speed acceleration stays lively within the tyre traction limit", () => {
+test("AWD reference low and mid-speed acceleration stays lively within the tyre traction limit", () => {
   for (const speed of [0, 15, 30]) {
-    const sim = createSim();
+    const sim = createSim("awd");
     try {
       sim.body.setTranslation({ x: -80, y: 0.5, z: -210 }, true);
       sim.body.setRotation({ x: 0, y: Math.sin(-Math.PI / 4), z: 0, w: Math.cos(-Math.PI / 4) }, true);
@@ -143,9 +143,11 @@ test("handbrake overrides throttle drive", () => {
   assert.deepEqual(withThrottle.state, withoutThrottle.state);
 });
 
-test("handbrake adds rear rotation while cornering", () => {
-  const gripTurn = createSim();
-  const handbrakeTurn = createSim();
+test("handbrake adds rear rotation in the short AWD launch-and-turn reference", () => {
+  // This timing was authored at AWD's launch speed. All-layout, equal-entry-
+  // speed handbrake/recovery coverage lives in handbrake.test.ts.
+  const gripTurn = createSim("awd");
+  const handbrakeTurn = createSim("awd");
   for (let tick = 0; tick < 45; tick++) {
     step(gripTurn, { ...neutral, throttle: 1 });
     step(handbrakeTurn, { ...neutral, throttle: 1 });

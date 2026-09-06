@@ -1,6 +1,6 @@
 # Blackglass Circuit
 
-Status: Second drivable geometry and lighting pass
+Status: Blender tunnel / bridge visual slice on the existing drivable geometry
 
 Blackglass is NIGHTSHIFT's first proper course: a clockwise metropolitan loop
 that uses believable road hierarchy and practical lighting to make simple,
@@ -32,7 +32,30 @@ The course borrows:
 The route is stored as renderer-independent control points and sampled into a
 closed Catmull-Rom centerline in `src/sim/track.ts`. Road surfaces, barriers,
 tunnel pieces, bridge pieces, physics colliders, corner measurements, and
-driving-line tests derive from that same data.
+driving-line tests derive from that same data. The authored tunnel/bridge uses
+an exported reference of it; a route stamp and alignment anchors guard against
+stale scenery after a future route change.
+
+## Blender slice
+
+The 238 m tunnel and 330 m bridge now use an original Blender source at
+`assets/tracks/blackglass/blackglass-rivergate.blend`, exported to
+`public/assets/tracks/blackglass-rivergate.glb`. Faceted concrete, ceramic
+wainscoting, ochre safety bands, service doors/vents, recessed cool fixtures and
+named portals establish the tunnel. Rivergate uses deeper through-trusses,
+piers, warm overhead fixtures and three distant skyline masses.
+
+No road shape, grade, collision or handling changes accompany this visual pass.
+The classic road and barriers still render once, beneath/alongside the authored
+structures. The remainder of the environment is the existing massing prototype.
+See `assets/tracks/blackglass/README.md` for the hand-edit/export workflow.
+
+The first export is approximately 1.35 MB, 81 spatial/material batches and 14
+shared materials, with no textures. Geometry is single-sided with tested inward
+tunnel winding. Four pooled runtime point lights follow authored fixture
+markers; no new shadow-casting point lights. Existing moon shadows remain, with
+a small bias adjustment for the authored surfaces. This is not final baked
+lighting or mobile performance certification.
 
 ## Corner envelope
 

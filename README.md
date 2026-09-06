@@ -58,14 +58,32 @@ parts. It is a design target, not functionality in the current build.
 
 The garage is a functional first visual-customization slice. It uses the same
 car mesh as the track and currently offers paint, wheel finish, and visual ride
-height. Choices carry into the driving view for the current session; performance
-parts, prices, and save persistence are intentionally not implied yet.
+height. FWD is the default drivetrain. Your drivetrain, paint, wheel finish and
+stance automatically save on this browser and return after refresh/reopening.
+Pause and Garage show save status; blocked storage leaves the game usable with
+session-only choices. Performance parts, prices, race progress and saved replays
+are not implemented by this settings save.
+
+Settings use the versioned `nightshift.settings` localStorage entry. They are
+local to this browser and origin: `localhost:5173` and `127.0.0.1:5173` have
+separate saves, and clearing site data removes them. Explicit URL choices remain
+temporary previews and never overwrite the save on load. Selecting an option
+in a menu saves that field and removes its URL override so refresh honors it.
+Use a plain `?scene=garage` link to restore your entire saved setup.
 
 The default car is the original **NS-01 Blender coupe**. Its editable source,
 export workflow and small hands-on guide are in
 [`assets/cars/README.md`](assets/cars/README.md). Paint, wheels and stance work on
 the imported GLB; the original procedural car is still available at
 `?scene=garage&car=classic` for comparison. This changes visuals, not handling.
+
+The tunnel-to-bridge stretch is now Blender-authored too: faceted tunnel
+cladding, service details, portals, deeper bridge trusses/piers and a small
+skyline backdrop. The rest of the circuit remains procedural. Open the source
+and follow [`the track workshop guide`](assets/tracks/blackglass/README.md), then
+use `pnpm track:export "C:\path\to\blender.exe"` and refresh. Normal export
+preserves hand edits; it does not regenerate the source. `?environment=classic`
+selects the old tunnel/bridge explicitly. Road geometry and physics are unchanged.
 
 Controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
 and Space/A applies the handbrake. The right stick orbits the camera; R3/C

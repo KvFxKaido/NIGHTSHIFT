@@ -635,7 +635,7 @@ function addWaterfront(scene: THREE.Scene): void {
   }
 }
 
-export function addCourse(scene: THREE.Scene): void {
+export function addCourse(scene: THREE.Scene, authored?: THREE.Group): void {
   addSky(scene);
   const ground = part("ground",
     new THREE.PlaneGeometry(760, 650),
@@ -652,8 +652,11 @@ export function addCourse(scene: THREE.Scene): void {
   COURSE_WALLS.forEach((wall) => addBarrier(scene, wall));
   addStartGrid(scene);
   addCornerLanguage(scene);
-  addTunnel(scene);
-  addBridge(scene);
+  if (authored) scene.add(authored);
+  else {
+    addTunnel(scene);
+    addBridge(scene);
+  }
   addStreetlights(scene);
   addBuildings(scene);
 }

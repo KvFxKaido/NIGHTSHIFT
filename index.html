@@ -160,6 +160,7 @@
             <button class="menu-button primary" data-menu-action="back">Back</button>
           </nav>
           <p class="menu-footer">Right stick inspects · R3 / C recenters · changes carry to the street</p>
+          <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
 
         <section class="menu-screen" data-menu-screen="pause" role="dialog" aria-modal="true" aria-labelledby="pause-menu-title" hidden>
@@ -174,13 +175,14 @@
           <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
             <legend>Handling comparison</legend>
             <div class="garage-options text-options">
-              <button class="garage-option" data-drivetrain="awd" aria-pressed="true" aria-label="AWD: 45% front, 55% rear">AWD</button>
-              <button class="garage-option" data-drivetrain="fwd" aria-pressed="false" aria-label="FWD: front-wheel drive">FWD</button>
+              <button class="garage-option" data-drivetrain="fwd" aria-pressed="true" aria-label="FWD: front-wheel drive (default)">FWD</button>
+              <button class="garage-option" data-drivetrain="awd" aria-pressed="false" aria-label="AWD: 45% front, 55% rear">AWD</button>
               <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
             </div>
             <p id="drivetrain-note" class="handling-note">Changing layout restarts the run and clears its replay. Auto-countersteer is off for every layout.</p>
           </fieldset>
           <p class="menu-footer">Esc / Options to resume</p>
+          <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
       </main>
     </div>

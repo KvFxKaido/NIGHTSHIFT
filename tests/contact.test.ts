@@ -43,7 +43,9 @@ const RECOVERY_SECONDS = 1.6;
 
 /** Drive out to a barrier, then hold throttle and steer by `recoverSteer`. */
 function barrierRecovery(recoverSteer: number) {
-  const sim = createSim();
+  // Fixed-input approach authored for AWD: FWD takes a different path and
+  // never reaches this wall. Keep this historical contact fixture explicit.
+  const sim = createSim("awd");
   let contactTick = -1;
   let contactSpeed = 0;
   let peakGap = 0;

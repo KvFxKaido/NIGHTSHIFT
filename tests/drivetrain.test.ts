@@ -7,10 +7,43 @@ import { flatSim, flatStep, FLAT_START, hasContact } from "./helpers/handling.ts
 await RAPIER.init();
 const layouts: Drivetrain[] = ["awd", "fwd", "rwd"];
 
-test("AWD is still the default and unknown drivetrain names are rejected", () => {
+test("the default produces exactly the existing FWD behavior across a mixed run", () => {
+  const implicit = createSim();
+  const explicit = createSim("fwd");
+  try {
+    for (let tick = 0; tick < 1200; tick++) {
+      const input: Input = {
+        throttle: tick < 700 || tick >= 900 ? 1 : 0,
+        brake: tick >= 700 && tick < 900 ? .5 : 0,
+        steer: tick < 200 ? 0 : tick < 700 ? .7 : -.6,
+        handbrake: tick >= 500 && tick < 530 ? 1 : 0,
+      };
+      step(implicit, input);
+      step(explicit, input);
+      assert.deepEqual(implicit.state, explicit.state);
+    }
+    assert.deepEqual(implicit.world.takeSnapshot(), explicit.world.takeSnapshot());
+  } finally { implicit.world.free(); explicit.world.free(); }
+});
+
+test("FWD launches, reverses and returns to forward with its unchanged two-wheel traction", () => {
+  const sim = flatSim(0, 0, "fwd");
+  try {
+    for (let tick = 0; tick < 60; tick++) flatStep(sim, { throttle: 1 });
+    assert.ok(sim.state.vehicle.forwardSpeed > 6);
+    for (let tick = 0; tick < 180; tick++) flatStep(sim, { brake: 1 });
+    assert.equal(sim.state.vehicle.driveDirection, -1);
+    assert.ok(sim.state.vehicle.forwardSpeed < -5);
+    for (let tick = 0; tick < 180; tick++) flatStep(sim, { throttle: 1 });
+    assert.equal(sim.state.vehicle.driveDirection, 1);
+    assert.ok(sim.state.vehicle.forwardSpeed > 5);
+  } finally { sim.world.free(); }
+});
+
+test("FWD is the default and unknown drivetrain names are rejected", () => {
   const sim = createSim();
   try {
-    assert.equal(sim.state.drivetrain, "awd");
+    assert.equal(sim.state.drivetrain, "fwd");
     for (const value of ["4wd", "__proto__", null, undefined]) assert.equal(isDrivetrain(value), false);
     assert.throws(() => createSim("unknown" as Drivetrain), RangeError);
     assert.throws(() => resetSim(sim, "unknown" as Drivetrain), RangeError);

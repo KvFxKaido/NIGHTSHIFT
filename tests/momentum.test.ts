@@ -184,9 +184,9 @@ test("full service brake wins over held throttle and overlap blends progressivel
   assert.ok(half.speed > maneuver(15, { brake: 0.5 }, 0.5).speed);
 });
 
-test("low-speed steering, reverse and returning to forward remain controllable", () => {
+test("AWD reference low-speed steering, reverse and returning to forward remain controllable", () => {
   assert.ok(minimumTurnRadiusAtSpeed(8) > 8 && minimumTurnRadiusAtSpeed(8) < 9);
-  const reverse = flatSim();
+  const reverse = flatSim(0, 0, "awd");
   try {
     for (let tick = 0; tick < 120; tick++) flatStep(reverse, { brake: 1, steer: 0.5 });
     assert.equal(reverse.state.vehicle.driveDirection, -1);

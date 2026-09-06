@@ -12,8 +12,10 @@ dist/
 /artifacts/
 /test-results/
 /playwright-report/
+/.playwright-cli/
 # Blender's recovery backups stay local; the editable .blend is tracked.
 /assets/cars/*.blend[0-9]
+/assets/tracks/**/*.blend[0-9]
 *.log
 
 # Local credentials/configuration; sanitized examples may be committed.

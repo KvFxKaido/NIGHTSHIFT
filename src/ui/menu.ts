@@ -1,5 +1,5 @@
 import type { MenuCommand } from "../input/input.ts";
-import type { CustomizationCategory } from "../customization/customization.ts";
+import type { CarCustomization, CustomizationCategory } from "../customization/customization.ts";
 import { isDrivetrain, type Drivetrain } from "../sim/sim.ts";
 import {
   createInitialMenuState,
@@ -15,6 +15,7 @@ interface MenuCallbacks {
   returnToMain(): void;
   resumeRun(): void;
   getDrivetrain(): Drivetrain;
+  getCustomization(): CarCustomization;
   selectDrivetrain(drivetrain: Drivetrain): void;
   customize(category: CustomizationCategory, optionId: string): void;
   screenChanged(screen: MenuScreen): void;
@@ -60,12 +61,21 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       : [];
   }
 
+  function renderCustomization(): void {
+    const customization = callbacks.getCustomization();
+    root.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => {
+      const category = button.dataset.customization as CustomizationCategory;
+      button.setAttribute("aria-pressed", String(button.dataset.option === customization[category]));
+    });
+  }
+
   function focusFirstItem(): void {
     requestAnimationFrame(() => visibleItems()[0]?.focus());
   }
 
   function renderState(previousScreen?: MenuScreen): void {
     renderDrivetrain();
+    renderCustomization();
     document.body.dataset.gameScreen = state.screen;
     root.hidden = state.screen === "playing";
     root.setAttribute("aria-hidden", String(state.screen === "playing"));
@@ -150,10 +160,8 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       const category = customizationButton.dataset.customization as CustomizationCategory;
       const optionId = customizationButton.dataset.option;
       if (!optionId) return;
-      root.querySelectorAll<HTMLButtonElement>(`[data-customization="${category}"]`).forEach((option) => {
-        option.setAttribute("aria-pressed", String(option === customizationButton));
-      });
       callbacks.customize(category, optionId);
+      renderCustomization();
       return;
     }
     if (!button) return;

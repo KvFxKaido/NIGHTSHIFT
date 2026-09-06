@@ -51,9 +51,12 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
   transfer cannot manufacture extra total grip. This is not suspension.
 - **Low speed:** regularized slip angles and effective-mass force caps prevent
   one-tick stop/reversal jitter without snapping velocity to zero.
-- **Drive:** rear-biased AWD (45% front) remains the default. FWD (100% front)
-  and RWD (0% front) change only propulsion distribution. Existing
-  strong acceleration and approximately 140 mph level-ground top speed remain.
+- **Drive:** FWD (100% front) is the default and current feel reference. AWD
+  (45% front / 55% rear) and RWD (0% front) retain their existing tunes; the
+  default change does not rebalance power or tyres. Layout changes only propulsion
+  distribution. The configured governor remains approximately 140 mph, but the
+  driven tyres' available traction also limits acceleration and attainable speed.
+  The historical 140 mph measurement is for AWD, not a guarantee for FWD/RWD.
   The governor limits propulsion, not impact/downhill velocity. Each axle shares
   equal drive torque between its tires, traction-limited by the weaker side
   (open-differential/traction-control approximation). Without that coupling,
@@ -80,12 +83,14 @@ left/right load shares, plus confirmation that auto-countersteer is off.
 
 ## Comparing layouts
 
-Start with the default AWD to isolate the steering change. Then press
-Esc / Options, select FWD or RWD under **Handling comparison**, and Resume.
+Start with the default FWD, or your saved layout. Then press Esc / Options,
+select AWD or RWD under **Handling comparison**, and Resume.
 Changing layout resets position, speed and physics history and clears the old
 input/replay log. Selecting the already-active layout does not restart.
 Ordinary Reset/Restart retains the selected layout. The live HUD names it.
-This is a session-only prototype comparison, not a garage purchase or upgrade.
+Your explicit layout selection saves locally and is restored next launch. This
+is still a prototype comparison, not a garage purchase or upgrade. URL overrides
+are temporary previews and do not overwrite your saved preference.
 
 All other parameters are identical: engine, steering, tyres, mass, brakes and
 handbrake. With no propulsion (including while handbraking), the three layouts
@@ -130,11 +135,13 @@ Debug entry points: `__ns.drivetrain('rwd')`, `__ns.state().drivetrain`, or
   weak-correction case rather than passing it under the full-countersteer test.
 - Real side-wall and angled front-quarter contact/escape on both sides at rest, 12 and 30 m/s;
   head-on impact followed by reverse escape. No test-only recovery forces.
-- A paced full Blackglass lap: **66.67 s**, **24 m** elevation change, **zero
-  barrier contacts**. The throttle-pinned driver still fails. The bicycle-v2
-  baseline was 66.65 s; this migration did not change the reference driver's tune.
+- A paced full Blackglass lap with the FWD default: **70.50 s**, **24 m** elevation
+  change, **zero barrier contacts**. The historical AWD result was 66.67 s. The
+  throttle-pinned driver still fails; the reference driver's tune is unchanged.
 - Flat 100 km/h near-stop: **27.78 m / 2.02 s**, before automatic reverse.
-- Level-ground full throttle reaches **140 mph** in approximately **8.93 s**.
+- Historical AWD level-ground full throttle reaches **140 mph** in approximately
+  **8.93 s**; this fixture now names AWD explicitly so a default change cannot
+  silently change which car is being measured.
 - A **1,200-tick** run replays identically after reset for every layout,
   including every state field and the final Rapier world snapshot. Original
   runs contain **153 AWD / 678 FWD / 486 RWD contact ticks**.
