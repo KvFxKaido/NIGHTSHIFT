@@ -32,9 +32,16 @@ function takeGroup(object: THREE.Object3D): THREE.Group {
   return group;
 }
 
-/** Adapt the actual shipped GLB, also used by the headless asset tests. */
-export function createBlenderCar(asset: THREE.Group): CarView {
-  const root = required(asset, "ns-coupe-01");
+/** Adapt the actual shipped GLB, also used by the headless asset tests.
+ *
+ * The defaults are NS-01. A second body (the Bully rival source in
+ * assets/cars/ns-bully-01.blend) only needs its root and model id, because
+ * every other name this reads — body-shell, wheel-*, rolling-*, car-paint,
+ * wheel-finish — is a shared authoring convention rather than one car's.
+ * The thrown messages still say NS-01; they get the model name when rivals
+ * gain a real runtime consumer and there is something to debug against. */
+export function createBlenderCar(asset: THREE.Group, rootName = "ns-coupe-01", model = "ns-01"): CarView {
+  const root = required(asset, rootName);
   normalized(asset);
   normalized(root);
   if (asset.position.length() > 1e-5 || root.position.length() > 1e-5) {
@@ -95,7 +102,7 @@ export function createBlenderCar(asset: THREE.Group): CarView {
 
   const car = new THREE.Group();
   car.name = "car";
-  car.userData.model = "ns-01";
+  car.userData.model = model;
   const carVisual = new THREE.Group();
   carVisual.name = "car-visual";
   carVisual.add(bodyShell, ...wheelPivots);
