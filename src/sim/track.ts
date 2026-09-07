@@ -66,6 +66,14 @@ export interface CourseSurfaceOverlap {
 }
 
 export interface CourseProjection {
+  /**
+   * How far around the lap this position is, in metres.
+   *
+   * Not to be confused with `distance` below, which is the LATERAL offset from
+   * the centreline. They answer opposite questions and reading the wrong one
+   * silently produces a plausible small number.
+   */
+  along: number;
   segmentIndex: number;
   distance: number;
   height: number;
@@ -299,10 +307,39 @@ export function findCourseSurfaceOverlaps(
   return overlaps;
 }
 
+// Plan-view distance to the start of each segment, so a projection can report
+// where round the lap it landed without rescanning the course.
+const SEGMENT_START_DISTANCE: readonly number[] = (() => {
+  const starts: number[] = [];
+  let total = 0;
+  for (const segment of COURSE_SEGMENTS) {
+    starts.push(total);
+    total += segment.length;
+  }
+  return starts;
+})();
+
+/** Plan-view lap length in metres, for wrapping a gap the short way round. */
+export const COURSE_PLAN_LENGTH =
+  SEGMENT_START_DISTANCE.at(-1)! + COURSE_SEGMENTS.at(-1)!.length;
+
+/**
+ * Signed gap between two positions along the lap, in metres, taken the short
+ * way round so a car just over the start line is not a lap ahead.
+ */
+export function courseGap(fromX: number, fromZ: number, toX: number, toZ: number): number {
+  const half = COURSE_PLAN_LENGTH / 2;
+  let gap = projectOntoCourse(toX, toZ).along - projectOntoCourse(fromX, fromZ).along;
+  while (gap > half) gap -= COURSE_PLAN_LENGTH;
+  while (gap < -half) gap += COURSE_PLAN_LENGTH;
+  return gap;
+}
+
 /** Projects an x/z world position onto the road ribbon's elevation profile. */
 export function projectOntoCourse(x: number, z: number): CourseProjection {
   let nearest: CourseProjection = {
     segmentIndex: 0,
+    along: 0,
     distance: Number.POSITIVE_INFINITY,
     height: COURSE_POINTS[0]!.y,
     pitch: COURSE_SEGMENTS[0]!.pitch,
@@ -332,6 +369,7 @@ export function projectOntoCourse(x: number, z: number): CourseProjection {
     const endPitch = (segment.pitch + next.pitch) * 0.5;
     nearest = {
       segmentIndex: segment.index,
+      along: SEGMENT_START_DISTANCE[segment.index]! + segment.length * t,
       distance,
       height: start.y + segment.rise * t,
       pitch: startPitch + (endPitch - startPitch) * t,

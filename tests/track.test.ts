@@ -3,9 +3,11 @@ import test from "node:test";
 import { HANDLING, maxCorneringSpeed } from "../src/sim/sim.ts";
 import {
   COURSE_BRAKING_ZONES,
+  COURSE_PLAN_LENGTH,
   COURSE_POINTS,
   COURSE_SEGMENTS,
   cornerRadiusAt,
+  courseGap,
   findCourseSurfaceOverlaps,
   projectOntoCourse,
   signedTurnAt,
@@ -83,4 +85,42 @@ test("named braking zones cannot all be taken at theoretical top speed", () => {
   assert.ok(zonesRequiringBraking.length >= 3);
   assert.ok(zonesRequiringBraking.some((zone) => signedTurnAt(zone.pointIndex) > 0));
   assert.ok(zonesRequiringBraking.some((zone) => signedTurnAt(zone.pointIndex) < 0));
+});
+
+// CourseProjection.distance is the lateral offset from the centreline, and
+// `along` is distance around the lap. Reading the wrong one gives a plausible
+// small number for two cars a hundred metres apart, which is exactly the bug
+// this pair of fields exists to make hard to write.
+test("course projection reports distance along the lap, not across it", () => {
+  const start = COURSE_POINTS[0]!;
+  const quarter = COURSE_POINTS[Math.floor(COURSE_POINTS.length / 4)]!;
+  const atStart = projectOntoCourse(start.x, start.z);
+  const atQuarter = projectOntoCourse(quarter.x, quarter.z);
+  assert.ok(atStart.distance < 1, "a centreline point is barely offset from the centreline");
+  assert.ok(atQuarter.distance < 1);
+  assert.ok(atQuarter.along > COURSE_PLAN_LENGTH * 0.15,
+    `a quarter of the way round should be well along the lap, got ${atQuarter.along}`);
+
+  // Along must climb monotonically as the centreline is walked.
+  let previous = -1;
+  for (const point of COURSE_POINTS) {
+    const along = projectOntoCourse(point.x, point.z).along;
+    assert.ok(along >= previous - 1e-6, `along went backwards at ${point.x},${point.z}`);
+    previous = along;
+  }
+  assert.ok(previous <= COURSE_PLAN_LENGTH + 1e-6);
+});
+
+test("a race gap is signed, and wraps the short way round the lap", () => {
+  const start = COURSE_POINTS[0]!;
+  const ahead = COURSE_POINTS[3]!;
+  assert.ok(courseGap(start.x, start.z, ahead.x, ahead.z) > 0, "a car further round is ahead");
+  assert.ok(courseGap(ahead.x, ahead.z, start.x, start.z) < 0, "and the reverse is behind");
+
+  // A car just before the line is behind by a little, never ahead by a lap.
+  const last = COURSE_POINTS.at(-1)!;
+  const gap = courseGap(start.x, start.z, last.x, last.z);
+  assert.ok(gap < 0 && gap > -COURSE_PLAN_LENGTH / 2,
+    `wrapping should give a small negative gap, got ${gap}`);
+  assert.equal(courseGap(start.x, start.z, start.x, start.z), 0);
 });
