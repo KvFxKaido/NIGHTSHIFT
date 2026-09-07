@@ -10,8 +10,17 @@ Design brief (GDD 10, "The Bully": contact, blocking exits, pressure). The car
 has to say what it will do before it does it, and the only reliable read at
 night in a chase camera is the silhouette. So: the coupe is long, low and
 tapered; this is wide, square and blunt. A near-vertical face, full width held
-all the way to a squared tail, a long flat roof, and one continuous lamp bar
-rather than a pair of lights, because a bar stays legible in a mirror at speed.
+all the way to a squared tail, and one continuous lamp bar rather than a pair
+of lights, because a bar stays legible in a mirror at speed.
+
+It is a coupe utility: two doors, a short cab, and an open load bed. A square
+saloon is a common shape, but a roof that stops two thirds of the way back is
+rare and reads instantly even as a black shape with tail lights. It also puts
+the car somewhere — the lap runs through Freight Gate, Container Wall and the
+freight S-bends, and a load bed belongs in a freight district in a way a saloon
+does not. The bed walls stay full width and rise ABOVE the cab beltline on
+purpose: an open bed is a void where the boot used to be solid mass, and low
+walls would leave a thin, light tail and undo the intimidation entirely.
 
 The wheel pivots are NOT a style choice. CAR_GEOMETRY in src/render/car.ts owns
 the track and wheelbase for the whole game, so this car is wide in the BODY over
@@ -157,8 +166,9 @@ def box(name, center, size, mat, parent=body, bevel=.008):
 # (Z, half width, deck height, sill height)
 STATIONS = [(-2.14,1.055,1.090,.320), (-2.00,1.110,1.140,.305),
             (-1.48,1.150,1.158,.295), (-.70,1.145,1.162,.295),
-            (.62,1.145,1.165,.295), (1.48,1.150,1.160,.300),
-            (2.10,1.125,1.145,.318), (2.26,1.080,1.120,.350)]
+            (.40,1.145,1.170,.295), (.70,1.150,1.215,.300),
+            (1.48,1.150,1.215,.300), (2.10,1.130,1.205,.318),
+            (2.26,1.085,1.190,.350)]
 verts = []
 for z, width, top, bottom in STATIONS:
     # Reaches full width lower and holds it higher than the coupe's profile, and
@@ -199,6 +209,22 @@ for axle, z, inner in [("front",-AXLE_Z,.575), ("rear",AXLE_Z,.725)]:
         mod.operation = "DIFFERENCE"
         mod.solver = "EXACT"
         mod.object = cutter
+# The bed is a real opening carved from the same lofted body, so its walls have
+# thickness and its floor is the car's own material rather than a plate laid on
+# top. The floor sits at 0.95 m, deliberately ABOVE the 0.915 m top of the rear
+# wheel openings: any lower and the boolean would tear holes from the load space
+# straight through into the wheel wells.
+bed_cutter = box("clearance-bed-opening", (0,1.475,1.44), (2.06,1.05,1.52), trim,
+                 parent=None, bevel=0)
+relink(bed_cutter, cutters_collection)
+bed_cutter.hide_render = True
+bed_cutter.display_type = "WIRE"
+bed_cutter.hide_set(True)
+bed = shell.modifiers.new("Load bed", "BOOLEAN")
+bed.operation = "DIFFERENCE"
+bed.solver = "EXACT"
+bed.object = bed_cutter
+
 bevel = shell.modifiers.new("Highlight bevel / 10 mm", "BEVEL")
 bevel.width = .010
 bevel.segments = 2
@@ -233,29 +259,25 @@ def window(points, border=.065):
     face(seal, 1)
 
 
-# A three-box cabin: upright screen, 1.58 m of flat roof, near-vertical
-# backlight, 800 mm of boot deck behind it, and a 335 mm glass band on a 1.16 m
-# beltline. That last number is the whole difference between menacing and
-# municipal: a tall greenhouse over a low shoulder reads as a family saloon no
-# matter how square it is, so the shoulder comes up and the roof comes down
-# until the side glass is a slot. The coupe's roof is 840 mm and tapers into a
-# fastback; this is a slab that stays wide at the pillars, so it is a rectangle
-# in the mirror rather than a teardrop.
+# A short two-door cab: upright screen, 760 mm of flat roof, near-vertical
+# backlight, and a 335 mm glass band on a 1.16 m beltline. That last number is
+# the difference between menacing and municipal — a tall greenhouse over a low
+# shoulder reads as a family saloon no matter how square it is, so the shoulder
+# comes up and the roof comes down until the side glass is a slot. The screen,
+# roof front and beltline are unchanged from the saloon; only where the cab
+# ENDS has moved, which is the whole edit.
 fl=(-.90,1.160,-.86); fr=(.90,1.160,-.86)
 tl=(-.815,1.495,-.42); tr=(.815,1.495,-.42)
-rl=(-.825,1.492,1.16); rr=(.825,1.492,1.16)
-bl=(-.92,1.155,1.46); br=(.92,1.155,1.46)
+rl=(-.825,1.492,.34); rr=(.825,1.492,.34)
+bl=(-.92,1.155,.62); br=(.92,1.155,.62)
 window([fl,fr,tr,tl], .075)
 window([rl,rr,br,bl], .095)
 face([tl,tr,rr,rl], 0)
 face([fl,bl,br,fr], 0)
 for f,t,r,b in [(fl,tl,rl,bl),(fr,tr,rr,br)]:
-    # B-pillar lands on the door shutline below it, so the car reads four-door
-    # from every angle. Two near-equal lights, not a big door and a quarter.
-    upper = mix(t,r,.266)
-    lower = mix(f,b,.371)
-    window([f,t,upper,lower], .080)
-    window([lower,upper,r,b], .080)
+    # One light a side. There is no B-pillar to land on a door split any more,
+    # and a divided window on a cab this short would read as clutter.
+    window([f,t,r,b], .085)
 greenhouse = mesh("greenhouse", gv, gf, [paint,glass,trim], indices=gm)
 # Weld panel edges so the editable source is a connected shell, not loose quads.
 bm=bmesh.new(); bm.from_mesh(greenhouse.data)
@@ -318,19 +340,17 @@ line("hood-shutline",
      [(.86,deck_at(z)-.002,z) for z in (-2.02,-1.70,-1.30)] +
      [(.86,deck_at(-.90)-.002,-.90)])
 
-# Two doors a side. The arches eat 515 mm each, so the free span between them is
-# 1.93 m and each door is a stubby 930 mm. That shortness is the point: it reads
-# as a practical four-door rather than a long-doored coupe.
-DOORS = [("front", [(-.93,1.135),(-.93,.58),(-.85,.50),(-.06,.50),(.00,.59),(.00,1.140)], -.12),
-         ("rear",  [(.04,1.140),(.04,.59),(.10,.50),(.86,.50),(.93,.59),(.93,1.135)], .81)]
+# One door a side now. At 1.36 m it is a normal door, not a muscle-car door:
+# the bed already says working vehicle, so the doors do not have to, and a long
+# raked door would tip this from freight yard to hot rod.
+DOOR = [(-.90,1.135),(-.90,.58),(-.82,.50),(.40,.50),(.46,.59),(.46,1.140)]
 for side,suffix in [(-1,"left"),(1,"right")]:
-    for door,path,handle_z in DOORS:
-        line(f"{door}-door-shutline-{suffix}", [(side*(width_at(z)+.003),y,z) for z,y in path])
-        # High on the door, tucked under the shoulder, rather than at mid-height
-        # where a handle reads as something you are meant to open politely.
-        box(f"{door}-door-handle-{suffix}",(side*(width_at(handle_z)+.012),1.030,handle_z),
-            (.022,.040,.19),trim,bevel=.008)
-    box(f"sill-insert-{suffix}",(side*1.112,.42,0),(.034,.065,1.85),trim,bevel=.012)
+    line(f"door-shutline-{suffix}", [(side*(width_at(z)+.003),y,z) for z,y in DOOR])
+    # High on the door, tucked under the shoulder, rather than at mid-height
+    # where a handle reads as something you are meant to open politely.
+    box(f"door-handle-{suffix}",(side*(width_at(.30)+.012),1.030,.30),
+        (.022,.040,.19),trim,bevel=.008)
+    box(f"sill-insert-{suffix}",(side*1.112,.42,-.20),(.034,.065,1.45),trim,bevel=.012)
     # Door-mounted and rooted BELOW the beltline, so the inboard end is buried
     # in the door skin. Sitting it on top of the shoulder left it hovering in
     # mid-air in the first two passes, which is exactly how it read.

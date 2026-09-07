@@ -1,6 +1,7 @@
 import type { MenuCommand } from "../input/input.ts";
 import type { CarCustomization, CustomizationCategory } from "../customization/customization.ts";
 import { isDrivetrain, type Drivetrain } from "../sim/sim.ts";
+import type { AudioLevels } from "../audio/audio-mix.ts";
 import {
   createInitialMenuState,
   transitionMenu,
@@ -8,6 +9,16 @@ import {
   type MenuScreen,
   type MenuState,
 } from "./menu-state.ts";
+
+type MenuItem = HTMLButtonElement | HTMLInputElement;
+
+/**
+ * Everything a player can land on with a pad or the arrow keys. Exported so a
+ * test can hold it against the real markup: a control the menu cannot focus is
+ * not merely unreachable, it makes navigation skip past onto something else.
+ */
+export const MENU_ITEM_SELECTOR =
+  "button:not([disabled]), input[type=\"range\"]:not([disabled])";
 
 interface MenuCallbacks {
   startTrack(): void;
@@ -19,10 +30,17 @@ interface MenuCallbacks {
   selectDrivetrain(drivetrain: Drivetrain): void;
   customize(category: CustomizationCategory, optionId: string): void;
   screenChanged(screen: MenuScreen): void;
+  getAudioLevels(): AudioLevels;
+  setAudioLevel(channel: keyof AudioLevels, value: number): void;
+  /** What the soundtrack row should say: track title, or why there is none. */
+  soundtrackLabel(): { note: string; playing: boolean; enabled: boolean };
+  soundtrack(command: "toggle" | "next" | "previous"): void;
 }
 
 export interface MenuController {
   handleCommands(commands: readonly MenuCommand[]): void;
+  /** Called when the soundtrack advances on its own, so the label keeps up. */
+  refreshAudio(): void;
   isGameplayActive(): boolean;
   isGarageActive(): boolean;
   pause(): void;
@@ -54,11 +72,46 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     });
   }
 
-  function visibleItems(): HTMLButtonElement[] {
+  function renderAudio(): void {
+    const levels = callbacks.getAudioLevels();
+    root.querySelectorAll<HTMLInputElement>("[data-audio-level]").forEach((slider) => {
+      const channel = slider.dataset.audioLevel as keyof AudioLevels;
+      const value = levels[channel];
+      if (value !== undefined) slider.value = String(value);
+    });
+    const { note, playing, enabled } = callbacks.soundtrackLabel();
+    root.querySelectorAll<HTMLElement>("[data-soundtrack-note]").forEach((element) => {
+      element.textContent = note;
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-soundtrack]").forEach((button) => {
+      button.disabled = !enabled;
+      if (button.dataset.soundtrack === "toggle") button.textContent = playing ? "Pause" : "Play";
+    });
+  }
+
+  // Sliders are menu items too. Leaving them out of this list made them
+  // unreachable by keyboard or pad, and worse, a player hunting for the audio
+  // controls would cycle onto Track Select and get thrown out of their run.
+  function visibleItems(): MenuItem[] {
     const screen = screens.get(state.screen);
     return screen
-      ? Array.from(screen.querySelectorAll<HTMLButtonElement>("button:not([disabled])"))
+      ? Array.from(screen.querySelectorAll<MenuItem>(MENU_ITEM_SELECTOR))
       : [];
+  }
+
+  function focusedSlider(): HTMLInputElement | null {
+    const active = document.activeElement;
+    return active instanceof HTMLInputElement && active.type === "range" ? active : null;
+  }
+
+  function adjustSlider(slider: HTMLInputElement, direction: -1 | 1): void {
+    const step = Number(slider.step) || .05;
+    const value = Number(slider.value);
+    const next = Math.min(Number(slider.max) || 1,
+      Math.max(Number(slider.min) || 0, value + direction * step));
+    if (next === value) return;
+    slider.value = String(next);
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   function renderCustomization(): void {
@@ -76,6 +129,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   function renderState(previousScreen?: MenuScreen): void {
     renderDrivetrain();
     renderCustomization();
+    renderAudio();
     document.body.dataset.gameScreen = state.screen;
     root.hidden = state.screen === "playing";
     root.setAttribute("aria-hidden", String(state.screen === "playing"));
@@ -115,26 +169,35 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   function moveFocus(direction: -1 | 1): void {
     const items = visibleItems();
     if (items.length === 0) return;
-    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    const current = items.indexOf(document.activeElement as MenuItem);
     const next = current < 0 ? 0 : (current + direction + items.length) % items.length;
-    items[next].focus();
+    items[next]!.focus();
   }
 
   function confirmFocused(): void {
+    // Confirming on a slider must do nothing. Falling through to items[0] here
+    // would resume the run from under a player who was only setting a volume.
+    if (focusedSlider()) return;
     const items = visibleItems();
     const focused = document.activeElement;
-    const target = items.includes(focused as HTMLButtonElement) ? focused : items[0];
-    (target as HTMLButtonElement | undefined)?.click();
+    const target = items.includes(focused as MenuItem) ? focused : items[0];
+    if (target instanceof HTMLButtonElement) target.click();
   }
 
   function handleCommands(commands: readonly MenuCommand[]): void {
     for (const command of commands) {
       if (command === "pause") {
         dispatch("pause-toggle");
-      } else if (state.screen !== "playing" && (command === "up" || command === "left")) {
+      } else if (state.screen !== "playing" && command === "up") {
         moveFocus(-1);
-      } else if (state.screen !== "playing" && (command === "down" || command === "right")) {
+      } else if (state.screen !== "playing" && command === "down") {
         moveFocus(1);
+      } else if (state.screen !== "playing" && (command === "left" || command === "right")) {
+        // On a slider, sideways is the value; everywhere else it still moves.
+        const direction = command === "left" ? -1 : 1;
+        const slider = focusedSlider();
+        if (slider) adjustSlider(slider, direction);
+        else moveFocus(direction);
       } else if (state.screen !== "playing" && command === "confirm") {
         confirmFocused();
       } else if (state.screen !== "playing" && command === "back") {
@@ -143,8 +206,24 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     }
   }
 
+  root.addEventListener("input", (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    const channel = event.target.dataset.audioLevel as keyof AudioLevels | undefined;
+    if (!channel) return;
+    callbacks.setAudioLevel(channel, Number(event.target.value));
+  });
+
   root.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
+    const soundtrackButton = event.target.closest<HTMLButtonElement>("[data-soundtrack]");
+    if (soundtrackButton) {
+      const command = soundtrackButton.dataset.soundtrack;
+      if (command === "toggle" || command === "next" || command === "previous") {
+        callbacks.soundtrack(command);
+        renderAudio();
+      }
+      return;
+    }
     const drivetrainButton = event.target.closest<HTMLButtonElement>("[data-drivetrain]");
     if (drivetrainButton) {
       const drivetrain = drivetrainButton.dataset.drivetrain;
@@ -173,6 +252,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   return {
     handleCommands,
+    refreshAudio: renderAudio,
     isGameplayActive: () => state.screen === "playing",
     isGarageActive: () => state.screen === "garage",
     pause: () => {

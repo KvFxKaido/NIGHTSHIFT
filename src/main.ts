@@ -3,14 +3,17 @@ import {
   updateCustomization,
 } from "./customization/customization.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
-import { createInputController } from "./input/input.ts";
+import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
-import { BLENDER_CAR_PATH, loadBlenderCar } from "./render/blender-car.ts";
+import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
 import { BLENDER_COURSE_PATH } from "./render/course-asset-contract.ts";
 import { loadBlenderCourse, type BlenderCourse } from "./render/blender-course.ts";
 import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
 import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createMenuController } from "./ui/menu.ts";
+import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
+import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
+import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
 import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
   type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
 
@@ -23,12 +26,12 @@ let course: BlenderCourse | null;
 try {
   await RAPIER.init();
   const model = new URLSearchParams(location.search).get("car") ?? "blender";
-  if (model !== "blender" && model !== "classic") throw new Error(`Unknown car model '${model}'`);
+  if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
   const environment = new URLSearchParams(location.search).get("environment") ?? "blender";
   if (environment !== "blender" && environment !== "classic") throw new Error(`Unknown environment '${environment}'`);
   [carParts, course] = await Promise.all([
     model === "classic" ? Promise.resolve(createCar())
-      : loadBlenderCar(new URL(BLENDER_CAR_PATH, document.baseURI).href),
+      : loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model),
     environment === "classic" ? Promise.resolve(null)
       : loadBlenderCourse(new URL(BLENDER_COURSE_PATH, document.baseURI).href),
   ]);
@@ -53,6 +56,31 @@ const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
 let customization = restored.customization;
 applyCarCustomization(view, customization);
+
+// Audio is presentation, so it lives beside the renderer and reads state after
+// the ticks are done. Browsers refuse an AudioContext without a gesture, so the
+// whole stack is built on the first click or key and the game runs silent until
+// then rather than logging a failure nobody can act on.
+let audio: CarAudio | null = null;
+let soundtrack: Soundtrack | null = null;
+let audioLevels: AudioLevels = restored.audio;
+let lastInput: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+
+async function startAudio(): Promise<void> {
+  if (audio) return;
+  try {
+    const context = new AudioContext();
+    // Chrome hands back a suspended context unless the gesture is still live.
+    if (context.state === "suspended") await context.resume();
+    audio = createCarAudio(context, audioLevels);
+    soundtrack = await loadSoundtrack(context, audio.musicBus);
+    soundtrack.onChange(() => menu.refreshAudio());
+    menu.refreshAudio();
+  } catch {
+    // A blocked or unsupported AudioContext is not worth breaking a run over.
+    audio = null;
+  }
+}
 
 const inputLog: Input[] = [];
 let lastRun: { drivetrain: Drivetrain; inputs: Input[] } | null = null;
@@ -126,7 +154,40 @@ const menu = createMenuController({
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => setViewMode(view, screen === "garage" ? "garage" : "track"),
+  getAudioLevels: () => audioLevels,
+  setAudioLevel: (channel, value) => {
+    audioLevels = { ...audioLevels, [channel]: value };
+    audio?.setLevels({ [channel]: value });
+    saveSettings({ audio: { [channel]: value } }, []);
+  },
+  soundtrackLabel: () => {
+    if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false };
+    const tracks = soundtrack?.tracks() ?? [];
+    if (!tracks.length) {
+      return {
+        note: "No music found. Drop files in public/assets/music and run pnpm music:scan.",
+        playing: false,
+        enabled: false,
+      };
+    }
+    const playing = soundtrack?.isPlaying() ?? false;
+    const current = soundtrack?.nowPlaying();
+    return {
+      note: current ? `Now playing: ${current.title}` : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ready.`,
+      playing,
+      enabled: true,
+    };
+  },
+  soundtrack: (command) => {
+    if (command === "toggle") soundtrack?.toggle();
+    else if (command === "next") soundtrack?.next();
+    else soundtrack?.previous();
+  },
 });
+
+for (const event of ["pointerdown", "keydown"] as const) {
+  window.addEventListener(event, () => void startAudio(), { once: true });
+}
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) menu.pause();
@@ -192,11 +253,15 @@ function frame(now: number): void {
       tickInput = input.sample();
       inputLog.push(tickInput);
     }
+    lastInput = tickInput;
     step(sim, tickInput);
     accumulator -= DT;
   }
 
   updateHud();
+  // Once per frame, never inside the tick: audio reads the simulation and can
+  // neither change it nor make a run irreproducible.
+  audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen);
   render(
     view,
     sim.state,
@@ -227,6 +292,9 @@ installDebugApi({
       inputLog.push(tickInput);
       step(sim, tickInput);
     }
+    // A scripted run should sound like a driven one, for the same reason the
+    // debug API clicks the real menu buttons rather than faking a state change.
+    lastInput = tickInput;
   },
   renderOnce: (frames = 1) => {
     for (let index = 0; index < frames; index++) renderFrame(DT);
@@ -235,6 +303,30 @@ installDebugApi({
   isFrozen: () => frozen,
   setTelemetry: (visible) => { debugVisible = visible; },
   pause: () => menu.pause(),
+  inputReport: () => {
+    const pad = navigator.getGamepads().find(g => g?.connected && g.mapping === "standard") ?? null;
+    return {
+      gamepad: input.gamepadName(),
+      axes: (pad?.axes ?? []).map(value => Number(value.toFixed(3))),
+      pressedButtons: (pad?.buttons ?? []).flatMap((button, index) => button.pressed ? [index] : []),
+      mapped: mapGamepad(pad),
+      drivingGated: input.isDrivingGated(),
+      screen: document.body.dataset.gameScreen ?? "unknown",
+      delivered: lastInput,
+    };
+  },
+  audioReport: () => {
+    const vehicle = sim.state.vehicle;
+    return {
+      state: audio ? audio.context.state : "absent" as const,
+      levels: audioLevels,
+      engineHz: engineTone(vehicle, lastInput).frequency,
+      scrub: tyreScrub(vehicle),
+      wind: windLevel(vehicle),
+      tracks: soundtrack?.tracks().length ?? 0,
+      nowPlaying: soundtrack?.nowPlaying()?.title ?? null,
+    };
+  },
 });
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;

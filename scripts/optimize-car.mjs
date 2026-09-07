@@ -5,8 +5,12 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, weld } from '@gltf-transform/functions';
 import validator from 'gltf-validator';
 
-const source = new URL('../artifacts/ns-coupe-01.raw.glb', import.meta.url);
-const target = new URL('../public/assets/cars/ns-coupe-01.glb', import.meta.url);
+// Defaults to NS-01 so `pnpm assets:car` is unchanged; --car=<slug> ships a
+// second body through the identical weld/dedup/prune and validation path.
+const slug = process.argv.find(argument => argument.startsWith('--car='))?.slice(6) ?? 'ns-coupe-01';
+if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`Unsafe car slug: ${slug}`);
+const source = new URL(`../artifacts/${slug}.raw.glb`, import.meta.url);
+const target = new URL(`../public/assets/cars/${slug}.glb`, import.meta.url);
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const doc = await io.read(fileURLToPath(source));
 // Preserve named pivots and the small silhouette. No lossy simplification or
@@ -20,6 +24,6 @@ if (report.issues.numErrors || report.issues.numWarnings) {
 await mkdir(new URL('.', target), { recursive: true });
 await writeFile(target, bytes);
 const original = await readFile(source);
-console.log(`NS-01: ${original.byteLength.toLocaleString()} -> ${bytes.byteLength.toLocaleString()} bytes; ` +
+console.log(`${slug}: ${original.byteLength.toLocaleString()} -> ${bytes.byteLength.toLocaleString()} bytes; ` +
   `${doc.getRoot().listMeshes().length} meshes, ${doc.getRoot().listMaterials().length} materials, ` +
   `${doc.getRoot().listTextures().length} textures; glTF validation clean.`);

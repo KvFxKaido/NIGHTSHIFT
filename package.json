@@ -9,8 +9,10 @@
     "track:export": "node --env-file-if-exists=.env scripts/export-track.mjs",
     "assets:track": "node scripts/optimize-track.mjs",
     "car:export": "node --env-file-if-exists=.env scripts/export-car.mjs",
+    "music:scan": "node scripts/scan-music.mjs",
     "assets:car": "node scripts/optimize-car.mjs",
-    "dev": "vite",
+    "assets:bulwark": "node scripts/optimize-car.mjs --car=ns-bulwark-01",
+    "dev": "node scripts/scan-music.mjs && vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"

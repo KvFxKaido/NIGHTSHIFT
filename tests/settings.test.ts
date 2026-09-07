@@ -3,6 +3,7 @@ import test from "node:test";
 import { createSettingsStore, decodeSettings, defaultSettings, SETTINGS_KEY,
   SETTINGS_VERSION, settingsStatusMessage, withoutSettingsOverrides } from "../src/settings/settings.ts";
 import type { Drivetrain } from "../src/sim/sim.ts";
+import { DEFAULT_LEVELS } from "../src/audio/audio-mix.ts";
 
 function storage() {
   const data = new Map<string, string>();
@@ -11,12 +12,14 @@ function storage() {
     setItem: (key: string, value: string) => { writes.push(key); data.set(key, value); } };
 }
 const example = { drivetrain: "rwd" as const,
-  customization: { paint: "ice", wheels: "alloy", stance: "slammed" } };
+  customization: { paint: "ice", wheels: "alloy", stance: "slammed" },
+  audio: { ...DEFAULT_LEVELS } };
 
 test("a fresh settings store defaults to FWD without writing on startup", () => {
   const disk = storage();
   const store = createSettingsStore(() => disk);
-  assert.deepEqual(store.get(), { drivetrain: "fwd", customization: { paint: "signal", wheels: "graphite", stance: "street" } });
+  assert.deepEqual(store.get(), { drivetrain: "fwd",
+    customization: { paint: "signal", wheels: "graphite", stance: "street" }, audio: DEFAULT_LEVELS });
   assert.equal(store.status(), "ready");
   assert.equal(disk.writes.length, 0);
 });
@@ -53,8 +56,10 @@ test("malformed and unknown-version saves use safe defaults without overwriting 
 test("invalid saved fields recover individually and unrelated saved fields survive", () => {
   const decoded = decodeSettings(JSON.stringify({ version: 1, drivetrain: "__proto__",
     customization: { paint: "ice", wheels: 3, stance: "slammed" }, vehicle: { speed: 100 } }));
+  // Version 1 predates audio, so those levels default while the damaged
+  // drivetrain and wheels still report as recovered.
   assert.deepEqual(decoded.settings, { drivetrain: "fwd",
-    customization: { paint: "ice", wheels: "graphite", stance: "slammed" } });
+    customization: { paint: "ice", wheels: "graphite", stance: "slammed" }, audio: DEFAULT_LEVELS });
   assert.equal(decoded.status, "recovered");
 });
 
@@ -107,7 +112,7 @@ test("two open tabs merge deliberate field changes instead of clobbering each ot
   second.update({ customization: { paint: "ice" } });
   first.update({ customization: { stance: "low" } });
   assert.deepEqual(createSettingsStore(() => disk).get(), { drivetrain: "rwd",
-    customization: { paint: "ice", wheels: "graphite", stance: "low" } });
+    customization: { paint: "ice", wheels: "graphite", stance: "low" }, audio: DEFAULT_LEVELS });
 });
 
 test("invalid user changes cannot get stored", () => {

@@ -3,16 +3,20 @@ import {
   type CarCustomization, type CustomizationCategory,
 } from "../customization/customization.ts";
 import { DEFAULT_DRIVETRAIN, isDrivetrain, type Drivetrain } from "../sim/sim.ts";
+import { DEFAULT_LEVELS, isLevel, type AudioLevels } from "../audio/audio-mix.ts";
 
 export const SETTINGS_KEY = "nightshift.settings";
-export const SETTINGS_VERSION = 1;
+/** 2 added audio levels. Version 1 saves migrate rather than being discarded. */
+export const SETTINGS_VERSION = 2;
 export interface PlayerSettings {
   drivetrain: Drivetrain;
   customization: CarCustomization;
+  audio: AudioLevels;
 }
 export interface SettingsPatch {
   drivetrain?: Drivetrain;
   customization?: Partial<CarCustomization>;
+  audio?: Partial<AudioLevels>;
 }
 export type SettingsStatus = "ready" | "saved" | "recovered" | "unavailable";
 export type SettingsUrlKey = "drivetrain" | CustomizationCategory;
@@ -20,8 +24,14 @@ type SettingsStorage = Pick<Storage, "getItem" | "setItem">;
 const options = { paint: PAINT_OPTIONS, wheels: WHEEL_OPTIONS, stance: STANCE_OPTIONS };
 const categories: CustomizationCategory[] = ["paint", "wheels", "stance"];
 
+const channels: (keyof AudioLevels)[] = ["master", "engine", "music"];
+
 export function defaultSettings(): PlayerSettings {
-  return { drivetrain: DEFAULT_DRIVETRAIN, customization: createDefaultCustomization() };
+  return {
+    drivetrain: DEFAULT_DRIVETRAIN,
+    customization: createDefaultCustomization(),
+    audio: { ...DEFAULT_LEVELS },
+  };
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -34,7 +44,9 @@ export function decodeSettings(raw: string | null): { settings: PlayerSettings; 
   if (raw === null) return { settings, status: "ready" };
   try {
     const data: unknown = JSON.parse(raw);
-    if (!record(data) || data.version !== SETTINGS_VERSION) return { settings, status: "recovered" };
+    if (!record(data) || (data.version !== SETTINGS_VERSION && data.version !== 1)) {
+      return { settings, status: "recovered" };
+    }
     let recovered = false;
     if (isDrivetrain(data.drivetrain)) settings.drivetrain = data.drivetrain;
     else recovered = true;
@@ -44,6 +56,16 @@ export function decodeSettings(raw: string | null): { settings: PlayerSettings; 
       if (typeof value === "string" && options[category].some(option => option.id === value)) {
         settings.customization[category] = value;
       } else recovered = true;
+    }
+    // A version 1 save predates audio, so defaulting those levels is a
+    // migration and not a loss. Only a malformed level counts as recovery.
+    if (data.version === SETTINGS_VERSION) {
+      const audio = record(data.audio) ? data.audio : {};
+      for (const channel of channels) {
+        const value = audio[channel];
+        if (isLevel(value)) settings.audio[channel] = value;
+        else recovered = true;
+      }
     }
     return { settings, status: recovered ? "recovered" : "saved" };
   } catch {
@@ -63,7 +85,11 @@ export function createSettingsStore(storage: () => SettingsStorage) {
   }
 
   return {
-    get: (): PlayerSettings => ({ ...settings, customization: { ...settings.customization } }),
+    get: (): PlayerSettings => ({
+      ...settings,
+      customization: { ...settings.customization },
+      audio: { ...settings.audio },
+    }),
     status: (): SettingsStatus => status,
     // applyDeepLink uses the real callbacks, but previewing must neither save
     // nor change the stored base that the next deliberate menu edit merges into.
@@ -82,6 +108,12 @@ export function createSettingsStore(storage: () => SettingsStorage) {
           throw new RangeError(`Unknown ${category}: ${value}`);
         }
       }
+      for (const channel of channels) {
+        const value = patch.audio?.[channel];
+        if (value !== undefined && !isLevel(value)) {
+          throw new RangeError(`Audio ${channel} must be between 0 and 1: ${value}`);
+        }
+      }
       // Rebase this field-level edit on the latest save so an older open tab
       // changing paint does not overwrite another tab's drivetrain preference.
       let base = settings;
@@ -92,10 +124,15 @@ export function createSettingsStore(storage: () => SettingsStorage) {
       settings = {
         drivetrain: patch.drivetrain ?? base.drivetrain,
         customization: { ...base.customization },
+        audio: { ...base.audio },
       };
       for (const category of categories) {
         const value = patch.customization?.[category];
         if (value !== undefined) settings.customization[category] = value;
+      }
+      for (const channel of channels) {
+        const value = patch.audio?.[channel];
+        if (value !== undefined) settings.audio[channel] = value;
       }
       try {
         storage().setItem(SETTINGS_KEY, JSON.stringify({ version: SETTINGS_VERSION, ...settings }));

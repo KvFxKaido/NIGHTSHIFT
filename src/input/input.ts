@@ -13,6 +13,8 @@ export interface InputController {
   cameraLook(): CameraLook;
   consumeMenuCommands(): MenuCommand[];
   armDrivingInputGate(): void;
+  /** True while driving input is still being swallowed waiting for neutral. */
+  isDrivingGated(): boolean;
   consumeReset(): boolean;
   consumeCameraReset(): boolean;
   consumeReplay(): boolean;
@@ -26,6 +28,12 @@ const STEERING_DEADZONE = 0.05;
 // Only recognize a released stick when entering/resuming driving; this never
 // filters steering after the gate opens, even if the pad has a resting offset.
 const DRIVING_GATE_STEERING_NEUTRAL = 0.1;
+// Triggers are analog and rest slightly above zero on plenty of pads. Demanding
+// a literal 0.01 meant such a pad never read neutral, so the gate never opened
+// and every driving input stayed zero for the whole run while the menus, which
+// use button presses and a 0.65 axis threshold, kept working perfectly.
+// This governs only when the gate OPENS; delivered values are never filtered.
+const DRIVING_GATE_ANALOG_NEUTRAL = 0.12;
 
 function deadzone(value: number, threshold: number): number {
   if (Math.abs(value) <= threshold) return 0;
@@ -160,8 +168,11 @@ export function createInputController(): InputController {
     };
 
     if (drivingInputGated) {
-      const neutral = nextInput.throttle < 0.01 && nextInput.brake < 0.01 &&
-        Math.abs(nextInput.steer) < DRIVING_GATE_STEERING_NEUTRAL && nextInput.handbrake < 0.01;
+      const neutral =
+        nextInput.throttle < DRIVING_GATE_ANALOG_NEUTRAL &&
+        nextInput.brake < DRIVING_GATE_ANALOG_NEUTRAL &&
+        nextInput.handbrake < DRIVING_GATE_ANALOG_NEUTRAL &&
+        Math.abs(nextInput.steer) < DRIVING_GATE_STEERING_NEUTRAL;
       if (neutral) drivingInputGated = false;
       return { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
     }
@@ -190,6 +201,7 @@ export function createInputController(): InputController {
     cameraLook: () => mapCameraGamepad(gamepad),
     consumeMenuCommands: () => menuCommands.splice(0),
     armDrivingInputGate: () => { drivingInputGated = true; },
+    isDrivingGated: () => drivingInputGated,
     consumeReset: () => consume("reset"),
     consumeCameraReset: () => consume("camera"),
     consumeReplay: () => consume("replay"),

@@ -181,6 +181,20 @@
             </div>
             <p id="drivetrain-note" class="handling-note">Changing layout restarts the run and clears its replay. Auto-countersteer is off for every layout.</p>
           </fieldset>
+          <fieldset class="garage-control audio-control" aria-describedby="soundtrack-note">
+            <legend>Audio</legend>
+            <div class="audio-levels">
+              <label>Master <input type="range" data-audio-level="master" min="0" max="1" step="0.05"></label>
+              <label>Car <input type="range" data-audio-level="engine" min="0" max="1" step="0.05"></label>
+              <label>Music <input type="range" data-audio-level="music" min="0" max="1" step="0.05"></label>
+            </div>
+            <div class="garage-options text-options">
+              <button class="garage-option" data-soundtrack="previous" aria-label="Previous track">&#8249;</button>
+              <button class="garage-option" data-soundtrack="toggle">Play</button>
+              <button class="garage-option" data-soundtrack="next" aria-label="Next track">&#8250;</button>
+            </div>
+            <p id="soundtrack-note" class="handling-note" data-soundtrack-note></p>
+          </fieldset>
           <p class="menu-footer">Esc / Options to resume</p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>

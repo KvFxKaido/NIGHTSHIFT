@@ -141,3 +141,46 @@ test("left stick and D-pad map to horizontal menu navigation", () => {
   assert.equal(mapMenuHorizontal(gamepad([0, 0], { 14: 1 })), -1);
   assert.equal(mapMenuHorizontal(gamepad([0, 0], { 15: 1 })), 1);
 });
+
+// A pad whose triggers rest slightly above zero used to jam the driving gate
+// shut forever: the neutrality test demanded throttle < 0.01 on a raw analog
+// value. Menus kept working, because they read button presses and a 0.65 axis
+// threshold, so the car simply ignored the controller for the whole run.
+test("a resting trigger offset cannot jam the driving gate shut", () => {
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalListener = Object.getOwnPropertyDescriptor(globalThis, "addEventListener");
+  let pad = gamepad([0], { 7: 0.04, 6: 0.03 });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { getGamepads: () => [{ ...pad, connected: true, mapping: "standard" }] },
+  });
+  Object.defineProperty(globalThis, "addEventListener", { configurable: true, value: () => {} });
+  try {
+    const controller = createInputController();
+    controller.update();
+    controller.armDrivingInputGate();
+    assert.equal(controller.sample().throttle, 0, "the arming frame is always swallowed");
+    assert.equal(controller.isDrivingGated(), false, "resting trigger noise still counts as released");
+
+    // The delivered value is never filtered: the tolerance governs the gate only.
+    pad = gamepad([0], { 7: 0.04 });
+    controller.update();
+    assert.equal(controller.sample().throttle, 0.04);
+
+    // A trigger genuinely held down must still hold the gate shut.
+    controller.armDrivingInputGate();
+    pad = gamepad([0], { 7: 0.8 });
+    controller.update();
+    assert.equal(controller.sample().throttle, 0);
+    assert.equal(controller.isDrivingGated(), true, "a real pull is not resting noise");
+    pad = gamepad([0]);
+    controller.update();
+    controller.sample();
+    assert.equal(controller.isDrivingGated(), false, "releasing opens the gate");
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else Reflect.deleteProperty(globalThis, "navigator");
+    if (originalListener) Object.defineProperty(globalThis, "addEventListener", originalListener);
+    else Reflect.deleteProperty(globalThis, "addEventListener");
+  }
+});

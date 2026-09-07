@@ -7,8 +7,34 @@
 import * as THREE from "three";
 import type { View } from "../render/scene.ts";
 import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
+import { BLENDER_CARS } from "../render/blender-car.ts";
 
 export type DebugScreen = "main" | "garage" | "track" | "pause";
+
+export interface AudioReport {
+  /** "absent" until a gesture builds the graph; "running" once it is audible. */
+  state: "absent" | AudioContextState;
+  levels: { master: number; engine: number; music: number };
+  /** Live output of the mixer this frame, so silence has a visible cause. */
+  engineHz: number;
+  scrub: number;
+  wind: number;
+  tracks: number;
+  nowPlaying: string | null;
+}
+
+export interface InputReport {
+  gamepad: string | null;
+  axes: number[];
+  pressedButtons: number[];
+  /** What the pad maps to right now, before the gate is applied. */
+  mapped: Input;
+  /** While true every driving input is replaced with zero, by design. */
+  drivingGated: boolean;
+  screen: string;
+  /** What the simulation actually received on the last tick. */
+  delivered: Input;
+}
 
 export interface DebugBridge {
   view: View;
@@ -21,6 +47,10 @@ export interface DebugBridge {
   isFrozen(): boolean;
   setTelemetry(visible: boolean): void;
   pause(): void;
+  /** Audio is easy to have silently broken; make its real state inspectable. */
+  audioReport(): AudioReport;
+  /** Raw pad state plus the driving gate, so "controller does nothing" has an answer. */
+  inputReport(): InputReport;
 }
 
 interface PickResult {
@@ -253,7 +283,11 @@ export function installDebugApi(bridge: DebugBridge): void {
   function link(): string {
     const url = new URL(location.href);
     url.search = "";
-    if (view.car.userData.model !== "ns-01") url.searchParams.set("car", "classic");
+    // Round-trip whichever body is loaded, not just "is it the coupe".
+    const loaded = view.car.userData.model;
+    const authored = Object.entries(BLENDER_CARS).find(([, car]) => car.model === loaded);
+    if (authored && authored[0] !== "blender") url.searchParams.set("car", authored[0]);
+    else if (!authored) url.searchParams.set("car", "classic");
     if (!view.course) url.searchParams.set("environment", "classic");
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");
@@ -303,10 +337,15 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.drive('W600,WD90') hold throttle 600 ticks, then throttle+right 90",
       "__ns.freeze()          stop the loop advancing, for stable captures",
       "__ns.shot()            PNG data URL of the current frame",
+      "__ns.audio()           audio context state, levels and live mixer output",
+      "__ns.input()           pad axes/buttons, mapped input and the driving gate",
       "__ns.link()            a URL that reproduces the current state",
       "url: ?scene=garage&paint=blackglass&stance=slammed&telemetry=1",
       "url: ?scene=track&drivetrain=rwd&drive=W600,WD90&freeze=1",
+      "url: ?car=bulwark  the Bulwark rival body; ?car=classic the original procedural coupe",
     ].join("\n"),
+    audio: (): AudioReport => bridge.audioReport(),
+    input: (): InputReport => bridge.inputReport(),
   };
 
   (window as unknown as { __ns: typeof api }).__ns = api;

@@ -22,3 +22,8 @@ dist/
 .env
 .env.*
 !.env.example
+
+# The player's own music, and the manifest listing it, stay on their machine.
+# Only the folder's README is tracked. See public/assets/music/README.md.
+/public/assets/music/*
+!/public/assets/music/README.md

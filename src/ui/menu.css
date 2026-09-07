@@ -441,3 +441,41 @@ body[data-game-screen="pause"] #hud {
   .menu-root[data-screen="garage"] .menu-heading { font-size: 36px; }
   .garage-controls { gap: 14px; }
 }
+
+/* Audio sits with the handling comparison in Pause: both are things you reach
+   for mid-session rather than settings you configure once. */
+.audio-levels {
+  display: grid;
+  gap: 0.35rem 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  margin-bottom: 0.6rem;
+}
+
+.audio-levels label {
+  align-items: center;
+  color: rgb(190 205 220 / 88%);
+  display: grid;
+  font-size: 0.72rem;
+  gap: 0.5rem;
+  grid-template-columns: 3.4rem 1fr;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.audio-levels input[type="range"] {
+  accent-color: rgb(120 210 255);
+  min-width: 0;
+  width: 100%;
+}
+
+.audio-control .garage-option[disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Sliders take pad and keyboard focus like any other menu item, so the focus
+   ring has to be as obvious on them as it is on a button. */
+.audio-levels input[type="range"]:focus-visible {
+  outline: 2px solid rgb(120 210 255);
+  outline-offset: 3px;
+}
