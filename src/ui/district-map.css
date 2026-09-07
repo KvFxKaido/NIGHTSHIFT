@@ -1,0 +1,61 @@
+:root {
+  color-scheme: dark;
+  --ink: #dce4dd; --muted: #a1b5b9; --paper: #162c37; --panel: #223c46;
+  --street: #6e878c; --new: #ecdaa5; --route: #efb968;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); }
+a { color: inherit; text-underline-offset: 4px; }
+header, footer { display: flex; justify-content: space-between; gap: 24px; padding: 24px 38px; color: var(--muted); font-size: 13px; }
+header a { color: var(--ink); font-family: Bahnschrift, "Arial Narrow", sans-serif; font-size: 22px; text-decoration: none; }
+header span { align-self: center; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; max-width: 1550px; margin: 0 auto; padding: 0 38px; gap: 35px; }
+.map-sheet { min-width: 0; position: relative; background: #19333e; border-radius: 8px 8px 48px 8px; padding: 26px; }
+.map-heading { display: flex; justify-content: space-between; gap: 20px; }
+h1 { margin: 0; font: 500 clamp(32px, 3.7vw, 58px)/.98 Bahnschrift, "Arial Narrow", sans-serif; letter-spacing: -.035em; }
+.map-heading p { margin: 0; text-align: right; color: var(--muted); font-size: 14px; line-height: 1.55; }
+svg { display: block; width: 100%; max-height: 61vh; min-height: 330px; margin: -4px 0 0; overflow: visible; }
+.street-line { fill: none; stroke: var(--street); stroke-linecap: round; stroke-linejoin: round; }
+.street-line.added { stroke: var(--new); }
+.route-line { fill: none; stroke: var(--route); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.map-block { fill: #29444f; stroke: #35505a; stroke-width: .7; }
+.map-label { fill: #ccdbd8; font: 11px "Segoe UI", sans-serif; paint-order: stroke; stroke: #19333e; stroke-width: 4px; stroke-linejoin: round; }
+.map-label.new-label { fill: var(--new); }
+.map-legend { display: flex; flex-wrap: wrap; gap: 20px; color: var(--muted); font-size: 12px; margin-top: 14px; }
+.map-legend span { display: flex; gap: 8px; align-items: center; }
+i { display: inline-block; width: 23px; height: 4px; background: var(--street); }
+i.added { background: var(--new); } i.selected { background: var(--route); }
+aside { padding-top: 12px; }
+h2 { margin: 0 0 8px; font: 500 29px Bahnschrift, sans-serif; }
+.intro, .route-brief p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+.intro { margin: 0 0 20px; }
+#routes { display: grid; gap: 7px; }
+.route-option { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 15px; border: 1px solid transparent; border-left: 4px solid var(--swatch); border-radius: 3px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 15px "Segoe UI", sans-serif; }
+.route-option small { font-size: 12px; font-weight: 400; white-space: nowrap; color: var(--muted); }
+.route-option[aria-pressed="true"] { border-color: var(--swatch); background: #304b53; }
+.route-option:hover { background: #304b53; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+.route-brief { min-height: 153px; padding-top: 22px; }
+h3 { margin: 0; font-weight: 600; font-size: 18px; }
+.route-brief p { margin: 8px 0; }
+#route-stats { color: var(--ink); }
+.drive { display: block; padding: 15px 18px; text-align: center; border-radius: 3px; background: var(--route); color: #142833; text-decoration: none; font-weight: 700; }
+.boundary-note { font-size: 12px; line-height: 1.55; color: var(--muted); }
+.comparison { display: inline-block; margin-top: 8px; font-size: 13px; }
+footer { line-height: 1.5; font-size: 12px; }
+@media (max-width: 960px) {
+  main { grid-template-columns: minmax(0, 1fr) 275px; gap: 22px; padding: 0 22px; }
+  .map-sheet { padding: 18px; } .map-heading p { display: none; }
+  header, footer { padding: 22px; }
+}
+@media (max-width: 700px) {
+  main { display: flex; flex-direction: column; padding: 0 16px; gap: 22px; }
+  header, footer { padding: 20px 16px; } header span { max-width: 140px; text-align: right; }
+  svg { min-height: 0; max-height: none; margin-top: 12px; }
+  .map-legend { gap: 12px; font-size: 11px; } i { width: 16px; }
+  .map-sheet { border-radius: 6px 6px 24px 6px; }
+  aside { padding: 0 4px; } .route-brief { min-height: 0; margin-bottom: 20px; }
+  footer { flex-direction: column; gap: 6px; }
+}

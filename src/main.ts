@@ -8,8 +8,12 @@ import { applyCarCustomization, createCar, type CarView } from "./render/car.ts"
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
 import { BLENDER_COURSE_PATH } from "./render/course-asset-contract.ts";
 import { loadBlenderCourse, type BlenderCourse } from "./render/blender-course.ts";
-import { createView, render, resetViewCamera, setViewMode } from "./render/scene.ts";
-import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input } from "./sim/sim.ts";
+import { createView, render, resetViewCamera, setRival, setViewMode } from "./render/scene.ts";
+import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input, type Sim } from "./sim/sim.ts";
+import { courseGap } from "./sim/track.ts";
+import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, getDistrictRoute,
+  pathLength, routePoints, type DistrictRoute } from "./sim/district.ts";
+import { BLACKGLASS_WORLD } from "./sim/road-world.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
@@ -23,17 +27,33 @@ const restored = settings.get();
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
 let course: BlenderCourse | null;
+let rivalParts: CarView;
+let districtRoute: DistrictRoute | null = null;
+// The district is the game now, and free roam is how you meet it: no route
+// picked, no line to follow, the whole network open. ?route= still overlays one
+// of the guides for a specific study, and ?world=blackglass returns to the
+// original closed course with its own geometry, physics and lighting.
+let district = true;
 try {
+  const params = new URLSearchParams(location.search);
+  const world = params.get("world") ?? "district";
+  if (world !== "blackglass" && world !== "district") throw new Error(`Unknown world '${world}'`);
+  district = world === "district";
+  const route = params.get("route");
+  if (district && route) districtRoute = getDistrictRoute(route);
   await RAPIER.init();
   const model = new URLSearchParams(location.search).get("car") ?? "blender";
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
   const environment = new URLSearchParams(location.search).get("environment") ?? "blender";
   if (environment !== "blender" && environment !== "classic") throw new Error(`Unknown environment '${environment}'`);
-  [carParts, course] = await Promise.all([
+  [carParts, course, rivalParts] = await Promise.all([
     model === "classic" ? Promise.resolve(createCar())
       : loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model),
     environment === "classic" ? Promise.resolve(null)
       : loadBlenderCourse(new URL(BLENDER_COURSE_PATH, document.baseURI).href),
+    // The rival always drives the Bulwark: it is that car's whole reason to
+    // exist, and a body you can tell apart at a glance is the point.
+    loadBlenderCar(new URL(BLENDER_CARS.bulwark.path, document.baseURI).href, "bulwark"),
   ]);
 } catch (error) {
   document.body.dataset.assetState = "error";
@@ -45,8 +65,27 @@ try {
 }
 
 const input = createInputController();
-const sim = createSim(restored.drivetrain);
-const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course);
+const roadWorld = !district ? BLACKGLASS_WORLD
+  : districtRoute ? createDistrictWorld(districtRoute) : createFreeRoamWorld();
+const sim = createSim(restored.drivetrain, roadWorld);
+const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
+  districtRoute, roadWorld, district);
+if (district) {
+  const label = districtRoute ? `${districtRoute.name} blockout` : "Blackglass District";
+  document.body.dataset.world = "district";
+  document.title = `NIGHTSHIFT — ${label}`;
+  document.querySelector("#brand > span")!.textContent = `NIGHTSHIFT / ${districtRoute?.name ?? "FREE ROAM"}`;
+  document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent =
+    districtRoute ? `${districtRoute.name} / Blockout` : "Blackglass District / Free roam";
+  document.querySelector(".menu-lede")!.textContent = districtRoute
+    ? `${(pathLength(routePoints(districtRoute)) / 1000).toFixed(2)} km guide over the district. Follow the coloured arrows, or ignore them.`
+    : "One district, open. No route, no timing, no finish line — drive it and find out what it wants to be.";
+}
+document.querySelectorAll<HTMLButtonElement>("[data-district-map]").forEach(button => {
+  button.addEventListener("click", () => {
+    location.href = districtRoute ? `./district.html?route=${districtRoute.id}` : "./district.html";
+  });
+});
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const speedElement = document.getElementById("speed")!;
@@ -86,6 +125,39 @@ const inputLog: Input[] = [];
 let lastRun: { drivetrain: Drivetrain; inputs: Input[] } | null = null;
 let replay: Input[] | null = null;
 let replayTick = 0;
+
+// A recorded lap driven as an opponent, not a ghost of you: a second Sim fed
+// the archived input log, stepped in the same fixed-tick loop so the two runs
+// cannot drift apart. This is what law 2 was paid for — no AI is involved,
+// because a deterministic input log already IS a driver.
+//
+// It has its own Rapier world, so it cannot touch you. That is deliberate for
+// now: contact is the Bully's actual character and it needs one shared world
+// with two bodies, which is a real change to a Sim that currently owns exactly
+// one `body` and one `state.vehicle`. Worth doing once a car to chase has
+// proven it fixes anything.
+let rivalSim: Sim | null = null;
+let rivalInputs: readonly Input[] = [];
+let rivalTick = 0;
+let rivalEnabled = new URLSearchParams(location.search).get("rival") !== "0";
+const NEUTRAL_INPUT: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+const rivalRunning = () => rivalSim !== null && rivalTick < rivalInputs.length;
+
+function startRival(run: { drivetrain: Drivetrain; inputs: readonly Input[] } | null): void {
+  if (!rivalEnabled || !run || run.inputs.length === 0) {
+    rivalSim = null;
+    rivalInputs = [];
+    rivalTick = 0;
+    setRival(view, null);
+    return;
+  }
+  // Reuse one world rather than leaking a Rapier world per restart.
+  rivalSim ??= createSim(run.drivetrain, roadWorld);
+  resetSim(rivalSim, run.drivetrain);
+  rivalInputs = run.inputs;
+  rivalTick = 0;
+  setRival(view, rivalParts);
+}
 let debugVisible = false;
 // Set by __ns.freeze(): holds the fixed simulation still so a capture of a given
 // state is the same image every time.
@@ -117,6 +189,8 @@ function reset(archive = true, drivetrain = sim.state.drivetrain): void {
   replayTick = 0;
   resetSim(sim, drivetrain);
   resetViewCamera(view);
+  // Whatever was just archived becomes the car you are racing next time round.
+  startRival(lastRun);
 }
 
 function beginReplay(): void {
@@ -198,7 +272,7 @@ function updateHud(): void {
   speedElement.textContent = Math.round(car.speed * 2.237).toString().padStart(3, "0");
   gearElement.textContent = car.forwardSpeed < -0.5 ? "R" : car.speed < 0.5 ? "N" : "D";
   modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%`
-    : `LIVE / ${sim.state.drivetrain.toUpperCase()}`;
+    : `LIVE / ${sim.state.drivetrain.toUpperCase()}${rivalRunning() ? " / RIVAL" : ""}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "No standard gamepad detected";
@@ -255,6 +329,12 @@ function frame(now: number): void {
     }
     lastInput = tickInput;
     step(sim, tickInput);
+    // Same tick, same DT, so a recorded lap stays in step with the live one.
+    // Past the end of the log it coasts on neutral rather than vanishing.
+    if (rivalSim) {
+      step(rivalSim, rivalInputs[rivalTick] ?? NEUTRAL_INPUT);
+      rivalTick++;
+    }
     accumulator -= DT;
   }
 
@@ -267,6 +347,7 @@ function frame(now: number): void {
     sim.state,
     frameDelta,
     gameplayActive || garageActive ? input.cameraLook() : { x: 0, y: 0 },
+    rivalSim?.state.vehicle ?? null,
   );
   requestAnimationFrame(frame);
 }
@@ -291,9 +372,15 @@ installDebugApi({
     for (let index = 0; index < ticks; index++) {
       inputLog.push(tickInput);
       step(sim, tickInput);
+      // The rival advances here too, or a scripted run would silently desync
+      // the two laps — the same reason the debug API clicks real menu buttons
+      // rather than faking a state change.
+      if (rivalSim) {
+        step(rivalSim, rivalInputs[rivalTick] ?? NEUTRAL_INPUT);
+        rivalTick++;
+      }
     }
-    // A scripted run should sound like a driven one, for the same reason the
-    // debug API clicks the real menu buttons rather than faking a state change.
+    // A scripted run should sound like a driven one as well.
     lastInput = tickInput;
   },
   renderOnce: (frames = 1) => {
@@ -303,6 +390,29 @@ installDebugApi({
   isFrozen: () => frozen,
   setTelemetry: (visible) => { debugVisible = visible; },
   pause: () => menu.pause(),
+  rivalReport: (enabled?: boolean) => {
+    if (enabled !== undefined && enabled !== rivalEnabled) {
+      rivalEnabled = enabled;
+      startRival(enabled ? lastRun : null);
+    }
+    const rival = rivalSim?.state.vehicle ?? null;
+    const you = sim.state.vehicle;
+    return {
+      enabled: rivalEnabled,
+      running: rivalRunning(),
+      tick: rivalTick,
+      ticks: rivalInputs.length,
+      position: rival ? [Number(rival.x.toFixed(2)), Number(rival.y.toFixed(2)), Number(rival.z.toFixed(2))] as [number, number, number] : null,
+      speed: rival ? Number(rival.speed.toFixed(2)) : null,
+      // Distance ALONG the lap, not straight-line and emphatically not
+      // CourseProjection.distance, which is the lateral offset from the
+      // centreline and reads as a plausible sub-metre number for two cars a
+      // hundred metres apart.
+      gap: rival ? Number((districtRoute
+        ? districtRouteGap(districtRoute, you.x, you.z, rival.x, rival.z)
+        : courseGap(you.x, you.z, rival.x, rival.z)).toFixed(2)) : null,
+    };
+  },
   inputReport: () => {
     const pad = navigator.getGamepads().find(g => g?.connected && g.mapping === "standard") ?? null;
     return {

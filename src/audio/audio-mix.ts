@@ -23,7 +23,7 @@ export const GEAR_BANDS: readonly (readonly [number, number])[] = [
   [0, .14], [.12, .30], [.27, .47], [.43, .68], [.63, 1],
 ] as const;
 export const IDLE_RPM = 900;
-export const REDLINE_RPM = 7200;
+export const REDLINE_RPM = 8200;
 /** Four-stroke four: two firing events per revolution. */
 const FIRINGS_PER_REV = 2;
 
@@ -36,6 +36,18 @@ export interface EngineTone {
   /** 0..1 filter openness. Load makes an engine brighter, not just louder. */
   brightness: number;
   gain: number;
+  /** 0..1 intake roar level (driven by throttle and manifold airflow). */
+  intake: number;
+  /** 0..1 waveshaper drive/rasp (exhaust pressure and load). */
+  exhaustDrive: number;
+  /** 0..1 high-RPM crossover / screamer intensity (high-cam profile). */
+  screamer: number;
+  /** 0..1 overrun intensity (deceleration / off-throttle at high revs). */
+  overrun: number;
+  /** 0..1 transmission whine intensity (gear mesh at speed). */
+  whine: number;
+  /** Whether the rev limiter is currently cutting. */
+  limiter: boolean;
 }
 
 function clamp(value: number, low = 0, high = 1): number {
@@ -73,15 +85,36 @@ export function engineTone(vehicle: VehicleState, input: Input): EngineTone {
   // not an addition to them — adding the two made the note fall as the car
   // pulled away, because the standing term decayed faster than road speed rose.
   const stationary = 1 - clamp(speed / 3);
-  const revved = clamp(Math.max(through, input.throttle * stationary * .6));
+  const revved = clamp(Math.max(through, input.throttle * stationary * .75));
   const rpm = IDLE_RPM + revved * (REDLINE_RPM - IDLE_RPM);
   const load = clamp(input.throttle * .8 + revved * .4);
+
+  // High-revving N/A acoustics:
+  // 1. Throttle snaps the intake butterfly open -> deep resonant induction bark.
+  const intake = clamp(input.throttle * (0.35 + 0.65 * (rpm / REDLINE_RPM)));
+  // 2. Exhaust rasp and metallic saturation scale with cylinder pressure (load) and gas velocity (RPM).
+  const exhaustDrive = clamp(0.25 + input.throttle * 0.55 + (rpm / REDLINE_RPM) * 0.45);
+  // 3. High-cam crossover: above 5200 RPM, the valve profile hardens and screams up to 8200.
+  const screamer = smoothstep(5200, 7800, rpm) * clamp(0.35 + 0.65 * input.throttle);
+  // 4. Overrun: lifting off the throttle at high RPM cuts the intake and triggers exhaust decel crackle.
+  const overrun = clamp(1 - input.throttle / 0.15) * smoothstep(2600, 6200, rpm);
+  // 5. Straight-cut transmission whine: tracks speed, clearest on overrun when engine roar drops.
+  const whine = clamp(speed / reference) * (0.3 + 0.7 * (1 - input.throttle));
+  // 6. Rev limiter: bouncing at the top of the rev range under throttle.
+  const limiter = revved >= 0.98 && input.throttle > 0.6;
+
   return {
     gear: reversing ? 0 : gear,
     rpm,
     frequency: rpm / 60 * FIRINGS_PER_REV,
     brightness: clamp(.22 + load * .62 + revved * .2),
     gain: clamp(.18 + input.throttle * .5 + revved * .34),
+    intake,
+    exhaustDrive,
+    screamer,
+    overrun,
+    whine,
+    limiter,
   };
 }
 

@@ -217,6 +217,20 @@ Events reuse parts of the explorable district but can apply temporary boundaries
 
 This allows the same environment to support both open navigation and tightly authored races.
 
+### 6.4 Current District Layout Study
+
+The shared-district blockout retains Blackglass's perimeter and grows outward
+from it: Market Avenue and a Civic Link across the interior, then two orbital
+belts and seven radials. It covers 935 x 935 m with 11.31 km of street across
+51 edges and 33 junctions, closed by a district boundary. Fixed street data is
+separate from directed route definitions; seven route guides reuse those
+streets. **Free roam is how the district is entered** — there is no track
+selection, and the guides are overlays for specific studies rather than a way
+to start. The interactive top-down board and playable scope are described in
+[DISTRICT.md](DISTRICT.md). This is an authored layout study, not runtime
+procedural roads, and junctions are open with no scored races yet. Preserve the
+original course as the handling reference while judging the new network.
+
 ---
 
 ## 7. Race Types

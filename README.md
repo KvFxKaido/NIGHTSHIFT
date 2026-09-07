@@ -51,6 +51,15 @@ telemetry. The handling values are deliberately exposed together in
 `src/sim/sim.ts`; this is a tuning surface, not a finished vehicle model. The
 course brief and current prototype boundaries live in `design/BLACKGLASS.md`.
 
+The **Blackglass District** is the default world, and **Drive** goes straight
+into it as free roam: 11.31 km of street across 33 junctions in a 935 x 935 m
+block, with no route, no timing and no finish line. The top-down board at
+`/district.html` — or **District map** on the title screen and in Pause —
+previews seven route guides over the same streets; `?route=<id>` overlays one
+and draws its arrows and gates. Junctions are open and races are not scored
+yet. `?world=blackglass` returns to the original closed course. See
+[`design/DISTRICT.md`](design/DISTRICT.md) for scope and playtest questions.
+
 The proposed core gameplay hook is documented in
 [`design/LIVE_CRED.md`](design/LIVE_CRED.md): stylish racing creates temporary
 Cred that can be burned on Surge or carried across the finish line to buy

@@ -4,20 +4,21 @@ import { readFile } from "node:fs/promises";
 import { createInitialMenuState, transitionMenu } from "../src/ui/menu-state.ts";
 import { MENU_ITEM_SELECTOR } from "../src/ui/menu.ts";
 
-test("title routes through track selection into play", () => {
-  const trackSelect = transitionMenu(createInitialMenuState(), "open-track-select");
-  assert.equal(trackSelect.screen, "track-select");
-  assert.equal(transitionMenu(trackSelect, "start-track").screen, "playing");
+// Track selection is gone: the district is the game and free roam is how you
+// meet it, so Drive goes straight from the title into the world.
+test("title drives straight into the district", () => {
+  assert.equal(transitionMenu(createInitialMenuState(), "start-track").screen, "playing");
 });
 
-test("pause can resume or return through track selection", () => {
+test("pause resumes, backs out to the road, or opens the garage and returns", () => {
   const paused = transitionMenu({ screen: "playing", returnTo: "main" }, "pause-toggle");
   assert.equal(paused.screen, "pause");
   assert.equal(transitionMenu(paused, "resume").screen, "playing");
+  assert.equal(transitionMenu(paused, "back").screen, "playing", "back from pause returns to driving");
 
-  const trackSelect = transitionMenu(paused, "open-track-select");
-  assert.equal(trackSelect.returnTo, "pause");
-  assert.equal(transitionMenu(trackSelect, "back").screen, "pause");
+  const garage = transitionMenu(paused, "open-garage");
+  assert.equal(garage.returnTo, "pause");
+  assert.equal(transitionMenu(garage, "back").screen, "pause");
 });
 
 test("garage is a main-menu branch", () => {
@@ -34,7 +35,7 @@ test("garage is a main-menu branch", () => {
 test("every interactive control in the menu markup is reachable by navigation", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const screens = html.match(/<section[^>]*data-menu-screen[\s\S]*?<\/section>/g) ?? [];
-  assert.ok(screens.length >= 4, `expected the menu screens, found ${screens.length}`);
+  assert.ok(screens.length >= 3, `expected the menu screens, found ${screens.length}`);
 
   const reachable = (tag: string, attributes: string): boolean => {
     if (/\bdisabled\b/.test(attributes)) return true;

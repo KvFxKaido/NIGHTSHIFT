@@ -1,7 +1,7 @@
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
    Rapier integrates motion and contacts. Three.js only draws the result. */
 import RAPIER from "@dimforge/rapier3d-compat";
-import { COURSE, COURSE_WALLS, projectOntoCourse } from "./track.ts";
+import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -64,6 +64,7 @@ export interface SimState {
 }
 
 export interface Sim {
+  readonly roadWorld: RoadWorld;
   state: SimState;
   world: RAPIER.World;
   body: RAPIER.RigidBody;
@@ -263,10 +264,10 @@ function initialWheels(): Record<WheelId, WheelState> {
   }])) as Record<WheelId, WheelState>;
 }
 
-function initialVehicle(): VehicleState {
+function initialVehicle(roadWorld: RoadWorld): VehicleState {
   return {
-    x: COURSE.start.x, y: COURSE.start.y, z: COURSE.start.z,
-    heading: COURSE.start.heading, pitch: COURSE.start.pitch,
+    x: roadWorld.start.x, y: roadWorld.start.y, z: roadWorld.start.z,
+    heading: roadWorld.start.heading, pitch: roadWorld.start.pitch,
     speed: 0, forwardSpeed: 0, lateralSpeed: 0, yawRate: 0,
     steering: 0, steeringAngle: 0, driveDirection: 1, slipAngle: 0,
     longitudinalAcceleration: 0, lateralAcceleration: 0,
@@ -275,11 +276,11 @@ function initialVehicle(): VehicleState {
   };
 }
 
-export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN): Sim {
+export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN, roadWorld: RoadWorld = BLACKGLASS_WORLD): Sim {
   if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
   world.timestep = DT;
-  for (const wall of COURSE_WALLS) {
+  for (const wall of roadWorld.walls) {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(wall.width * 0.5, 0.65, wall.depth * 0.5)
         .setTranslation(wall.x, wall.y + 0.65, wall.z)
@@ -287,23 +288,32 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN): Sim {
         .setFriction(0.25).setRestitution(0.08),
     );
   }
+  // Massing is solid. Driving through a building was invisible on a fixed route
+  // and is the first thing free roam does. Axis-aligned, so no rotation.
+  for (const solid of roadWorld.solids ?? []) {
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(solid.width * 0.5, solid.height * 0.5, solid.depth * 0.5)
+        .setTranslation(solid.x, solid.height * 0.5, solid.z)
+        .setFriction(0.25).setRestitution(0.08),
+    );
+  }
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
-      .setTranslation(COURSE.start.x, COURSE.start.y + START_Y, COURSE.start.z)
-      .setRotation(yawRotation(COURSE.start.heading))
+      .setTranslation(roadWorld.start.x, roadWorld.start.y + START_Y, roadWorld.start.z)
+      .setRotation(yawRotation(roadWorld.start.heading))
       .setCanSleep(false).setCcdEnabled(true),
   );
   body.setEnabledTranslations(true, false, true, true);
   body.setEnabledRotations(false, true, false, true);
   world.createCollider(RAPIER.ColliderDesc.cuboid(0.92, 0.38, 2.08)
     .setMass(HANDLING.mass).setFriction(0.15).setRestitution(0.04), body);
-  return { state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0, vehicle: initialVehicle() }, world, body };
+  return { roadWorld, state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0, vehicle: initialVehicle(roadWorld) }, world, body };
 }
 
 export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain);
+  const fresh = createSim(drivetrain, sim.roadWorld);
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
@@ -405,7 +415,7 @@ export function step(sim: Sim, rawInput: Input): void {
   const { body } = sim;
   const car = sim.state.vehicle;
   const position = body.translation();
-  const road = projectOntoCourse(position.x, position.z);
+  const road = sim.roadWorld.project(position.x, position.z);
   // Still a vertical road constraint; never reposition x/z or overwrite the
   // solver's linear/angular velocities. Tyre forces are refreshed every tick.
   body.setTranslation({ x: position.x, y: road.height + START_Y, z: position.z }, true);
@@ -505,7 +515,7 @@ export function step(sim: Sim, rawInput: Input): void {
     y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration) * HANDLING.mass }, true);
   sim.world.step();
   const resolved = body.translation();
-  body.setTranslation({ x: resolved.x, y: projectOntoCourse(resolved.x, resolved.z).height + START_Y,
+  body.setTranslation({ x: resolved.x, y: sim.roadWorld.project(resolved.x, resolved.z).height + START_Y,
     z: resolved.z }, true);
   sim.state.tick++;
   syncState(sim);
@@ -517,7 +527,7 @@ function syncState(sim: Sim): void {
   const velocity = sim.body.linvel();
   const forwardSpeed = -velocity.x * Math.sin(heading) - velocity.z * Math.cos(heading);
   const lateralSpeed = velocity.x * Math.cos(heading) - velocity.z * Math.sin(heading);
-  const road = projectOntoCourse(position.x, position.z);
+  const road = sim.roadWorld.project(position.x, position.z);
   const alignment = -Math.sin(heading) * road.ux - Math.cos(heading) * road.uz;
   const car = sim.state.vehicle;
   for (const layout of WHEEL_LAYOUT) {

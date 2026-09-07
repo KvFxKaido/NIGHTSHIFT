@@ -66,6 +66,38 @@ test("a stationary car still answers the throttle, and reverse is its own gear",
   assert.ok(engineTone(stateWithUtilisation(0, 12), NEUTRAL).gear >= 1);
 });
 
+test("high-revving N/A tone layers respond distinctively to throttle and rpm", () => {
+  const idle = engineTone(stateWithUtilisation(0, 0), NEUTRAL);
+  const wideOpenHighSpeed = engineTone(stateWithUtilisation(0, HANDLING.topSpeed * 0.95), gas(1));
+  const coastingHighSpeed = engineTone(stateWithUtilisation(0, HANDLING.topSpeed * 0.95), NEUTRAL);
+  const lowSpeedGas = engineTone(stateWithUtilisation(0, 5), gas(1));
+
+  // Intake honk: zero off-throttle, loud under full throttle
+  assert.equal(idle.intake, 0);
+  assert.equal(coastingHighSpeed.intake, 0);
+  assert.ok(wideOpenHighSpeed.intake > 0.5, "full throttle at speed must have strong intake honk");
+
+  // Exhaust drive: increases with throttle and revs
+  assert.ok(wideOpenHighSpeed.exhaustDrive > idle.exhaustDrive);
+  assert.ok(wideOpenHighSpeed.exhaustDrive > coastingHighSpeed.exhaustDrive);
+
+  // High-cam screamer crossover: inactive at low RPM, engaged at high RPM under throttle
+  assert.equal(lowSpeedGas.screamer, 0, "screamer crossover must not engage at low revs");
+  assert.ok(wideOpenHighSpeed.screamer > 0.8, "screamer crossover must scream near redline");
+
+  // Overrun: silent under power, active when lifting throttle at speed
+  assert.equal(wideOpenHighSpeed.overrun, 0, "overrun must be silent under full throttle");
+  assert.ok(coastingHighSpeed.overrun > 0.7, "lifting at speed must trigger overrun crackle");
+
+  // Transmission whine: increases with speed and unmasked off-throttle
+  assert.ok(coastingHighSpeed.whine > wideOpenHighSpeed.whine, "whine is unmasked off-throttle");
+
+  // Rev limiter: triggers at top of rev range under throttle
+  const bouncing = engineTone(stateWithUtilisation(0, HANDLING.topSpeed * 1.05), gas(1));
+  assert.equal(bouncing.limiter, true, "rev limiter must cut when bouncing at redline under gas");
+  assert.equal(coastingHighSpeed.limiter, false, "limiter must not cut off-throttle");
+});
+
 test("tyres are silent inside their cornering budget and audible past it", () => {
   assert.equal(tyreScrub(stateWithUtilisation(.4, 25)), 0, "ordinary cornering must not squeal");
   assert.equal(tyreScrub(stateWithUtilisation(SCRUB_ONSET, 25)), 0, "the onset itself is still silent");
@@ -217,4 +249,33 @@ test("a version 1 save migrates instead of resetting the player's garage", () =>
   const current = JSON.stringify({ ...settings, version: SETTINGS_VERSION });
   assert.deepEqual(decodeSettings(current).settings, settings);
   assert.equal(decodeSettings(JSON.stringify({ version: 99 })).status, "recovered");
+});
+
+// Every layer below drives a gain node or a filter gain — exhaustFormant3 is
+// scaled by screamer * 12 — so a value escaping 0..1 blows out the graph, and a
+// NaN makes setTargetAtTime throw and kill ALL audio at once. Silence with no
+// visible cause is precisely the failure this guards, and it cannot be caught
+// by the point-sample assertions above: it needs the whole envelope, including
+// reverse, past redline, and either side of the 0.15 overrun threshold.
+test("every engine tone layer stays finite and inside 0..1 across the envelope", () => {
+  const layers = ["intake", "exhaustDrive", "screamer", "overrun", "whine", "gain", "brightness"] as const;
+  let checked = 0;
+  for (let speed = -HANDLING.reverseSpeed * 1.2; speed <= HANDLING.topSpeed * 1.25; speed += 0.9) {
+    for (const throttle of [0, .07, .149, .15, .5, .99, 1]) {
+      const tone = engineTone(stateWithUtilisation(0, speed), gas(throttle));
+      for (const layer of layers) {
+        const value = tone[layer];
+        assert.ok(Number.isFinite(value),
+          `${layer} was ${value} at ${speed.toFixed(1)} m/s, throttle ${throttle}`);
+        assert.ok(value >= 0 && value <= 1,
+          `${layer} left 0..1 at ${speed.toFixed(1)} m/s, throttle ${throttle}: ${value}`);
+      }
+      // The oscillator bank is tuned to this; zero or NaN silences the engine.
+      assert.ok(Number.isFinite(tone.frequency) && tone.frequency > 0,
+        `frequency was ${tone.frequency} at ${speed.toFixed(1)} m/s`);
+      assert.equal(typeof tone.limiter, "boolean");
+      checked++;
+    }
+  }
+  assert.ok(checked > 500, `expected a dense sweep, only sampled ${checked} points`);
 });

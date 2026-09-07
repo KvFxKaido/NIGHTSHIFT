@@ -1,4 +1,4 @@
-export type MenuScreen = "main" | "track-select" | "garage" | "pause" | "playing";
+export type MenuScreen = "main" | "garage" | "pause" | "playing";
 
 export interface MenuState {
   screen: MenuScreen;
@@ -6,7 +6,6 @@ export interface MenuState {
 }
 
 export type MenuEvent =
-  | "open-track-select"
   | "open-garage"
   | "start-track"
   | "pause-toggle"
@@ -21,13 +20,8 @@ export function createInitialMenuState(): MenuState {
 
 export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
   switch (event) {
-    case "open-track-select":
-      return {
-        screen: "track-select",
-        returnTo: state.screen === "pause" ? "pause" : "main",
-      };
     case "open-garage":
-      return { screen: "garage", returnTo: "main" };
+      return { screen: "garage", returnTo: state.screen === "pause" ? "pause" : "main" };
     case "start-track":
     case "resume":
     case "restart":
@@ -37,15 +31,11 @@ export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
     case "pause-toggle":
       if (state.screen === "playing") return { screen: "pause", returnTo: "pause" };
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (state.screen === "track-select" || state.screen === "garage") {
-        return { screen: state.returnTo, returnTo: state.returnTo };
-      }
+      if (state.screen === "garage") return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
     case "back":
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (state.screen === "track-select" || state.screen === "garage") {
-        return { screen: state.returnTo, returnTo: state.returnTo };
-      }
+      if (state.screen === "garage") return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
   }
 }

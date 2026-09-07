@@ -47,7 +47,6 @@ export interface MenuController {
 }
 
 const actionEvents: Record<string, MenuEvent> = {
-  "track-select": "open-track-select",
   garage: "open-garage",
   start: "start-track",
   resume: "resume",

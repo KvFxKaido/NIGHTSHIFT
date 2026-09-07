@@ -65,6 +65,7 @@
         #brand { top: 15px; left: 16px; }
         #controls { left: 16px; bottom: 15px; max-width: 235px; font-size: 9px; }
         #speedometer { right: 17px; bottom: 17px; }
+        body[data-world="district"] #controls { max-width: calc(100vw - 185px); }
       }
     </style>
   </head>
@@ -95,29 +96,11 @@
           <h1 id="main-menu-title" class="menu-title">Night<br /><span>Shift</span></h1>
           <p class="menu-lede">One car. One district. Every corner becomes currency when you drive it like you mean it.</p>
           <nav class="menu-actions" aria-label="Main menu">
-            <button class="menu-button primary" data-menu-action="track-select">Drive</button>
+            <button class="menu-button primary" data-menu-action="start">Drive</button>
             <button class="menu-button" data-menu-action="garage">Garage</button>
+            <button class="menu-button" data-district-map>District map</button>
           </nav>
           <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
-        </section>
-
-        <section class="menu-screen" data-menu-screen="track-select" aria-labelledby="track-menu-title" hidden>
-          <p class="menu-kicker">Route Select / District 01</p>
-          <h2 id="track-menu-title" class="menu-heading">Choose the run</h2>
-          <div class="track-card" aria-label="Selected track: Blackglass Circuit">
-            <p class="menu-meta">Selected / Night circuit</p>
-            <h3 class="track-name">Blackglass Circuit</h3>
-            <div class="track-stats">
-              <span class="track-stat"><span class="track-stat-label">Distance</span>1.70 km</span>
-              <span class="track-stat"><span class="track-stat-label">Vertical</span>24 m</span>
-              <span class="track-stat"><span class="track-stat-label">Signature</span>Tunnel</span>
-            </div>
-          </div>
-          <nav class="menu-actions" aria-label="Track selection actions">
-            <button class="menu-button primary" data-menu-action="start">Start Run</button>
-            <button class="menu-button" data-menu-action="back">Back</button>
-          </nav>
-          <p class="menu-footer">More routes arrive when the district earns them.</p>
         </section>
 
         <section class="menu-screen garage-menu" data-menu-screen="garage" aria-labelledby="garage-menu-title" hidden>
@@ -169,7 +152,8 @@
           <nav class="menu-actions" aria-label="Pause menu">
             <button class="menu-button primary" data-menu-action="resume">Resume</button>
             <button class="menu-button" data-menu-action="restart">Restart Run</button>
-            <button class="menu-button" data-menu-action="track-select">Track Select</button>
+            <button class="menu-button" data-district-map>District map</button>
+            <button class="menu-button" data-district-map>District blockout / Map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
           <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">

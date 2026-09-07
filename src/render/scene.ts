@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import type { CameraLook } from "../input/input.ts";
-import { HANDLING, type SimState } from "../sim/sim.ts";
-import { COURSE } from "../sim/track.ts";
+import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
+import type { DistrictRoute } from "../sim/district.ts";
+import { addDistrict } from "./district.ts";
+import { BLACKGLASS_WORLD, type RoadWorld } from "../sim/road-world.ts";
 import {
   createCameraOrbitState,
   resetCameraOrbit,
@@ -17,6 +19,7 @@ import { updateWheelPresentation } from "./wheels.ts";
 export type ViewMode = "track" | "garage";
 
 export interface View extends CarView {
+  roadStart: RoadWorld["start"];
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   garageScene: THREE.Scene;
@@ -27,9 +30,36 @@ export interface View extends CarView {
   cameraOrbit: CameraOrbitState;
   mode: ViewMode;
   course: BlenderCourse | null;
+  /** A second car driving a recorded lap, or null when nobody is out there. */
+  rival: CarView | null;
 }
 
-export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null): View {
+/**
+ * Place any car from a vehicle state. The player and the rival share this so a
+ * recorded lap cannot drift into looking different from a live one — the lean,
+ * the pitch and the wheels all come from the same code.
+ */
+export function placeCar(car: CarView, vehicle: VehicleState): void {
+  car.car.position.set(vehicle.x, vehicle.y, vehicle.z);
+  car.car.rotation.x = vehicle.pitch;
+  car.car.rotation.y = vehicle.heading;
+  const speedRatio = Math.min(1, vehicle.speed / HANDLING.topSpeed);
+  car.carVisual.rotation.z = -vehicle.steering * speedRatio * 0.045;
+  car.carVisual.rotation.x = -Math.sign(vehicle.forwardSpeed) * speedRatio * 0.018;
+  updateWheelPresentation(car, vehicle);
+}
+
+/** Put a rival body in the world, or take it out again. */
+export function setRival(view: View, rival: CarView | null): void {
+  if (view.rival === rival) return;
+  if (view.rival) view.scene.remove(view.rival.car);
+  view.rival = rival;
+  if (rival) view.scene.add(rival.car);
+}
+
+export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null,
+  districtRoute: DistrictRoute | null = null, roadWorld: RoadWorld = BLACKGLASS_WORLD,
+  district = districtRoute !== null): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -45,7 +75,14 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x10182a);
   scene.fog = new THREE.FogExp2(0x101522, 0.0019);
-  addCourse(scene, course?.root);
+  if (district) addDistrict(scene, districtRoute, course?.root);
+  else addCourse(scene, course?.root);
+  if (district) {
+    // Work lighting for the blockout: judge junctions and grades, not darkness.
+    scene.add(new THREE.AmbientLight(0xbad4e0, 1.5));
+    scene.background = new THREE.Color(0x243546);
+    scene.fog = new THREE.FogExp2(0x243546, 0.0014);
+  }
 
   scene.add(new THREE.HemisphereLight(0x466488, 0x160e12, 1.08));
   const moon = new THREE.DirectionalLight(0xa9d2ff, 1.82);
@@ -70,20 +107,22 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   scene.add(carParts.car);
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 650);
   const initialBehind = new THREE.Vector3(
-    COURSE.start.x + Math.sin(COURSE.start.heading) * 8,
-    COURSE.start.y + 3.2,
-    COURSE.start.z + Math.cos(COURSE.start.heading) * 8,
+    roadWorld.start.x + Math.sin(roadWorld.start.heading) * 8,
+    roadWorld.start.y + 3.2,
+    roadWorld.start.z + Math.cos(roadWorld.start.heading) * 8,
   );
 
   const view: View = {
+    roadStart: roadWorld.start,
     renderer,
+    rival: null,
     scene,
     garageScene,
     camera,
     moon,
     ...carParts,
     cameraPosition: initialBehind,
-    cameraTarget: new THREE.Vector3(COURSE.start.x, COURSE.start.y + 0.9, COURSE.start.z),
+    cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
     course,
@@ -126,11 +165,11 @@ export function setViewMode(view: View, mode: ViewMode): void {
 
   view.scene.add(view.car);
   view.cameraPosition.set(
-    COURSE.start.x + Math.sin(COURSE.start.heading) * 8,
-    COURSE.start.y + 3.2,
-    COURSE.start.z + Math.cos(COURSE.start.heading) * 8,
+    view.roadStart.x + Math.sin(view.roadStart.heading) * 8,
+    view.roadStart.y + 3.2,
+    view.roadStart.z + Math.cos(view.roadStart.heading) * 8,
   );
-  view.cameraTarget.set(COURSE.start.x, COURSE.start.y + 0.9, COURSE.start.z);
+  view.cameraTarget.set(view.roadStart.x, view.roadStart.y + 0.9, view.roadStart.z);
 }
 
 function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): void {
@@ -178,6 +217,7 @@ export function render(
   state: SimState,
   frameDelta: number,
   cameraLook: CameraLook,
+  rival: VehicleState | null = null,
 ): void {
   if (view.mode === "garage") {
     renderGarage(view, frameDelta, cameraLook);
@@ -186,16 +226,14 @@ export function render(
 
   const car = state.vehicle;
   if (view.course) updateCourseLighting(view.course, car);
-  view.car.position.set(car.x, car.y, car.z);
-  view.car.rotation.x = car.pitch;
-  view.car.rotation.y = car.heading;
+  placeCar(view, car);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);
+  // The rival is drawn from its own simulation's state, never interpolated or
+  // guessed at here: the renderer still only draws what a tick decided.
+  if (view.rival && rival) placeCar(view.rival, rival);
 
   const speedRatio = Math.min(1, car.speed / HANDLING.topSpeed);
-  view.carVisual.rotation.z = -car.steering * speedRatio * 0.045;
-  view.carVisual.rotation.x = -Math.sign(car.forwardSpeed) * speedRatio * 0.018;
-  updateWheelPresentation(view, car);
 
   const forwardX = -Math.sin(car.heading);
   const forwardZ = -Math.cos(car.heading);

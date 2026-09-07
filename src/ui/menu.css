@@ -12,7 +12,6 @@
 }
 
 body[data-game-screen="main"] #hud,
-body[data-game-screen="track-select"] #hud,
 body[data-game-screen="garage"] #hud {
   opacity: 0;
 }

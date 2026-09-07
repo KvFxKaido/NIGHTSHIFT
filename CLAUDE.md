@@ -98,6 +98,23 @@ model. Four virtual tyre patches do not yet simulate wheel lift, inertia or
 individual lockup. The course brief is `design/BLACKGLASS.md`.
 The handling model, deliberate assists, limitations, and measured acceptance
 gates are described in `design/HANDLING.md`.
+The district layout study is documented in `design/DISTRICT.md`. It is now the
+default world and is entered as **free roam**: no track selection, no route, no
+finish. `/district.html` previews seven route guides over shared fixed streets;
+`?route=<id>` overlays one, and `?world=blackglass` returns to the original
+closed course. These are not scored races: junctions stay open, arrows guide a
+route when one is selected, and there are no lap/checkpoint/payout rules yet.
+The network is closed by a boundary beyond the outer belt that belongs to no
+street, because junction clipping opens boundary pieces and the belts are now
+the district's edge. Massing blocks are solid via `RoadWorld.solids`, kept
+apart from `walls` because a wall is 1.3 m of guard rail and renders as one. `RoadWorld` supplies the sim's start,
+boundaries and projection; reset and session rivals must retain that world.
+Baseline Blackglass references and handling stay unchanged. District junction
+grading is shared by physics and road meshes; do not "fix" it only visually.
+Changing route reloads and loses session replay, not saved preferences.
+Never use the original `courseGap` for district guides; `districtRouteGap`
+wraps circuits and keeps sprint gaps linear. Debug links carry world/route
+identity, which future saved ghosts must validate as well as physics/build.
 Automatic countersteering is off (`four-wheel-v3`). Manual catches get faster
 response and extra range only when the player requests countersteer; neutral
 input never steers itself. Ordinary turn-in keeps its speed envelope, while
