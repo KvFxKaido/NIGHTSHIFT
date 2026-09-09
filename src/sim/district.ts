@@ -121,6 +121,111 @@ export function outerTerrain(x: number, z: number): number {
 }
 
 /** Plan-view distance from a point to a polyline, for river and rail tests. */
+/** Clearance kept between the drawn ground and the road surface above it. */
+const GROUND_CLEARANCE = 0.35;
+/** How far past the kerb the clamp still binds before the ground returns to its
+ *  own shape. The verges span exactly this, so they meet ground, not a step. */
+export const GROUND_CORRIDOR = 16;
+/** Past this the road is a structure — a bridge deck, a tunnel bore — and the
+ *  ground belongs above or below it on its own terms rather than being dragged. */
+const GROUND_STRUCTURE = 6;
+
+/**
+ * The ground as drawn: `outerTerrain`'s shape, clamped below the roads.
+ *
+ * `outerTerrain` conforms to `projectOntoCourse` — the ORIGINAL loop, and only
+ * it. Every street added since is graded by `easeGrade` to be driveable on its
+ * own terms, and nothing tied the two together, so 39% of road samples had
+ * ground drawn over them, up to 4.23 m of it. At night that ground is nearly
+ * black and reads as water with the road running into it.
+ *
+ * Resolution was not the problem and would not have fixed it: raising the
+ * terrain mesh from 110 to 880 segments, 64x the triangles, moved 898 buried
+ * samples to 893 and made the worst case worse. The mesh was drawing the field
+ * faithfully; the field was wrong.
+ *
+ * This cannot fold into `outerTerrain`. Street construction calls that for node
+ * and shape-point heights, so making it depend on the street network is a cycle.
+ * As a pass on top there is none — the same layering the junction aprons use.
+ */
+/**
+ * The ground as drawn, at one point: `outerTerrain`'s shape clamped below the
+ * roads.
+ *
+ * `outerTerrain` conforms to `projectOntoCourse` — the ORIGINAL loop, and only
+ * it. Every street added since is graded by `easeGrade` to be driveable on its
+ * own terms, and nothing tied the two together, so 39% of road samples had
+ * ground drawn over them, up to 4.23 m of it. At night that ground is nearly
+ * black and reads as water with the road running into it.
+ *
+ * Resolution was not the cause and would not have been the cure: raising the
+ * terrain mesh from 110 to 880 segments, 64x the triangles, moved 898 buried
+ * samples to 893 and made the worst case worse. The mesh was drawing the field
+ * faithfully; the field was wrong.
+ *
+ * This cannot fold into `outerTerrain`. Street construction calls that for node
+ * and shape-point heights, so making it depend on the street network is a cycle.
+ * As a pass on top there is none — the same layering the junction aprons use.
+ */
+export function groundHeight(x: number, z: number): number {
+  return clampBelowRoad(outerTerrain(x, z), x, z);
+}
+
+/** Offsets, in radii, probed around a point for `groundHeightNear`. The four
+ *  cell centres around a grid vertex: a bilinear patch is bounded by its
+ *  corners, so what a straight line between vertices can hide is a road through
+ *  the middle of a cell. */
+const PROBE_RING: readonly (readonly [number, number])[] =
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+
+/**
+ * The lowest drawn ground within `radius`, which is what a terrain vertex needs:
+ * `groundHeight` is exact where it is sampled, and what you see between two
+ * vertices is a straight line that a road curving inside the cell passes under.
+ * Sampling vertices alone left 32 buried road samples at 0.61 m.
+ *
+ * The terrain shape is evaluated once and reused for every probe. It is the
+ * inland ramp plus the old loop's profile, both of which vary slowly, while
+ * `outerTerrain` costs a full projection onto the course — recomputing it per
+ * probe was most of a second of district load for a number that barely moves
+ * across twelve metres.
+ */
+export function groundHeightNear(x: number, z: number, radius: number): number {
+  const shape = outerTerrain(x, z);
+  let low = clampBelowRoad(shape, x, z);
+  for (const [ox, oz] of PROBE_RING) {
+    low = Math.min(low, clampBelowRoad(shape, x + ox * radius, z + oz * radius));
+  }
+  return low;
+}
+
+/** Push a terrain height below whatever road is above it here, easing out
+ *  across the corridor so the ground rejoins its own shape rather than stepping. */
+function clampBelowRoad(shape: number, x: number, z: number): number {
+  // The nearest street's surface, without projectOntoDistrict's pitch: that
+  // costs two extra apron scans per call to answer a question about grade the
+  // ground does not ask, and the terrain mesh runs this tens of thousands of
+  // times at district load.
+  let nearest: CourseProjection | undefined;
+  const candidates = streetsNear(x, z);
+  for (const street of (candidates.length ? candidates : DISTRICT_STREETS)) {
+    const projected = projectOntoPath(street.points, x, z);
+    if (!nearest || projected.distance < nearest.distance) nearest = projected;
+  }
+  const road = nearest!;
+  const kerb = road.width / 2;
+  if (road.distance > kerb + GROUND_CORRIDOR) return shape;
+  const ceiling = districtSurfaceHeight(x, z, road.height) - GROUND_CLEARANCE;
+  // Already below: nothing to do, and this is the case under every bridge.
+  if (shape <= ceiling) return shape;
+  // Far below the road rather than just under it: a structure. Clamping here
+  // would trench the valley out to meet a deck instead of leaving it standing.
+  if (shape - ceiling > GROUND_STRUCTURE) return shape;
+  const t = Math.max(0, Math.min(1, (road.distance - kerb) / GROUND_CORRIDOR));
+  const blend = 1 - t * t * (3 - 2 * t);
+  return shape + (ceiling - shape) * blend;
+}
+
 export function distanceToPath(path: readonly (readonly [number, number])[], x: number, z: number): number {
   let best = Infinity;
   for (let i = 0; i < path.length - 1; i++) {
@@ -766,6 +871,41 @@ export function blockClearsStreets(block: DistrictBlock, pavement: number): bool
 /** Half the diagonal: the radius that certainly contains an oriented footprint. */
 const spanOf = (block: { width: number; depth: number }) => Math.hypot(block.width, block.depth) / 2;
 
+/** Firewall gap between two buildings that do not share a wall. */
+const BLOCK_GAP = 1.2;
+
+/**
+ * How deeply two oriented footprints interpenetrate; <= 0 when they are apart,
+ * and then its magnitude is a lower bound on the gap between them.
+ *
+ * Separating axes, because clearance is a rectangle problem — the same thing
+ * building-vs-street had to learn. Two circumscribed circles with 7 m of slack
+ * was the first answer here, and slack on a circle is slack on the rectangle
+ * inside it: 15 pairs interpenetrated, the worst by 4.21 m. A circle cannot
+ * express "these two terraces share a party wall but do not overlap", which is
+ * the whole shape of a city block, so it needs slack, so it lets buildings
+ * through each other.
+ */
+export function blockPenetration(a: DistrictBlock, b: DistrictBlock): number {
+  let least = Infinity;
+  for (const box of [a, b]) {
+    const cos = Math.cos(box.rotation), sin = Math.sin(box.rotation);
+    for (const [axisX, axisZ] of [[cos, sin], [-sin, cos]] as const) {
+      let aMin = Infinity, aMax = -Infinity, bMin = Infinity, bMax = -Infinity;
+      for (const corner of blockCorners(a)) {
+        const t = corner.x * axisX + corner.z * axisZ;
+        aMin = Math.min(aMin, t); aMax = Math.max(aMax, t);
+      }
+      for (const corner of blockCorners(b)) {
+        const t = corner.x * axisX + corner.z * axisZ;
+        bMin = Math.min(bMin, t); bMax = Math.max(bMax, t);
+      }
+      least = Math.min(least, Math.min(aMax, bMax) - Math.max(aMin, bMin));
+    }
+  }
+  return least;
+}
+
 /**
  * Buildings fronting the street around each block's perimeter.
  *
@@ -817,8 +957,10 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
         };
         // Two frontages meeting at a corner, or facing each other across a
         // narrow block, must not occupy the same ground.
-        if (placed.some(other =>
-          Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block) - 7)) continue;
+        // Reject by the circle first — it is cheap and rules out most of the
+        // face — then by the footprints that are actually being built.
+        if (placed.some(other => Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block)
+          && blockPenetration(other, block) > -BLOCK_GAP)) continue;
         if (!blockClearsStreets(block, pavement)) continue;
         placed.push(block);
         break;

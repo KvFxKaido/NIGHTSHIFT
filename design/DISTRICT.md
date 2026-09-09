@@ -100,8 +100,19 @@ setback on an arterial, which is why massing used to float mid-face.
 
 Depth is tried deepest-first and falls back, because a narrow face cannot host a
 deep building once the setback clears the carriageway and a shallow terrace is
-what actually gets built on one. 18 faces carry 73 buildings across 40 distinct
-orientations, standing 2.6 m from the kerb.
+what actually gets built on one. 18 faces carry 65 buildings across 57 distinct
+orientations, standing 2.6 m from the kerb: 50 at 17 m deep, 9 at 26, 5 at 12,
+1 at 8.
+
+Two footprints are kept apart by a **separating-axis test on the rectangles**,
+not by their circumscribed circles. Circles were the first answer, with 7 m of
+slack, and slack on a circle is slack on the rectangle inside it: 15 pairs
+interpenetrated, the worst by 4.21 m. The slack is not incidental either — a
+circle cannot express "these terraces share a party wall but do not overlap",
+which is the shape of every city block, so it *needs* the slack, so it lets
+buildings through each other. The rectangle test needs none: the firewall gap
+is 1.2 m and costs nothing, because 0.0 m and 1.2 m both place 65 buildings.
+The eight that used to make 73 were the overlapping ones.
 
 ## Streets only meet at junctions
 
@@ -345,3 +356,52 @@ lane.
 Lane geometry is memoised per (street, lane, class). It is a pure function of
 its inputs, so it is a cache and not state, and cannot make the simulation
 non-deterministic.
+
+## The ground is clamped below the road
+
+`outerTerrain` conforms the ground to `projectOntoCourse` — the **original loop,
+and only it**. Every street added since is graded by `easeGrade` to be driveable
+on its own terms, and nothing tied the two together. Measured: **898 of 2297 road
+samples, 39%, had ground drawn over them, up to 4.23 m**, worst on `civic-link`,
+`market-east/west` and `ring-hotel` — interior streets near the old loop, where
+conforming pulls hardest, and 200-580 m from any water. At night the ground is
+`0x0d1117`, so the road ran into what looked like a river.
+
+Two things it was not. It was not the water: one road sample of 2297 sits under
+the river ribbon, by 1 cm, at a bridge abutment. And it was not mesh resolution
+— 110 to 880 segments, 64x the triangles, moved 898 buried samples to 893 and
+made the worst case *worse*. The mesh was drawing the field faithfully. The
+field was wrong.
+
+`groundHeight(x, z)` is `outerTerrain`'s shape clamped to `road - 0.35 m` inside
+the carriageway plus a 16 m corridor, eased out across it so the ground rejoins
+its own shape rather than stepping. Two escapes matter: where the ground is
+already below the road there is nothing to do, which is every bridge; and where
+it is more than 6 m below, the road is a structure and clamping would trench the
+valley to meet a deck instead of leaving it standing.
+
+It cannot fold into `outerTerrain`. Street construction calls that for node and
+shape-point heights, so making it depend on the street network is a cycle. As a
+pass on top there is none — the same layering the junction aprons use. The
+terrain mesh, the verges, the river and the lineside all read it, so they sit on
+one surface.
+
+`groundHeightNear` is what a terrain vertex asks for: the lowest ground within
+half a cell. `groundHeight` is exact where it is sampled and what you see
+between two vertices is a straight line, so a road curving inside a 12.5 m cell
+passes under it — vertices alone still left 32 buried samples at 0.61 m. Raising
+the clearance does not substitute: those cells have no road at the vertex at
+all, so no clearance engages there.
+
+### What it costs
+
+`addDistrict` goes from **1.2 s to 2.4 s**. All of it is `projectOntoDistrict`
+at **53 µs a call** — `outerTerrain` is 3.8 µs, so the terrain shape was never
+the expensive part. Only vertices a street can reach do the work, found from the
+streets in O(road length) rather than by testing the grid, and the clamp skips
+`projectOntoDistrict`'s pitch, which costs two extra apron scans to answer a
+question about grade the ground does not ask.
+
+A spatial index over street segments would take most of that 53 µs back, and
+would also cut the traffic network build, which is dominated by the same query.
+That is the open item, not more terrain work.

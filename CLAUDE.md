@@ -111,7 +111,20 @@ way, opened only where a street genuinely spans them. Road class lives in
 `src/sim/lanes.ts` with the carriageway width and lane count it implies —
 they are one fact, not two — and lanes are laid out to a street's narrowest
 point so they do not wander with the junction flare. Massing blocks are solid via `RoadWorld.solids`, kept
-apart from `walls` because a wall is 1.3 m of guard rail and renders as one. `RoadWorld` supplies the sim's start,
+apart from `walls` because a wall is 1.3 m of guard rail and renders as one.
+Two footprints are kept apart by a separating-axis test on the rectangles
+(`blockPenetration`), never by circumscribed circles: a circle cannot express a
+shared party wall, so it needs slack, and slack let 15 pairs interpenetrate by
+up to 4.21 m. `groundHeight` is the drawn ground — `outerTerrain`'s shape
+clamped below the roads — and the terrain mesh, verges, river and lineside all
+read it so they sit on one surface. `outerTerrain` conforms only to the ORIGINAL
+loop, which left ground drawn over 39% of road samples; it cannot be fixed
+inside `outerTerrain` because street construction calls that for node heights
+and the dependency would be circular. A terrain vertex asks `groundHeightNear`
+for the lowest ground in its cell, because what is drawn between two vertices is
+a straight line a curving road passes under. This costs district load 1.2 s ->
+2.4 s, all of it `projectOntoDistrict` at 53 us a call; a spatial index over
+street segments is the open fix and would cut the traffic build too. `RoadWorld` supplies the sim's start,
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.

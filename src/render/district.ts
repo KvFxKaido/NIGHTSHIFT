@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth, laneMarkings,
-  outerTerrain, pathSamples, projectOntoDistrict, RAIL, RAIL_HALF_WIDTH, RIVER, RIVER_HALF_WIDTH,
+  groundHeight, groundHeightNear, GROUND_CORRIDOR, outerTerrain, pathSamples, projectOntoDistrict,
+  RAIL, RAIL_HALF_WIDTH, RIVER, RIVER_HALF_WIDTH,
   routePoints,
   type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
 import type { CoursePoint } from "../sim/track.ts";
@@ -139,11 +140,11 @@ function addVerges(scene: THREE.Scene, dressing: DistrictDressing): void {
           const half = sample.width / 2;
           const innerX = sample.x + normalX * half, innerZ = sample.z + normalZ * half;
           const road = projectOntoDistrict(innerX, innerZ).height;
-          const drop = road - outerTerrain(innerX, innerZ);
+          const drop = road - groundHeight(innerX, innerZ);
           const verge = 3.5 + Math.min(13, Math.abs(drop) * 2.4);
           const outerX = sample.x + normalX * (half + verge);
           const outerZ = sample.z + normalZ * (half + verge);
-          return { drop, innerX, innerZ, road, outerX, outerZ, outerY: outerTerrain(outerX, outerZ) };
+          return { drop, innerX, innerZ, road, outerX, outerZ, outerY: groundHeight(outerX, outerZ) };
         });
         // A structure, not a grading: leave the ground to pass underneath.
         if (quad.some(corner => Math.abs(corner.drop) > 6)) continue;
@@ -351,11 +352,40 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
   // Ground follows the inland rise, or every road on the hill floats over a
   // flat plane. The night/blockout colour choice is upstream's; the shape is
   // the terrain the streets were laid on.
-  const terrain = new THREE.PlaneGeometry(spread, spread, 110, 110);
+  const SEGMENTS = 110;
+  const cell = spread / SEGMENTS;
+  const terrain = new THREE.PlaneGeometry(spread, spread, SEGMENTS, SEGMENTS);
   const vertices = terrain.getAttribute("position");
+  // Which vertices a street can reach at all. Finding them from the streets is
+  // O(road length); testing every vertex is O(grid) with an expensive test,
+  // because projectOntoDistrict searches the network — running it nine times on
+  // all 12,321 vertices put addDistrict at 12.4 s, which is district load time.
+  const side = Math.round(Math.sqrt(vertices.count));
+  const near = new Uint8Array(vertices.count);
+  for (const street of DISTRICT_STREETS) {
+    for (const sample of pathSamples(street.points, cell * 0.5)) {
+      const span = Math.ceil((sample.width / 2 + GROUND_CORRIDOR + cell) / cell);
+      const cx = Math.round((sample.x + spread / 2) / cell);
+      const cz = Math.round((sample.z + spread / 2) / cell);
+      for (let dz = -span; dz <= span; dz++) {
+        for (let dx = -span; dx <= span; dx++) {
+          const ix = cx + dx, iz = cz + dz;
+          if (ix < 0 || iz < 0 || ix >= side || iz >= side) continue;
+          near[iz * side + ix] = 1;
+        }
+      }
+    }
+  }
   for (let i = 0; i < vertices.count; i++) {
     // The plane is rotated -PI/2 about X, so local +Y is world -Z and local +Z is up.
-    vertices.setZ(i, outerTerrain(vertices.getX(i), -vertices.getY(i)) - 0.2);
+    const vx = vertices.getX(i), vz = -vertices.getY(i);
+    if (!near[i]) { vertices.setZ(i, outerTerrain(vx, vz) - 0.2); continue; }
+    // The LOWEST ground in the vertex's own neighbourhood, not the ground at the
+    // vertex. groundHeight is exact where it is sampled; what you see between
+    // two vertices is a straight line, and a road curving inside a 12 m cell
+    // passes under it. Sampling the vertex alone leaves 32 buried road samples
+    // at 0.61 m; taking the neighbourhood minimum leaves none.
+    vertices.setZ(i, groundHeightNear(vx, vz, cell * 0.5) - 0.2);
   }
   terrain.computeVertexNormals();
   const ground = mesh("district-ground", terrain,
@@ -366,14 +396,14 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
   // Water goes near-black and glossy at night so the lamp pools streak on it;
   // the blockout view keeps it legibly blue-grey.
   const water = mesh("district-river", streetGeometry(RIVER.map(([x, z]) => (
-    { x, z, y: outerTerrain(x, z) - 1.6, width: RIVER_HALF_WIDTH * 2, zone: "waterfront" } as CoursePoint))),
+    { x, z, y: groundHeight(x, z) - 1.6, width: RIVER_HALF_WIDTH * 2, zone: "waterfront" } as CoursePoint))),
     new THREE.MeshStandardMaterial({
       color: dressing === "night" ? 0x081820 : 0x16323f,
       roughness: dressing === "night" ? 0.12 : 0.25, metalness: 0.3,
     }));
   water.receiveShadow = true; scene.add(water);
   const ballast = mesh("district-rail", streetGeometry(RAIL.map(([x, z]) => (
-    { x, z, y: outerTerrain(x, z) + 0.05, width: RAIL_HALF_WIDTH * 2, zone: "freight" } as CoursePoint))),
+    { x, z, y: groundHeight(x, z) + 0.05, width: RAIL_HALF_WIDTH * 2, zone: "freight" } as CoursePoint))),
     new THREE.MeshStandardMaterial({ color: 0x2b2622, roughness: 1 }));
   ballast.receiveShadow = true; scene.add(ballast);
   addVerges(scene, dressing);

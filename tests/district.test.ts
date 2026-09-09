@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { RIVER, outerTerrain, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, outerTerrain, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
@@ -230,4 +230,73 @@ test("street carriageways only overlap approaching a junction they share", () =>
   assert.deepEqual(orphans, [], `streets share asphalt without sharing a junction: ${orphans.join("; ")}`);
   assert.ok(worstReach < 70, `${reachAt} still overlaps ${worstReach.toFixed(0)} m out from the junction it merges at`);
   assert.ok(worstStep < 1, `${stepAt} steps ${worstStep.toFixed(2)} m in ground both streets claim`);
+});
+
+
+// Buildings stood inside one another because the check was two circumscribed
+// circles with 7 m of slack, and slack on a circle is slack on the rectangle
+// inside it: 15 pairs interpenetrated, the worst by 4.21 m. A circle cannot say
+// "these terraces share a party wall but do not overlap", which is the shape of
+// every city block, so it needs the slack, so it lets buildings through.
+test("no building stands inside another", () => {
+  let worst = 0, worstAt = "";
+  for (let i = 0; i < DISTRICT_BLOCKS.length; i++) {
+    for (let j = i + 1; j < DISTRICT_BLOCKS.length; j++) {
+      const a = DISTRICT_BLOCKS[i]!, b = DISTRICT_BLOCKS[j]!;
+      if (Math.hypot(a.x - b.x, a.z - b.z) > 80) continue;
+      const depth = blockPenetration(a, b);
+      if (depth > worst) {
+        worst = depth;
+        worstAt = `(${a.x.toFixed(0)},${a.z.toFixed(0)}) and (${b.x.toFixed(0)},${b.z.toFixed(0)})`;
+      }
+    }
+  }
+  assert.ok(worst <= 0, `two buildings interpenetrate by ${worst.toFixed(2)} m: ${worstAt}`);
+  // And the district is still built, rather than cleared to satisfy the above.
+  assert.ok(DISTRICT_BLOCKS.length >= 60, `only ${DISTRICT_BLOCKS.length} buildings survived placement`);
+});
+
+// The ground was drawn over the road on 39% of samples, up to 4.23 m, because
+// outerTerrain conforms to the ORIGINAL loop and only it, while every street
+// added since is graded on its own terms. At night that ground is nearly black,
+// so the road ran into what looked like water.
+//
+// Resolution was not the cause and would not have been the cure: 110 to 880
+// segments, 64x the triangles, moved 898 buried samples to 893 and made the
+// worst case worse.
+test("the drawn ground never covers the road", () => {
+  const scene = new THREE.Scene();
+  addDistrict(scene, getDistrictRoute("market-loop"));
+  const ground = scene.getObjectByName("district-ground") as THREE.Mesh;
+  const position = ground.geometry.getAttribute("position");
+  // A PlaneGeometry's vertices are row-major, (n+1) squared of them. Read the
+  // mesh that is actually drawn rather than re-deriving what it ought to be.
+  const side = Math.round(Math.sqrt(position.count));
+  const n = side - 1;
+  const minX = position.getX(0), maxX = position.getX(side - 1);
+  const cell = (maxX - minX) / n;
+  // The plane is rotated -PI/2 about X: local +Y is world -Z, local +Z is up.
+  const heightAt = (ix: number, iz: number) => position.getZ(iz * side + ix);
+  const worldZ = (iz: number) => -position.getY(iz * side);
+
+  let worst = 0, worstAt = "";
+  for (const street of DISTRICT_STREETS) {
+    for (const sample of pathSamples(street.points, 4)) {
+      const road = projectOntoDistrict(sample.x, sample.z).height;
+      for (const side_ of [-1, 0, 1] as const) {
+        const x = sample.x + -sample.dirZ * side_ * sample.width * 0.5;
+        const z = sample.z + sample.dirX * side_ * sample.width * 0.5;
+        const fx = (x - minX) / cell;
+        const fz = (z - worldZ(0)) / cell;
+        const ix = Math.max(0, Math.min(n - 1, Math.floor(fx)));
+        const iz = Math.max(0, Math.min(n - 1, Math.floor(fz)));
+        const tx = fx - ix, tz = fz - iz;
+        const h = (heightAt(ix, iz) * (1 - tx) + heightAt(ix + 1, iz) * tx) * (1 - tz)
+          + (heightAt(ix, iz + 1) * (1 - tx) + heightAt(ix + 1, iz + 1) * tx) * tz;
+        if (h - road > worst) { worst = h - road; worstAt = `${street.id} at ${x.toFixed(0)},${z.toFixed(0)}`; }
+      }
+    }
+  }
+  scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+  assert.ok(worst <= 0, `the ground stands ${worst.toFixed(2)} m over the road at ${worstAt}`);
 });
