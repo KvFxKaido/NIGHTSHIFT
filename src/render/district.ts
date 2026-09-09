@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, projectOntoDistrict,
-  routePoints, type DistrictRoute } from "../sim/district.ts";
+import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, laneMarkings,
+  pathSamples, projectOntoDistrict, routePoints,
+  type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
 import type { CoursePoint } from "../sim/track.ts";
 import { addNightBuildings, glowTexture, tint, type BuildingSite } from "./night.ts";
 
@@ -53,35 +54,6 @@ export function streetGeometry(points: readonly CoursePoint[]): THREE.BufferGeom
   return geometry;
 }
 
-/** One position along a street's centreline, spaced by arc length. */
-interface RoadSample { x: number; z: number; dirX: number; dirZ: number; width: number; distance: number }
-
-/**
- * Walk a street at a fixed spacing rather than per authored point. Markings and
- * lamp posts have to land on a rhythm the driver can read, and the authored
- * points are spaced by whatever the curve needed, not by what a road looks like.
- */
-function walkStreet(points: readonly CoursePoint[], step: number): RoadSample[] {
-  const samples: RoadSample[] = [];
-  let carry = 0, travelled = 0;
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i]!, b = points[i + 1]!;
-    const dx = b.x - a.x, dz = b.z - a.z;
-    const length = Math.hypot(dx, dz);
-    if (length < 1e-6) continue;
-    for (let t = carry; t < length; t += step) {
-      const fraction = t / length;
-      samples.push({
-        x: a.x + dx * fraction, z: a.z + dz * fraction, dirX: dx / length, dirZ: dz / length,
-        width: a.width + (b.width - a.width) * fraction, distance: travelled + t,
-      });
-    }
-    carry = ((carry - length) % step + step) % step;
-    travelled += length;
-  }
-  return samples;
-}
-
 /** Junction aprons carry no paint: lines running through a crossing read as a
  *  mistake, and the aprons are where two streets' surfaces already overlap. */
 function inJunction(x: number, z: number): boolean {
@@ -95,7 +67,7 @@ function inJunction(x: number, z: number): boolean {
  * district's own surface height, so paint follows a graded apron instead of
  * floating over it.
  */
-function markingGeometry(samples: readonly RoadSample[], lateral: (sample: RoadSample) => number,
+function markingGeometry(samples: readonly PathSample[], lateral: (sample: PathSample) => number,
   halfWidth: number, dash: { period: number; length: number } | null): THREE.BufferGeometry | null {
   const vertices: number[] = [], indices: number[] = [];
   let previous: number | null = null;
@@ -126,18 +98,34 @@ function markingGeometry(samples: readonly RoadSample[], lateral: (sample: RoadS
   return geometry;
 }
 
-/** Double yellow down the middle, dashed white lane lines, solid white edges. */
+/**
+ * The paint, read off the sim's lane model rather than guessed at beside it. A
+ * dashed divider means "another lane going your way is over there" and a solid
+ * edge means "that is the last of the road" — statements the renderer is not
+ * entitled to make up, because traffic and rivals will act on the same lanes.
+ */
+const MARKING_STYLE: Record<LaneMarkingKind,
+  { halfWidth: number; dash: { period: number; length: number } | null }> = {
+  centre: { halfWidth: 0.09, dash: null },
+  divider: { halfWidth: 0.08, dash: { period: 9, length: 3.4 } },
+  edge: { halfWidth: 0.11, dash: null },
+};
+
 function addLaneMarkings(scene: THREE.Scene): void {
   const yellow: THREE.BufferGeometry[] = [], white: THREE.BufferGeometry[] = [];
   for (const street of DISTRICT_STREETS) {
-    const samples = walkStreet(street.points, 2.5);
-    for (const side of [-1, 1]) {
-      yellow.push(...[markingGeometry(samples, () => side * 0.26, 0.09, null)].filter(Boolean) as THREE.BufferGeometry[]);
-      white.push(...[
-        markingGeometry(samples, sample => side * sample.width * 0.25, 0.08, { period: 9, length: 3.4 }),
-        markingGeometry(samples, sample => side * (sample.width / 2 - 0.7), 0.11, null),
-      ].filter(Boolean) as THREE.BufferGeometry[]);
-    }
+    const samples = pathSamples(street.points, 2.5);
+    // Lane geometry breathes with the carriageway, so each marking is addressed
+    // by its rank rather than by a fixed offset: ask the model where the nth
+    // line of that kind sits at this sample's own width.
+    const kinds = laneMarkings(samples[0]?.width ?? 0).map(marking => marking.kind);
+    kinds.forEach((kind, rank) => {
+      const style = MARKING_STYLE[kind];
+      const geometry = markingGeometry(samples,
+        sample => laneMarkings(sample.width)[rank]!.offset, style.halfWidth, style.dash);
+      if (!geometry) return;
+      (kind === "centre" ? yellow : white).push(geometry);
+    });
   }
   const paint = (name: string, parts: THREE.BufferGeometry[], color: number) => {
     if (!parts.length) return;
@@ -166,7 +154,7 @@ function addStreetLighting(scene: THREE.Scene): void {
   const sodium = new THREE.Color(0xffb057);
   let index = 0;
   for (const street of DISTRICT_STREETS) {
-    for (const sample of walkStreet(street.points, 32)) {
+    for (const sample of pathSamples(street.points, 32)) {
       const side = index++ % 2 === 0 ? 1 : -1;
       const nx = -sample.dirZ * side, nz = sample.dirX * side;
       const x = sample.x + nx * (sample.width / 2 + 1.5), z = sample.z + nz * (sample.width / 2 + 1.5);

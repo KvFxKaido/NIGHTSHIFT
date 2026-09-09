@@ -111,6 +111,15 @@ apart from `walls` because a wall is 1.3 m of guard rail and renders as one. `Ro
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.
+`src/sim/lanes.ts` owns the lane model: two lanes each way whose width breathes
+with the carriageway (16-22 m here), signed so every lane sits on the right of
+its own direction of travel, plus arc-length sampling and `lanePose` — what a
+traffic follower or a rival needs to sit in a lane. It is world geometry, so it
+lives in the sim; the renderer paints those lanes rather than deriving its own,
+and `laneMarkings` is the single authority on where a divider or an edge line
+goes. `districtLanePose` binds it to the district's graded surface. Lanes are
+district-only so far; `RoadWorld` does not carry them and Blackglass has none.
+Nothing drives the lanes yet — traffic (GDD §12) is unimplemented.
 The district is dressed for night by default (GDD §15.1): lane paint dropped
 onto the graded surface, sodium lamps with additive light pools, lit facades and
 shopfront glass, neon signage, wet asphalt and a camera-following sky dome. All
