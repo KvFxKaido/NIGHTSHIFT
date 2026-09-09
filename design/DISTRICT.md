@@ -84,13 +84,24 @@ the lines run straight through a junction flare instead of splaying with it.
 
 ### Blocks
 
-Massing is derived from the **planar faces of the street graph** — the blocks
-the streets enclose — rather than a uniform grid filtered down to whatever gaps
-the roads leave. Urban form is a tessellation of blocks and streets are the
-negative space between them; doing it the other way round is what made the first
-pass read as a checkerboard. 15 faces carry 88 buildings, with footprints scaled
-to their block so a tight quarter face gets small close-packed buildings instead
-of one shed that will not fit.
+Massing is derived from the **planar faces of the street graph** — the blocks the
+streets enclose — rather than a uniform grid filtered down to whatever gaps the
+roads leave. Urban form is a tessellation of blocks and streets are the negative
+space between them, and doing it the other way round is what made the first pass
+read as a checkerboard.
+
+Buildings are placed **around each face's perimeter, fronting the street**, set
+back from the carriageway by a pavement and rotated square to the road rather
+than to the world axes. A city block is built out to its frontage with the gap,
+if any, in the middle; sampling a grid inside the face and keeping whatever
+cleared the road produced exactly the opposite. Clearance is tested on the
+footprint's four corners: the circumscribed circle it replaces demanded a 35 m
+setback on an arterial, which is why massing used to float mid-face.
+
+Depth is tried deepest-first and falls back, because a narrow face cannot host a
+deep building once the setback clears the carriageway and a shallow terrace is
+what actually gets built on one. 15 faces carry 65 buildings across 36 distinct
+orientations, standing 2.6 m from the kerb.
 
 | Route guide | Distance | Question |
 | --- | ---: | --- |

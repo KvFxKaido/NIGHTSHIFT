@@ -289,11 +289,13 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN, roadWorld
     );
   }
   // Massing is solid. Driving through a building was invisible on a fixed route
-  // and is the first thing free roam does. Axis-aligned, so no rotation.
+  // and is the first thing free roam does. Rotated, because a building fronting
+  // a street is not aligned to the world axes.
   for (const solid of roadWorld.solids ?? []) {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(solid.width * 0.5, solid.height * 0.5, solid.depth * 0.5)
         .setTranslation(solid.x, solid.height * 0.5, solid.z)
+        .setRotation(roadRotation(solid.rotation ?? 0, 0))
         .setFriction(0.25).setRestitution(0.08),
     );
   }

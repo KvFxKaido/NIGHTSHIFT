@@ -1,6 +1,6 @@
 import { projectOntoCourse, COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
-import { CARRIAGEWAY, lanes, lanePose, pathLength,
+import { CARRIAGEWAY, carriagewayWidth, lanes, lanePose, pathLength,
   type Lane, type LanePose, type StreetClass } from "./lanes.ts";
 
 /** The lane model is world geometry, so it is part of the district's public
@@ -708,48 +708,101 @@ function inside(polygon: { x: number; z: number }[], x: number, z: number): bool
   return hit;
 }
 
+export interface DistrictBlock {
+  readonly x: number;
+  readonly z: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  /** Yaw, so a building can stand square to the street it fronts. */
+  readonly rotation: number;
+}
+
+/** The four corners of an oriented footprint. Clearance is a rectangle problem;
+ *  a circumscribed circle demanded a 35 m setback on an arterial and is why the
+ *  first pass left every block floating in the middle of its face. */
+export function blockCorners(block: DistrictBlock): { x: number; z: number }[] {
+  const cos = Math.cos(block.rotation), sin = Math.sin(block.rotation);
+  return ([[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).map(([sx, sz]) => {
+    const localX = sx * block.width / 2, localZ = sz * block.depth / 2;
+    return { x: block.x + localX * cos - localZ * sin, z: block.z + localX * sin + localZ * cos };
+  });
+}
+
+/** True when every corner stands clear of every street's carriageway. Measured
+ *  per street rather than against the nearest one: beside an alley the nearest
+ *  centreline is 4 m wide and says nothing about the arterial behind it. */
+export function blockClearsStreets(block: DistrictBlock, pavement: number): boolean {
+  return blockCorners(block).every(corner =>
+    streetsNear(corner.x, corner.z, 46).every(street =>
+      projectOntoPath(street.points, corner.x, corner.z).distance
+        > carriagewayWidth(street.points) / 2 + pavement));
+}
+
+/** Half the diagonal: the radius that certainly contains an oriented footprint. */
+const spanOf = (block: { width: number; depth: number }) => Math.hypot(block.width, block.depth) / 2;
+
 /**
- * Massing, laid inside each block rather than over the whole district. Heights
- * come from where the block sits: warehouses low along the water, sheds by the
- * rail, and the old quarter tall and close-packed on the hill.
+ * Buildings fronting the street around each block's perimeter.
+ *
+ * The first pass sampled a grid inside each face and kept whatever cleared the
+ * road, which left the middle of every block occupied and its edges bare —
+ * exactly backwards. A city block is built out to its street frontage with the
+ * gap, if any, in the middle. Walking the face boundary and setting each
+ * building back by the carriageway plus a pavement puts the wall where a
+ * pedestrian would stand, and gives it a rotation so it stands square to the
+ * road rather than to the world axes.
  */
-export const DISTRICT_BLOCKS: readonly { x: number; z: number; width: number; depth: number; height: number }[] =
-  DISTRICT_FACES.flatMap((face, faceIndex) => {
-    const xs = face.map(point => point.x), zs = face.map(point => point.z);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
-    const river = distanceToPath(RIVER, (minX + maxX) / 2, (minZ + maxZ) / 2);
-    const rail = distanceToPath(RAIL, (minX + maxX) / 2, (minZ + maxZ) / 2);
-    // Footprint follows the block. Big sheds by the water and the line, but a
-    // tight face in the old quarter gets small close-packed buildings rather
-    // than one shed that will not fit and leaves the block empty.
-    const industrial = river < 190 || rail < 150;
-    const area = Math.abs(face.reduce((sum, point, i) => {
-      const next = face[(i + 1) % face.length]!;
-      return sum + point.x * next.z - next.x * point.z;
-    }, 0) / 2);
-    const size = industrial && area > 40000 ? { width: 44, depth: 40 }
-      : area > 16000 ? { width: 26, depth: 24 }
-      : { width: 15, depth: 14 };
-    const step = Math.max(size.width, size.depth) + 11;
-    const blocks: { x: number; z: number; width: number; depth: number; height: number }[] = [];
-    for (let x = minX + step / 2; x < maxX; x += step) {
-      for (let z = minZ + step / 2; z < maxZ; z += step) {
+export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap((face, faceIndex) => {
+  const centre = face.reduce((sum, point) => ({ x: sum.x + point.x / face.length, z: sum.z + point.z / face.length }),
+    { x: 0, z: 0 });
+  const river = distanceToPath(RIVER, centre.x, centre.z);
+  const rail = distanceToPath(RAIL, centre.x, centre.z);
+  const industrial = river < 190 || rail < 150;
+  // Depth is tried deepest-first. A narrow face cannot host a deep building
+  // once the setback clears the carriageway, and a shallow terrace is what
+  // actually gets built on one — so fall back rather than leave it bare.
+  const depths = industrial ? [26, 17, 11] : [17, 12, 8];
+  const pavement = industrial ? 3.5 : 2.6;
+
+  const placed: DistrictBlock[] = [];
+  for (let i = 0; i < face.length; i++) {
+    const a = face[i]!, b = face[(i + 1) % face.length]!;
+    const runX = b.x - a.x, runZ = b.z - a.z;
+    const run = Math.hypot(runX, runZ);
+    if (run < 1e-6) continue;
+    const dirX = runX / run, dirZ = runZ / run;
+    // Walk this edge in frontage-sized steps rather than by vertex: the face
+    // follows street polylines, so its vertices are metres apart.
+    const frontage = industrial ? 34 : 21;
+    for (let along = frontage / 2; along < run; along += frontage + 1.5) {
+      const edgeX = a.x + dirX * along, edgeZ = a.z + dirZ * along;
+      // Inward is whichever normal lands inside the face.
+      let normalX = -dirZ, normalZ = dirX;
+      if (!inside(face, edgeX + normalX * 4, edgeZ + normalZ * 4)) { normalX = -normalX; normalZ = -normalZ; }
+      const road = projectOntoDistrict(edgeX, edgeZ);
+      for (const depth of depths) {
+        const setback = road.width / 2 + pavement + depth / 2;
+        const x = edgeX + normalX * setback, z = edgeZ + normalZ * setback;
         if (!inside(face, x, z)) continue;
-        // JS % keeps the sign of a negative operand, which gave buildings -8 m tall.
         const seed = ((faceIndex * 31 + Math.round(x) * 7 + Math.round(z) * 13) % 6 + 6) % 6;
         const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
-        const height = industrial ? 7 + seed * 3 : 12 + seed * 5 + inland * 16;
-        blocks.push({ x, z, ...size, height: Math.round(height) });
+        const block: DistrictBlock = {
+          x, z, width: frontage - 2 - (seed % 3), depth, rotation: Math.atan2(dirZ, dirX),
+          height: Math.round(industrial ? 8 + seed * 3.5 : 13 + seed * 5 + inland * 18),
+        };
+        // Two frontages meeting at a corner, or facing each other across a
+        // narrow block, must not occupy the same ground.
+        if (placed.some(other =>
+          Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block) - 7)) continue;
+        if (!blockClearsStreets(block, pavement)) continue;
+        placed.push(block);
+        break;
       }
     }
-    return blocks;
-  })
-    // Final clearance gate: nothing may intrude on a road's envelope.
-    .filter(block => streetsNear(block.x, block.z, 60).every(street => {
-      const road = projectOntoPath(street.points, block.x, block.z);
-      return road.distance > road.width / 2 + Math.hypot(block.width, block.depth) / 2 + 7;
-    }));
+  }
+  return placed;
+});
 
 /** A lane of a named district street. Traffic and rivals address lanes by id
  *  rather than by object, because a street is data and an id survives a reload

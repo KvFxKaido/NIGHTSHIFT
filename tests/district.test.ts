@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
 import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse } from "../src/sim/track.ts";
@@ -55,11 +55,23 @@ test("connector elevations remain driveable and building envelopes clear all str
   assert.ok(DISTRICT_STREETS.some(s => s.kind === "alley"), "shortcuts exist");
   assert.ok(DISTRICT_STREETS.filter(s => s.kind === "alley").length <= 6,
     "alleys stay a shortcut layer rather than becoming the network");
-  assert.ok(DISTRICT_BLOCKS.length > 5);
+  assert.ok(DISTRICT_BLOCKS.length > 40, `only ${DISTRICT_BLOCKS.length} buildings`);
+  // Clearance is a rectangle problem. The circumscribed circle this replaces
+  // demanded a 35 m setback on an arterial, which is why massing used to float
+  // in the middle of its face instead of standing on the frontage.
   for (const block of DISTRICT_BLOCKS) {
-    const road = projectOntoDistrict(block.x, block.z);
-    assert.ok(road.distance > road.width / 2 + Math.hypot(block.width, block.depth) / 2 + 6);
+    assert.ok(blockClearsStreets(block, 2.4),
+      `a building at ${block.x.toFixed(0)},${block.z.toFixed(0)} intrudes on a carriageway`);
   }
+  // And they have to actually reach it, or "filled to the street edge" is a
+  // claim rather than a property.
+  const kerbGap = (block: typeof DISTRICT_BLOCKS[number]) => Math.min(...blockCorners(block).map(corner =>
+    Math.min(...DISTRICT_STREETS.map(street =>
+      projectOntoPath(street.points, corner.x, corner.z).distance
+        - carriagewayWidth(street.points) / 2))));
+  const fronting = DISTRICT_BLOCKS.filter(block => kerbGap(block) < 5).length;
+  assert.ok(fronting > DISTRICT_BLOCKS.length * 0.6,
+    `only ${fronting}/${DISTRICT_BLOCKS.length} buildings stand on a frontage`);
 });
 
 test("blockout streets face upward and share the simulation boundary transforms", () => {

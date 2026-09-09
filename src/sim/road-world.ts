@@ -9,6 +9,8 @@ export interface RoadSolid {
   readonly width: number;
   readonly depth: number;
   readonly height: number;
+  /** Yaw, so massing can stand square to the street it fronts. */
+  readonly rotation?: number;
 }
 
 /** Geometry dependency of the simulation. No renderer or browser state. */

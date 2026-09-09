@@ -224,11 +224,14 @@ function addStreetLighting(scene: THREE.Scene): void {
 /** Massing blocks, measured against the streets that can see each face. */
 function buildingSites(): BuildingSite[] {
   return DISTRICT_BLOCKS.map(block => {
+    // Face midpoints in the building's own frame, so a rotated block still
+    // reports which of ITS walls the street can see.
+    const cos = Math.cos(block.rotation), sin = Math.sin(block.rotation);
+    const at = (localX: number, localZ: number) => projectOntoDistrict(
+      block.x + localX * cos - localZ * sin, block.z + localX * sin + localZ * cos).distance;
     const faces: [number, number, number, number] = [
-      projectOntoDistrict(block.x, block.z + block.depth / 2).distance,
-      projectOntoDistrict(block.x, block.z - block.depth / 2).distance,
-      projectOntoDistrict(block.x + block.width / 2, block.z).distance,
-      projectOntoDistrict(block.x - block.width / 2, block.z).distance,
+      at(0, block.depth / 2), at(0, -block.depth / 2),
+      at(block.width / 2, 0), at(-block.width / 2, 0),
     ];
     return { ...block, faceDistances: faces };
   });
@@ -341,7 +344,9 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
     DISTRICT_BLOCKS.forEach((block, i) => {
       const body = mesh(`district-massing-${i}`,
         new THREE.BoxGeometry(block.width, block.height, block.depth), blockMaterial);
-      body.position.set(block.x, block.height / 2, block.z); body.castShadow = true; scene.add(body);
+      body.position.set(block.x, block.height / 2, block.z);
+      body.rotation.y = -block.rotation;
+      body.castShadow = true; scene.add(body);
     });
   }
   if (authored) scene.add(authored);
