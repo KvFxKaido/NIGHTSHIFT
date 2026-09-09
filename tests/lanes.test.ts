@@ -137,8 +137,25 @@ test("the paint marks lane boundaries, not arbitrary fractions of the road", () 
   }
 });
 
-test("pathLength still measures what the routes are measured by", () => {
+// A lane is measured along its own path, not its street's centreline. Both
+// numbers exist and they are not interchangeable: routes are still centreline
+// distances, because a route is a line on a map rather than something driven in
+// a particular lane.
+test("a lane is as long as the lane, not as long as its street", () => {
   const street = streetOf("ring-boulevard");
-  assert.equal(pathLength(street.points), districtLaneLength({ street: street.id, direction: 1, index: 0 }));
-  assert.ok(pathLength(street.points) > 100);
+  const centreline = pathLength(street.points);
+  assert.ok(centreline > 100);
+
+  let worst = 0, worstAt = "";
+  for (const lane of DISTRICT_LANES) {
+    const points = streetOf(lane.street).points;
+    const error = Math.abs(districtLaneLength(lane) - pathLength(points)) / pathLength(points);
+    if (error > worst) { worst = error; worstAt = `${lane.street} lane ${lane.direction}/${lane.index}`; }
+  }
+  // Measured, not asserted loosely: if this collapses to zero the
+  // reparameterisation has been undone and every lane is back on the centreline.
+  assert.ok(worst > 0.01,
+    `the longest lane differs from its centreline by only ${(worst * 100).toFixed(2)}% (${worstAt})`);
+  assert.ok(worst < 0.1,
+    `${worstAt} differs from its centreline by ${(worst * 100).toFixed(1)}%, which is a geometry error`);
 });

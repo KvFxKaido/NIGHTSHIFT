@@ -120,9 +120,14 @@ with the carriageway (16-22 m here), signed so every lane sits on the right of
 its own direction of travel, plus arc-length sampling and `lanePose` — what a
 traffic follower or a rival needs to sit in a lane. A lane is its own mitered
 polyline; do not go back to offsetting a centreline sample sideways, which jumps
-up to 2.79 m at an authored vertex. `lanePose`'s distance is centreline arc
-length in the lane's direction, not the offset lane's own length, which differs
-by up to 2.7% round a bend. It is world geometry, so it
+up to 2.79 m at an authored vertex. `lanePose`'s distance is arc length along the
+lane's OWN path, in the lane's direction. It was the street's centreline until it
+was reparameterised, which made a vehicle's odometer disagree with the ground by
++/-4.62% on the hairpin, opposite in sign between a street's inner and outer
+lane; two lanes at equal distance are therefore no longer abreast through a bend
+and nothing may assume they are, while routes stay centreline distances. Lane
+geometry is memoised, and is a pure function of its inputs rather than state.
+It is world geometry, so it
 lives in the sim; the renderer paints those lanes rather than deriving its own,
 and `laneMarkings` is the single authority on where a divider or an edge line
 goes. `districtLanePose` binds it to the district's graded surface. Lanes are
@@ -135,9 +140,15 @@ computed offline from lane geometry, which is only possible because the district
 guarantees carriageways overlap only at junctions. The invariant is that nothing
 is inside a junction without holding it, enforced by a hard stop on the entry
 line. Traffic is kinematic — an immovable hazard, never a second handling model.
-Capacity is the known limit: clean at 24 vehicles, deadlocked at 27, because a
-vehicle holds a whole crossing rather than a time window; raising it means
-per-conflict-point arrival windows. `createSim(..., { traffic: false })` turns it
+A vehicle may claim a movement only at the head of its own approach; claiming
+from behind a queue reserves a junction it can never reach and never releases,
+which deadlocks every conflicting movement. That was first mis-read as a
+capacity cliff at 24-27 vehicles; it is not one, and the test asserts the grant
+rather than the deadlock because the symptom has already moved once. Real
+capacity is ~55: past that, queues exceed the stall budget and a grant made 34 m
+short of the line is stale by the time it is used. Shipped density is 24.
+Raising the ceiling means per-conflict-point arrival windows instead of
+whole-movement occupancy. `createSim(..., { traffic: false })` turns it
 off, which the district reference drivers use because they are geometry checks.
 `src/render/traffic.ts` draws it as instanced bodies and lamps, eight draw calls.
 The district is dressed for night by default (GDD §15.1): lane paint dropped

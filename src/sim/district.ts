@@ -1,6 +1,6 @@
 import { projectOntoCourse, COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
-import { CARRIAGEWAY, carriagewayWidth, lanes, lanePose, lanesPerDirection, pathLength,
+import { CARRIAGEWAY, carriagewayWidth, laneLength, lanes, lanePose, lanesPerDirection, pathLength,
   type Lane, type LanePose, type StreetClass } from "./lanes.ts";
 import { createTraffic, TRAFFIC_KINDS, type TrafficLane, type TrafficMovement,
   type TrafficNetwork, type TrafficState } from "./traffic.ts";
@@ -849,9 +849,12 @@ function streetOf(id: string): Street {
   return street;
 }
 
-/** How far a lane runs, in metres. */
+/** How far a lane runs along its own path, in metres. Not its street's length:
+ *  an offset lane round a bend is longer or shorter than the line it is
+ *  measured from. */
 export function districtLaneLength(lane: DistrictLane): number {
-  return pathLength(streetOf(lane.street).points);
+  const street = streetOf(lane.street);
+  return laneLength(street.points, lane, street.kind);
 }
 
 /**
@@ -954,7 +957,9 @@ function buildTrafficNetwork(): TrafficNetwork {
   const idOf = new Map<string, number>();
   entries.forEach((entry, id) =>
     idOf.set(`${entry.street.id}|${entry.lane.direction}|${entry.lane.index}`, id));
-  const lengths = entries.map(entry => pathLength(entry.street.points));
+  // Each lane's own length, not its street's: distances along a lane, and every
+  // reach and sweep derived from them, are that lane's arc length.
+  const lengths = entries.map(entry => laneLength(entry.street.points, entry.lane, entry.street.kind));
   const reach = (id: number) => Math.min(JUNCTION_SEARCH, lengths[id]! * 0.9);
 
   const junctionIds = DISTRICT_JUNCTIONS.map(junction => junction.id);

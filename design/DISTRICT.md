@@ -225,12 +225,12 @@ own travel, whichever way the street was authored. `lanePose(points, lane, s)`
 measures `s` in the lane's own direction, so a follower only ever adds to its
 odometer. Height comes from the district's graded surface, not from datum.
 
-`s` is arc length along the street's **centreline**, not along the offset lane.
-Round a bend an offset lane is longer or shorter than the line it is measured
-from — up to 2.7% on the district's longest curve, `ring-portal`. That is a
-constant scale on speed through a curve rather than an accumulating error, and
-it keeps the lanes of one street abreast at equal `s`; it is written down here
-because it is a real difference and traffic will inherit it.
+`s` is arc length along the **lane's own path**. It was the street's centreline
+until it was reparameterised: round a bend an offset lane is longer or shorter
+than the line it was measured from, so a vehicle advancing its odometer at its
+own speed did not travel that far on the ground, and the error was opposite in
+sign between the inner and outer lane of the same curve. See *Lanes are measured
+along themselves* below for the measured spread.
 
 A lane is built as its own mitered polyline, not by offsetting a centreline
 sample sideways. Offsetting a sample uses whichever segment normal it happens to
@@ -279,57 +279,69 @@ move; that deadlock was measured before the chain existed.
 
 Occupancy is per movement, not per time window. A vehicle holds its whole
 crossing rather than the moment it passes each conflict point, so junctions
-serialise more than they need to. That sets a hard capacity: **clean at 24
-vehicles, deadlocked at 27.** Measured over five simulated minutes:
+serialise more than they need to. Measured over five simulated minutes:
 
 | vehicles | overlaps | mean speed | longest stop |
 | --- | --- | --- | --- |
-| 20 | 1 (0.05 m graze) | 11.6 m/s | 7 s |
-| **24** | **0** | **13.5 m/s** | **16 s** |
-| 27 | 0 | 7.9 m/s | 197 s — deadlocked |
-| 85 | 0 | 3.0 m/s | 268 s — gridlocked |
+| **24** (shipped) | **0** | **13.5 m/s** | **16 s** |
+| 44 | 0 | 12.4 m/s | 22 s |
+| 55 | 0 | 11.7 m/s | 40 s |
+| 74 | 1 (1.49 m) | 10.1 m/s | 49 s |
 
-Raising that ceiling means reserving conflict points with arrival windows
+Sparse traffic is the design (GDD §12), so the shipped 24 sits at less than half
+the ceiling. Past about 55 both gates go at once: queues exceed the 45 s stall
+budget, and a grant made 34 m short of the line stops being sound by the time
+the crossing happens — the exit had room when it was decided and does not when
+it is used. Raising that means reserving conflict points with arrival windows
 instead of reserving movements. A positional check was tried as a shortcut and
-is wrong: a grant is decided while the vehicle is still 34 m short of the line
-and the crossing happens seconds later, which let 141 pairs into the same
-crossing in five minutes.
+is wrong for the same reason: it let 141 pairs into the same crossing in five
+minutes.
 
-Conflict paths are sampled every 3 m, so a grazing crossing can be missed by a
-few centimetres of bodywork — one such graze at a different density, 0.05 m.
-Traffic is kinematic: it is an immovable hazard, not a second handling model,
-which keeps the player's contact response the only dynamics in the tick. The
-district reference drivers run with traffic off, because they are geometry
-checks driving a fixed line and a van in the way is not what they measure.
+#### The cliff that was not one
 
-## Presentation
+This was first measured as a hard capacity — clean at 24, deadlocked at 27 —
+and written up as the cost of holding a whole crossing. It was not. Sweeping the
+density instead of testing two points shows 27 and 31 deadlocking while 29, 37
+and 44 ran clean, and a limit that comes and goes with the vehicle count is not
+a limit.
 
-The district is now dressed for night by default (GDD §15.1): sodium lamps and
-their light pools, lane paint, lit facades, shopfront glass, neon signage and a
-sky dome carrying the city's horizon glow. `?lighting=blockout` restores the flat
-work view — grey massing, matte asphalt, no dressing at all — because neon hides
-exactly the surface errors that view exists to find.
+A vehicle claims from up to `CLAIM_RANGE` short of the entry line, and the claim
+did not check it was at the head of its own approach. One standing behind
+stopped cars took the reservation, could never advance to use it, and never
+released it, because release requires arriving on the far side. Everything whose
+movement conflicted then waited on a crossing nobody was making — terminal, and
+spreading: 12 vehicles stopped at five minutes, 23 at ten.
 
-This runs ahead of step 5 below, which says to dress only the road sections that
-survive a timed event. That ordering was written to stop hand-authored art being
-thrown away when a junction moves. It does not apply here: every piece of the
-dressing is generated from `DISTRICT_STREETS`, `DISTRICT_BLOCKS` and
-`DISTRICT_JUNCTIONS` at load, so moving a street re-dresses it for free and
-nothing is lost. Hand-authored art still waits for step 5.
+Claiming only at the head of the queue removes it. The honest caveat is that
+reparameterising lanes to their own arc length, in the same change, dissolved
+the particular 27-vehicle configuration it was found on: lane lengths moved, and
+that arrangement no longer forms. The defect did not go with it. It now needs
+more traffic to express itself, and at 74 vehicles the difference is 226 s
+stationary with a quarter of the network moving, against 47 s and four fifths.
 
-What the dressing is not: no post-processing bloom, no reflections, no wet-road
-normal map, and no interior detail. Traffic is a sim feature and lives in its own
-section above. The glow is additive quads and emissive surfaces, and
-the lamps are geometry rather than lights, so the light count is unchanged.
-Desktop screenshots do not certify mobile GPU performance; the dressing costs
-roughly ten draw calls and around 60k triangles over the blockout.
+The regression test asserts the cause, not the symptom: a claim is only ever
+granted to a vehicle with nothing ahead of it on its lane. That is deliberate —
+the symptom had already moved once, and a test pinned to it would have retired
+along with it. A stress run at 74 vehicles covers the consequence separately,
+over five simulated minutes rather than two, because gridlock at that density
+takes longer than two to develop and a three-minute stall gate inside a
+two-minute run could not have failed whatever the code did.
 
-## What to decide before more art
+## Lanes are measured along themselves
 
-1. Drive Market Loop first. Is the civic turn readable early enough?
-2. Try Freight Run: does the opposite approach justify a separate event?
-3. Try Avenue Loop: does the west half add a useful rhythm or just distance?
-4. Move/widen a junction if it needs it; don't compensate with handling changes.
-5. Once the lines are approved, implement one timed event with checkpoint
-   validation and event-specific closures. Then dress only the road sections
-   that survive that test.
+`lanePose(lane, d)` takes `d` in metres along that lane's own path. It used to
+take centreline arc length, which meant a vehicle advancing its odometer at its
+own speed did not travel that far on the ground, with the error opposite in sign
+between the inner and outer lane of one bend. On the Hotel Hairpin the two lanes
+of a direction differ from the centreline by +4.62% and -4.62%: a 9.2 point
+spread across one street.
+
+The cost is that two lanes of a street at equal `distance` are no longer exactly
+abreast through a bend. That is correct — they have not gone equally far — and
+nothing may assume otherwise. Routes are still measured on the centreline,
+because a route is a line on a map rather than something driven in a particular
+lane.
+
+Lane geometry is memoised per (street, lane, class). It is a pure function of
+its inputs, so it is a cache and not state, and cannot make the simulation
+non-deterministic.

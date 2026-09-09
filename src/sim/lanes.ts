@@ -141,18 +141,6 @@ export function pathSamples(points: readonly CoursePoint[], step: number): PathS
   return samples;
 }
 
-/** The segment a distance falls in, and how far along it. */
-function locate(points: readonly CoursePoint[], distance: number): { index: number; fraction: number } {
-  let travelled = 0;
-  for (let i = 0; i < points.length - 1; i++) {
-    const length = Math.hypot(points[i + 1]!.x - points[i]!.x, points[i + 1]!.z - points[i]!.z);
-    if (length < 1e-6) continue;
-    if (distance > travelled + length && i < points.length - 2) { travelled += length; continue; }
-    return { index: i, fraction: Math.max(0, Math.min(1, (distance - travelled) / length)) };
-  }
-  return { index: Math.max(0, points.length - 2), fraction: 1 };
-}
-
 /** Unit direction of the segment leaving a vertex, or entering the last one. */
 function segmentDirection(points: readonly CoursePoint[], index: number): { x: number; z: number } {
   const a = points[Math.min(index, points.length - 2)]!;
@@ -229,28 +217,71 @@ export interface LanePose {
   heading: number;
 }
 
+/** A lane's own polyline, and the arc length reached at each of its vertices. */
+export interface LaneGeometry {
+  readonly vertices: readonly { readonly x: number; readonly z: number }[];
+  /** Cumulative metres at each vertex; the last entry is the lane's length. */
+  readonly cumulative: readonly number[];
+}
+
+/** Memoised per (points, lane, class). A pure function of its inputs, so this is
+ *  a cache and not state: it cannot make the simulation non-deterministic. */
+const laneCache = new WeakMap<readonly CoursePoint[], Map<string, LaneGeometry>>();
+
+export function laneGeometry(points: readonly CoursePoint[], lane: Lane,
+  kind: StreetClass = "arterial"): LaneGeometry {
+  let byLane = laneCache.get(points);
+  if (!byLane) laneCache.set(points, byLane = new Map());
+  const key = `${lane.direction}|${lane.index}|${kind}`;
+  const cached = byLane.get(key);
+  if (cached) return cached;
+  const carriageway = carriagewayWidth(points);
+  const vertices = points.map((_, index) => laneVertex(points, lane, index, kind, carriageway));
+  const cumulative: number[] = [0];
+  for (let i = 1; i < vertices.length; i++) {
+    const a = vertices[i - 1]!, b = vertices[i]!;
+    cumulative.push(cumulative[i - 1]! + Math.hypot(b.x - a.x, b.z - a.z));
+  }
+  const geometry: LaneGeometry = { vertices, cumulative };
+  byLane.set(key, geometry);
+  return geometry;
+}
+
+/** How far a lane runs along ITS OWN path, which is not its street's length. */
+export function laneLength(points: readonly CoursePoint[], lane: Lane,
+  kind: StreetClass = "arterial"): number {
+  const { cumulative } = laneGeometry(points, lane, kind);
+  return cumulative[cumulative.length - 1]!;
+}
+
 /**
- * Where a lane is, `distance` metres along the street's centreline, measured in
- * that lane's own direction of travel. A car driving direction -1 still counts
- * upward from where it entered, so a follower only ever has to add to its
- * odometer.
+ * Where a lane is, `distance` metres along ITS OWN path, measured in that lane's
+ * own direction of travel. A car driving direction -1 still counts upward from
+ * where it entered, so a follower only ever has to add to its odometer.
  *
- * The parameter is centreline arc length, not the lane's own. Around a bend an
- * offset lane is longer or shorter than the line it is measured from — up to
- * 2.7% on this district's longest curve. That is a constant scale on speed
- * through a curve, and it keeps the lanes of one street abreast at equal
- * `distance`, but it is a real difference and is stated rather than left to be
- * found later.
+ * The parameter was the street's centreline arc length until it was
+ * reparameterised. An offset lane is longer or shorter than the line it is
+ * measured from — +/-4.62% on this district's hairpin — so a vehicle advancing
+ * its odometer at its own speed did not travel that far on the ground, and the
+ * error had opposite sign in the inner and outer lane of the same curve. Speed
+ * is now true in every lane.
+ *
+ * The cost is that two lanes of one street at equal `distance` are no longer
+ * exactly abreast through a bend, which is correct: they have not gone equally
+ * far. Nothing may assume otherwise.
  */
 export function lanePose(points: readonly CoursePoint[], lane: Lane, distance: number,
   surfaceHeight: (x: number, z: number) => number, kind: StreetClass = "arterial"): LanePose {
-  const along = lane.direction === 1 ? distance : pathLength(points) - distance;
-  // Interpolate along the lane's own mitered polyline rather than offsetting a
-  // centreline sample sideways: the latter is discontinuous at every vertex.
-  const { index, fraction } = locate(points, along);
-  const carriageway = carriagewayWidth(points);
-  const from = laneVertex(points, lane, index, kind, carriageway);
-  const to = laneVertex(points, lane, index + 1, kind, carriageway);
+  const { vertices, cumulative } = laneGeometry(points, lane, kind);
+  const total = cumulative[cumulative.length - 1]!;
+  const along = Math.max(0, Math.min(total, lane.direction === 1 ? distance : total - distance));
+  // Locate on the LANE's own arc length. Using the centreline's segment fraction
+  // here is what made the parameter mean different distances in different lanes.
+  let index = 0;
+  while (index < cumulative.length - 2 && cumulative[index + 1]! <= along) index++;
+  const span = cumulative[index + 1]! - cumulative[index]!;
+  const fraction = span > 1e-9 ? (along - cumulative[index]!) / span : 0;
+  const from = vertices[index]!, to = vertices[index + 1]!;
   const x = from.x + (to.x - from.x) * fraction;
   const z = from.z + (to.z - from.z) * fraction;
   const runX = (to.x - from.x) * lane.direction, runZ = (to.z - from.z) * lane.direction;

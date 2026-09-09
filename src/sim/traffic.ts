@@ -368,8 +368,16 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
 
   // Nearest first, ties by id. A strict total order is what stops two approaches
   // from deferring to each other for ever.
+  // Only the vehicle at the head of its approach may claim. A vehicle further
+  // back can be inside CLAIM_RANGE with stopped cars between it and the line: it
+  // takes the reservation, cannot advance to use it, and never releases it,
+  // because release requires arriving on the far side. Everything whose movement
+  // conflicts then waits on a crossing nobody is making.
+  const headOfQueue = (vehicle: TrafficVehicleState): boolean =>
+    !(byLane.get(vehicle.lane) ?? []).some(other => other !== vehicle && other.distance > vehicle.distance);
   const waiting = state.vehicles
-    .filter(vehicle => !vehicle.holds.length && vehicle.movement >= 0 && toEntry(vehicle) <= CLAIM_RANGE)
+    .filter(vehicle => !vehicle.holds.length && vehicle.movement >= 0 && toEntry(vehicle) <= CLAIM_RANGE
+      && headOfQueue(vehicle))
     .sort((a, b) => toEntry(a) - toEntry(b) || a.id - b.id);
   for (const vehicle of waiting) {
     const chain = chainFor(network, vehicle);
