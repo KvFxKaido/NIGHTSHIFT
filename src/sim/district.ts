@@ -1,6 +1,6 @@
 import { projectOntoCourse, COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
-import { CARRIAGEWAY, carriagewayWidth, laneLength, lanes, lanePose, lanesPerDirection, pathLength,
+import { CARRIAGEWAY, laneLength, lanes, lanePose, lanesPerDirection, pathLength,
   type Lane, type LanePose, type StreetClass } from "./lanes.ts";
 import { createTraffic, TRAFFIC_KINDS, type TrafficLane, type TrafficMovement,
   type TrafficNetwork, type TrafficState } from "./traffic.ts";
@@ -858,14 +858,43 @@ export function blockCorners(block: DistrictBlock): { x: number; z: number }[] {
   });
 }
 
-/** True when every corner stands clear of every street's carriageway. Measured
- *  per street rather than against the nearest one: beside an alley the nearest
- *  centreline is 4 m wide and says nothing about the arterial behind it. */
+/** Metres between samples along a footprint's edge when testing clearance. */
+const EDGE_STEP = 3;
+
+/**
+ * True when the whole footprint stands clear of every street's asphalt.
+ *
+ * Measured per street rather than against the nearest one: beside an alley the
+ * nearest centreline is 4 m wide and says nothing about the arterial behind it.
+ *
+ * Two things this used to get wrong, found the day the outer district gained
+ * its buildings. It tested only the four corners, so on a curved street both
+ * corners cleared while the straight edge between them cut the chord — a 32 m
+ * frontage stood 10 m onto Crane Street with every corner in the clear. And it
+ * measured against the street's NARROWEST width, which is right for laying out
+ * lanes and wrong for this: the asphalt flares wider into every junction, a car
+ * can be on the flare, and a building cleared to the narrow width stood 1.6 m
+ * onto Quarter Street's apron and wedged the Hill Climb inspection driver for
+ * 131 of its 160 seconds. So: every edge is sampled, against the width the road
+ * actually has where the sample lands.
+ */
 export function blockClearsStreets(block: DistrictBlock, pavement: number): boolean {
-  return blockCorners(block).every(corner =>
-    streetsNear(corner.x, corner.z, 46).every(street =>
-      projectOntoPath(street.points, corner.x, corner.z).distance
-        > carriagewayWidth(street.points) / 2 + pavement));
+  const corners = blockCorners(block);
+  for (let edge = 0; edge < 4; edge++) {
+    const a = corners[edge]!, b = corners[(edge + 1) % 4]!;
+    const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / EDGE_STEP));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+      for (const street of streetsNear(x, z, 46)) {
+        const on = projectOntoPath(street.points, x, z);
+        // Placement puts the near face EXACTLY at the back of the pavement, so
+        // the boundary itself must pass; only a sample inside it fails.
+        if (on.distance < on.width / 2 + pavement - 1e-6) return false;
+      }
+    }
+  }
+  return true;
 }
 
 /** Half the diagonal: the radius that certainly contains an oriented footprint. */
@@ -873,6 +902,9 @@ const spanOf = (block: { width: number; depth: number }) => Math.hypot(block.wid
 
 /** Firewall gap between two buildings that do not share a wall. */
 const BLOCK_GAP = 1.2;
+/** How far, in metres, a building may retreat from the pavement line to clear
+ *  the asphalt before the candidate is given up on. */
+const PUSH_BACK = 6;
 
 /**
  * How deeply two oriented footprints interpenetrate; <= 0 when they are apart,
@@ -930,40 +962,64 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
   const pavement = industrial ? 3.5 : 2.6;
 
   const placed: DistrictBlock[] = [];
+  // Walk the WHOLE perimeter in frontage-sized strides, carrying the remainder
+  // across vertices exactly as pathSamples does. The face follows street
+  // polylines, so its vertices are 4 m apart, and a frontage is 21-34 m: a walk
+  // that restarted at every vertex never took a single step on ten of the
+  // eighteen faces, and the outer two thirds of the district had no buildings
+  // at all. Faces on the original ring only worked because its points happen
+  // to sit far enough apart to clear a frontage.
+  const frontage = industrial ? 34 : 21;
+  const stride = frontage + 1.5;
+  let carry = frontage / 2;
   for (let i = 0; i < face.length; i++) {
     const a = face[i]!, b = face[(i + 1) % face.length]!;
     const runX = b.x - a.x, runZ = b.z - a.z;
     const run = Math.hypot(runX, runZ);
     if (run < 1e-6) continue;
     const dirX = runX / run, dirZ = runZ / run;
-    // Walk this edge in frontage-sized steps rather than by vertex: the face
-    // follows street polylines, so its vertices are metres apart.
-    const frontage = industrial ? 34 : 21;
-    for (let along = frontage / 2; along < run; along += frontage + 1.5) {
+    const start = carry;
+    carry = ((carry - run) % stride + stride) % stride;
+    for (let along = start; along < run; along += stride) {
       const edgeX = a.x + dirX * along, edgeZ = a.z + dirZ * along;
       // Inward is whichever normal lands inside the face.
       let normalX = -dirZ, normalZ = dirX;
       if (!inside(face, edgeX + normalX * 4, edgeZ + normalZ * 4)) { normalX = -normalX; normalZ = -normalZ; }
       const road = projectOntoDistrict(edgeX, edgeZ);
+      // Search the setback rather than guess it once and reject. A straight
+      // frontage on a curved street dips into the pavement mid-edge by its
+      // sagitta — under a metre on most bends here — and a frontage whose end
+      // lands on a junction flare dips by a little more. Measured when the
+      // clearance test started sampling edges honestly: 268 of 436 rejected
+      // candidates were inside the line by less than 1 m. Stepping back a metre
+      // at a time recovers them; a forecourt is a building, a void is not. The
+      // cap keeps a terrace from retreating into the middle of its block. The
+      // few that intrude by many metres are footprints straddling another
+      // street, and those fall to a shallower depth or are dropped, as before.
+      let done = false;
       for (const depth of depths) {
-        const setback = road.width / 2 + pavement + depth / 2;
-        const x = edgeX + normalX * setback, z = edgeZ + normalZ * setback;
-        if (!inside(face, x, z)) continue;
-        const seed = ((faceIndex * 31 + Math.round(x) * 7 + Math.round(z) * 13) % 6 + 6) % 6;
-        const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
-        const block: DistrictBlock = {
-          x, z, width: frontage - 2 - (seed % 3), depth, rotation: Math.atan2(dirZ, dirX),
-          height: Math.round(industrial ? 8 + seed * 3.5 : 13 + seed * 5 + inland * 18),
-        };
-        // Two frontages meeting at a corner, or facing each other across a
-        // narrow block, must not occupy the same ground.
-        // Reject by the circle first — it is cheap and rules out most of the
-        // face — then by the footprints that are actually being built.
-        if (placed.some(other => Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block)
-          && blockPenetration(other, block) > -BLOCK_GAP)) continue;
-        if (!blockClearsStreets(block, pavement)) continue;
-        placed.push(block);
-        break;
+        for (let back = 0; back <= PUSH_BACK && !done; back += 1) {
+          const setback = road.width / 2 + pavement + back + depth / 2;
+          const x = edgeX + normalX * setback, z = edgeZ + normalZ * setback;
+          // Further back only lands further outside the face.
+          if (!inside(face, x, z)) break;
+          const seed = ((faceIndex * 31 + Math.round(x) * 7 + Math.round(z) * 13) % 6 + 6) % 6;
+          const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
+          const block: DistrictBlock = {
+            x, z, width: frontage - 2 - (seed % 3), depth, rotation: Math.atan2(dirZ, dirX),
+            height: Math.round(industrial ? 8 + seed * 3.5 : 13 + seed * 5 + inland * 18),
+          };
+          // Two frontages meeting at a corner, or facing each other across a
+          // narrow block, must not occupy the same ground.
+          // Reject by the circle first — it is cheap and rules out most of the
+          // face — then by the footprints that are actually being built.
+          if (placed.some(other => Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block)
+            && blockPenetration(other, block) > -BLOCK_GAP)) continue;
+          if (!blockClearsStreets(block, pavement)) continue;
+          placed.push(block);
+          done = true;
+        }
+        if (done) break;
       }
     }
   }

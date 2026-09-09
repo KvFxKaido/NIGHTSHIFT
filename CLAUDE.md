@@ -115,7 +115,16 @@ apart from `walls` because a wall is 1.3 m of guard rail and renders as one.
 Two footprints are kept apart by a separating-axis test on the rectangles
 (`blockPenetration`), never by circumscribed circles: a circle cannot express a
 shared party wall, so it needs slack, and slack let 15 pairs interpenetrate by
-up to 4.21 m. `groundHeight` is the drawn ground — `outerTerrain`'s shape
+up to 4.21 m. `blockClearsStreets` samples every footprint edge against the
+width the road ACTUALLY has there, never corners only and never the narrowest
+width: corners let a straight frontage cut the chord of a bend by 10 m, and the
+narrow width let a building stand on a junction flare a car can drive on.
+Placement searches its setback up to 6 m back from the pavement rather than
+rejecting, and walks a face's whole perimeter carrying the stride across
+vertices — restarting per 4 m vertex generated no candidates at all on ten of
+eighteen faces and left the outer two thirds of the district unbuilt.
+`pnpm district:critique` is the measuring stick that found that; run it before
+and after any layout change. `groundHeight` is the drawn ground — `outerTerrain`'s shape
 clamped below the roads — and the terrain mesh, verges, river and lineside all
 read it so they sit on one surface. `outerTerrain` conforms only to the ORIGINAL
 loop, which left ground drawn over 39% of road samples; it cannot be fixed

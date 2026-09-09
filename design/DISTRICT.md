@@ -100,9 +100,46 @@ setback on an arterial, which is why massing used to float mid-face.
 
 Depth is tried deepest-first and falls back, because a narrow face cannot host a
 deep building once the setback clears the carriageway and a shallow terrace is
-what actually gets built on one. 18 faces carry 65 buildings across 57 distinct
-orientations, standing 2.6 m from the kerb: 50 at 17 m deep, 9 at 26, 5 at 12,
-1 at 8.
+what actually gets built on one. 17 of 18 faces carry 320 buildings; the one
+left bare is a 57 m sliver on the far bank between Dock Road and Quay Frontage,
+where two carriageway halves and two industrial pavements leave no depth for
+even the shallowest building — a yard, not a void.
+
+### The outer district had no buildings at all
+
+For most of a day this stood at 65 buildings occupying x -262..271, z -218..219
+of a 934 x 867 m district: the middle third was a city and the outer two thirds
+were roads through empty ground, with 228,000 m² of enclosed block holding
+nothing. Nobody noticed, because from inside the core it looked fine and the
+edges looked like "not built yet". The layout critique found it on its first run
+as *12 of 18 faces empty*, which is what a measuring stick is for.
+
+The perimeter walk stepped in frontage-sized strides but restarted at every
+polygon vertex. Face vertices follow street polylines at 4 m and a frontage is
+21-34 m, so on the district's own streets the loop body never executed and not
+one candidate was generated. Faces on the original ring only worked because its
+points happen to sit far enough apart to clear a frontage. The walk now carries
+its remainder across vertices, exactly as `pathSamples` does.
+
+That exposed two holes in the clearance test, both found by the Hill Climb
+inspection driver wedging for 131 of its 160 seconds against a new building:
+
+- It tested corners only. On a curved street both corners clear while the
+  straight edge between them cuts the chord — a 32 m frontage stood 10 m onto
+  Crane Street with every corner in the clear.
+- It measured against the street's **narrowest** width. That is right for laying
+  out lanes and wrong here: the asphalt flares wider into every junction, a car
+  can be on the flare, and a building cleared to the narrow width stood 1.6 m
+  onto Quarter Street's apron.
+
+Clearance now samples every edge every 3 m against the width the road actually
+has where the sample lands. Done honestly, that rejected 436 candidates — but
+268 of them by under a metre, which is the sagitta of a straight frontage on a
+bend plus the odd flare. So placement *searches* the setback instead of guessing
+it once: the pavement line first, then a metre back at a time up to 6 m. A
+forecourt is a building; a void is not. The few that intrude by many metres are
+footprints straddling another street, and fall to a shallower depth or are
+dropped as before.
 
 Two footprints are kept apart by a **separating-axis test on the rectangles**,
 not by their circumscribed circles. Circles were the first answer, with 7 m of
