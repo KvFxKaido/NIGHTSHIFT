@@ -26,6 +26,26 @@ export interface Lane {
  * streets one lane and 18 m streets two, which puts a lane drop in the middle
  * of the ring for no reason a driver could read.
  */
+/** Road classes, and the carriageway each one is authored at. Class lives here
+ *  rather than in district.ts because it is world geometry: how wide a road is
+ *  and how many lanes it carries are the same fact stated twice. */
+export const CARRIAGEWAY = { arterial: 24, collector: 17, local: 12, alley: 8 } as const;
+export type StreetClass = keyof typeof CARRIAGEWAY;
+
+/**
+ * Lanes each way, by class.
+ *
+ * This was a fixed 2, and the reasoning above held while every carriageway was
+ * 16-22 m and every street an arterial. A width hierarchy breaks that premise
+ * on purpose: two each way in an 8 m alley is 1.4 m of tarmac per lane. So the
+ * count follows the class, and the lane drop this avoids on the ring is exactly
+ * the drop a driver DOES read turning off an arterial into an alley.
+ */
+export function lanesPerDirection(kind: StreetClass = "arterial"): number {
+  return kind === "local" || kind === "alley" ? 1 : 2;
+}
+
+/** @deprecated Kept for the arterial case; prefer lanesPerDirection(kind). */
 export const LANES_PER_DIRECTION = 2;
 /** Half-width of the centre band. No lane starts inside this. */
 export const CENTRE_MARGIN = 0.45;
@@ -35,8 +55,8 @@ export const SHOULDER = 0.7;
 export const CENTRE_LINE_OFFSET = 0.28;
 
 /** Width of one lane where the carriageway is `width` metres across. */
-export function laneWidth(width: number): number {
-  return (width / 2 - CENTRE_MARGIN - SHOULDER) / LANES_PER_DIRECTION;
+export function laneWidth(width: number, kind: StreetClass = "arterial"): number {
+  return (width / 2 - CENTRE_MARGIN - SHOULDER) / lanesPerDirection(kind);
 }
 
 /**
@@ -44,13 +64,13 @@ export function laneWidth(width: number): number {
  * right of the street's point order, and a lane's own direction already carries
  * that sign — so traffic keeps right whichever way it is pointing.
  */
-export function laneOffset(width: number, lane: Lane): number {
-  return lane.direction * (CENTRE_MARGIN + laneWidth(width) * (lane.index + 0.5));
+export function laneOffset(width: number, lane: Lane, kind: StreetClass = "arterial"): number {
+  return lane.direction * (CENTRE_MARGIN + laneWidth(width, kind) * (lane.index + 0.5));
 }
 
-export function lanes(): Lane[] {
+export function lanes(kind: StreetClass = "arterial"): Lane[] {
   return ([1, -1] as const).flatMap(direction =>
-    Array.from({ length: LANES_PER_DIRECTION }, (_, index) => ({ direction, index })));
+    Array.from({ length: lanesPerDirection(kind) }, (_, index) => ({ direction, index })));
 }
 
 export type LaneMarkingKind = "centre" | "divider" | "edge";
@@ -64,14 +84,17 @@ export interface LaneMarking {
  * divider sits on the boundary between two lanes going the same way; an edge
  * line closes the outermost lane, with the shoulder beyond it.
  */
-export function laneMarkings(width: number): LaneMarking[] {
-  const lane = laneWidth(width);
+export function laneMarkings(width: number, kind: StreetClass = "arterial"): LaneMarking[] {
+  const per = lanesPerDirection(kind);
+  const lane = laneWidth(width, kind);
   return ([1, -1] as const).flatMap(side => [
     { offset: side * CENTRE_LINE_OFFSET, kind: "centre" as const },
-    ...Array.from({ length: LANES_PER_DIRECTION - 1 }, (_, i) => ({
+    // A single-lane-each-way street has no divider to draw, which is what makes
+    // an alley read as an alley rather than as a narrow road.
+    ...Array.from({ length: per - 1 }, (_, i) => ({
       offset: side * (CENTRE_MARGIN + lane * (i + 1)), kind: "divider" as const,
     })),
-    { offset: side * (CENTRE_MARGIN + lane * LANES_PER_DIRECTION), kind: "edge" as const },
+    { offset: side * (CENTRE_MARGIN + lane * per), kind: "edge" as const },
   ]);
 }
 
@@ -146,7 +169,24 @@ function segmentDirection(points: readonly CoursePoint[], index: number): { x: n
  * hotel bend, most of a lane width. Mitering the two adjacent normals, exactly
  * as the road ribbon does, makes the offset polyline continuous.
  */
-function laneVertex(points: readonly CoursePoint[], lane: Lane, index: number): { x: number; z: number } {
+/**
+ * The width a street's lanes are laid out to: its narrowest point.
+ *
+ * Not the width at each sample. A carriageway flares into its junctions — which
+ * is right for the asphalt and is how a real junction looks — but lanes that
+ * breathe with it wander in and out laterally, and on a street tapering 22 m at
+ * the ends to 8 m in the middle a lane came out 27% shorter than its own
+ * centreline. Taking the narrowest point keeps the lines straight through the
+ * flare and guarantees they fit everywhere along the street.
+ */
+export function carriagewayWidth(points: readonly CoursePoint[]): number {
+  let narrowest = Infinity;
+  for (const point of points) narrowest = Math.min(narrowest, point.width);
+  return narrowest;
+}
+
+function laneVertex(points: readonly CoursePoint[], lane: Lane, index: number,
+  kind: StreetClass, carriageway: number): { x: number; z: number } {
   const point = points[index]!;
   const incoming = segmentDirection(points, Math.max(0, index - 1));
   const outgoing = segmentDirection(points, index);
@@ -157,7 +197,7 @@ function laneVertex(points: readonly CoursePoint[], lane: Lane, index: number): 
   // Clamped like the road's own miter: a hairpin must not throw the offset to
   // infinity, and the ribbon under it is clamped the same way.
   const miter = 1 / Math.max(0.5, normalX * -outgoing.z + normalZ * outgoing.x);
-  const offset = laneOffset(point.width, lane) * miter;
+  const offset = laneOffset(carriageway, lane, kind) * miter;
   return { x: point.x + normalX * offset, z: point.z + normalZ * offset };
 }
 
@@ -203,13 +243,14 @@ export interface LanePose {
  * found later.
  */
 export function lanePose(points: readonly CoursePoint[], lane: Lane, distance: number,
-  surfaceHeight: (x: number, z: number) => number): LanePose {
+  surfaceHeight: (x: number, z: number) => number, kind: StreetClass = "arterial"): LanePose {
   const along = lane.direction === 1 ? distance : pathLength(points) - distance;
   // Interpolate along the lane's own mitered polyline rather than offsetting a
   // centreline sample sideways: the latter is discontinuous at every vertex.
   const { index, fraction } = locate(points, along);
-  const from = laneVertex(points, lane, index);
-  const to = laneVertex(points, lane, index + 1);
+  const carriageway = carriagewayWidth(points);
+  const from = laneVertex(points, lane, index, kind, carriageway);
+  const to = laneVertex(points, lane, index + 1, kind, carriageway);
   const x = from.x + (to.x - from.x) * fraction;
   const z = from.z + (to.z - from.z) * fraction;
   const runX = (to.x - from.x) * lane.direction, runZ = (to.z - from.z) * lane.direction;

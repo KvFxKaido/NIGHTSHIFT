@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, laneMarkings,
-  pathSamples, projectOntoDistrict, routePoints,
+import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth, laneMarkings,
+  outerTerrain, pathSamples, projectOntoDistrict, RAIL, RAIL_HALF_WIDTH, RIVER, RIVER_HALF_WIDTH,
+  routePoints,
   type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
 import type { CoursePoint } from "../sim/track.ts";
 import { addNightBuildings, glowTexture, tint, type BuildingSite } from "./night.ts";
@@ -118,13 +119,15 @@ function addLaneMarkings(scene: THREE.Scene): void {
     // Lane geometry breathes with the carriageway, so each marking is addressed
     // by its rank rather than by a fixed offset: ask the model where the nth
     // line of that kind sits at this sample's own width.
-    const kinds = laneMarkings(samples[0]?.width ?? 0).map(marking => marking.kind);
-    kinds.forEach((kind, rank) => {
-      const style = MARKING_STYLE[kind];
-      const geometry = markingGeometry(samples,
-        sample => laneMarkings(sample.width)[rank]!.offset, style.halfWidth, style.dash);
+    // Paint sits where the lanes sit: on the street's own carriageway, constant
+    // along it, so the lines run straight through a junction flare instead of
+    // splaying with the asphalt. An alley has one lane each way and no divider.
+    const marks = laneMarkings(carriagewayWidth(street.points), street.kind);
+    marks.forEach((mark, rank) => {
+      const style = MARKING_STYLE[mark.kind];
+      const geometry = markingGeometry(samples, () => marks[rank]!.offset, style.halfWidth, style.dash);
       if (!geometry) return;
-      (kind === "centre" ? yellow : white).push(geometry);
+      (mark.kind === "centre" ? yellow : white).push(geometry);
     });
   }
   const paint = (name: string, parts: THREE.BufferGeometry[], color: number) => {
@@ -279,13 +282,38 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
     ? new THREE.MeshStandardMaterial({ color: 0x353d49, roughness: 0.48, metalness: 0.05 })
     : new THREE.MeshStandardMaterial({ color: 0x343d47, roughness: 0.96 });
   const concrete = new THREE.MeshStandardMaterial({ color: 0x65717a, roughness: 0.9 });
-  // Sized from the network, not fixed: the ground was authored around a 500 m
-  // loop and the belts now reach past 470 m in every direction.
+  // Ground follows the inland rise, or every road on the hill floats over a
+  // flat plane. Sized from the network rather than fixed.
   const spread = Math.max(...DISTRICT_STREETS.flatMap(street =>
     street.points.flatMap(point => [Math.abs(point.x), Math.abs(point.z)]))) * 2 + 320;
-  const ground = mesh("district-ground", new THREE.PlaneGeometry(spread, spread),
+  // Ground follows the inland rise, or every road on the hill floats over a
+  // flat plane. The night/blockout colour choice is upstream's; the shape is
+  // the terrain the streets were laid on.
+  const terrain = new THREE.PlaneGeometry(spread, spread, 110, 110);
+  const vertices = terrain.getAttribute("position");
+  for (let i = 0; i < vertices.count; i++) {
+    // The plane is rotated -PI/2 about X, so local +Y is world -Z and local +Z is up.
+    vertices.setZ(i, outerTerrain(vertices.getX(i), -vertices.getY(i)) - 0.2);
+  }
+  terrain.computeVertexNormals();
+  const ground = mesh("district-ground", terrain,
     new THREE.MeshStandardMaterial({ color: dressing === "night" ? 0x0d1117 : 0x202a2d, roughness: 1 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.15; scene.add(ground);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+  // The river and the freight line, drawn as the barriers the simulation walls.
+  // Water goes near-black and glossy at night so the lamp pools streak on it;
+  // the blockout view keeps it legibly blue-grey.
+  const water = mesh("district-river", streetGeometry(RIVER.map(([x, z]) => (
+    { x, z, y: outerTerrain(x, z) - 1.6, width: RIVER_HALF_WIDTH * 2, zone: "waterfront" } as CoursePoint))),
+    new THREE.MeshStandardMaterial({
+      color: dressing === "night" ? 0x081820 : 0x16323f,
+      roughness: dressing === "night" ? 0.12 : 0.25, metalness: 0.3,
+    }));
+  water.receiveShadow = true; scene.add(water);
+  const ballast = mesh("district-rail", streetGeometry(RAIL.map(([x, z]) => (
+    { x, z, y: outerTerrain(x, z) + 0.05, width: RAIL_HALF_WIDTH * 2, zone: "freight" } as CoursePoint))),
+    new THREE.MeshStandardMaterial({ color: 0x2b2622, roughness: 1 }));
+  ballast.receiveShadow = true; scene.add(ballast);
 
   for (const street of DISTRICT_STREETS) {
     const road = mesh(`district-road-${street.id}`, streetGeometry(street.points), asphalt);

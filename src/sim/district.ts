@@ -1,6 +1,7 @@
-import { COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
+import { projectOntoCourse, COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
-import { lanes, lanePose, pathLength, type Lane, type LanePose } from "./lanes.ts";
+import { CARRIAGEWAY, lanes, lanePose, pathLength,
+  type Lane, type LanePose, type StreetClass } from "./lanes.ts";
 
 /** The lane model is world geometry, so it is part of the district's public
  *  surface rather than something each consumer re-derives. */
@@ -17,6 +18,8 @@ export interface Street {
   from: string;
   to: string;
   added: boolean;
+  /** Road class. Alleys are deliberately too narrow for two cars abreast. */
+  kind: StreetClass;
   points: readonly CoursePoint[];
 }
 export interface RouteLeg { street: string; reverse?: boolean }
@@ -36,13 +39,11 @@ const market: CoursePoint = { x: -20, y: 2, z: -10, width: 20, zone: "old-quarte
 
 /**
  * Where the original loop is cut so a surface street can meet it at a shared
- * point. Every entry is an exact COURSE_POINTS index, which is what keeps the
- * perimeter an exact partition of the baseline course rather than a copy of it.
+ * point. Every entry is an exact COURSE_POINTS index, which keeps the perimeter
+ * an exact partition of the baseline course rather than a copy of it.
  *
  * The elevated spans are deliberately absent. The bridge crown sits at 24 m and
- * the tunnel run at 9-15 m, so a ground-level avenue cannot join them at grade;
- * the belts reach that side of the district the long way round, which is an
- * honest city constraint rather than a gap.
+ * the tunnel run at 9-15 m, so a ground-level street cannot join them at grade.
  */
 const RING_NODES: readonly { index: number; id: string; name: string }[] = [
   { index: 5, id: "boulevard", name: "Boulevard Junction" },
@@ -55,47 +56,123 @@ const RING_NODES: readonly { index: number; id: string; name: string }[] = [
   { index: 95, id: "hotel", name: "Hotel Braking" },
 ];
 
+// ---------------------------------------------------------------------------
+// Geography. North is -Z and east is +X, matching the route board's compass.
+// Roads are consequences of this, not decoration laid over it: the belts they
+// replaced were perfect rectangles at round numbers with no cause anywhere.
+// ---------------------------------------------------------------------------
+
 /**
- * Two orbital belts around the loop, and the radials that tie them to it.
- *
- * Junctions multiply routes; kilometres only add to them. The first blockout
- * carried 52% of a 100 m grid's road length across 17% of its junctions, and
- * four degree-3 nodes had already reached the ceiling of distinct cycles they
- * could produce. Orbital-plus-radial is the cheapest real-city pattern that
- * turns ground covered into route choice.
+ * The Blackglass runs south down the eastern edge, then bends west across the
+ * bottom of the district — passing directly beneath the original Rivergate
+ * bridge, which is what that bridge has always been for. It is a hard barrier:
+ * banks are walled and only three crossings exist.
  */
-const BELT_NODES: readonly { id: string; name: string; x: number; z: number }[] = [
-  { id: "o-sw", name: "Southwest Gate", x: -470, z: -470 },
-  { id: "o-s1", name: "South Yard", x: -170, z: -470 },
-  { id: "o-s2", name: "South Approach", x: 170, z: -470 },
-  { id: "o-se", name: "Southeast Gate", x: 465, z: -470 },
-  { id: "o-e1", name: "East Reach", x: 465, z: -160 },
-  { id: "o-e2", name: "East Basin", x: 465, z: 160 },
-  { id: "o-ne", name: "Northeast Gate", x: 465, z: 465 },
-  { id: "o-n2", name: "North Wharf", x: 170, z: 465 },
-  { id: "o-n1", name: "North Quay", x: -170, z: 465 },
-  { id: "o-nw", name: "Northwest Gate", x: -470, z: 465 },
-  { id: "o-w2", name: "West Basin", x: -470, z: 160 },
-  { id: "o-w1", name: "West Reach", x: -470, z: -160 },
-  { id: "i-sw", name: "Inner Southwest", x: -350, z: -340 },
-  { id: "i-s1", name: "Inner South Yard", x: -120, z: -340 },
-  { id: "i-s2", name: "Inner South", x: 120, z: -340 },
-  { id: "i-se", name: "Inner Southeast", x: 345, z: -340 },
-  { id: "i-e1", name: "Inner East Reach", x: 345, z: -110 },
-  { id: "i-e2", name: "Inner East Basin", x: 345, z: 110 },
-  { id: "i-ne", name: "Inner Northeast", x: 345, z: 330 },
-  { id: "i-n2", name: "Inner North Wharf", x: 120, z: 330 },
-  { id: "i-n1", name: "Inner North Quay", x: -120, z: 330 },
-  { id: "i-nw", name: "Inner Northwest", x: -350, z: 330 },
-  { id: "i-w2", name: "Inner West Basin", x: -350, z: 110 },
-  { id: "i-w1", name: "Inner West Reach", x: -350, z: -110 },
+export const RIVER: readonly (readonly [number, number])[] = [
+  [368, -560], [356, -330], [344, -170], [330, 10], [300, 130],
+  [240, 196], [110, 180], [-40, 188], [-190, 216], [-340, 250], [-560, 264],
+];
+export const RIVER_HALF_WIDTH = 44;
+
+/**
+ * A freight line curving across the north, serving the wharf. It severs the
+ * northern approaches except at two level crossings, which is most of what
+ * makes that side of the district read as somewhere rather than as space.
+ */
+export const RAIL: readonly (readonly [number, number])[] = [
+  [300, -520], [150, -430], [-70, -452], [-286, -470], [-520, -440],
+];
+export const RAIL_HALF_WIDTH = 17;
+
+/** Metres of rise from the waterline to the highest inland corner. */
+const TERRAIN_RISE = 20;
+
+/**
+ * Ground climbs inland to the north-west and falls away to the river, so the
+ * old quarter sits on a hill and the wharf sits on the flat. Only the outer
+ * network reads this; the original loop keeps its own authored profile, and
+ * radials interpolate between the two.
+ */
+export function outerTerrain(x: number, z: number): number {
+  const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
+  const raw = TERRAIN_RISE * inland * inland;
+  // Near the original loop the ground defers to the loop's own authored height.
+  // Without this the loop sits in a cutting relative to the inland ramp, and
+  // every street leaving it had to climb 6 m in the first 40 metres.
+  const road = projectOntoCourse(x, z);
+  const t = Math.max(0, Math.min(1, (road.distance - 55) / 205));
+  const blend = t * t * (3 - 2 * t);
+  return Math.round((road.height + (raw - road.height) * blend) * 10) / 10;
+}
+
+/** Plan-view distance from a point to a polyline, for river and rail tests. */
+export function distanceToPath(path: readonly (readonly [number, number])[], x: number, z: number): number {
+  let best = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    const [ax, az] = path[i]!, [bx, bz] = path[i + 1]!;
+    const dx = bx - ax, dz = bz - az, lengthSquared = dx * dx + dz * dz;
+    const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / lengthSquared));
+    best = Math.min(best, Math.hypot(x - ax - t * dx, z - az - t * dz));
+  }
+  return best;
+}
+
+export const inRiver = (x: number, z: number): boolean => distanceToPath(RIVER, x, z) < RIVER_HALF_WIDTH;
+export const inRail = (x: number, z: number): boolean => distanceToPath(RAIL, x, z) < RAIL_HALF_WIDTH;
+
+/**
+ * Street classes. One width everywhere gave no cue about where you were or how
+ * fast the road wanted you to go, and left no room for shortcuts.
+ */
+// Road class and its carriageway width live in lanes.ts: how wide a road is and
+// how many lanes it carries are the same fact, and only one file should own it.
+
+/**
+ * The outer network. Coordinates are irregular on purpose — nothing sits on a
+ * round number, junctions are staggered rather than aligned into crossroads,
+ * and each node exists because of the river, the rail or the hill.
+ */
+const CITY_NODES: readonly { id: string; name: string; x: number; z: number }[] = [
+  // West bank of the river: shipping frontage, flat, wide.
+  { id: "wharf-gate", name: "Wharf Gate", x: 298, z: -132 },
+  { id: "wharf-mid", name: "Wharf Reach", x: 292, z: -298 },
+  { id: "wharf-head", name: "Wharf Head", x: 274, z: -454 },
+  // East bank, reachable only over the Wharf Bridge.
+  { id: "dock-cross", name: "Dock Crossing", x: 452, z: -246 },
+  { id: "dock-head", name: "Dock Head", x: 466, z: -438 },
+  { id: "quay-north", name: "North Quay", x: 416, z: -392 },
+  { id: "quay-south", name: "Lower Quay", x: 412, z: -150 },
+  { id: "dock-quay", name: "Container Quay", x: 448, z: -46 },
+  { id: "dock-south", name: "South Wharf", x: 424, z: 104 },
+  // Northern approaches, above and below the freight line.
+  { id: "north-east", name: "Marquee North", x: 158, z: -316 },
+  { id: "north-mid", name: "Northgate", x: -42, z: -338 },
+  { id: "north-west", name: "Hill Approach", x: -248, z: -366 },
+  { id: "rail-east", name: "East Crossing", x: 146, z: -474 },
+  { id: "rail-west", name: "West Crossing", x: -282, z: -510 },
+  // The old quarter, climbing north-west. Narrow, close-spaced, irregular.
+  { id: "hill-north", name: "Hillcrest", x: -426, z: -402 },
+  { id: "hill-mid", name: "Hill Cross", x: -452, z: -206 },
+  { id: "hill-south", name: "Lower Hill", x: -434, z: -18 },
+  { id: "quarter-north", name: "Quarter North", x: -302, z: -284 },
+  { id: "quarter-mid", name: "Quarter Cross", x: -324, z: -104 },
+  { id: "quarter-south", name: "Quarter South", x: -332, z: 76 },
+  { id: "lower-west", name: "Lower West", x: -404, z: 148 },
+  { id: "lower-south", name: "Millgate", x: -298, z: 176 },
+  // South bank, across the water.
+  { id: "south-bank-m", name: "South Bank", x: -28, z: 320 },
+  { id: "south-bank-w", name: "Millgate Bank", x: -246, z: 342 },
+  { id: "south-bank-e", name: "Ferry Point", x: 172, z: 296 },
 ];
 
 export const DISTRICT_JUNCTIONS: readonly { id: string; name: string; point: CoursePoint }[] = [
   ...RING_NODES.map(node => ({ id: node.id, name: node.name, point: COURSE_POINTS[node.index]! })),
   { id: "market", name: "Market Square", point: market },
-  ...BELT_NODES.map(node => ({ id: node.id, name: node.name,
-    point: { x: node.x, y: 0, z: node.z, width: 22, zone: "old-quarter" } as CoursePoint })),
+  ...CITY_NODES.map(node => ({
+    id: node.id, name: node.name,
+    point: { x: node.x, y: outerTerrain(node.x, node.z), z: node.z, width: 22,
+      zone: "old-quarter" } as CoursePoint,
+  })),
 ];
 
 const junctionPoint = (id: string): CoursePoint => {
@@ -104,6 +181,7 @@ const junctionPoint = (id: string): CoursePoint => {
   return junction.point;
 };
 
+
 /** Clamped cubic sampling of an open street; endpoints are exact shared nodes. */
 function streetCurve(controls: readonly CoursePoint[]): CoursePoint[] {
   const result: CoursePoint[] = [];
@@ -111,20 +189,34 @@ function streetCurve(controls: readonly CoursePoint[]): CoursePoint[] {
     const a = controls[Math.max(0, i - 1)]!, b = controls[i]!;
     const c = controls[i + 1]!, d = controls[Math.min(controls.length - 1, i + 2)]!;
     const steps = Math.ceil(Math.hypot(c.x - b.x, c.z - b.z) / 4);
-    for (let j = 0; j < steps; j++) {
-      if (j === 0) { result.push(b); continue; }
+    const cubic = (key: "x" | "z", t: number) => 0.5 * (2 * b[key] + (-a[key] + c[key]) * t +
+      (2 * a[key] - 5 * b[key] + 4 * c[key] - d[key]) * t * t +
+      (-a[key] + 3 * b[key] - 3 * c[key] + d[key]) * t * t * t);
+    const leg: CoursePoint[] = [];
+    for (let j = 0; j <= steps; j++) {
       const t = j / steps;
-      const cubic = (key: "x" | "z") => 0.5 * (2 * b[key] + (-a[key] + c[key]) * t +
-        (2 * a[key] - 5 * b[key] + 4 * c[key] - d[key]) * t * t +
-        (-a[key] + 3 * b[key] - 3 * c[key] + d[key]) * t * t * t);
-      // Monotone elevation avoids cubic height overshoot at junctions.
-      result.push({ x: cubic("x"), z: cubic("z"), y: b.y + (c.y - b.y) * t,
+      leg.push({ x: cubic("x", t), z: cubic("z", t), y: 0,
         width: b.width + (c.width - b.width) * t, zone: "old-quarter" });
     }
+    // Height follows PLAN DISTANCE along the leg, not the curve parameter. The
+    // parameter is eased at both ends, so distributing height by it made the
+    // first few metres of a real descent far steeper than the road itself —
+    // a 5 m drop off a junction registered as a 100% grade over one sample.
+    const cumulative = [0];
+    for (let j = 1; j <= steps; j++) {
+      cumulative.push(cumulative[j - 1]! +
+        Math.hypot(leg[j]!.x - leg[j - 1]!.x, leg[j]!.z - leg[j - 1]!.z));
+    }
+    const total = cumulative[steps]! || 1;
+    for (let j = 1; j < steps; j++) leg[j]!.y = b.y + (c.y - b.y) * (cumulative[j]! / total);
+    // The shared junction point itself, so endpoints stay identical by identity.
+    leg[0] = b;
+    result.push(...leg.slice(0, steps));
   }
   result.push(controls.at(-1)!);
   return result;
 }
+
 const p = (x: number, y: number, z: number, width = 20): CoursePoint =>
   ({ x, y, z, width, zone: "old-quarter" });
 
@@ -137,77 +229,139 @@ function ringStreets(): Street[] {
       ? COURSE_POINTS.slice(node.index, next.index + 1)
       : [...COURSE_POINTS.slice(node.index), ...COURSE_POINTS.slice(0, next.index + 1)];
     return { id: `ring-${node.id}`, name: `${node.name} to ${next.name}`,
-      from: node.id, to: next.id, added: false, points };
+      from: node.id, to: next.id, added: false, kind: "arterial", points };
   });
 }
 
 /**
- * An avenue is a list of junction ids with optional [x, z, y] shape points
- * between them. Each consecutive pair of junctions becomes one street edge
- * whose endpoints ARE the junction points, so the shared-endpoint invariant
- * holds by construction rather than by careful typing.
+ * An avenue is junction ids with optional [x, z] shape points between them.
+ * Each consecutive pair of junctions becomes one street edge whose endpoints
+ * ARE the junction points, so the shared-endpoint invariant holds by
+ * construction. Shape points take the terrain height where they sit, which is
+ * how a road ends up following the ground rather than cutting through it.
  */
-type AvenueStep = string | readonly [number, number, number?];
+type AvenueStep = string | readonly [number, number];
 
-function avenue(id: string, name: string, steps: readonly AvenueStep[], width = 22): Street[] {
+/**
+ * Vertical alignment. A shape point takes the height of the ground it sits on,
+ * which can compress a whole climb into one leg: the Container approach sat at
+ * 0.1 m beside the loop and then had to gain 8 m in 57, a 14% wall. Ease the
+ * intermediate heights until no leg exceeds the grade, leaving the junctions
+ * themselves fixed. If the endpoints alone break it, that is a layout problem
+ * and no smoothing should hide it.
+ */
+function easeGrade(controls: CoursePoint[], maxGrade = 0.1): void {
+  if (controls.length < 3) return;
+  const span = controls.map((point, i) => i === 0 ? 0 :
+    Math.hypot(point.x - controls[i - 1]!.x, point.z - controls[i - 1]!.z));
+  for (let i = 1; i < controls.length - 1; i++) {
+    const low = controls[i - 1]!.y - maxGrade * span[i]!;
+    const high = controls[i - 1]!.y + maxGrade * span[i]!;
+    controls[i] = { ...controls[i]!, y: Math.min(high, Math.max(low, controls[i]!.y)) };
+  }
+  for (let i = controls.length - 2; i > 0; i--) {
+    const low = controls[i + 1]!.y - maxGrade * span[i + 1]!;
+    const high = controls[i + 1]!.y + maxGrade * span[i + 1]!;
+    controls[i] = { ...controls[i]!, y: Math.min(high, Math.max(low, controls[i]!.y)) };
+  }
+}
+
+function avenue(id: string, name: string, kind: StreetClass, steps: readonly AvenueStep[]): Street[] {
+  const width = CARRIAGEWAY[kind];
   const streets: Street[] = [];
   let from: string | null = null;
   let controls: CoursePoint[] = [];
   for (const step of steps) {
     if (typeof step !== "string") {
-      controls.push({ x: step[0], y: step[2] ?? 0, z: step[1], width, zone: "old-quarter" });
+      controls.push(p(step[0], outerTerrain(step[0], step[1]), step[1], width));
       continue;
     }
-    const point = junctionPoint(step);
-    controls.push(point);
+    const node = junctionPoint(step);
+    controls.push(node);
     if (from !== null) {
+      easeGrade(controls);
       streets.push({ id: `${id}-${streets.length + 1}`, name, from, to: step, added: true,
-        points: streetCurve(controls) });
+        kind, points: streetCurve(controls) });
     }
     from = step;
-    controls = [point];
+    controls = [node];
   }
   return streets;
 }
 
-const OUTER_BELT = ["o-sw", "o-s1", "o-s2", "o-se", "o-e1", "o-e2",
-  "o-ne", "o-n2", "o-n1", "o-nw", "o-w2", "o-w1", "o-sw"];
-const INNER_BELT = ["i-sw", "i-s1", "i-s2", "i-se", "i-e1", "i-e2",
-  "i-ne", "i-n2", "i-n1", "i-nw", "i-w2", "i-w1", "i-sw"];
-
-// Market Avenue is split at its junction so routes reference streets, not copies.
 export const DISTRICT_STREETS: readonly Street[] = [
   ...ringStreets(),
-  { id: "market-east", name: "Market Avenue East", from: "boulevard", to: "market", added: true,
+  // Interior connections from the first blockout.
+  { id: "market-east", kind: "collector", name: "Market Avenue East", from: "boulevard", to: "market", added: true,
     points: streetCurve([boulevard, p(46, 0.2, -145), p(34, 1, -80), market]) },
-  { id: "market-west", name: "Market Avenue West", from: "market", to: "freight", added: true,
+  { id: "market-west", kind: "collector", name: "Market Avenue West", from: "market", to: "freight", added: true,
     points: streetCurve([market, p(-91, 2, 22), p(-175, 0.4, 38), freight]) },
-  { id: "civic-link", name: "Civic Link", from: "civic", to: "market", added: true,
+  { id: "civic-link", kind: "collector", name: "Civic Link", from: "civic", to: "market", added: true,
     points: streetCurve([civic, p(-89, 7, -57, 18), p(-55, 4.6, -33, 18), market]) },
-  ...avenue("outer", "Outer Orbital", OUTER_BELT),
-  ...avenue("inner", "Inner Orbital", INNER_BELT),
-  // Radials. Each leaves the loop where it is near grade and steps out through
-  // the inner belt to the outer one, so both belts are reachable from the loop.
-  ...avenue("rad-south", "South Radial", ["boulevard", "i-s2", "o-s2"]),
-  ...avenue("rad-marquee", "Marquee Radial", ["marquee", "i-se", "o-se"]),
-  ...avenue("rad-east", "East Radial", ["portal", "i-e1", "o-e1"]),
-  ...avenue("rad-quay", "Quayside Radial", ["quayside", "i-n1", "o-n1"]),
-  ...avenue("rad-basin", "Basin Radial", ["freight", "i-w2", "o-w2"]),
-  ...avenue("rad-west", "West Radial", ["container", "i-w1", "o-w1"]),
-  // The hotel radial needs a shape point. Left as a straight line it ran nearly
-  // PARALLEL to the ring out of the hairpin, so two streets 1 m apart at
-  // different heights traded places as nearest and snapped the car vertically
-  // every few ticks. Leaving westward first separates them immediately.
-  ...avenue("rad-hotel", "Hotel Radial", ["hotel", [-330, -185, 5], "i-sw", "o-sw"]),
-  // Two belt-to-belt spurs with no loop connection. They add cycles rather than
-  // nodes, which is what turns a pair of concentric rings into a network.
-  ...avenue("spur-south", "South Yard Spur", ["o-s1", "i-s1"]),
-  ...avenue("spur-north", "North Wharf Spur", ["o-n2", "i-n2"]),
+
+  // --- Shipping frontage along the west bank: flat, wide, following the water.
+  ...avenue("wharf", "Wharf Road", "arterial",
+    ["portal", "wharf-gate", [304, -214], "wharf-mid", [300, -376], "wharf-head"]),
+  // One of three crossings. Everything on the far bank hangs off this bridge.
+  ...avenue("wharf-span", "Wharf Bridge", "arterial", ["wharf-mid", [372, -268], "dock-cross"]),
+  ...avenue("dock", "Dock Road", "arterial",
+    ["dock-head", [470, -350], "dock-cross", [456, -150], "dock-quay", [440, 30], "dock-south"]),
+  // A quay frontage inboard of the dock road, so the far bank is a loop rather
+  // than one spine you have to drive back down.
+  ...avenue("quay", "Quay Frontage", "collector",
+    ["dock-head", "quay-north", [420, -270], "quay-south", [428, -96], "dock-quay"]),
+
+  // --- Northern approaches, severed by the freight line except at two crossings.
+  ...avenue("north", "North Arterial", "arterial",
+    ["marquee", [172, -244], "north-east", [62, -330], "north-mid", [-144, -358], "north-west"]),
+  ...avenue("north-wharf", "Wharf Approach", "collector", ["wharf-head", [210, -462], "rail-east"]),
+  // Staggered on purpose, so the rail is never a straight run through.
+  ...avenue("cross-east", "East Level Crossing", "local", ["north-east", [150, -400], "rail-east"]),
+  ...avenue("cross-west", "West Level Crossing", "local", ["north-west", [-272, -430], "rail-west"]),
+  ...avenue("rail-frontage", "Rail Frontage", "collector", ["rail-east", [-70, -524], "rail-west"]),
+
+  // --- The old quarter, climbing north-west to the crest.
+  ...avenue("hill", "Hill Road", "arterial",
+    ["north-west", [-360, -400], "hill-north", [-462, -300], "hill-mid", [-458, -110], "hill-south",
+      [-424, 62], "lower-west"]),
+  ...avenue("quarter", "Quarter Street", "local",
+    ["quarter-north", [-318, -196], "quarter-mid", [-336, -16], "quarter-south", [-316, 140], "lower-south"]),
+  ...avenue("quarter-hill-n", "Hillcrest Steps", "local", ["hill-north", [-370, -344], "quarter-north"]),
+  ...avenue("quarter-hill-s", "Millgate Rise", "collector", ["hill-south", [-378, 34], "quarter-south"]),
+  // No connection at the Hotel Hairpin. It left on almost the ring's own
+  // bearing, so two roads a metre apart at different heights traded places as
+  // nearest and snapped the car 17 m; and a junction inside a hairpin is bad
+  // road design regardless. The quarter is reached from Container and Freight.
+  ...avenue("container-quarter", "Container Approach", "collector", ["container", [-282, -66], "quarter-mid"]),
+  ...avenue("freight-quarter", "Freight Approach", "collector", ["freight", [-292, 58], "quarter-south"]),
+  ...avenue("lower", "Lower Road", "collector", ["lower-west", [-350, 176], "lower-south"]),
+
+  // --- South bank, reachable only over the water.
+  // No bridge at Quayside: it would land within metres of the Rivergate span,
+  // two bridges stacked at 17 m. The far bank is one landmass wrapping the
+  // river's bend, so the Wharf Bridge and Millgate Crossing reach all of it and
+  // a lap can go out over one and back over the other.
+  ...avenue("mill-span", "Millgate Crossing", "collector", ["lower-south", [-268, 262], "south-bank-w"]),
+  ...avenue("south-bank", "South Bank Road", "collector",
+    ["south-bank-w", [-140, 336], "south-bank-m", [70, 312], "south-bank-e"]),
+  ...avenue("ferry", "Ferry Reach", "collector", ["south-bank-e", [284, 228], "dock-south"]),
+
+  // --- Alleys. Deliberately few: enough that knowing them matters, not enough
+  // --- to turn the graph into spaghetti. Each one cuts a corner a main road takes.
+  ...avenue("alley-quarter", "Cutlers Alley", "alley", ["north-mid", [-190, -300], "quarter-north"]),
+  ...avenue("alley-hill", "Coopers Alley", "alley", ["hill-mid", [-390, -156], "quarter-mid"]),
+  ...avenue("alley-wharf", "Crane Alley", "alley", ["wharf-gate", [232, -244], "north-east"]),
+
+  // --- Cross-links. The geography rebuild traded route choice for character;
+  // --- these buy it back now that the structure underneath is right.
+  ...avenue("wharf-cross", "Crane Street", "collector", ["wharf-mid", [222, -304], "north-east"]),
+  ...avenue("quayside-road", "Quayside Road", "collector", ["quayside", [-222, 170], "lower-south"]),
+  ...avenue("quarter-link", "Quarter Rise", "local", ["north-west", [-282, -318], "quarter-north"]),
 ];
 
 export const DISTRICT_ROUTES: readonly DistrictRoute[] = [
   { id: "perimeter", name: "Blackglass Perimeter", kind: "circuit", color: "#63d6df",
-    description: "The complete original loop, now cut at eight junctions. Long infrastructure runs, then the Freight S and Hotel Hairpin.",
+    description: "The complete original loop, cut at eight junctions. Long infrastructure runs, then the Freight S and Hotel Hairpin.",
     legs: [{ street: "ring-boulevard" }, { street: "ring-marquee" }, { street: "ring-portal" },
       { street: "ring-quayside" }, { street: "ring-freight" }, { street: "ring-container" },
       { street: "ring-civic" }, { street: "ring-hotel" }] },
@@ -216,25 +370,24 @@ export const DISTRICT_ROUTES: readonly DistrictRoute[] = [
     legs: [{ street: "market-east" }, { street: "civic-link", reverse: true },
       { street: "ring-civic" }, { street: "ring-hotel" }] },
   { id: "freight-run", name: "Freight Run", kind: "sprint", color: "#e88fa0",
-    description: "Freight S into the new civic connection, through Market Square and out onto the boulevard.",
+    description: "Freight S into the civic connection, through Market Square and out onto the boulevard.",
     legs: [{ street: "ring-freight" }, { street: "ring-container" }, { street: "civic-link" },
       { street: "market-east", reverse: true }] },
-  { id: "avenue-loop", name: "Avenue Loop", kind: "circuit", color: "#a9c583",
-    description: "Both halves of Market Avenue link back through Freight and the hotel. Tests the interior connection.",
-    legs: [{ street: "market-east" }, { street: "market-west" }, { street: "ring-freight" },
-      { street: "ring-container" }, { street: "ring-civic" }, { street: "ring-hotel" }] },
-  { id: "outer-orbital", name: "Outer Orbital", kind: "circuit", color: "#8f9bd6",
-    description: "The full outer belt. Long straights and four hard gate corners; the district's high-speed lap.",
-    legs: Array.from({ length: 12 }, (_, i) => ({ street: `outer-${i + 1}` })) },
-  { id: "south-orbital", name: "South Orbital", kind: "circuit", color: "#d69f8f",
-    description: "Down the south radial, along the inner belt, then back up the east radial and the boulevard the wrong way round.",
-    legs: [{ street: "rad-south-1" }, { street: "inner-3" }, { street: "inner-4" },
-      { street: "rad-east-1", reverse: true }, { street: "ring-marquee", reverse: true },
-      { street: "ring-boulevard", reverse: true }] },
-  { id: "west-gate", name: "West Gate Run", kind: "sprint", color: "#7fc7a4",
-    description: "Out of the hotel hairpin, across both belts and north up the western edge to the basin.",
-    legs: [{ street: "rad-hotel-1" }, { street: "rad-hotel-2" },
-      { street: "outer-12", reverse: true }, { street: "outer-11", reverse: true }] },
+  { id: "wharf-run", name: "Wharf Run", kind: "sprint", color: "#8f9bd6",
+    description: "Out of the tunnel portal, north along the shipping frontage and over the bridge onto the far bank.",
+    legs: [{ street: "wharf-1" }, { street: "wharf-2" }, { street: "wharf-span-1" },
+      { street: "dock-2" }, { street: "dock-3" }] },
+  { id: "hill-climb", name: "Hill Climb", kind: "sprint", color: "#d69f8f",
+    description: "From the hairpin up through the old quarter to the crest. Narrow streets and every metre of the climb.",
+    legs: [{ street: "container-quarter-1" }, { street: "quarter-1", reverse: true },
+      { street: "quarter-hill-n-1", reverse: true }] },
+  { id: "river-loop", name: "River Loop", kind: "circuit", color: "#7fc7a4",
+    description: "Both crossings and the whole far bank: west over Millgate, east along the water, back over the Wharf Bridge and down through the quarter.",
+    legs: [{ street: "mill-span-1" }, { street: "south-bank-1" }, { street: "south-bank-2" },
+      { street: "ferry-1" }, { street: "dock-3", reverse: true }, { street: "dock-2", reverse: true },
+      { street: "wharf-span-1", reverse: true }, { street: "wharf-2", reverse: true },
+      { street: "wharf-1", reverse: true }, { street: "ring-portal" }, { street: "ring-quayside" },
+      { street: "freight-quarter-1" }, { street: "quarter-3" }] },
 ];
 
 export function getDistrictRoute(id: string): DistrictRoute {
@@ -412,7 +565,48 @@ function boundaryWalls(): CourseWall[] {
   return walls;
 }
 
-export const DISTRICT_WALLS = [...buildDistrictWalls(), ...boundaryWalls()];
+/**
+ * Banks and lineside fences. A barrier is only a barrier if you cannot drive
+ * round it, so both sides of the river and the rail are walled continuously and
+ * opened only where a street actually spans them. That is what makes three
+ * crossings meaningful rather than decorative.
+ */
+function corridorWalls(
+  path: readonly (readonly [number, number])[], halfWidth: number,
+): CourseWall[] {
+  const walls: CourseWall[] = [];
+  const step = 22;
+  for (let i = 0; i < path.length - 1; i++) {
+    const [ax, az] = path[i]!, [bx, bz] = path[i + 1]!;
+    const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz);
+    if (length < 1) continue;
+    const ux = dx / length, uz = dz / length;
+    for (let along = 0; along < length; along += step) {
+      const run = Math.min(step, length - along);
+      const cx = ax + ux * (along + run / 2), cz = az + uz * (along + run / 2);
+      for (const side of [-1, 1]) {
+        const x = cx - uz * halfWidth * side, z = cz + ux * halfWidth * side;
+        // Leave the bank open where a road genuinely crosses: that is a bridge.
+        const spanned = streetsNear(x, z, 26).some(street => {
+          const road = projectOntoPath(street.points, x, z);
+          return road.distance < road.width / 2 + 9;
+        });
+        if (spanned) continue;
+        walls.push({ x, z, y: outerTerrain(x, z), width: run + 0.4, depth: 1.2,
+          rotation: -Math.atan2(uz, ux), pitch: 0, accent: "white", zone: "old-quarter" });
+      }
+    }
+  }
+  return walls;
+}
+
+export const DISTRICT_WALLS = [
+  ...buildDistrictWalls(),
+  ...boundaryWalls(),
+  ...corridorWalls(RIVER, RIVER_HALF_WIDTH),
+  ...corridorWalls(RAIL, RAIL_HALF_WIDTH),
+];
+
 
 function worldFrom(id: string, points: readonly CoursePoint[]): RoadWorld {
   const a = points[0]!, b = points[1]!;
@@ -436,18 +630,123 @@ export function createFreeRoamWorld(): RoadWorld {
   return worldFrom("free-roam", street.points);
 }
 
-// Deliberately coarse district massing, now covering the whole belt footprint
-// rather than the original loop's box: an outer orbital across empty ground
-// reads as nothing at all. Exclude every road's full clearance envelope before
-// accepting a block; these are landmarks, not final buildings.
+/**
+ * The planar faces of the street graph — the city blocks the streets enclose.
+ *
+ * Massing used to be a uniform grid filtered down to whatever gaps the roads
+ * left, which is backwards: urban form is a tessellation of blocks and streets
+ * are the negative space between them. Walking the faces means the buildings
+ * take their shape from the network instead of from a checkerboard.
+ *
+ * Standard half-edge traversal: at each node take the next incident edge
+ * clockwise from the one you arrived on, and you trace one face.
+ */
+interface HalfEdge {
+  key: string;
+  from: string;
+  to: string;
+  bearing: number;
+  points: readonly CoursePoint[];
+}
+
+function districtFaces(): { x: number; z: number }[][] {
+  const halves: HalfEdge[] = [];
+  for (const street of DISTRICT_STREETS) {
+    const forward = street.points;
+    const back = [...street.points].reverse();
+    const bearing = (points: readonly CoursePoint[]) =>
+      Math.atan2(points[1]!.z - points[0]!.z, points[1]!.x - points[0]!.x);
+    halves.push({ key: `${street.id}+`, from: street.from, to: street.to, points: forward, bearing: bearing(forward) });
+    halves.push({ key: `${street.id}-`, from: street.to, to: street.from, points: back, bearing: bearing(back) });
+  }
+  const byKey = new Map(halves.map(half => [half.key, half]));
+  const byNode = new Map<string, HalfEdge[]>();
+  for (const half of halves) {
+    const list = byNode.get(half.from) ?? [];
+    list.push(half);
+    byNode.set(half.from, list);
+  }
+  for (const list of byNode.values()) list.sort((a, b) => a.bearing - b.bearing);
+  const twin = (key: string) => key.endsWith("+") ? `${key.slice(0, -1)}-` : `${key.slice(0, -1)}+`;
+
+  const seen = new Set<string>();
+  const faces: { x: number; z: number }[][] = [];
+  for (const start of halves) {
+    if (seen.has(start.key)) continue;
+    const polygon: { x: number; z: number }[] = [];
+    let half: HalfEdge | undefined = start;
+    for (let guard = 0; guard < 600 && half && !seen.has(half.key); guard++) {
+      seen.add(half.key);
+      for (const point of half.points.slice(0, -1)) polygon.push({ x: point.x, z: point.z });
+      const arrived = byKey.get(twin(half.key));
+      const list = byNode.get(half.to);
+      if (!arrived || !list) break;
+      const index = list.indexOf(arrived);
+      half = list[(index - 1 + list.length) % list.length];
+    }
+    if (polygon.length > 3) faces.push(polygon);
+  }
+  // The outer face traces the district's outside and has the opposite winding.
+  const area = (polygon: { x: number; z: number }[]) => polygon.reduce((sum, point, i) => {
+    const next = polygon[(i + 1) % polygon.length]!;
+    return sum + point.x * next.z - next.x * point.z;
+  }, 0) / 2;
+  const areas = faces.map(area);
+  const outer = areas.indexOf(Math.max(...areas.map(Math.abs)) === Math.abs(Math.min(...areas))
+    ? Math.min(...areas) : Math.max(...areas));
+  return faces.filter((_, i) => i !== outer && Math.abs(areas[i]!) > 900);
+}
+
+export const DISTRICT_FACES = districtFaces();
+
+function inside(polygon: { x: number; z: number }[], x: number, z: number): boolean {
+  let hit = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i]!, b = polygon[j]!;
+    if ((a.z > z) !== (b.z > z) && x < (b.x - a.x) * (z - a.z) / (b.z - a.z) + a.x) hit = !hit;
+  }
+  return hit;
+}
+
+/**
+ * Massing, laid inside each block rather than over the whole district. Heights
+ * come from where the block sits: warehouses low along the water, sheds by the
+ * rail, and the old quarter tall and close-packed on the hill.
+ */
 export const DISTRICT_BLOCKS: readonly { x: number; z: number; width: number; depth: number; height: number }[] =
-  Array.from({ length: 21 * 21 }, (_, i) => ({
-    x: -470 + (i % 21) * 47, z: -470 + Math.floor(i / 21) * 47,
-    width: 26, depth: 28, height: 11 + (i * 7 % 6) * 8,
-  }))
-    // The margin exceeds the clearance below, so a block outside every nearby
-    // street's box genuinely cannot conflict with one further away.
-    .filter(block => streetsNear(block.x, block.z, 40).every(street => {
+  DISTRICT_FACES.flatMap((face, faceIndex) => {
+    const xs = face.map(point => point.x), zs = face.map(point => point.z);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+    const river = distanceToPath(RIVER, (minX + maxX) / 2, (minZ + maxZ) / 2);
+    const rail = distanceToPath(RAIL, (minX + maxX) / 2, (minZ + maxZ) / 2);
+    // Footprint follows the block. Big sheds by the water and the line, but a
+    // tight face in the old quarter gets small close-packed buildings rather
+    // than one shed that will not fit and leaves the block empty.
+    const industrial = river < 190 || rail < 150;
+    const area = Math.abs(face.reduce((sum, point, i) => {
+      const next = face[(i + 1) % face.length]!;
+      return sum + point.x * next.z - next.x * point.z;
+    }, 0) / 2);
+    const size = industrial && area > 40000 ? { width: 44, depth: 40 }
+      : area > 16000 ? { width: 26, depth: 24 }
+      : { width: 15, depth: 14 };
+    const step = Math.max(size.width, size.depth) + 11;
+    const blocks: { x: number; z: number; width: number; depth: number; height: number }[] = [];
+    for (let x = minX + step / 2; x < maxX; x += step) {
+      for (let z = minZ + step / 2; z < maxZ; z += step) {
+        if (!inside(face, x, z)) continue;
+        // JS % keeps the sign of a negative operand, which gave buildings -8 m tall.
+        const seed = ((faceIndex * 31 + Math.round(x) * 7 + Math.round(z) * 13) % 6 + 6) % 6;
+        const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
+        const height = industrial ? 7 + seed * 3 : 12 + seed * 5 + inland * 16;
+        blocks.push({ x, z, ...size, height: Math.round(height) });
+      }
+    }
+    return blocks;
+  })
+    // Final clearance gate: nothing may intrude on a road's envelope.
+    .filter(block => streetsNear(block.x, block.z, 60).every(street => {
       const road = projectOntoPath(street.points, block.x, block.z);
       return road.distance > road.width / 2 + Math.hypot(block.width, block.depth) / 2 + 7;
     }));
@@ -460,7 +759,7 @@ export interface DistrictLane extends Lane {
 }
 
 export function districtLanes(streetId: string): DistrictLane[] {
-  return lanes().map(lane => ({ ...lane, street: streetId }));
+  return lanes(streetOf(streetId).kind).map(lane => ({ ...lane, street: streetId }));
 }
 
 /** Every lane in the district, in street order. */
@@ -484,6 +783,7 @@ export function districtLaneLength(lane: DistrictLane): number {
  * follows an apron rather than cutting through it.
  */
 export function districtLanePose(lane: DistrictLane, distance: number): LanePose {
-  return lanePose(streetOf(lane.street).points, lane, distance,
-    (x, z) => projectOntoDistrict(x, z).height);
+  const street = streetOf(lane.street);
+  return lanePose(street.points, lane, distance,
+    (x, z) => projectOntoDistrict(x, z).height, street.kind);
 }

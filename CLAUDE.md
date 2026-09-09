@@ -104,9 +104,13 @@ finish. `/district.html` previews seven route guides over shared fixed streets;
 `?route=<id>` overlays one, and `?world=blackglass` returns to the original
 closed course. These are not scored races: junctions stay open, arrows guide a
 route when one is selected, and there are no lap/checkpoint/payout rules yet.
-The network is closed by a boundary beyond the outer belt that belongs to no
-street, because junction clipping opens boundary pieces and the belts are now
-the district's edge. Massing blocks are solid via `RoadWorld.solids`, kept
+The network is closed by a boundary that belongs to no street, because junction
+clipping opens boundary pieces wherever streets cross and the network now
+reaches the district's edge; the river banks and lineside are walled the same
+way, opened only where a street genuinely spans them. Road class lives in
+`src/sim/lanes.ts` with the carriageway width and lane count it implies —
+they are one fact, not two — and lanes are laid out to a street's narrowest
+point so they do not wander with the junction flare. Massing blocks are solid via `RoadWorld.solids`, kept
 apart from `walls` because a wall is 1.3 m of guard rail and renders as one. `RoadWorld` supplies the sim's start,
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction

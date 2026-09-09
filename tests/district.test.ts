@@ -41,13 +41,20 @@ test("routes form connected directed walks with exact shared endpoints", () => {
 });
 
 test("connector elevations remain driveable and building envelopes clear all streets", () => {
+  // Width is a hierarchy now: an alley is deliberately too narrow for two cars
+  // abreast, which is what makes knowing one worth something.
+  const floor = { arterial: 20, collector: 15, local: 11, alley: 7 };
   for (const street of DISTRICT_STREETS.filter(s => s.added)) {
     for (let i = 1; i < street.points.length; i++) {
       const a = street.points[i - 1]!, b = street.points[i]!;
-      assert.ok(Math.abs(b.y - a.y) / Math.hypot(b.x - a.x, b.z - a.z) < 0.12);
-      assert.ok(b.width >= 16);
+      assert.ok(Math.abs(b.y - a.y) / Math.hypot(b.x - a.x, b.z - a.z) < 0.12,
+        `${street.id} is too steep between ${a.z} and ${b.z}`);
+      assert.ok(b.width >= floor[street.kind], `${street.id} (${street.kind}) narrows to ${b.width}`);
     }
   }
+  assert.ok(DISTRICT_STREETS.some(s => s.kind === "alley"), "shortcuts exist");
+  assert.ok(DISTRICT_STREETS.filter(s => s.kind === "alley").length <= 6,
+    "alleys stay a shortcut layer rather than becoming the network");
   assert.ok(DISTRICT_BLOCKS.length > 5);
   for (const block of DISTRICT_BLOCKS) {
     const road = projectOntoDistrict(block.x, block.z);

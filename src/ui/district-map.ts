@@ -1,4 +1,4 @@
-import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS,
+import { RIVER, RIVER_HALF_WIDTH, RAIL, RAIL_HALF_WIDTH, DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS,
   getDistrictRoute, pathLength, routePoints, type DistrictRoute } from "../sim/district.ts";
 import { createInputController } from "../input/input.ts";
 
@@ -23,8 +23,14 @@ const mapBounds = {
 };
 svg.setAttribute("viewBox",
   `${mapBounds.minX} ${mapBounds.minZ} ${mapBounds.maxX - mapBounds.minX} ${mapBounds.maxZ - mapBounds.minZ}`);
-svg.append(element("path", { d: "M -300 238 Q 0 250 340 227", stroke: "#315667", "stroke-width": 62, fill: "none" }));
-svg.append(element("text", { x: 90, y: 253, class: "map-label" }, "Rivergate waterfront"));
+// The river and the freight line come from the same data the simulation walls,
+// rather than a decorative band drawn where the water used to be implied.
+const corridor = (path: readonly (readonly [number, number])[]) =>
+  path.map(([x, z], i) => `${i === 0 ? "M" : "L"}${x},${z}`).join(" ");
+svg.append(element("path", { d: corridor(RIVER), stroke: "#2b566a",
+  "stroke-width": RIVER_HALF_WIDTH * 2, fill: "none", "stroke-linejoin": "round", "stroke-linecap": "round" }));
+svg.append(element("path", { d: corridor(RAIL), stroke: "#3a332c",
+  "stroke-width": RAIL_HALF_WIDTH * 2, fill: "none", "stroke-linejoin": "round", "stroke-dasharray": "14 9" }));
 for (const block of DISTRICT_BLOCKS) svg.append(element("rect", { x: block.x - block.width / 2,
   y: block.z - block.depth / 2, width: block.width, height: block.depth, class: "map-block" }));
 const path = (points: readonly { x: number; z: number }[]) => points.map((p, i) =>
@@ -37,9 +43,12 @@ for (const junction of DISTRICT_JUNCTIONS) svg.append(element("circle", { cx: ju
   cy: junction.point.z, r: 5, fill: "#19333e", stroke: "#dce4dd", "stroke-width": 1.5 }));
 const labels: [number, number, string, boolean?][] = [
   [-64, -223, "Neon Boulevard"], [264, -48, "Blackglass"], [264, -34, "Tunnel"],
-  [18, 159, "Rivergate Bridge"], [-310, -6, "Freight S"], [-188, -92, "Civic rise"],
+  [18, 148, "Rivergate Bridge"], [-310, -6, "Freight S"], [-188, -92, "Civic rise"],
   [-293, -218, "Hotel Hairpin"], [65, -110, "Market Avenue", true], [-16, 11, "Market Square", true],
   [-100, -28, "Civic Link", true], [-184, 63, "Market Avenue West", true],
+  [252, -120, "Wharf Road", true], [438, -300, "Docks", true], [372, -262, "Wharf Bridge", true],
+  [-430, -300, "Old Quarter / hill", true], [-60, -450, "Freight line", true],
+  [-268, 262, "Millgate Crossing", true], [-60, 336, "South Bank", true],
 ];
 for (const [x, y, text, added] of labels) svg.append(element("text", { x, y,
   class: `map-label${added ? " new-label" : ""}` }, text));

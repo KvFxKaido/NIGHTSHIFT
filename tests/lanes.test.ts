@@ -2,26 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DISTRICT_LANES, DISTRICT_STREETS, districtLaneLength, districtLanePose, projectOntoDistrict,
-  CENTRE_MARGIN, LANES_PER_DIRECTION, SHOULDER,
+  CENTRE_MARGIN, SHOULDER, carriagewayWidth, lanesPerDirection,
   laneMarkings, laneOffset, laneWidth, lanes, pathLength, pathPoint,
 } from "../src/sim/district.ts";
 
 const streetOf = (id: string) => DISTRICT_STREETS.find(street => street.id === id)!;
-const widths = DISTRICT_STREETS.flatMap(street => street.points.map(point => point.width));
+// A street's lanes are laid out to its carriageway — its narrowest point — not
+// to every sampled width along it, so the sweep is by street and class.
+const carriageways = [...new Map(DISTRICT_STREETS.map(street =>
+  [`${street.kind}:${carriagewayWidth(street.points)}`,
+    { kind: street.kind, width: carriagewayWidth(street.points) }])).values()];
+/** Widest car body in the game, so "a lane you can drive" has a real meaning. */
+const CAR_WIDTH = 2.3;
 
 test("every lane fits inside its carriageway and stays off the centreline", () => {
-  for (const width of new Set(widths)) {
-    const lane = laneWidth(width);
-    assert.ok(lane > 3, `${width} m street gives ${lane.toFixed(2)} m lanes`);
-    for (const candidate of lanes()) {
-      const offset = laneOffset(width, candidate);
+  for (const { kind, width } of carriageways) {
+    const lane = laneWidth(width, kind);
+    // An alley lane is deliberately narrower than a road lane — squeezing
+    // through is the point — but it still has to admit a car.
+    const floor = kind === "alley" ? CAR_WIDTH : 3;
+    assert.ok(lane > floor, `${kind} at ${width} m gives ${lane.toFixed(2)} m lanes`);
+    if (kind !== "alley") assert.ok(lane > CAR_WIDTH + 0.6, `${kind} lanes are alley-tight`);
+    for (const candidate of lanes(kind)) {
+      const offset = laneOffset(width, candidate, kind);
       const inner = Math.abs(offset) - lane / 2, outer = Math.abs(offset) + lane / 2;
       assert.ok(inner >= CENTRE_MARGIN - 1e-9, `lane ${candidate.index} crosses the centre band`);
       assert.ok(outer <= width / 2 - SHOULDER + 1e-9, `lane ${candidate.index} overhangs the kerb`);
     }
     // Opposing lanes are never the same piece of road, at any width.
-    const forward = lanes().filter(l => l.direction === 1).map(l => laneOffset(width, l));
-    const back = lanes().filter(l => l.direction === -1).map(l => laneOffset(width, l));
+    const forward = lanes(kind).filter(l => l.direction === 1).map(l => laneOffset(width, l, kind));
+    const back = lanes(kind).filter(l => l.direction === -1).map(l => laneOffset(width, l, kind));
     assert.ok(Math.min(...forward) > Math.max(...back));
   }
 });
@@ -99,18 +109,20 @@ test("lane poses stay on the road and on its graded surface", () => {
 });
 
 test("the paint marks lane boundaries, not arbitrary fractions of the road", () => {
-  for (const width of new Set(widths)) {
-    const marks = laneMarkings(width);
-    const lane = laneWidth(width);
+  for (const { kind, width } of carriageways) {
+    const per = lanesPerDirection(kind);
+    const marks = laneMarkings(width, kind);
+    const lane = laneWidth(width, kind);
     assert.equal(marks.filter(mark => mark.kind === "centre").length, 2, "a centre line is a double");
     assert.equal(marks.filter(mark => mark.kind === "edge").length, 2);
-    assert.equal(marks.filter(mark => mark.kind === "divider").length, (LANES_PER_DIRECTION - 1) * 2);
+    assert.equal(marks.filter(mark => mark.kind === "divider").length, (per - 1) * 2,
+      "a single-lane-each-way street has no divider");
 
     // Each divider and edge lands exactly on a boundary between lanes, or on
     // the outside of the last one — never in the middle of a driving lane.
     const boundaries = new Set<string>();
     for (const side of [1, -1]) {
-      for (let i = 1; i <= LANES_PER_DIRECTION; i++) boundaries.add((side * (CENTRE_MARGIN + lane * i)).toFixed(6));
+      for (let i = 1; i <= per; i++) boundaries.add((side * (CENTRE_MARGIN + lane * i)).toFixed(6));
     }
     for (const mark of marks) {
       if (mark.kind === "centre") {

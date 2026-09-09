@@ -5,8 +5,8 @@ Status: playable layout study, 2026-09-07. Not a scored race mode or engine migr
 ## Decision
 
 Build one compact, fixed district and drive it freely while it is sculpted.
-The existing Blackglass perimeter is the anchor; two orbital belts and seven
-radials grew from it. This does not introduce runtime-generated roads, a large
+The existing Blackglass perimeter is the anchor; a river, a freight line and a
+hill inland decide where everything else goes. This does not introduce runtime-generated roads, a large
 open world, traffic, or progression.
 
 **Free roam is the default.** There is no track selection: Drive goes straight
@@ -18,9 +18,9 @@ closed course with its own geometry, physics and lighting.
 
 The district is closed by a boundary wall 46 m beyond the outermost street.
 Junction clipping deliberately opens boundary pieces where streets cross, which
-was harmless while every junction was interior to a ring; with the belts now
-forming the edge, those openings faced empty ground and free roam drove straight
-out through a corner. The boundary belongs to no street, so clipping never
+was harmless while every junction was interior to a ring; once the network
+reached the district's edge those openings faced empty ground and free roam
+drove straight out through a corner. The boundary belongs to no street, so clipping never
 touches it.
 
 The first top-down board is `/district.html`. It reads the same street and route
@@ -30,54 +30,76 @@ remains the default at `/`, with its original road, physics and lighting.
 
 ## Layout
 
-The district covers **935 x 935 m (0.874 km²)** with **11.31 km of unique
-streets across 51 edges and 33 junctions**, including the existing 1.73 km
-plan-view perimeter. (The original course brief rounds it to 1.70 km.)
+The district covers **933 x 867 m** with **9.08 km of unique streets across 50
+edges and 34 junctions**, including the existing 1.73 km plan-view perimeter.
+Road density is 11.2 km/km², which is honest urban density rather than a large
+open world; GDD §21 still rules that out.
 
-Junctions, not kilometres, were the reason to expand. The first blockout carried
-52% of a 100 m grid's road length across only 17% of its junctions, and four
-degree-3 nodes had already reached the ceiling of distinct cycles they could
-produce — the four routes below the perimeter were essentially all of them. The
-expansion is now at 60% of that grid's road length and 33% of its junctions.
-Of the 33 nodes, 27 offer a genuine choice; six are pass-through belt corners.
+The layout is a consequence of its geography rather than a diagram laid over it.
+The first expansion was two perfect orbital belts at round numbers, dead flat,
+every street the same width — a wireframe with asphalt on it. Nothing bent
+because of anything.
 
-Road density is 12.9 km/km², which is honest urban density (Manhattan is near
-20) rather than a large open world. GDD §21 still rules that out.
+- **The river.** The Blackglass runs south down the eastern edge, then bends
+  west across the bottom of the district, passing directly beneath the original
+  Rivergate bridge — which is what that bridge has always been for. Both banks
+  are walled and only three crossings exist. The land east *and* south of the
+  water is one landmass wrapping the bend, so the Wharf Bridge and the Millgate
+  Crossing between them reach all of it, and a lap can go out over one and back
+  over the other.
+- **The freight line** curves across the north, severing those approaches except
+  at two staggered level crossings.
+- **The ground** climbs inland to the north-west and falls to the water: 20 m of
+  rise, so the old quarter sits on a hill and the wharf sits on the flat. Only
+  the outer network reads this; near the loop the terrain defers to the loop's
+  own authored height, because otherwise the loop sits in a cutting and every
+  street leaving it has to climb 6 m in the first 40.
+- **Zones follow from that.** Shipping frontage and docks on the flat by the
+  water, rail yards under the line, the old quarter climbing north-west on
+  narrow local streets.
 
-- **Two orbital belts:** an outer ring at roughly ±470 m and an inner one at
-  ±345 m, each twelve edges long. The outer belt is the district's high-speed
-  lap; the inner one is the connector everything else hangs off.
-- **Seven radials:** each leaves the original loop where it is near grade and
-  steps out through the inner belt to the outer one. The bridge crown at 24 m
-  and the tunnel run at 9-15 m are deliberately not connected — a surface
-  street cannot meet them at grade, so the belts reach that side the long way
-  round. That is a city constraint, not a gap.
-- **Two belt-to-belt spurs** with no loop connection, which add cycles rather
-  than nodes; that is what turns concentric rings into a network.
+### Road classes
 
-- **Market Avenue:** approximately 436 m across the interior, joining Neon
-  Boulevard to Freight Gate. It has a gentle bend through Market Square and a
-  long westbound approach. This is the new medium-speed cross-district street.
-- **Civic Link:** approximately 119 m, joining the elevated Civic junction to
-  Market Square. Its downhill/uphill direction changes the approach to the
-  same intersection. This is the short technical connection.
-- **Existing perimeter:** tunnel, bridge, waterfront, Freight S, Civic rise,
-  Hotel Hairpin and boulevard retain their plan-view geometry. Only the
-  blockout grades the four new junction aprons to a shared height; baseline
-  Blackglass and the Blender tunnel/bridge are untouched.
+One width everywhere gave no cue about where you were or how fast the road
+wanted you to go, and left no room for shortcuts. Class now drives carriageway
+width and lane count together, and `src/sim/lanes.ts` owns both.
 
-Market Avenue is split into east/west street edges at its civic junction.
-Those are one connection, not two additional independently authored roads.
+| Class | Carriageway | Streets | Lanes each way | Lane width |
+| --- | ---: | ---: | ---: | ---: |
+| Arterial | 24 m | 22 | 2 | 4.93 m |
+| Collector | 17 m | 18 | 2 | 4.43 m |
+| Local | 12 m | 7 | 1 | 4.85 m |
+| Alley | 8 m | 3 | 1 | 2.85 m |
 
-| Route guide | Distance | Sequence | Question |
-| --- | ---: | --- | --- |
-| Blackglass Perimeter | 1.73 km | The original loop, now cut at eight junctions | Does the familiar lap still read with open junctions? |
-| Market Loop | 0.83 km | Market East → Civic Link uphill → Hotel/Boulevard | Is a short, junction-led circuit fun without the long tunnel run? |
-| Freight Run | 0.55 km | Freight S → Civic Link downhill → Market East | Does approaching Market Square from the civic side feel distinct? |
-| Avenue Loop | 1.17 km | Market East → Market West → Freight S → Hotel/Boulevard | Does the full cross-district avenue earn its road length? |
-| Outer Orbital | 3.74 km | The complete outer belt | Do long straights and four hard gate corners hold up over two minutes? |
-| South Orbital | 0.94 km | South radial → inner belt → east radial → boulevard reversed | Does a lap that mixes belt and loop read as one place? |
-| West Gate Run | 1.06 km | Hotel hairpin → both belts → north up the western edge | Does a sprint that leaves the loop entirely still feel like the district? |
+Three alleys, deliberately: enough that knowing them matters, not enough to turn
+the graph into spaghetti. Each cuts a corner a main road takes. An alley lane is
+narrower than a car needs to pass comfortably, which is the point of one.
+
+Lanes are laid out to a street's **narrowest** point, not to the width at each
+sample. A carriageway flares into its junctions — right for the asphalt, and how
+a real junction looks — but lanes that breathe with it wander laterally, and on
+a street tapering 22 m at the ends to 8 m in the middle a lane came out 27%
+shorter than its own centreline. Paint follows the lanes for the same reason, so
+the lines run straight through a junction flare instead of splaying with it.
+
+### Blocks
+
+Massing is derived from the **planar faces of the street graph** — the blocks
+the streets enclose — rather than a uniform grid filtered down to whatever gaps
+the roads leave. Urban form is a tessellation of blocks and streets are the
+negative space between them; doing it the other way round is what made the first
+pass read as a checkerboard. 15 faces carry 88 buildings, with footprints scaled
+to their block so a tight quarter face gets small close-packed buildings instead
+of one shed that will not fit.
+
+| Route guide | Distance | Question |
+| --- | ---: | --- |
+| Blackglass Perimeter | 1.73 km | Does the familiar lap still read with open junctions? |
+| River Loop | 2.69 km | Do both crossings and the whole far bank read as one place? |
+| Market Loop | 0.83 km | Is a short, junction-led circuit fun without the long tunnel run? |
+| Wharf Run | 0.77 km | Does the shipping frontage and the bridge hold up as a sprint? |
+| Freight Run | 0.55 km | Does approaching Market Square from the civic side feel distinct? |
+| Hill Climb | 0.47 km | Is 20 m of climb on narrow streets worth driving? |
 
 Distance is measured from the authored route centerline, not the player's line.
 Every guide is a walk over shared streets, not separately authored map.
@@ -85,7 +107,7 @@ Every guide is a walk over shared streets, not separately authored map.
 ## What is playable
 
 - Free roam over one shared road network; real boundary openings at junctions,
-  and a closed district edge beyond the outer belt.
+  and a closed district edge, plus walled river banks and lineside.
 - Same four-wheel model, FWD default, manual countersteering, controller input,
   garage preferences, chase camera, reset and session replay.
 - Free roam draws no arrows and no gates. With `?route=`, coloured arrows

@@ -3,7 +3,7 @@ import test from "node:test";
 import * as THREE from "three";
 import { addDistrict } from "../src/render/district.ts";
 import { hash01 } from "../src/render/night.ts";
-import { projectOntoDistrict } from "../src/sim/district.ts";
+import { DISTRICT_STREETS, projectOntoPath, carriagewayWidth, projectOntoDistrict } from "../src/sim/district.ts";
 
 function build(dressing: "night" | "blockout"): THREE.Scene {
   const scene = new THREE.Scene();
@@ -65,7 +65,17 @@ test("road paint stays on the road", () => {
     let worst = 0;
     for (const vertex of vertices(scene, name)) {
       const road = projectOntoDistrict(vertex.x, vertex.z);
-      worst = Math.max(worst, road.distance - road.width / 2);
+      // Against the NEAREST street, not the street the paint belongs to. Where
+      // an arterial meets an alley the nearest centreline is the alley's, whose
+      // half-width is 4 m, and the arterial's own edge line 8.8 m out reads as
+      // an overhang while sitting on junction asphalt. An edge marking is
+      // laid at w/2 - SHOULDER of its own carriageway and so cannot leave it;
+      // the question is whether ANY street covers the vertex.
+      const covered = Math.min(...DISTRICT_STREETS.map(street => {
+        const on = projectOntoPath(street.points, vertex.x, vertex.z);
+        return on.distance - carriagewayWidth(street.points) / 2;
+      }));
+      worst = Math.max(worst, covered);
       // Paint sits proud of the surface by millimetres, never floating over it.
       assert.ok(vertex.y - road.height > 0 && vertex.y - road.height < 0.2,
         `${name} is ${(vertex.y - road.height).toFixed(2)} m off the surface at ${vertex.x},${vertex.z}`);
