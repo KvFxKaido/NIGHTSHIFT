@@ -112,6 +112,65 @@ const MARKING_STYLE: Record<LaneMarkingKind,
   edge: { halfWidth: 0.11, dash: null },
 };
 
+/**
+ * Embankments and cuttings along every graded street.
+ *
+ * A street's height is eased so no leg exceeds grade, and the ground it crosses
+ * is not — so on the hill a road sits up to 4.5 m off the terrain. That is a
+ * real embankment, but with no side geometry it reads as a road floating in
+ * mid-air. This is the earth either side of it: inner edge on the carriageway
+ * at road height, outer edge out on the terrain, widening with the drop so the
+ * slope stays walkable.
+ *
+ * Skipped where the gap is a structure rather than a grading. The bridge deck
+ * stands 24 m over the valley and the tunnel runs under the hill; a verge there
+ * would be a 24 m earthen wall across the river.
+ */
+function addVerges(scene: THREE.Scene, dressing: DistrictDressing): void {
+  const positions: number[] = [];
+  const push = (x: number, y: number, z: number) => { positions.push(x, y, z); };
+  for (const street of DISTRICT_STREETS) {
+    const samples = pathSamples(street.points, 5);
+    for (let i = 0; i < samples.length - 1; i++) {
+      const a = samples[i]!, b = samples[i + 1]!;
+      for (const side of [-1, 1] as const) {
+        const quad = [a, b].map(sample => {
+          const normalX = -sample.dirZ * side, normalZ = sample.dirX * side;
+          const half = sample.width / 2;
+          const innerX = sample.x + normalX * half, innerZ = sample.z + normalZ * half;
+          const road = projectOntoDistrict(innerX, innerZ).height;
+          const drop = road - outerTerrain(innerX, innerZ);
+          const verge = 3.5 + Math.min(13, Math.abs(drop) * 2.4);
+          const outerX = sample.x + normalX * (half + verge);
+          const outerZ = sample.z + normalZ * (half + verge);
+          return { drop, innerX, innerZ, road, outerX, outerZ, outerY: outerTerrain(outerX, outerZ) };
+        });
+        // A structure, not a grading: leave the ground to pass underneath.
+        if (quad.some(corner => Math.abs(corner.drop) > 6)) continue;
+        const [p, q] = quad as [typeof quad[0], typeof quad[0]];
+        // Two triangles. The normal flips with the side, so the winding has to
+        // flip with it too — kept identical, one bank lit and the other read as
+        // a dark hole in the hillside.
+        const corners = [
+          [p.innerX, p.road, p.innerZ], [q.innerX, q.road, q.innerZ],
+          [q.outerX, q.outerY, q.outerZ], [p.outerX, p.outerY, p.outerZ],
+        ] as const;
+        const [c0, c1, c2, c3] = side === 1 ? corners : [corners[3], corners[2], corners[1], corners[0]];
+        for (const [x, y, z] of [c0, c1, c2, c0, c2, c3]) push(x, y, z);
+      }
+    }
+  }
+  if (!positions.length) return;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  const verges = mesh("district-verges", geometry, new THREE.MeshStandardMaterial({
+    color: dressing === "night" ? 0x0d1117 : 0x202a2d, roughness: 1, side: THREE.DoubleSide,
+  }));
+  verges.receiveShadow = true;
+  scene.add(verges);
+}
+
 function addLaneMarkings(scene: THREE.Scene): void {
   const yellow: THREE.BufferGeometry[] = [], white: THREE.BufferGeometry[] = [];
   for (const street of DISTRICT_STREETS) {
@@ -317,6 +376,7 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
     { x, z, y: outerTerrain(x, z) + 0.05, width: RAIL_HALF_WIDTH * 2, zone: "freight" } as CoursePoint))),
     new THREE.MeshStandardMaterial({ color: 0x2b2622, roughness: 1 }));
   ballast.receiveShadow = true; scene.add(ballast);
+  addVerges(scene, dressing);
 
   for (const street of DISTRICT_STREETS) {
     const road = mesh(`district-road-${street.id}`, streetGeometry(street.points), asphalt);

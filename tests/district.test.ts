@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, outerTerrain, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
 import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse } from "../src/sim/track.ts";
@@ -147,4 +147,33 @@ test("district circuit gaps wrap, but a sprint finish is ahead of its start", ()
     else assert.ok(gap > pathLength(points) * 0.9);
     assert.ok(Math.abs(gap + districtRouteGap(route, last.x, last.z, first.x, first.z)) < 1e-8);
   }
+});
+
+// The ground conforms to the original loop where the loop is graded, which is
+// what stops streets leaving it in a cutting. Applied without limit it also
+// raised the whole valley to meet a bridge deck 24 m up, and drew the river
+// 23.5 m in the air beneath its own bridge.
+test("the ground passes under the bridge instead of rising to meet it", () => {
+  for (const [x, z] of RIVER) {
+    const ground = outerTerrain(x, z);
+    assert.ok(ground < 8, `the river bed at ${x},${z} sits ${ground.toFixed(1)} m up`);
+  }
+  // And the bridge is still a bridge: it has to clear the water it crosses.
+  const [bx, bz] = [-40, 188];
+  const clearance = projectOntoCourse(bx, bz).height - outerTerrain(bx, bz);
+  assert.ok(clearance > 12, `the bridge clears its river by only ${clearance.toFixed(1)} m`);
+});
+
+// A street's height is eased so no leg exceeds grade; the ground it crosses is
+// not. That difference is a real embankment and gets verge geometry, but it has
+// to stay an embankment rather than becoming a cliff nothing could stand on.
+test("graded streets stay within an embankment of the ground", () => {
+  let worst = 0, worstAt = "";
+  for (const street of DISTRICT_STREETS.filter(candidate => candidate.added)) {
+    for (const point of street.points) {
+      const gap = Math.abs(point.y - outerTerrain(point.x, point.z));
+      if (gap > worst) { worst = gap; worstAt = street.id; }
+    }
+  }
+  assert.ok(worst < 6, `${worstAt} stands ${worst.toFixed(2)} m off the ground`);
 });

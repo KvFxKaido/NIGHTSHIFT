@@ -96,13 +96,26 @@ const TERRAIN_RISE = 20;
 export function outerTerrain(x: number, z: number): number {
   const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
   const raw = TERRAIN_RISE * inland * inland;
-  // Near the original loop the ground defers to the loop's own authored height.
-  // Without this the loop sits in a cutting relative to the inland ramp, and
-  // every street leaving it had to climb 6 m in the first 40 metres.
+  // Near the original loop the ground defers to the loop's own authored height,
+  // or the loop sits in a cutting relative to the inland ramp and every street
+  // leaving it has to climb 6 m in the first 40 metres.
+  //
+  // But only where the loop is ON the ground. A bridge deck 24 m up and a
+  // tunnel run at 15 are structures, not terrain, and conforming to them raised
+  // the whole valley to meet them — which drew the river 23.5 m in the air
+  // beneath its own bridge. A road far above the inland ramp is read as built
+  // rather than graded, and the ground passes underneath it.
   const road = projectOntoCourse(x, z);
   const t = Math.max(0, Math.min(1, (road.distance - 55) / 205));
-  const blend = t * t * (3 - 2 * t);
-  return Math.round((road.height + (raw - road.height) * blend) * 10) / 10;
+  const near = 1 - t * t * (3 - 2 * t);
+  // A dead zone matters: a linear ramp from zero disengaged conforming even
+  // where the loop was only 3.5 m off the ramp, lifting the ground away from
+  // the boulevard. Under 5 m is grading, over 14 m is a structure.
+  const diff = Math.abs(road.height - raw);
+  const d = Math.max(0, Math.min(1, (diff - 5) / 9));
+  const structural = d * d * (3 - 2 * d);
+  const conform = near * (1 - structural);
+  return Math.round((raw + (road.height - raw) * conform) * 10) / 10;
 }
 
 /** Plan-view distance from a point to a polyline, for river and rail tests. */
