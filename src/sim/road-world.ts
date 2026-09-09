@@ -1,4 +1,5 @@
 import { COURSE, COURSE_WALLS, projectOntoCourse, type CourseProjection, type CourseWall } from "./track.ts";
+import type { TrafficNetwork } from "./traffic.ts";
 
 /** An axis-aligned solid volume: building massing, not a race barrier. Kept
  *  apart from `walls` because a wall is 1.3 m of guard rail and is rendered as
@@ -19,6 +20,9 @@ export interface RoadWorld {
   readonly start: { x: number; y: number; z: number; heading: number; pitch: number };
   readonly walls: readonly CourseWall[];
   readonly solids?: readonly RoadSolid[];
+  /** The lane graph traffic drives, when the world has one. Blackglass does
+   *  not: its lanes were never modelled, so it simply has no traffic. */
+  readonly traffic?: TrafficNetwork;
   project(x: number, z: number): CourseProjection;
 }
 

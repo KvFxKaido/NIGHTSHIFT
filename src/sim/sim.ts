@@ -2,6 +2,7 @@
    Rapier integrates motion and contacts. Three.js only draws the result. */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
+import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficState } from "./traffic.ts";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -61,6 +62,9 @@ export interface SimState {
   readonly drivetrain: Drivetrain;
   tick: number;
   vehicle: VehicleState;
+  /** Null where the world has no lane graph, or where traffic is switched off
+   *  for a geometry check. Never null in ordinary district play. */
+  traffic: TrafficState | null;
 }
 
 export interface Sim {
@@ -68,6 +72,17 @@ export interface Sim {
   state: SimState;
   world: RAPIER.World;
   body: RAPIER.RigidBody;
+  /** One kinematic body per traffic vehicle, in `state.traffic.vehicles` order.
+   *  Created once and never added to or removed from: a changing collider set
+   *  changes the solver's own bookkeeping, and a replay has to reproduce it. */
+  trafficBodies: readonly RAPIER.RigidBody[];
+}
+
+/** Traffic is part of the world, so it is on by default. A geometry check that
+ *  drives a scripted line through the district turns it off, because that test
+ *  is about road surface and barriers, not about whether a van was in the way. */
+export interface SimOptions {
+  readonly traffic?: boolean;
 }
 
 // Feel stays centralized. No suspension or wheel inertia yet: the chassis
@@ -276,7 +291,8 @@ function initialVehicle(roadWorld: RoadWorld): VehicleState {
   };
 }
 
-export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN, roadWorld: RoadWorld = BLACKGLASS_WORLD): Sim {
+export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
+  roadWorld: RoadWorld = BLACKGLASS_WORLD, options: SimOptions = {}): Sim {
   if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
   world.timestep = DT;
@@ -309,17 +325,41 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN, roadWorld
   body.setEnabledRotations(false, true, false, true);
   world.createCollider(RAPIER.ColliderDesc.cuboid(0.92, 0.38, 2.08)
     .setMass(HANDLING.mass).setFriction(0.15).setRestitution(0.04), body);
-  return { roadWorld, state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0, vehicle: initialVehicle(roadWorld) }, world, body };
+
+  // Traffic is kinematic: it drives its lane and is not pushed by an impact.
+  // That makes it an immovable hazard rather than a second handling model, and
+  // it keeps the player's contact response the only dynamics in the tick — the
+  // handling gate (GDD §22) must not move because a van exists.
+  const network = options.traffic === false ? null : roadWorld.traffic;
+  const traffic = network ? createTraffic(network) : null;
+  const trafficBodies = (traffic?.vehicles ?? []).map(vehicle => {
+    const spec = TRAFFIC_KINDS[vehicle.kind];
+    const trafficBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
+      .setTranslation(vehicle.x, vehicle.y + spec.height * 0.5, vehicle.z)
+      .setRotation(yawRotation(vehicle.heading)));
+    world.createCollider(RAPIER.ColliderDesc
+      .cuboid(spec.width * 0.5, spec.height * 0.5, spec.length * 0.5)
+      .setFriction(0.35).setRestitution(0.1), trafficBody);
+    return trafficBody;
+  });
+
+  return {
+    roadWorld,
+    state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
+      vehicle: initialVehicle(roadWorld), traffic },
+    world, body, trafficBodies,
+  };
 }
 
 export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain, sim.roadWorld);
+  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
   sim.state = fresh.state;
+  sim.trafficBodies = fresh.trafficBodies;
 }
 
 interface WheelInput {
@@ -515,6 +555,18 @@ export function step(sim: Sim, rawInput: Input): void {
   car.lateralAcceleration = (forceX * Math.cos(heading) - forceZ * Math.sin(heading)) / HANDLING.mass;
   body.addForce({ x: forwardX * (dragAcceleration + gradeAcceleration) * HANDLING.mass,
     y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration) * HANDLING.mass }, true);
+  // Traffic advances before the solver runs, so the player's contact this tick
+  // is against where the traffic actually is rather than where it was.
+  if (sim.state.traffic && sim.roadWorld.traffic) {
+    stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT);
+    sim.state.traffic.vehicles.forEach((vehicle, i) => {
+      const trafficBody = sim.trafficBodies[i]!;
+      const spec = TRAFFIC_KINDS[vehicle.kind];
+      trafficBody.setNextKinematicTranslation({
+        x: vehicle.x, y: vehicle.y + spec.height * 0.5, z: vehicle.z });
+      trafficBody.setNextKinematicRotation(yawRotation(vehicle.heading));
+    });
+  }
   sim.world.step();
   const resolved = body.translation();
   body.setTranslation({ x: resolved.x, y: sim.roadWorld.project(resolved.x, resolved.z).height + START_Y,

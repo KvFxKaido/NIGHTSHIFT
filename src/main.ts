@@ -79,7 +79,7 @@ const roadWorld = !district ? BLACKGLASS_WORLD
   : districtRoute ? createDistrictWorld(districtRoute) : createFreeRoamWorld();
 const sim = createSim(restored.drivetrain, roadWorld);
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
-  districtRoute, roadWorld, district, lighting);
+  districtRoute, roadWorld, district, lighting, sim.state.traffic);
 if (district) {
   // The view's name follows the lighting. Night is the district's default now,
   // so a plain ?route= session is a night session and calling it a blockout in
