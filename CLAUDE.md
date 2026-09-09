@@ -114,7 +114,11 @@ grading is shared by physics and road meshes; do not "fix" it only visually.
 `src/sim/lanes.ts` owns the lane model: two lanes each way whose width breathes
 with the carriageway (16-22 m here), signed so every lane sits on the right of
 its own direction of travel, plus arc-length sampling and `lanePose` — what a
-traffic follower or a rival needs to sit in a lane. It is world geometry, so it
+traffic follower or a rival needs to sit in a lane. A lane is its own mitered
+polyline; do not go back to offsetting a centreline sample sideways, which jumps
+up to 2.79 m at an authored vertex. `lanePose`'s distance is centreline arc
+length in the lane's direction, not the offset lane's own length, which differs
+by up to 2.7% round a bend. It is world geometry, so it
 lives in the sim; the renderer paints those lanes rather than deriving its own,
 and `laneMarkings` is the single authority on where a divider or an edge line
 goes. `districtLanePose` binds it to the district's graded surface. Lanes are

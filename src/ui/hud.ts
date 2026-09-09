@@ -1,5 +1,5 @@
 import {
-  gaugeReading, minimapPixel, withinMinimap,
+  gaugeReading, minimapPixel, segmentWithinMinimap, withinMinimap,
   GAUGE_CIRCUMFERENCE, GAUGE_SWEEP_DEGREES, type MinimapCamera,
 } from "./hud-state.ts";
 
@@ -96,13 +96,16 @@ export function createHud(options: HudOptions): Hud {
       context.strokeStyle = line.color ?? "rgba(120, 208, 235, .72)";
       context.lineWidth = line.color ? 3.6 : 2.8;
       context.beginPath();
-      let drawing = false;
-      for (const point of line.points) {
-        if (!withinMinimap(camera, point.x, point.z)) { drawing = false; continue; }
-        const pixel = minimapPixel(camera, point.x, point.z);
-        if (drawing) context.lineTo(pixel.x, pixel.y);
-        else context.moveTo(pixel.x, pixel.y);
-        drawing = true;
+      // Segment by segment, not vertex by vertex: a segment reaching in from
+      // off-map still has to be drawn to the rim. The disc is already clipped,
+      // so anything overhanging it costs nothing.
+      for (let i = 1; i < line.points.length; i++) {
+        const from = line.points[i - 1]!, to = line.points[i]!;
+        if (!segmentWithinMinimap(camera, from.x, from.z, to.x, to.z)) continue;
+        const a = minimapPixel(camera, from.x, from.z);
+        const b = minimapPixel(camera, to.x, to.z);
+        context.moveTo(a.x, a.y);
+        context.lineTo(b.x, b.y);
       }
       context.stroke();
     }

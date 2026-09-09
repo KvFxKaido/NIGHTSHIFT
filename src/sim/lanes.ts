@@ -118,6 +118,49 @@ export function pathSamples(points: readonly CoursePoint[], step: number): PathS
   return samples;
 }
 
+/** The segment a distance falls in, and how far along it. */
+function locate(points: readonly CoursePoint[], distance: number): { index: number; fraction: number } {
+  let travelled = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const length = Math.hypot(points[i + 1]!.x - points[i]!.x, points[i + 1]!.z - points[i]!.z);
+    if (length < 1e-6) continue;
+    if (distance > travelled + length && i < points.length - 2) { travelled += length; continue; }
+    return { index: i, fraction: Math.max(0, Math.min(1, (distance - travelled) / length)) };
+  }
+  return { index: Math.max(0, points.length - 2), fraction: 1 };
+}
+
+/** Unit direction of the segment leaving a vertex, or entering the last one. */
+function segmentDirection(points: readonly CoursePoint[], index: number): { x: number; z: number } {
+  const a = points[Math.min(index, points.length - 2)]!;
+  const b = points[Math.min(index + 1, points.length - 1)]!;
+  const length = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+  return { x: (b.x - a.x) / length, z: (b.z - a.z) / length };
+}
+
+/**
+ * A lane's own position at one authored vertex, mitered.
+ *
+ * Offsetting by the raw normal of whichever segment you happen to be on makes
+ * the lane jump sideways at every corner — measured at up to 2.79 m on the ring
+ * hotel bend, most of a lane width. Mitering the two adjacent normals, exactly
+ * as the road ribbon does, makes the offset polyline continuous.
+ */
+function laneVertex(points: readonly CoursePoint[], lane: Lane, index: number): { x: number; z: number } {
+  const point = points[index]!;
+  const incoming = segmentDirection(points, Math.max(0, index - 1));
+  const outgoing = segmentDirection(points, index);
+  let normalX = -incoming.z - outgoing.z, normalZ = incoming.x + outgoing.x;
+  const length = Math.hypot(normalX, normalZ) || 1;
+  normalX /= length;
+  normalZ /= length;
+  // Clamped like the road's own miter: a hairpin must not throw the offset to
+  // infinity, and the ribbon under it is clamped the same way.
+  const miter = 1 / Math.max(0.5, normalX * -outgoing.z + normalZ * outgoing.x);
+  const offset = laneOffset(point.width, lane) * miter;
+  return { x: point.x + normalX * offset, z: point.z + normalZ * offset };
+}
+
 /** The centreline at an exact arc length, clamped to the ends. */
 export function pathPoint(points: readonly CoursePoint[], distance: number): PathSample {
   let travelled = 0;
@@ -147,19 +190,28 @@ export interface LanePose {
 }
 
 /**
- * Where a lane is, `distance` metres along that lane's own direction of travel.
- * A car driving direction -1 still counts upward from where it entered, so a
- * follower only ever has to add to its odometer.
+ * Where a lane is, `distance` metres along the street's centreline, measured in
+ * that lane's own direction of travel. A car driving direction -1 still counts
+ * upward from where it entered, so a follower only ever has to add to its
+ * odometer.
+ *
+ * The parameter is centreline arc length, not the lane's own. Around a bend an
+ * offset lane is longer or shorter than the line it is measured from — up to
+ * 2.7% on this district's longest curve. That is a constant scale on speed
+ * through a curve, and it keeps the lanes of one street abreast at equal
+ * `distance`, but it is a real difference and is stated rather than left to be
+ * found later.
  */
 export function lanePose(points: readonly CoursePoint[], lane: Lane, distance: number,
   surfaceHeight: (x: number, z: number) => number): LanePose {
   const along = lane.direction === 1 ? distance : pathLength(points) - distance;
-  const sample = pathPoint(points, along);
-  // Right of the point order. Combined with the sign already in laneOffset,
-  // this puts every lane on the right of its own direction of travel.
-  const rightX = -sample.dirZ, rightZ = sample.dirX;
-  const offset = laneOffset(sample.width, lane);
-  const x = sample.x + rightX * offset, z = sample.z + rightZ * offset;
-  const dirX = sample.dirX * lane.direction, dirZ = sample.dirZ * lane.direction;
-  return { x, y: surfaceHeight(x, z), z, heading: Math.atan2(-dirX, -dirZ) };
+  // Interpolate along the lane's own mitered polyline rather than offsetting a
+  // centreline sample sideways: the latter is discontinuous at every vertex.
+  const { index, fraction } = locate(points, along);
+  const from = laneVertex(points, lane, index);
+  const to = laneVertex(points, lane, index + 1);
+  const x = from.x + (to.x - from.x) * fraction;
+  const z = from.z + (to.z - from.z) * fraction;
+  const runX = (to.x - from.x) * lane.direction, runZ = (to.z - from.z) * lane.direction;
+  return { x, y: surfaceHeight(x, z), z, heading: Math.atan2(-runX, -runZ) };
 }

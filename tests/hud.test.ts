@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
-  gaugeReading, minimapPixel, withinMinimap,
+  gaugeReading, minimapPixel, segmentWithinMinimap, withinMinimap,
   GAUGE_REDLINE, GAUGE_SWEEP_DEGREES, GAUGE_CIRCUMFERENCE,
 } from "../src/ui/hud-state.ts";
 
@@ -42,9 +42,27 @@ test("the minimap is heading-up: forward is up, the car's right is right", () =>
 test("the minimap scales to its disc and drops what is off it", () => {
   const camera = { x: 0, z: 0, heading: 0, range: 200, radius: 80 };
   assert.equal(minimapPixel(camera, 0, -200).y, -80, "the range lands on the rim");
-  assert.equal(withinMinimap(camera, 0, -220), true, "a street entering the disc is kept");
-  assert.equal(withinMinimap(camera, 0, -400), false);
-  assert.equal(withinMinimap(camera, 0, -220, 1), false, "a tighter margin clips at the rim");
+  assert.equal(withinMinimap(camera, 0, -180), true);
+  assert.equal(withinMinimap(camera, 0, -220), false);
+  assert.equal(withinMinimap(camera, 0, -260, 1.35), true, "a looser margin keeps the near miss");
+});
+
+// Culling whole segments rather than their endpoints. Endpoint culling hides
+// road in two ways: a segment reaching in from off-map is drawn only from its
+// first inside vertex, and one spanning the disc with both ends outside is
+// dropped altogether. Neither reproduces on today's 47 m authored segments, so
+// only a test keeps it from reappearing the day someone authors a long straight.
+test("a street segment is drawn whenever any part of it crosses the disc", () => {
+  const camera = { x: 0, z: 0, heading: 0, range: 200, radius: 80 };
+  assert.equal(segmentWithinMinimap(camera, 0, -600, 0, -100), true, "outside in to inside");
+  assert.equal(segmentWithinMinimap(camera, 0, -100, 0, -600), true, "inside out to outside");
+  assert.equal(segmentWithinMinimap(camera, -900, 0, 900, 0), true,
+    "both ends outside, but it runs straight through the middle");
+  assert.equal(segmentWithinMinimap(camera, -900, 900, 900, 900), false, "clear of the disc entirely");
+  assert.equal(segmentWithinMinimap(camera, 300, 300, 300, 300), false, "a degenerate segment is a point");
+  // The nearest approach is what counts, not either endpoint's distance.
+  assert.equal(segmentWithinMinimap(camera, -400, -150, 400, -150), true);
+  assert.equal(segmentWithinMinimap(camera, -400, -250, 400, -250), false);
 });
 
 // The HUD module reaches into the page by id. If the markup and the module

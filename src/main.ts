@@ -81,12 +81,16 @@ const sim = createSim(restored.drivetrain, roadWorld);
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
   districtRoute, roadWorld, district, lighting);
 if (district) {
-  const label = districtRoute ? `${districtRoute.name} blockout` : "Blackglass District";
+  // The view's name follows the lighting. Night is the district's default now,
+  // so a plain ?route= session is a night session and calling it a blockout in
+  // the title and the pause menu is simply wrong.
+  const view = lighting === "blockout" ? "Blockout" : "Night";
+  const label = districtRoute ? `${districtRoute.name} ${view.toLowerCase()}` : "Blackglass District";
   document.body.dataset.world = "district";
   document.title = `NIGHTSHIFT — ${label}`;
   document.querySelector("#brand > span")!.textContent = `NIGHTSHIFT / ${districtRoute?.name ?? "FREE ROAM"}`;
   document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent =
-    districtRoute ? `${districtRoute.name} / Blockout` : "Blackglass District / Free roam";
+    districtRoute ? `${districtRoute.name} / ${view}` : `Blackglass District / Free roam`;
   document.querySelector(".menu-lede")!.textContent = districtRoute
     ? `${(pathLength(routePoints(districtRoute)) / 1000).toFixed(2)} km guide over the district. Follow the coloured arrows, or ignore them.`
     : "One district, open. No route, no timing, no finish line — drive it and find out what it wants to be.";

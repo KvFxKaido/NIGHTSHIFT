@@ -63,8 +63,28 @@ export function minimapPixel(camera: MinimapCamera, x: number, z: number): Minim
   return { x: right * scale, y: -forward * scale };
 }
 
-/** True when a world position is inside the drawn disc, with a margin so a
- *  street entering the circle is not clipped one frame late. */
-export function withinMinimap(camera: MinimapCamera, x: number, z: number, margin = 1.35): boolean {
+/** True when a world position is inside the drawn disc. */
+export function withinMinimap(camera: MinimapCamera, x: number, z: number, margin = 1): boolean {
   return Math.hypot(x - camera.x, z - camera.z) <= camera.range * margin;
+}
+
+/**
+ * True when any part of a street segment falls inside the disc.
+ *
+ * Testing the endpoints instead is wrong in two ways that both hide road: a
+ * segment reaching in from outside is drawn only from its first inside vertex,
+ * so the road stops short of the rim, and a segment long enough to span the
+ * disc with both ends outside vanishes entirely. Neither shows up today —
+ * the district's longest authored segment is 47 m against a 235 m radius — but
+ * that is an accident of the current authoring, not something the map enforces,
+ * and a single long straight would break it silently.
+ */
+export function segmentWithinMinimap(camera: MinimapCamera,
+  ax: number, az: number, bx: number, bz: number, margin = 1): boolean {
+  const dx = bx - ax, dz = bz - az;
+  const lengthSquared = dx * dx + dz * dz;
+  const along = lengthSquared > 0
+    ? Math.max(0, Math.min(1, ((camera.x - ax) * dx + (camera.z - az) * dz) / lengthSquared))
+    : 0;
+  return Math.hypot(ax + dx * along - camera.x, az + dz * along - camera.z) <= camera.range * margin;
 }

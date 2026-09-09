@@ -46,6 +46,30 @@ test("every lane is on the right of its own direction of travel", () => {
   }
 });
 
+// Offsetting a centreline sample sideways by its own segment normal makes the
+// lane jump at every authored vertex — 2.79 m on the ring hotel bend, most of a
+// lane width, and a car driving it would visibly teleport. The 5 m sweep below
+// steps straight over a discontinuity, so it needs its own test either side of
+// each corner.
+test("a lane is continuous through every authored corner", () => {
+  let worst = 0, worstAt = "";
+  for (const lane of DISTRICT_LANES) {
+    const points = streetOf(lane.street).points;
+    const length = districtLaneLength(lane);
+    let travelled = 0;
+    for (let i = 1; i < points.length - 1; i++) {
+      travelled += Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z);
+      const at = lane.direction === 1 ? travelled : length - travelled;
+      const before = districtLanePose(lane, at - 0.001);
+      const after = districtLanePose(lane, at + 0.001);
+      const jump = Math.hypot(after.x - before.x, after.z - before.z);
+      if (jump > worst) { worst = jump; worstAt = `${lane.street} vertex ${i}`; }
+    }
+  }
+  // 2 mm of sampling either side, so anything under a centimetre is the probe.
+  assert.ok(worst < 0.01, `a lane jumps ${worst.toFixed(3)} m at ${worstAt}`);
+});
+
 test("a lane pose advances along its own heading, both ways down a street", () => {
   for (const lane of DISTRICT_LANES) {
     const length = districtLaneLength(lane);

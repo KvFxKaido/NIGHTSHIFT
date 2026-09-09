@@ -165,8 +165,22 @@ street is an arterial and lanes run 3.4 m to 4.9 m.
 Offsets are signed positive to the right of a street's authored point order, and
 a lane's direction carries that sign — so a lane is always on the right of its
 own travel, whichever way the street was authored. `lanePose(points, lane, s)`
-measures `s` along the lane's own direction, so a follower only ever adds to its
+measures `s` in the lane's own direction, so a follower only ever adds to its
 odometer. Height comes from the district's graded surface, not from datum.
+
+`s` is arc length along the street's **centreline**, not along the offset lane.
+Round a bend an offset lane is longer or shorter than the line it is measured
+from — up to 2.7% on the district's longest curve, `ring-portal`. That is a
+constant scale on speed through a curve rather than an accumulating error, and
+it keeps the lanes of one street abreast at equal `s`; it is written down here
+because it is a real difference and traffic will inherit it.
+
+A lane is built as its own mitered polyline, not by offsetting a centreline
+sample sideways. Offsetting a sample uses whichever segment normal it happens to
+land on, which makes the lane jump at every authored vertex — measured at 2.79 m
+on the ring hotel bend, most of a lane width. A 5 m pose sweep steps straight
+over a discontinuity like that, so it has its own test either side of every
+corner.
 
 `laneMarkings(width)` is the only authority on where paint goes. The renderer
 maps kind to colour, width and dash pattern and nothing else; it does not decide
