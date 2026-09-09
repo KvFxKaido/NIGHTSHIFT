@@ -34,6 +34,19 @@ const DRIVING_GATE_STEERING_NEUTRAL = 0.1;
 // use button presses and a 0.65 axis threshold, kept working perfectly.
 // This governs only when the gate OPENS; delivered values are never filtered.
 const DRIVING_GATE_ANALOG_NEUTRAL = 0.12;
+// And a deadline, because every threshold above is a cliff a pad can rest on
+// the wrong side of. Raising the trigger tolerance from 0.01 to 0.12 fixed one
+// pad and moved the cliff; a stick resting at 0.15 or a trigger at 0.12 still
+// held the gate shut for the whole run, with the menus working perfectly on
+// their own 0.65 threshold so the pad looked alive and the car did not.
+//
+// The gate stops a menu press bleeding into driving. It is worth a few frames
+// and it is not worth a run, so it opens on neutral OR when it runs out of
+// samples, whichever comes first. Half a second at the fixed tick: the worst
+// case is one press carrying into the first metres, and no pad can be locked
+// out. Counted in samples rather than clock, because sample() is called once
+// per fixed tick and a wall clock here would make replays depend on frame rate.
+const DRIVING_GATE_MAX_SAMPLES = 30;
 
 function deadzone(value: number, threshold: number): number {
   if (Math.abs(value) <= threshold) return 0;
@@ -94,6 +107,7 @@ export function createInputController(): InputController {
   let previousMenuVertical: -1 | 0 | 1 = 0;
   let previousMenuHorizontal: -1 | 0 | 1 = 0;
   let drivingInputGated = true;
+  let drivingGateSamples = 0;
   const menuCommands: MenuCommand[] = [];
 
   addEventListener("keydown", (event) => {
@@ -173,7 +187,8 @@ export function createInputController(): InputController {
         nextInput.brake < DRIVING_GATE_ANALOG_NEUTRAL &&
         nextInput.handbrake < DRIVING_GATE_ANALOG_NEUTRAL &&
         Math.abs(nextInput.steer) < DRIVING_GATE_STEERING_NEUTRAL;
-      if (neutral) drivingInputGated = false;
+      drivingGateSamples++;
+      if (neutral || drivingGateSamples >= DRIVING_GATE_MAX_SAMPLES) drivingInputGated = false;
       return { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
     }
 
@@ -200,7 +215,7 @@ export function createInputController(): InputController {
     sample,
     cameraLook: () => mapCameraGamepad(gamepad),
     consumeMenuCommands: () => menuCommands.splice(0),
-    armDrivingInputGate: () => { drivingInputGated = true; },
+    armDrivingInputGate: () => { drivingInputGated = true; drivingGateSamples = 0; },
     isDrivingGated: () => drivingInputGated,
     consumeReset: () => consume("reset"),
     consumeCameraReset: () => consume("camera"),

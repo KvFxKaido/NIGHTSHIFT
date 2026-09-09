@@ -184,3 +184,57 @@ test("a resting trigger offset cannot jam the driving gate shut", () => {
     else Reflect.deleteProperty(globalThis, "addEventListener");
   }
 });
+
+// Every neutrality threshold is a cliff, and a pad can rest on the wrong side
+// of it. Raising the trigger tolerance from 0.01 to 0.12 fixed one controller
+// and moved the cliff: a stick resting at 0.15 maps to 0.105 steer, over the
+// 0.10 the gate wants, so the gate never opened and the car ignored the pad for
+// the whole run — while the menus, on their 0.65 threshold, worked perfectly.
+// Reproduced in the browser at a 0.20 rest: full throttle held, speed 0.00.
+test("no resting offset can hold the driving gate shut for a whole run", () => {
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalListener = Object.getOwnPropertyDescriptor(globalThis, "addEventListener");
+  // A worn stick and a sticky trigger: both rest past the gate's tolerance and
+  // neither will ever read neutral, however long the player waits.
+  let pad = gamepad([0.2], { 7: 0.18 });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { getGamepads: () => [{ ...pad, connected: true, mapping: "standard" }] },
+  });
+  Object.defineProperty(globalThis, "addEventListener", { configurable: true, value: () => {} });
+  try {
+    const controller = createInputController();
+    controller.update();
+    controller.armDrivingInputGate();
+    assert.equal(controller.isDrivingGated(), true, "a pad past tolerance is gated at first");
+
+    // One second of a fixed 60 Hz tick. The gate is worth a few frames, not a run.
+    let opened = -1;
+    for (let sample = 0; sample < 60; sample++) {
+      controller.update();
+      controller.sample();
+      if (!controller.isDrivingGated()) { opened = sample; break; }
+    }
+    assert.ok(opened >= 0, "the gate never opened: this pad can never drive");
+    assert.ok(opened < 40, `the gate held for ${opened} samples, most of a second`);
+
+    // And once open it delivers the pad, unfiltered, offsets and all.
+    controller.update();
+    const delivered = controller.sample();
+    assert.equal(delivered.throttle, 0.18);
+    assert.equal(delivered.steer, mapGamepad(pad).steer);
+
+    // A genuinely released pad still opens the gate at once rather than waiting
+    // out the deadline — the fast path has to stay the common one.
+    controller.armDrivingInputGate();
+    pad = gamepad([0]);
+    controller.update();
+    controller.sample();
+    assert.equal(controller.isDrivingGated(), false, "a released pad opens the gate immediately");
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else Reflect.deleteProperty(globalThis, "navigator");
+    if (originalListener) Object.defineProperty(globalThis, "addEventListener", originalListener);
+    else Reflect.deleteProperty(globalThis, "addEventListener");
+  }
+});
