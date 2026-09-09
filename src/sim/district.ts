@@ -1124,7 +1124,10 @@ function buildTrafficNetwork(): TrafficNetwork {
   // Which stretches of which lanes each movement's swept path crosses. Sampling
   // the lanes against the boxes is the same question the conflict pass asks,
   // put to stationary vehicles instead of to other movements.
-  const SWEEP_STEP = 2;
+  // Sampled at 4 m, not 2: a span this pass exists to find is a *vehicle*
+  // standing in a movement's path, and the shortest vehicle is 4.4 m long, so
+  // no occupied span can hide between samples. Halves the hottest loop.
+  const SWEEP_STEP = 4;
   // Lane extents, so a movement only samples the lanes it could possibly reach.
   // Without this the pass walks every lane end to end for every movement — 209
   // million box tests, and most of a 26-second module import.
@@ -1165,7 +1168,10 @@ function buildTrafficNetwork(): TrafficNetwork {
         else spans.set(lane, { from: distance, to: distance });
       }
     }
-    return [...spans].map(([lane, span]) => ({ lane, from: span.from, to: span.to }));
+    // Widened by the sample step at each end, so the recorded span provably
+    // contains the true one rather than the samples that happened to land in it.
+    return [...spans].map(([lane, span]) => ({
+      lane, from: span.from - SWEEP_STEP, to: span.to + SWEEP_STEP }));
   });
 
   const trafficLanes: TrafficLane[] = entries.map((_, id) => ({
