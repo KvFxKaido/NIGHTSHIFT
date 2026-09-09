@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import type { CameraLook } from "../input/input.ts";
 import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
+import type { TrafficState } from "../sim/traffic.ts";
 import type { DistrictRoute } from "../sim/district.ts";
 import { addDistrict, SKY_NAME } from "./district.ts";
+import { addTraffic, updateTraffic, type TrafficView } from "./traffic.ts";
 import { BLACKGLASS_WORLD, type RoadWorld } from "../sim/road-world.ts";
 import {
   createCameraOrbitState,
@@ -34,6 +36,8 @@ export interface View extends CarView {
   rival: CarView | null;
   /** The district's sky dome, which follows the camera. Null off the district. */
   sky: THREE.Object3D | null;
+  /** Traffic instances, or null in a world with none. */
+  traffic: TrafficView | null;
 }
 
 /**
@@ -66,7 +70,8 @@ export type DistrictLighting = "night" | "blockout";
 
 export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null,
   districtRoute: DistrictRoute | null = null, roadWorld: RoadWorld = BLACKGLASS_WORLD,
-  district = districtRoute !== null, lighting: DistrictLighting = "night"): View {
+  district = districtRoute !== null, lighting: DistrictLighting = "night",
+  traffic: TrafficState | null = null): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -143,6 +148,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     mode: "track",
     course,
     sky: scene.getObjectByName(SKY_NAME) ?? null,
+    traffic: traffic ? addTraffic(scene, traffic) : null,
   };
 
   const resize = () => {
@@ -244,6 +250,9 @@ export function render(
   const car = state.vehicle;
   if (view.course) updateCourseLighting(view.course, car);
   if (view.sky) view.sky.position.set(car.x, 0, car.z);
+  // Traffic is drawn from the state the tick left behind, never interpolated or
+  // guessed at: the renderer still only draws what a tick decided.
+  if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
   placeCar(view, car);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);

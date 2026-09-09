@@ -21,7 +21,12 @@ export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) =>
     const area = Math.abs((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
     return area < 1e-6 ? Infinity : ab * bc * ac / (2 * area);
   };
-  const sim = createSim("fwd", createDistrictWorld(route));
+  // No traffic. This driver is a geometry check — road surface, grades, corner
+  // envelopes and barriers — and it drives a fixed line at the speed the corner
+  // allows. Leaving traffic in would make it a test of whether a van happened to
+  // be there, and it would fail on any route where one was. Traffic has its own
+  // tests in tests/traffic.test.ts.
+  const sim = createSim("fwd", createDistrictWorld(route), { traffic: false });
   let previous = 0, contactTicks = 0, maxOffset = 0, maxHeightStep = 0;
   let previousY = sim.state.vehicle.y;
   // The cap exists to catch a driver that is stuck, not to impose a lap time,

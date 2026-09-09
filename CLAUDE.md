@@ -128,6 +128,19 @@ and `laneMarkings` is the single authority on where a divider or an edge line
 goes. `districtLanePose` binds it to the district's graded surface. Lanes are
 district-only so far; `RoadWorld` does not carry them and Blackglass has none.
 Nothing drives the lanes yet — traffic (GDD §12) is unimplemented.
+`src/sim/traffic.ts` drives those lanes: about two dozen vehicles over the
+district (GDD §12 asks for sparse, not dense), deterministic via an integer hash
+— never the renderer's `Math.sin`-based `hash01`, whose last bits are not
+specified across engines. Conflicts are reserved, not avoided: every crossing is
+computed offline from lane geometry, which is only possible because the district
+guarantees carriageways overlap only at junctions. The invariant is that nothing
+is inside a junction without holding it, enforced by a hard stop on the entry
+line. Traffic is kinematic — an immovable hazard, never a second handling model.
+Capacity is the known limit: clean at 24 vehicles, deadlocked at 27, because a
+vehicle holds a whole crossing rather than a time window; raising it means
+per-conflict-point arrival windows. `createSim(..., { traffic: false })` turns it
+off, which the district reference drivers use because they are geometry checks.
+`src/render/traffic.ts` draws it as instanced bodies and lamps, eight draw calls.
 The district is dressed for night by default (GDD §15.1): lane paint dropped
 onto the graded surface, sodium lamps with additive light pools, lit facades and
 shopfront glass, neon signage, wet asphalt and a camera-following sky dome. All

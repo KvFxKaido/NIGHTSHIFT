@@ -248,6 +248,60 @@ Not yet: lanes are district-only. `RoadWorld` does not expose them and the
 Blackglass circuit has none, so anything built on lanes works in the district
 only until that is addressed. Nothing drives them — there is no traffic.
 
+## Traffic
+
+`src/sim/traffic.ts` drives the lane model. Sparse by design (GDD §12): about
+two dozen vehicles over 9 km, in four kinds, all slower than the player.
+
+**Reservation, not avoidance.** Every place two vehicles can collide is a
+junction — that is what the carriageway-overlap gate above buys — so the whole
+conflict set is computed offline from lane geometry and a vehicle asks
+permission to cross rather than watching for trouble. Two movements conflict
+when the box a worst-case vehicle sweeps along one could touch the box swept
+along the other. Asked as a distance between centrelines the question has no
+answer: opposing lanes in an alley run 3.75 m apart and must not conflict, while
+two paths crossing at an angle collide from 4.5 m apart, because a 7.2 m lorry
+sweeps far wider than the line it drives.
+
+The invariant everything rests on is that **no vehicle is ever inside a junction
+without holding it**, and it is enforced rather than hoped for: a vehicle with no
+claim stops on the entry line. Claims are taken when granted, not at the line,
+because granting at the line needs an escape for vehicles already too close to
+stop — and that escape has to ignore whatever is in the junction, which is how
+you drive into it.
+
+Where the lane between two junctions is shorter than the junction regions either
+side, both are reserved together. Otherwise a vehicle strands between them
+holding one, the vehicle ahead of it waits on exactly that one, and neither can
+move; that deadlock was measured before the chain existed.
+
+### What it does not do, and the numbers
+
+Occupancy is per movement, not per time window. A vehicle holds its whole
+crossing rather than the moment it passes each conflict point, so junctions
+serialise more than they need to. That sets a hard capacity: **clean at 24
+vehicles, deadlocked at 27.** Measured over five simulated minutes:
+
+| vehicles | overlaps | mean speed | longest stop |
+| --- | --- | --- | --- |
+| 20 | 1 (0.05 m graze) | 11.6 m/s | 7 s |
+| **24** | **0** | **13.5 m/s** | **16 s** |
+| 27 | 0 | 7.9 m/s | 197 s — deadlocked |
+| 85 | 0 | 3.0 m/s | 268 s — gridlocked |
+
+Raising that ceiling means reserving conflict points with arrival windows
+instead of reserving movements. A positional check was tried as a shortcut and
+is wrong: a grant is decided while the vehicle is still 34 m short of the line
+and the crossing happens seconds later, which let 141 pairs into the same
+crossing in five minutes.
+
+Conflict paths are sampled every 3 m, so a grazing crossing can be missed by a
+few centimetres of bodywork — one such graze at a different density, 0.05 m.
+Traffic is kinematic: it is an immovable hazard, not a second handling model,
+which keeps the player's contact response the only dynamics in the tick. The
+district reference drivers run with traffic off, because they are geometry
+checks driving a fixed line and a van in the way is not what they measure.
+
 ## Presentation
 
 The district is now dressed for night by default (GDD §15.1): sodium lamps and
