@@ -149,6 +149,70 @@ It captures desktop/mobile screenshots. Staged junction poses are visual QA,
 not driven-lap evidence. Physical controller feel and mobile GPU performance
 still need human/device playtesting.
 
+## Lanes
+
+`src/sim/lanes.ts` is the district's lane model, and it is deliberately in the
+simulation rather than the renderer: lanes are world geometry, like walls and
+surface height, and three different consumers will want the same answer — the
+paint today, traffic (GDD §12) next, rivals (§11) after that.
+
+Two lanes each direction on every street. The count is fixed and the lane width
+breathes with the carriageway instead of the other way round: at a real 3.6 m
+lane, a 16 m street gets one lane and an 18 m street gets two, which puts a lane
+drop in the middle of the ring that no driver could read a reason for. Here every
+street is an arterial and lanes run 3.4 m to 4.9 m.
+
+Offsets are signed positive to the right of a street's authored point order, and
+a lane's direction carries that sign — so a lane is always on the right of its
+own travel, whichever way the street was authored. `lanePose(points, lane, s)`
+measures `s` in the lane's own direction, so a follower only ever adds to its
+odometer. Height comes from the district's graded surface, not from datum.
+
+`s` is arc length along the street's **centreline**, not along the offset lane.
+Round a bend an offset lane is longer or shorter than the line it is measured
+from — up to 2.7% on the district's longest curve, `ring-portal`. That is a
+constant scale on speed through a curve rather than an accumulating error, and
+it keeps the lanes of one street abreast at equal `s`; it is written down here
+because it is a real difference and traffic will inherit it.
+
+A lane is built as its own mitered polyline, not by offsetting a centreline
+sample sideways. Offsetting a sample uses whichever segment normal it happens to
+land on, which makes the lane jump at every authored vertex — measured at 2.79 m
+on the ring hotel bend, most of a lane width. A 5 m pose sweep steps straight
+over a discontinuity like that, so it has its own test either side of every
+corner.
+
+`laneMarkings(width)` is the only authority on where paint goes. The renderer
+maps kind to colour, width and dash pattern and nothing else; it does not decide
+where a divider sits. Before this existed the renderer painted lanes at
+`width * 0.25`, which was a second opinion waiting to disagree with traffic.
+
+Not yet: lanes are district-only. `RoadWorld` does not expose them and the
+Blackglass circuit has none, so anything built on lanes works in the district
+only until that is addressed. Nothing drives them — there is no traffic.
+
+## Presentation
+
+The district is now dressed for night by default (GDD §15.1): sodium lamps and
+their light pools, lane paint, lit facades, shopfront glass, neon signage and a
+sky dome carrying the city's horizon glow. `?lighting=blockout` restores the flat
+work view — grey massing, matte asphalt, no dressing at all — because neon hides
+exactly the surface errors that view exists to find.
+
+This runs ahead of step 5 below, which says to dress only the road sections that
+survive a timed event. That ordering was written to stop hand-authored art being
+thrown away when a junction moves. It does not apply here: every piece of the
+dressing is generated from `DISTRICT_STREETS`, `DISTRICT_BLOCKS` and
+`DISTRICT_JUNCTIONS` at load, so moving a street re-dresses it for free and
+nothing is lost. Hand-authored art still waits for step 5.
+
+What the dressing is not: there is no traffic (GDD §12 — a sim feature, not a
+renderer one), no post-processing bloom, no reflections, no wet-road normal map,
+and no interior detail. The glow is additive quads and emissive surfaces, and
+the lamps are geometry rather than lights, so the light count is unchanged.
+Desktop screenshots do not certify mobile GPU performance; the dressing costs
+roughly ten draw calls and around 60k triangles over the blockout.
+
 ## What to decide before more art
 
 1. Drive Market Loop first. Is the civic turn readable early enough?

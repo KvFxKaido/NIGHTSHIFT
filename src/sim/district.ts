@@ -1,5 +1,11 @@
 import { COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
+import { lanes, lanePose, pathLength, type Lane, type LanePose } from "./lanes.ts";
+
+/** The lane model is world geometry, so it is part of the district's public
+ *  surface rather than something each consumer re-derives. */
+export * from "./lanes.ts";
+
 
 // Fixed, authored metres. This is an offline blockout, not runtime-random roads.
 // The existing perimeter is referenced verbatim; never restamp the Blender asset.
@@ -246,11 +252,6 @@ export function routePoints(route: DistrictRoute): CoursePoint[] {
   });
 }
 
-export function pathLength(points: readonly CoursePoint[]): number {
-  return points.slice(1).reduce((sum, point, i) => sum +
-    Math.hypot(point.x - points[i]!.x, point.z - points[i]!.z), 0);
-}
-
 /** Local rival diagnostics: sprint gaps never wrap across the finish. */
 export function districtRouteGap(route: DistrictRoute, fromX: number, fromZ: number, toX: number, toZ: number): number {
   const points = routePoints(route);
@@ -450,3 +451,39 @@ export const DISTRICT_BLOCKS: readonly { x: number; z: number; width: number; de
       const road = projectOntoPath(street.points, block.x, block.z);
       return road.distance > road.width / 2 + Math.hypot(block.width, block.depth) / 2 + 7;
     }));
+
+/** A lane of a named district street. Traffic and rivals address lanes by id
+ *  rather than by object, because a street is data and an id survives a reload
+ *  (and, one day, a saved ghost) in a way an object reference does not. */
+export interface DistrictLane extends Lane {
+  readonly street: string;
+}
+
+export function districtLanes(streetId: string): DistrictLane[] {
+  return lanes().map(lane => ({ ...lane, street: streetId }));
+}
+
+/** Every lane in the district, in street order. */
+export const DISTRICT_LANES: readonly DistrictLane[] =
+  DISTRICT_STREETS.flatMap(street => districtLanes(street.id));
+
+function streetOf(id: string): Street {
+  const street = DISTRICT_STREETS.find(candidate => candidate.id === id);
+  if (!street) throw new RangeError(`Unknown street '${id}'`);
+  return street;
+}
+
+/** How far a lane runs, in metres. */
+export function districtLaneLength(lane: DistrictLane): number {
+  return pathLength(streetOf(lane.street).points);
+}
+
+/**
+ * Where a district lane is, `distance` metres along its own direction of
+ * travel. The height comes from the district's own graded surface, so a lane
+ * follows an apron rather than cutting through it.
+ */
+export function districtLanePose(lane: DistrictLane, distance: number): LanePose {
+  return lanePose(streetOf(lane.street).points, lane, distance,
+    (x, z) => projectOntoDistrict(x, z).height);
+}

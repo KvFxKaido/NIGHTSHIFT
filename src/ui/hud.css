@@ -1,0 +1,92 @@
+/* The driving cluster. Embedded in the scene rather than a dashboard bolted on
+   top of it (GDD §15.2): a dark disc, one accent colour, and nothing that moves
+   unless the car does. */
+
+#cluster {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  width: 172px;
+  height: 172px;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 22px rgba(0, 0, 0, .75));
+}
+
+#gauge { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.gauge-shell { fill: rgba(4, 8, 14, .62); stroke: rgba(255, 255, 255, .07); stroke-width: 1; }
+.gauge-track, .gauge-sweep {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: butt;
+  transform: rotate(130deg);
+  transform-origin: 100px 100px;
+}
+.gauge-track { stroke: rgba(140, 175, 200, .16); }
+.gauge-sweep {
+  stroke: #59d8ff;
+  filter: drop-shadow(0 0 6px rgba(89, 216, 255, .85));
+  transition: stroke 160ms linear;
+}
+.gauge-sweep.redline { stroke: #ff3158; filter: drop-shadow(0 0 8px rgba(255, 49, 88, .9)); }
+.gauge-tick { stroke: rgba(190, 220, 235, .28); stroke-width: 2; }
+.gauge-tick.major { stroke: rgba(210, 235, 245, .55); stroke-width: 2.6; }
+
+#cluster-readout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1px;
+}
+#speed {
+  font-size: 46px;
+  font-weight: 900;
+  line-height: .84;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+#unit { color: rgba(242, 238, 227, .5); font: 9px/1 ui-monospace, monospace; letter-spacing: .22em; }
+#gear {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 20px;
+  color: #ff3158;
+  font-size: 21px;
+  font-weight: 900;
+  text-align: center;
+}
+
+#minimap-frame {
+  position: fixed;
+  left: 24px;
+  bottom: 20px;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(89, 216, 255, .34);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .7), inset 0 0 22px rgba(6, 22, 32, .8);
+}
+#minimap { display: block; width: 100%; height: 100%; border-radius: 50%; }
+/* The forward marker: the map is heading-up, so the notch at the top is where
+   the car is pointing, and there is no compass rose to misread. */
+#minimap-heading {
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: rgba(89, 216, 255, .85);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 640px) {
+  #cluster { width: 124px; height: 124px; right: 14px; bottom: 14px; }
+  #speed { font-size: 32px; }
+  #gear { right: 8px; font-size: 15px; }
+  #minimap-frame { width: 116px; height: 116px; left: 14px; bottom: 14px; }
+}

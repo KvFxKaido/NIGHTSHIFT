@@ -111,6 +111,30 @@ apart from `walls` because a wall is 1.3 m of guard rail and renders as one. `Ro
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.
+`src/sim/lanes.ts` owns the lane model: two lanes each way whose width breathes
+with the carriageway (16-22 m here), signed so every lane sits on the right of
+its own direction of travel, plus arc-length sampling and `lanePose` — what a
+traffic follower or a rival needs to sit in a lane. A lane is its own mitered
+polyline; do not go back to offsetting a centreline sample sideways, which jumps
+up to 2.79 m at an authored vertex. `lanePose`'s distance is centreline arc
+length in the lane's direction, not the offset lane's own length, which differs
+by up to 2.7% round a bend. It is world geometry, so it
+lives in the sim; the renderer paints those lanes rather than deriving its own,
+and `laneMarkings` is the single authority on where a divider or an edge line
+goes. `districtLanePose` binds it to the district's graded surface. Lanes are
+district-only so far; `RoadWorld` does not carry them and Blackglass has none.
+Nothing drives the lanes yet — traffic (GDD §12) is unimplemented.
+The district is dressed for night by default (GDD §15.1): lane paint dropped
+onto the graded surface, sodium lamps with additive light pools, lit facades and
+shopfront glass, neon signage, wet asphalt and a camera-following sky dome. All
+of it is generated from the street/block/junction data, is deterministic
+(`hash01`, never `Math.random`), and merges into a handful of meshes rather than
+adding lights. `?lighting=blockout` restores the flat work view with no dressing
+at all, because neon hides the surface errors that view exists to find. There is
+no traffic, no bloom pass and no reflections. Baseline Blackglass presentation is
+untouched. `src/ui/hud.ts` draws the speed dial and the heading-up minimap from
+`src/ui/hud-state.ts`; the map reads street data, never the renderer, and the
+cluster binds to ids that `tests/hud.test.ts` checks against `index.html`.
 Changing route reloads and loses session replay, not saved preferences.
 Never use the original `courseGap` for district guides; `districtRouteGap`
 wraps circuits and keeps sprint gaps linear. Debug links carry world/route
