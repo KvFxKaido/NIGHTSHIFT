@@ -484,6 +484,14 @@ export const DISTRICT_STREETS: readonly Street[] = [
   ...avenue("wharf-cross", "Crane Street", "collector", ["wharf-mid", [222, -304], "north-east"]),
   ...avenue("quayside-road", "Quayside Road", "collector", ["quayside", [-222, 170], "lower-south"]),
   ...avenue("quarter-link", "Quarter Rise", "local", ["north-west", [-282, -318], "quarter-north"]),
+
+  // --- Northgate's missing south arm. Everything from the north-west entered
+  // --- the core through Marquee North and nowhere else: north-2, ring-boulevard
+  // --- and market-east each carried 54-78 journeys with no alternative. Scored
+  // --- before it was drawn — of every candidate link, this one moved the
+  // --- numbers most (31% -> 36% of journeys with a real alternative, median
+  // --- detour 45% -> 37%) and it is the shortest, all inland, no crossing.
+  ...avenue("northgate", "Northgate Street", "collector", ["north-mid", [-18, -268], "boulevard"]),
 ];
 
 export const DISTRICT_ROUTES: readonly DistrictRoute[] = [

@@ -124,7 +124,11 @@ rejecting, and walks a face's whole perimeter carrying the stride across
 vertices — restarting per 4 m vertex generated no candidates at all on ten of
 eighteen faces and left the outer two thirds of the district unbuilt.
 `pnpm district:critique` is the measuring stick that found that; run it before
-and after any layout change. `groundHeight` is the drawn ground — `outerTerrain`'s shape
+and after any layout change, and score a candidate link with
+`--try=from,to,metres` before drawing it — Northgate Street was chosen that way,
+and no single link moves route choice more than a few points, so do not expect
+one to. The south bank's 1065 m run with no decision is the brief's river
+barrier, not a bug, until Shawn says otherwise. `groundHeight` is the drawn ground — `outerTerrain`'s shape
 clamped below the roads — and the terrain mesh, verges, river and lineside all
 read it so they sit on one surface. `outerTerrain` conforms only to the ORIGINAL
 loop, which left ground drawn over 39% of road samples; it cannot be fixed

@@ -21,6 +21,20 @@ import {
 import { pathLength, pathSamples } from "../src/sim/lanes.ts";
 
 const asJson = process.argv.includes("--json");
+/** `--try=from,to,metres`, repeatable: a hypothetical link between two existing
+ *  junction ids, scored before anyone authors a curve. Northgate Street was
+ *  chosen this way. Expect single links to move route choice by a few points,
+ *  not to reach a target on their own. */
+const tries = process.argv.filter(a => a.startsWith("--try=")).map(a => {
+  const [from, to, metres] = a.slice(6).split(",");
+  if (!from || !to || !metres || !Number.isFinite(Number(metres))) {
+    throw new Error(`--try wants from,to,metres — got '${a.slice(6)}'`);
+  }
+  for (const id of [from, to]) {
+    if (!DISTRICT_JUNCTIONS.some(j => j.id === id)) throw new Error(`--try: unknown junction '${id}'`);
+  }
+  return { from, to, metres: Number(metres) };
+});
 
 // ---------------------------------------------------------------------------
 // Zones. Not the street families — those are how the map was typed, and two
@@ -131,19 +145,28 @@ function shapeOf(streets: readonly Street[]): Shape {
 interface Edge { a: string; b: string; cost: number; id: string }
 const rawEdges: Edge[] = DISTRICT_STREETS.map(s =>
   ({ a: s.from, b: s.to, cost: pathLength(s.points), id: s.id }));
-const nodes = [...new Set(rawEdges.flatMap(e => [e.a, e.b]))];
 
-const degree = new Map<string, number>();
-for (const e of rawEdges) for (const n of [e.a, e.b]) degree.set(n, (degree.get(n) ?? 0) + 1);
-const choicePoints = nodes.filter(n => (degree.get(n) ?? 0) >= 3);
+/**
+ * Everything the report says about topology, computed from one street graph.
+ * Parameterised so `--try` can score a hypothetical link with exactly the same
+ * arithmetic the baseline used — two copies of this would drift.
+ *
+ * Degree-2 nodes are not decisions, they are two streets meeting in a line, so
+ * the graph is contracted onto real choice points before anything is measured
+ * about how often you get to choose.
+ */
+function measureGraph(raw: readonly Edge[]) {
+  const nodes = [...new Set(raw.flatMap(e => [e.a, e.b]))];
+  const degree = new Map<string, number>();
+  for (const e of raw) for (const n of [e.a, e.b]) degree.set(n, (degree.get(n) ?? 0) + 1);
+  const choicePoints = nodes.filter(n => (degree.get(n) ?? 0) >= 3);
 
-/** Contract chains through degree-2 nodes; the result's edges are the runs
- *  between one decision and the next. */
-function contracted(): Edge[] {
-  const out: Edge[] = [];
+  // Contract chains through degree-2 nodes; each result is the run between one
+  // decision and the next.
+  const edges: Edge[] = [];
   const used = new Set<string>();
   for (const start of choicePoints) {
-    for (const first of rawEdges.filter(e => e.a === start || e.b === start)) {
+    for (const first of raw.filter(e => e.a === start || e.b === start)) {
       if (used.has(first.id)) continue;
       let cost = 0, at = start, edge: Edge | undefined = first;
       const chain: string[] = [];
@@ -152,53 +175,44 @@ function contracted(): Edge[] {
         cost += edge.cost;
         at = edge.a === at ? edge.b : edge.a;
         if ((degree.get(at) ?? 0) !== 2) break;
-        edge = rawEdges.find(e => !chain.includes(e.id) && (e.a === at || e.b === at));
+        edge = raw.find(e => !chain.includes(e.id) && (e.a === at || e.b === at));
       }
       for (const id of chain) used.add(id);
-      out.push({ a: start, b: at, cost, id: chain.join("+") });
+      edges.push({ a: start, b: at, cost, id: chain.join("+") });
     }
   }
-  return out;
-}
-const edges = contracted();
 
-/** Dijkstra returning cost and the edges taken, with an optional banned edge. */
-function route(from: string, to: string, banned?: string): { cost: number; via: string[] } {
-  const dist = new Map(nodes.map(n => [n, Infinity]));
-  const prev = new Map<string, Edge>();
-  dist.set(from, 0);
-  const seen = new Set<string>();
-  for (;;) {
-    let best: string | null = null;
-    for (const n of nodes) if (!seen.has(n) && dist.get(n)! < (best === null ? Infinity : dist.get(best)!)) best = n;
-    if (best === null || dist.get(best) === Infinity) break;
-    if (best === to) break;
-    seen.add(best);
-    for (const e of edges) {
-      if (e.id === banned) continue;
-      const other = e.a === best ? e.b : e.b === best ? e.a : null;
-      if (other === null) continue;
-      const cost = dist.get(best)! + e.cost;
-      if (cost < dist.get(other)!) { dist.set(other, cost); prev.set(other, e); }
+  /** Dijkstra with the edges taken, and an optional banned edge. */
+  const route = (from: string, to: string, banned?: string): { cost: number; via: string[] } => {
+    const dist = new Map(nodes.map(n => [n, Infinity]));
+    const prev = new Map<string, Edge>();
+    dist.set(from, 0);
+    const seen = new Set<string>();
+    for (;;) {
+      let best: string | null = null;
+      for (const n of nodes) if (!seen.has(n) && dist.get(n)! < (best === null ? Infinity : dist.get(best)!)) best = n;
+      if (best === null || dist.get(best) === Infinity || best === to) break;
+      seen.add(best);
+      for (const e of edges) {
+        if (e.id === banned) continue;
+        const other = e.a === best ? e.b : e.b === best ? e.a : null;
+        if (other === null) continue;
+        const cost = dist.get(best)! + e.cost;
+        if (cost < dist.get(other)!) { dist.set(other, cost); prev.set(other, e); }
+      }
     }
-  }
-  const via: string[] = [];
-  for (let at = to; prev.has(at);) {
-    const e = prev.get(at)!;
-    via.push(e.id);
-    at = e.a === at ? e.b : e.a;
-  }
-  return { cost: dist.get(to)!, via };
-}
+    const via: string[] = [];
+    for (let at = to; prev.has(at);) {
+      const e = prev.get(at)!;
+      via.push(e.id);
+      at = e.a === at ? e.b : e.a;
+    }
+    return { cost: dist.get(to)!, via };
+  };
 
-/**
- * Route choice, which is the measurable form of "does learning the city matter".
- *
- * For each journey, close the single most important street on its best route and
- * see what the detour costs. If the answer is always "a lot", there is one way
- * to go and nothing to learn; if it is always "nothing", the map is soup.
- */
-function routeChoice() {
+  // Route choice, the measurable form of "does learning the city matter": for
+  // each journey, close the single most important street on its best route and
+  // see what the detour costs. Only streets on the best route can matter.
   const penalties: number[] = [];
   let stranded = 0;
   for (let i = 0; i < choicePoints.length; i++) {
@@ -206,18 +220,19 @@ function routeChoice() {
       const base = route(choicePoints[i]!, choicePoints[j]!);
       if (!isFinite(base.cost) || base.cost < 200) continue;
       let worst = base.cost;
-      // Only the streets on the best route can matter; banning the rest is work
-      // that cannot change the answer.
-      for (const id of base.via) {
-        const alt = route(choicePoints[i]!, choicePoints[j]!, id);
-        worst = Math.max(worst, alt.cost);
-      }
+      for (const id of base.via) worst = Math.max(worst, route(choicePoints[i]!, choicePoints[j]!, id).cost);
       if (!isFinite(worst)) { stranded++; continue; }
       penalties.push((worst - base.cost) / base.cost);
     }
   }
   penalties.sort((a, b) => a - b);
-  return { penalties, stranded };
+  const runs = edges.map(e => e.cost).sort((a, b) => a - b);
+  return {
+    choicePoints: choicePoints.length,
+    passThroughs: nodes.length - choicePoints.length,
+    deadEnds: nodes.filter(n => degree.get(n) === 1).length,
+    runs, penalties, stranded,
+  };
 }
 
 /** The shallowest angle any two streets meet at, per junction. A pair leaving
@@ -260,8 +275,9 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
 const total = DISTRICT_STREETS.reduce((sum, s) => sum + pathLength(s.points), 0);
 const whole = shapeOf(DISTRICT_STREETS);
-const runs = edges.map(e => e.cost).sort((a, b) => a - b);
-const choice = routeChoice();
+const G = measureGraph(rawEdges);
+const runs = G.runs;
+const choice = { penalties: G.penalties, stranded: G.stranded };
 const angles = junctionAngles();
 
 /** Each building belongs to the street it fronts. Counting it in every zone
@@ -339,8 +355,7 @@ const built = massing();
 
 const report = {
   size: { km: total / 1000, streets: DISTRICT_STREETS.length, junctions: DISTRICT_JUNCTIONS.length,
-    choicePoints: choicePoints.length, passThroughs: nodes.length - choicePoints.length,
-    deadEnds: nodes.filter(n => degree.get(n) === 1).length },
+    choicePoints: G.choicePoints, passThroughs: G.passThroughs, deadEnds: G.deadEnds },
   decisions: { runs: runs.length, shortest: runs[0], median: quantile(runs, 0.5), longest: runs[runs.length - 1] },
   choice: { journeys: choice.penalties.length, stranded: choice.stranded,
     withAlternative: choice.penalties.filter(p => p < 0.25).length,
@@ -352,6 +367,11 @@ const report = {
   junctions: { shallowest: angles.slice(0, 5), under30: angles.filter(a => a.shallowest < 30).length },
   massing: built,
   zones,
+  tries: tries.map(t => {
+    const g = measureGraph([...rawEdges, { a: t.from, b: t.to, cost: t.metres, id: `try:${t.from}-${t.to}` }]);
+    return { ...t, withAlternative: g.penalties.filter(p => p < 0.25).length / g.penalties.length,
+      median: quantile(g.penalties, 0.5), choicePoints: g.choicePoints, longest: g.runs[g.runs.length - 1]! };
+  }),
 };
 
 if (asJson) {
@@ -414,6 +434,17 @@ if (asJson) {
       `${pct(z.tight).padStart(7)}${pct(z.climbing).padStart(7)}${z.sightline.toFixed(0).padStart(7)}` +
       `${z.medianWidth.toFixed(0).padStart(7)}${String(z.blocks).padStart(8)}${z.medianHeight.toFixed(0).padStart(8)}`);
   }
+  if (report.tries.length) {
+    console.log("\nWHAT IF   (a hypothetical link, scored with the same arithmetic as above)");
+    console.log(`    ${"link".padEnd(40)}${"alt".padStart(6)}${"detour".padStart(8)}${"choice".padStart(8)}${"longest".padStart(10)}`);
+    console.log(`    ${"baseline".padEnd(40)}${pct(report.choice.withAlternative / report.choice.journeys).padStart(6)}` +
+      `${pct(report.choice.median).padStart(8)}${String(report.size.choicePoints).padStart(8)}${(report.decisions.longest!.toFixed(0) + " m").padStart(10)}`);
+    for (const t of report.tries) {
+      console.log(`    ${`${t.from} -> ${t.to} (${t.metres} m)`.padEnd(40)}${pct(t.withAlternative).padStart(6)}` +
+        `${pct(t.median).padStart(8)}${String(t.choicePoints).padStart(8)}${(t.longest.toFixed(0) + " m").padStart(10)}`);
+    }
+  }
+
   console.log(`\n${"=".repeat(78)}`);
   console.log("Targets are proposals, not gates. Nothing here fails a build.\n");
 }

@@ -30,7 +30,7 @@ remains the default at `/`, with its original road, physics and lighting.
 
 ## Layout
 
-The district covers **933 x 867 m** with **9.09 km of unique streets across 52
+The district covers **933 x 867 m** with **9.26 km of unique streets across 53
 edges and 35 junctions**, including the existing 1.73 km plan-view perimeter.
 Road density is 11.2 km/km², which is honest urban density rather than a large
 open world; GDD §21 still rules that out.
@@ -100,7 +100,7 @@ setback on an arterial, which is why massing used to float mid-face.
 
 Depth is tried deepest-first and falls back, because a narrow face cannot host a
 deep building once the setback clears the carriageway and a shallow terrace is
-what actually gets built on one. 17 of 18 faces carry 320 buildings; the one
+what actually gets built on one. 18 of 19 faces carry 321 buildings; the one
 left bare is a 57 m sliver on the far bank between Dock Road and Quay Frontage,
 where two carriageway halves and two industrial pavements leave no depth for
 even the shallowest building — a yard, not a void.
@@ -442,3 +442,46 @@ question about grade the ground does not ask.
 A spatial index over street segments would take most of that 53 µs back, and
 would also cut the traffic network build, which is dominated by the same query.
 That is the open item, not more terrain work.
+
+## Connectivity is scored before it is drawn
+
+"Enough that learning the city matters without turning the street graph into
+spaghetti" is measurable: close the single most important street on a journey's
+best route and see what the detour costs. If it always costs a lot there is one
+way to go and nothing to learn; if it never costs anything the map is soup.
+
+`pnpm district:critique` reports it. At 52 streets, **31%** of journeys between
+choice points had a genuine alternative (losing any one street costs under 25%)
+and the median detour was **45%**. The chokepoints were not where the map
+looked thin. The Wharf Bridge carried the most and hurt the most when closed,
+but that is the brief working — a river with few crossings. The accidental ones
+were a cluster: `north-2`, `ring-boulevard` and `market-east` each carried
+54-78 journeys with no alternative, because Northgate had **no street heading
+south** and everything from the north-west entered the core through Marquee
+North and nowhere else.
+
+Candidate links are scored with `--try` before anyone authors a curve:
+
+| link | alt | median detour | longest run |
+| --- | --- | --- | --- |
+| baseline | 31% | 45% | 1065 m |
+| Northgate → Boulevard Junction | 36% | 37% | 1065 m |
+| Northgate → Civic Junction | 36% | 40% | 1065 m |
+| South Bank → South Wharf, riverside | 32% | 45% | **644 m** |
+| Lower West → Quarter South | 33% | 41% | 1065 m |
+| West Crossing → Hillcrest | 34% | 41% | 1065 m |
+
+**Northgate Street** is the first, and drawn it did slightly better than scored:
+**37%** and **37%**, under the 40% detour target, plus a nineteenth face for
+massing to fill. It is a ~300 m sweeper rather than another straight, dropping
+6 m over 190 m entirely inland, and Boulevard Junction's fourth arm arrives at
+roughly 60 degrees to the ring — no shallow fork.
+
+Two honest notes. No single link gets near 50%: the network is tree-like enough
+that each one buys two to five points, so the target takes several, and it may
+be the wrong target for a district whose brief includes a river barrier and a
+hill. And the 1065 m run with no decision is the entire south bank, Container
+Quay to Millgate — that is the cost of "reachable only over the water". A
+riverside lane is the only candidate that touches it and it barely moves
+choice. Whether that corridor is scenery or a defect is a design call, not a
+measurement, and it is open.
