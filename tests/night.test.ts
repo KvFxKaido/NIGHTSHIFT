@@ -24,8 +24,8 @@ function vertices(scene: THREE.Scene, name: string): THREE.Vector3[] {
 }
 
 const DRESSING = ["district-sky", "district-facades", "district-roofs", "district-signage",
-  "district-signage-glow", "district-centre-line", "district-lane-lines", "district-lamp-posts",
-  "district-lamp-arms", "district-lamp-heads", "district-lamp-pools"] as const;
+  "district-signage-glow", "district-shop-spill", "district-centre-line", "district-lane-lines",
+  "district-lamp-posts", "district-lamp-arms", "district-lamp-heads", "district-lamp-pools"] as const;
 
 test("the night district dresses itself and keeps every mesh named", () => {
   const scene = build("night");
@@ -72,6 +72,31 @@ test("road paint stays on the road", () => {
     }
     assert.ok(worst <= 0.05, `${name} overhangs the road edge by ${worst.toFixed(2)} m`);
   }
+  dispose(scene);
+});
+
+// A lamp pool is a decal on the road, and the district falls up to 5.1 m across
+// half of one. Placed as a flat plane at its centre's height it is buried under
+// the asphalt on one side and floating clear of it on the other.
+test("lamp pools lie on the road surface across their whole width", () => {
+  const scene = build("night");
+  let worst = 0, worstAt = "";
+  for (const vertex of vertices(scene, "district-lamp-pools")) {
+    const above = vertex.y - projectOntoDistrict(vertex.x, vertex.z).height;
+    if (Math.abs(above - 0.07) > worst) { worst = Math.abs(above - 0.07); worstAt = `${vertex.x.toFixed(0)},${vertex.z.toFixed(0)}`; }
+  }
+  assert.ok(worst < 0.05, `a lamp pool sits ${worst.toFixed(2)} m off the surface at ${worstAt}`);
+  dispose(scene);
+});
+
+// The spill is the light a shopfront throws on the pavement, so it has to be on
+// the pavement the shopfront is on. Anchored to the nearest road height instead,
+// a block beside the bridge crown put its glow 24 m up with nothing casting it.
+test("a shop spill stays on the ground its own storefront stands on", () => {
+  const scene = build("night");
+  let highest = 0;
+  for (const vertex of vertices(scene, "district-shop-spill")) highest = Math.max(highest, Math.abs(vertex.y));
+  assert.ok(highest < 3.5, `a shop spill floats ${highest.toFixed(1)} m from its building's base`);
   dispose(scene);
 });
 

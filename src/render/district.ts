@@ -182,9 +182,17 @@ function addStreetLighting(scene: THREE.Scene): void {
       heads.push(tint(head, sodium));
       for (const [size, reach, strength] of [[26, 5, 0.34], [11, 3, 0.5]] as const) {
         const px = x - nx * reach, pz = z - nz * reach;
-        const pool = new THREE.PlaneGeometry(size, size);
+        // Tessellated and dropped onto the surface per vertex, not a flat plane
+        // placed at its centre's height. The district reaches 5.1 m of fall
+        // across half a 26 m pool, which buries one edge under the asphalt and
+        // floats the other clear of it.
+        const pool = new THREE.PlaneGeometry(size, size, 4, 4);
         pool.rotateX(-Math.PI / 2);
-        pool.translate(px, projectOntoDistrict(px, pz).height + 0.07, pz);
+        pool.translate(px, 0, pz);
+        const position = pool.getAttribute("position");
+        for (let i = 0; i < position.count; i++) {
+          position.setY(i, projectOntoDistrict(position.getX(i), position.getZ(i)).height + 0.07);
+        }
         pools.push(tint(pool, sodium.clone().multiplyScalar(strength)));
       }
     }

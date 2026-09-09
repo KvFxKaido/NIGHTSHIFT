@@ -148,6 +148,13 @@ export interface BuildingSite extends RoadSolid {
 }
 
 /**
+ * How far the adjacent road may sit above a block's base before its ground
+ * floor stops being a ground floor. Past this the block is beside a viaduct,
+ * not a street, and lighting a shopfront there puts a glow in mid-air.
+ */
+const SHOPFRONT_MAX_LIFT = 3;
+
+/**
  * Buildings, their lit windows and the signage on the faces that a street can
  * see. Everything merges into a handful of meshes: the blockout is 400-odd
  * boxes and one draw call each would cost more than the entire car.
@@ -164,6 +171,9 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
   const roofs: THREE.BufferGeometry[] = [];
   const signs: THREE.BufferGeometry[] = [];
   const glows: THREE.BufferGeometry[] = [];
+  // Kept apart from the signage glow so that "a spill lies on the pavement in
+  // front of its own shopfront" is a claim a test can actually make.
+  const spills: THREE.BufferGeometry[] = [];
 
   sites.forEach((site, index) => {
     const faces = [
@@ -212,6 +222,14 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // of dark slab with a few signs floating on it.
     faces.forEach((face, side) => {
       if (site.faceDistances[side]! > 40 || face.width < 8) return;
+      // Where the road climbs away from the block's base — the bridge crown is
+      // 24 m up, and 27 of the district's 165 street-facing blocks sit under
+      // some lift — there is no ground floor to light. Dressing one anyway put
+      // a detached pool of glow in the air beside the upper roadway.
+      const spillX = site.x + face.x + Math.sin(face.rotation) * 6.5;
+      const spillZ = site.z + face.z + Math.cos(face.rotation) * 6.5;
+      const street = groundAt(spillX, spillZ);
+      if (Math.abs(street) > SHOPFRONT_MAX_LIFT) return;
       // A block front stands in for a row of shops, so light it as a row: one
       // unbroken strip of glass reads as a lightbox, not as a street.
       const units = Math.max(3, Math.round(face.width / 6));
@@ -238,16 +256,14 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
         site.z + face.z + Math.cos(face.rotation) * 0.4);
       glows.push(tint(bloom, warm.clone().multiplyScalar(0.16)));
 
-      // And the spill onto the pavement in front of it. It follows the surface
-      // rather than sitting at y=0, because the district is graded and a flat
-      // decal disappears under any road that has climbed away from datum.
-      const spillX = site.x + face.x + Math.sin(face.rotation) * 6.5;
-      const spillZ = site.z + face.z + Math.cos(face.rotation) * 6.5;
+      // And the spill onto the pavement in front of it, on the local surface
+      // rather than at datum — within the lift checked above the two are within
+      // a few metres, so the glow stays under the glass that casts it.
       const spill = new THREE.PlaneGeometry(face.width * 1.3, 12);
       spill.rotateX(-Math.PI / 2);
       spill.rotateY(face.rotation);
-      spill.translate(spillX, groundAt(spillX, spillZ) + 0.06, spillZ);
-      glows.push(tint(spill, warm.clone().multiplyScalar(0.11)));
+      spill.translate(spillX, street + 0.06, spillZ);
+      spills.push(tint(spill, warm.clone().multiplyScalar(0.11)));
     });
 
     const roof = new THREE.PlaneGeometry(site.width, site.depth);
@@ -268,4 +284,9 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
   }));
   if (glowMesh) { glowMesh.renderOrder = 2; scene.add(glowMesh); }
+  const spillMesh = mergedMesh("district-shop-spill", spills, new THREE.MeshBasicMaterial({
+    vertexColors: true, toneMapped: false, map: glowTexture(), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  if (spillMesh) { spillMesh.renderOrder = 1; scene.add(spillMesh); }
 }
