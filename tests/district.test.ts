@@ -4,6 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { RIVER, outerTerrain, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
+import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
 import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse } from "../src/sim/track.ts";
 import { createSim, resetSim, step } from "../src/sim/sim.ts";
@@ -176,4 +177,57 @@ test("graded streets stay within an embankment of the ground", () => {
     }
   }
   assert.ok(worst < 6, `${worstAt} stands ${worst.toFixed(2)} m off the ground`);
+});
+
+// Two carriageways sharing ground is what a junction IS. Away from one it is a
+// defect, and it has surfaced three times now. A radial left the ring on almost
+// the ring's own bearing, traded places as nearest street and snapped the car
+// 17 m vertically. Cutlers Alley left Northgate at 26 deg and shared the North
+// Arterial's kerbs for 45 m. And the Wharf Bridge crossed the quay frontage at
+// grade, 19 m of shared asphalt with no node anywhere near it, which nothing
+// caught because it looked right and drove fine. Every one was found from a
+// symptom rather than a cause. Traffic is next and it will reserve space on
+// these carriageways by junction, so the cause gets a gate.
+test("street carriageways only overlap approaching a junction they share", () => {
+  const APRON = 28; // districtSurfaceHeight's own blend radius.
+  const orphans: string[] = [];
+  let worstReach = 0, reachAt = "";
+  let worstStep = 0, stepAt = "";
+  for (let i = 0; i < DISTRICT_STREETS.length; i++) {
+    for (let j = i + 1; j < DISTRICT_STREETS.length; j++) {
+      const a = DISTRICT_STREETS[i]!, b = DISTRICT_STREETS[j]!;
+      const shared = [a.from, a.to].filter(id => id === b.from || id === b.to)
+        .map(id => DISTRICT_JUNCTIONS.find(junction => junction.id === id)!.point);
+      // Only a junction one of these two streets actually ENDS at can excuse
+      // their overlap. Any node nearby would otherwise launder a crossing it has
+      // nothing to do with, which is how the Wharf Bridge kept its secret.
+      const aprons = DISTRICT_JUNCTIONS.filter(junction =>
+        [a.from, a.to, b.from, b.to].includes(junction.id)).map(junction => junction.point);
+      for (const sample of pathSamples(a.points, 2)) {
+        if (aprons.some(point =>
+          Math.hypot(point.x - sample.x, point.z - sample.z) <= APRON)) continue;
+        const other = projectOntoPath(b.points, sample.x, sample.z);
+        // Asphalt width at the sample, not the lane width: the flare into a
+        // junction is real road and a car can be on it.
+        const overlap = (sample.width + other.width) / 2 - other.distance;
+        if (overlap <= 0) continue;
+        const here = `${a.id} x ${b.id} at ${sample.x.toFixed(0)},${sample.z.toFixed(0)}`;
+        // Streets that meet may share their kerbs on the approach; that is a
+        // merge. Streets that never meet have no business touching at all.
+        if (!shared.length) { if (overlap > 1) orphans.push(`${here} (${overlap.toFixed(1)} m)`); continue; }
+        // And a merge has to resolve into the junction rather than run beside it.
+        const reach = Math.min(...shared.map(point => Math.hypot(point.x - sample.x, point.z - sample.z)));
+        if (reach > worstReach) { worstReach = reach; reachAt = here; }
+        // The vertical constraint follows the NEAREST street, so where two
+        // overlap the surface jumps between them as the car moves sideways. The
+        // defect's size is the disagreement itself, and outside the apron there
+        // is no junction grading to hide it. This is the 17 m snap's own measure.
+        const step = Math.abs(projectOntoPath(a.points, sample.x, sample.z).height - other.height);
+        if (step > worstStep) { worstStep = step; stepAt = here; }
+      }
+    }
+  }
+  assert.deepEqual(orphans, [], `streets share asphalt without sharing a junction: ${orphans.join("; ")}`);
+  assert.ok(worstReach < 70, `${reachAt} still overlaps ${worstReach.toFixed(0)} m out from the junction it merges at`);
+  assert.ok(worstStep < 1, `${stepAt} steps ${worstStep.toFixed(2)} m in ground both streets claim`);
 });

@@ -154,6 +154,10 @@ const CITY_NODES: readonly { id: string; name: string; x: number; z: number }[] 
   { id: "dock-cross", name: "Dock Crossing", x: 452, z: -246 },
   { id: "dock-head", name: "Dock Head", x: 466, z: -438 },
   { id: "quay-north", name: "North Quay", x: 416, z: -392 },
+  // Where the Wharf Bridge crosses the quay frontage. It crossed here already,
+  // at grade, sharing 19 m of asphalt with no node registered: nothing graded
+  // the crossing and nothing downstream could know two carriageways met.
+  { id: "quay-cross", name: "Bridgefoot", x: 419, z: -255 },
   { id: "quay-south", name: "Lower Quay", x: 412, z: -150 },
   { id: "dock-quay", name: "Container Quay", x: 448, z: -46 },
   { id: "dock-south", name: "South Wharf", x: 424, z: 104 },
@@ -316,13 +320,13 @@ export const DISTRICT_STREETS: readonly Street[] = [
   ...avenue("wharf", "Wharf Road", "arterial",
     ["portal", "wharf-gate", [304, -214], "wharf-mid", [300, -376], "wharf-head"]),
   // One of three crossings. Everything on the far bank hangs off this bridge.
-  ...avenue("wharf-span", "Wharf Bridge", "arterial", ["wharf-mid", [372, -268], "dock-cross"]),
+  ...avenue("wharf-span", "Wharf Bridge", "arterial", ["wharf-mid", [372, -268], "quay-cross", "dock-cross"]),
   ...avenue("dock", "Dock Road", "arterial",
     ["dock-head", [470, -350], "dock-cross", [456, -150], "dock-quay", [440, 30], "dock-south"]),
   // A quay frontage inboard of the dock road, so the far bank is a loop rather
   // than one spine you have to drive back down.
   ...avenue("quay", "Quay Frontage", "collector",
-    ["dock-head", "quay-north", [420, -270], "quay-south", [428, -96], "dock-quay"]),
+    ["dock-head", "quay-north", "quay-cross", "quay-south", [428, -96], "dock-quay"]),
 
   // --- Northern approaches, severed by the freight line except at two crossings.
   ...avenue("north", "North Arterial", "arterial",
@@ -361,7 +365,10 @@ export const DISTRICT_STREETS: readonly Street[] = [
 
   // --- Alleys. Deliberately few: enough that knowing them matters, not enough
   // --- to turn the graph into spaghetti. Each one cuts a corner a main road takes.
-  ...avenue("alley-quarter", "Cutlers Alley", "alley", ["north-mid", [-190, -300], "quarter-north"]),
+  // Peels off Northgate at 44 deg, not 26. On the arterial's own bearing the two
+  // carriageways shared their kerbs for 45 m and the surface stepped 1.9 m out
+  // there, which is the same defect that made a radial snap the car off the ring.
+  ...avenue("alley-quarter", "Cutlers Alley", "alley", ["north-mid", [-104, -296], [-190, -300], "quarter-north"]),
   ...avenue("alley-hill", "Coopers Alley", "alley", ["hill-mid", [-390, -156], "quarter-mid"]),
   ...avenue("alley-wharf", "Crane Alley", "alley", ["wharf-gate", [232, -244], "north-east"]),
 
@@ -389,7 +396,7 @@ export const DISTRICT_ROUTES: readonly DistrictRoute[] = [
   { id: "wharf-run", name: "Wharf Run", kind: "sprint", color: "#8f9bd6",
     description: "Out of the tunnel portal, north along the shipping frontage and over the bridge onto the far bank.",
     legs: [{ street: "wharf-1" }, { street: "wharf-2" }, { street: "wharf-span-1" },
-      { street: "dock-2" }, { street: "dock-3" }] },
+      { street: "wharf-span-2" }, { street: "dock-2" }, { street: "dock-3" }] },
   { id: "hill-climb", name: "Hill Climb", kind: "sprint", color: "#d69f8f",
     description: "From the hairpin up through the old quarter to the crest. Narrow streets and every metre of the climb.",
     legs: [{ street: "container-quarter-1" }, { street: "quarter-1", reverse: true },
@@ -398,7 +405,8 @@ export const DISTRICT_ROUTES: readonly DistrictRoute[] = [
     description: "Both crossings and the whole far bank: west over Millgate, east along the water, back over the Wharf Bridge and down through the quarter.",
     legs: [{ street: "mill-span-1" }, { street: "south-bank-1" }, { street: "south-bank-2" },
       { street: "ferry-1" }, { street: "dock-3", reverse: true }, { street: "dock-2", reverse: true },
-      { street: "wharf-span-1", reverse: true }, { street: "wharf-2", reverse: true },
+      { street: "wharf-span-2", reverse: true }, { street: "wharf-span-1", reverse: true },
+      { street: "wharf-2", reverse: true },
       { street: "wharf-1", reverse: true }, { street: "ring-portal" }, { street: "ring-quayside" },
       { street: "freight-quarter-1" }, { street: "quarter-3" }] },
 ];

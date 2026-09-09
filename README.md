@@ -55,7 +55,7 @@ The **Blackglass District** is the default world, and **Drive** goes straight
 into it as free roam: 11.31 km of street across 33 junctions in a 935 x 935 m
 block, with no route, no timing and no finish line. The top-down board at
 `/district.html` — or **District map** on the title screen and in Pause —
-previews seven route guides over the same streets; `?route=<id>` overlays one
+previews six route guides over the same streets; `?route=<id>` overlays one
 and draws its arrows and gates. Junctions are open and races are not scored
 yet. `?world=blackglass` returns to the original closed course. See
 [`design/DISTRICT.md`](design/DISTRICT.md) for scope and playtest questions.

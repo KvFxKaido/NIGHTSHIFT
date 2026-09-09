@@ -30,8 +30,8 @@ remains the default at `/`, with its original road, physics and lighting.
 
 ## Layout
 
-The district covers **933 x 867 m** with **9.08 km of unique streets across 50
-edges and 34 junctions**, including the existing 1.73 km plan-view perimeter.
+The district covers **933 x 867 m** with **9.09 km of unique streets across 52
+edges and 35 junctions**, including the existing 1.73 km plan-view perimeter.
 Road density is 11.2 km/km², which is honest urban density rather than a large
 open world; GDD §21 still rules that out.
 
@@ -100,8 +100,32 @@ setback on an arterial, which is why massing used to float mid-face.
 
 Depth is tried deepest-first and falls back, because a narrow face cannot host a
 deep building once the setback clears the carriageway and a shallow terrace is
-what actually gets built on one. 15 faces carry 65 buildings across 36 distinct
+what actually gets built on one. 18 faces carry 73 buildings across 40 distinct
 orientations, standing 2.6 m from the kerb.
+
+## Streets only meet at junctions
+
+Two carriageways sharing ground is what a junction *is*. Away from one it is a
+defect, and it surfaced three times before it was measured rather than noticed:
+
+- A radial left the ring on almost the ring's own bearing. The two traded places
+  as nearest street and the vertical constraint snapped the car 17 m. Fixed by
+  deleting the junction; a road out of a hairpin was bad design anyway.
+- Cutlers Alley left Northgate at 26°, so 16 m of combined half-width took 36 m
+  to open up and the alley shared the North Arterial's kerbs for 45 m with a
+  1.9 m step between them. It now peels off at 44°.
+- The Wharf Bridge crossed Quay Frontage at grade — 19 m of shared asphalt, no
+  node within 100 m. Nothing caught it because it graded flat and drove fine,
+  but no junction meant nothing downstream could know two carriageways met. It
+  is now **Bridgefoot**, and the far bank gained a choice point off the bridge.
+
+Each was found from a symptom (buried paint, a car thrown off the road) long
+after the fact. Traffic will reserve space on these carriageways *by junction*,
+so the cause is now a gate: outside a junction's own 28 m apron, two streets may
+share asphalt only if they meet at a junction, only within 70 m of it, and never
+at heights that disagree by a metre. Only a junction one of the two streets
+actually ends at counts — any node nearby would otherwise launder a crossing it
+has nothing to do with, which is exactly how the bridge kept its secret.
 
 | Route guide | Distance | Question |
 | --- | ---: | --- |
@@ -165,10 +189,10 @@ or restamp the current tunnel/bridge asset to accommodate unrelated new streets.
 ## Validation
 
 `pnpm test` includes graph continuity, exact baseline references, connector
-grade/width and massing clearance, mesh winding, shared barrier transforms,
+grade/width and massing clearance, carriageway overlap, mesh winding, shared barrier transforms,
 collision replay, and a conservative inspection driver for every route.
 That driver uses the real four-wheel sim and colliders: no teleporting, no
-disabled collisions. All four guides complete with zero contact ticks. These
+disabled collisions. All six guides complete with zero contact ticks. These
 are inspection laps, not competitive pace estimates or proof of human fun.
 
 During those drives, rendered-road raycasts must hit beneath the car and remain

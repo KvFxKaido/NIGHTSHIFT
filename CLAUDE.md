@@ -100,7 +100,7 @@ The handling model, deliberate assists, limitations, and measured acceptance
 gates are described in `design/HANDLING.md`.
 The district layout study is documented in `design/DISTRICT.md`. It is now the
 default world and is entered as **free roam**: no track selection, no route, no
-finish. `/district.html` previews seven route guides over shared fixed streets;
+finish. `/district.html` previews six route guides over shared fixed streets;
 `?route=<id>` overlays one, and `?world=blackglass` returns to the original
 closed course. These are not scored races: junctions stay open, arrows guide a
 route when one is selected, and there are no lap/checkpoint/payout rules yet.
