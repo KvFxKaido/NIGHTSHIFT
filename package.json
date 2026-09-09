@@ -15,7 +15,8 @@
     "dev": "node scripts/scan-music.mjs && vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.19.3",
