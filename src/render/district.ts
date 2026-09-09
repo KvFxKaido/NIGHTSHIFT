@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { DISTRICT_BLOCKS, DISTRICT_STREETS, DISTRICT_WALLS, projectOntoDistrict, routePoints,
-  type DistrictRoute } from "../sim/district.ts";
+import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, projectOntoDistrict,
+  routePoints, type DistrictRoute } from "../sim/district.ts";
 import type { CoursePoint } from "../sim/track.ts";
+import { addNightBuildings, glowTexture, tint, type BuildingSite } from "./night.ts";
 
 function mesh(name: string, geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const result = new THREE.Mesh(geometry, material);
@@ -52,15 +53,242 @@ export function streetGeometry(points: readonly CoursePoint[]): THREE.BufferGeom
   return geometry;
 }
 
-export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, authored?: THREE.Group): void {
-  const asphalt = new THREE.MeshStandardMaterial({ color: 0x343d47, roughness: 0.96 });
+/** One position along a street's centreline, spaced by arc length. */
+interface RoadSample { x: number; z: number; dirX: number; dirZ: number; width: number; distance: number }
+
+/**
+ * Walk a street at a fixed spacing rather than per authored point. Markings and
+ * lamp posts have to land on a rhythm the driver can read, and the authored
+ * points are spaced by whatever the curve needed, not by what a road looks like.
+ */
+function walkStreet(points: readonly CoursePoint[], step: number): RoadSample[] {
+  const samples: RoadSample[] = [];
+  let carry = 0, travelled = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i]!, b = points[i + 1]!;
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const length = Math.hypot(dx, dz);
+    if (length < 1e-6) continue;
+    for (let t = carry; t < length; t += step) {
+      const fraction = t / length;
+      samples.push({
+        x: a.x + dx * fraction, z: a.z + dz * fraction, dirX: dx / length, dirZ: dz / length,
+        width: a.width + (b.width - a.width) * fraction, distance: travelled + t,
+      });
+    }
+    carry = ((carry - length) % step + step) % step;
+    travelled += length;
+  }
+  return samples;
+}
+
+/** Junction aprons carry no paint: lines running through a crossing read as a
+ *  mistake, and the aprons are where two streets' surfaces already overlap. */
+function inJunction(x: number, z: number): boolean {
+  return DISTRICT_JUNCTIONS.some(junction =>
+    Math.hypot(junction.point.x - x, junction.point.z - z) < junction.point.width * 0.62 + 5);
+}
+
+/**
+ * A painted line along a street: `lateral` is metres from the centreline,
+ * `dash` breaks it into a repeating pattern. Every vertex is dropped onto the
+ * district's own surface height, so paint follows a graded apron instead of
+ * floating over it.
+ */
+function markingGeometry(samples: readonly RoadSample[], lateral: (sample: RoadSample) => number,
+  halfWidth: number, dash: { period: number; length: number } | null): THREE.BufferGeometry | null {
+  const vertices: number[] = [], indices: number[] = [];
+  let previous: number | null = null;
+  for (const sample of samples) {
+    const drawn = !dash || sample.distance % dash.period < dash.length;
+    const offset = lateral(sample);
+    const nx = -sample.dirZ, nz = sample.dirX;
+    const x = sample.x + nx * offset, z = sample.z + nz * offset;
+    if (!drawn || inJunction(x, z)) { previous = null; continue; }
+    // Height per rail, not per centreline. Where two streets overlap away from a
+    // junction their surfaces differ by a few centimetres, and a line dropped at
+    // one height for both rails vanishes under whichever surface won.
+    const left = { x: x - nx * halfWidth, z: z - nz * halfWidth };
+    const right = { x: x + nx * halfWidth, z: z + nz * halfWidth };
+    const base = vertices.length / 3;
+    vertices.push(
+      left.x, projectOntoDistrict(left.x, left.z).height + 0.055, left.z,
+      right.x, projectOntoDistrict(right.x, right.z).height + 0.055, right.z,
+    );
+    if (previous !== null) indices.push(previous, previous + 1, base, previous + 1, base + 1, base);
+    previous = base;
+  }
+  if (!indices.length) return null;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Double yellow down the middle, dashed white lane lines, solid white edges. */
+function addLaneMarkings(scene: THREE.Scene): void {
+  const yellow: THREE.BufferGeometry[] = [], white: THREE.BufferGeometry[] = [];
+  for (const street of DISTRICT_STREETS) {
+    const samples = walkStreet(street.points, 2.5);
+    for (const side of [-1, 1]) {
+      yellow.push(...[markingGeometry(samples, () => side * 0.26, 0.09, null)].filter(Boolean) as THREE.BufferGeometry[]);
+      white.push(...[
+        markingGeometry(samples, sample => side * sample.width * 0.25, 0.08, { period: 9, length: 3.4 }),
+        markingGeometry(samples, sample => side * (sample.width / 2 - 0.7), 0.11, null),
+      ].filter(Boolean) as THREE.BufferGeometry[]);
+    }
+  }
+  const paint = (name: string, parts: THREE.BufferGeometry[], color: number) => {
+    if (!parts.length) return;
+    const geometry = mergeGeometries(parts);
+    parts.forEach(part => part.dispose());
+    if (!geometry) return;
+    // Paint is lit, not glowing, but a touch of emissive keeps the lines legible
+    // between the lamp pools instead of vanishing into the asphalt.
+    scene.add(mesh(name, geometry, new THREE.MeshStandardMaterial({
+      color, emissive: color, emissiveIntensity: 0.22, roughness: 0.65,
+    })));
+  };
+  paint("district-centre-line", yellow, 0xd8a72a);
+  paint("district-lane-lines", white, 0xbfc7cc);
+}
+
+/**
+ * Sodium lamps down both sides of every street, and the pool each one throws on
+ * the road. The pool is an additive quad, not a light: forty real point lights
+ * would cost more than the rest of the scene put together and the district has
+ * a mobile performance target (GDD §18).
+ */
+function addStreetLighting(scene: THREE.Scene): void {
+  const posts: THREE.BufferGeometry[] = [], arms: THREE.BufferGeometry[] = [];
+  const heads: THREE.BufferGeometry[] = [], pools: THREE.BufferGeometry[] = [];
+  const sodium = new THREE.Color(0xffb057);
+  let index = 0;
+  for (const street of DISTRICT_STREETS) {
+    for (const sample of walkStreet(street.points, 32)) {
+      const side = index++ % 2 === 0 ? 1 : -1;
+      const nx = -sample.dirZ * side, nz = sample.dirX * side;
+      const x = sample.x + nx * (sample.width / 2 + 1.5), z = sample.z + nz * (sample.width / 2 + 1.5);
+      if (inJunction(x, z)) continue;
+      // Clear of its own street is not clear of the network: belts and radials
+      // run close enough that a post set beside one lands in the middle of the
+      // next. The sim has no collider for street furniture, so the only thing
+      // keeping a lamp out of the driving line is refusing to place it there.
+      const nearest = projectOntoDistrict(x, z);
+      if (nearest.distance < nearest.width / 2 + 1) continue;
+      const ground = projectOntoDistrict(x, z).height;
+      const post = new THREE.BoxGeometry(0.18, 8.4, 0.18);
+      post.translate(x, ground + 4.2, z);
+      const arm = new THREE.BoxGeometry(0.14, 0.14, 2.4);
+      arm.rotateY(Math.atan2(-nx, -nz));
+      arm.translate(x - nx * 1.2, ground + 8.3, z - nz * 1.2);
+      posts.push(post);
+      // Arms are kept separate from posts because they are allowed to overhang
+      // the carriageway at eight metres and the posts are not allowed to touch
+      // it at all — one merged mesh would make that distinction untestable.
+      arms.push(arm);
+      const head = new THREE.BoxGeometry(0.5, 0.22, 1.1);
+      head.rotateY(Math.atan2(-nx, -nz));
+      head.translate(x - nx * 2.3, ground + 8.1, z - nz * 2.3);
+      heads.push(tint(head, sodium));
+      for (const [size, reach, strength] of [[26, 5, 0.34], [11, 3, 0.5]] as const) {
+        const px = x - nx * reach, pz = z - nz * reach;
+        const pool = new THREE.PlaneGeometry(size, size);
+        pool.rotateX(-Math.PI / 2);
+        pool.translate(px, projectOntoDistrict(px, pz).height + 0.07, pz);
+        pools.push(tint(pool, sodium.clone().multiplyScalar(strength)));
+      }
+    }
+  }
+  const merge = (name: string, parts: THREE.BufferGeometry[], material: THREE.Material): THREE.Mesh | null => {
+    if (!parts.length) return null;
+    const geometry = mergeGeometries(parts);
+    parts.forEach(part => part.dispose());
+    return geometry ? mesh(name, geometry, material) : null;
+  };
+  const steel = new THREE.MeshStandardMaterial({ color: 0x1a1f26, roughness: 0.7, metalness: 0.4 });
+  const postMesh = merge("district-lamp-posts", posts, steel);
+  if (postMesh) { postMesh.castShadow = true; scene.add(postMesh); }
+  const armMesh = merge("district-lamp-arms", arms, steel);
+  if (armMesh) scene.add(armMesh);
+  const headMesh = merge("district-lamp-heads", heads,
+    new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
+  if (headMesh) scene.add(headMesh);
+  const poolMesh = merge("district-lamp-pools", pools, new THREE.MeshBasicMaterial({
+    vertexColors: true, toneMapped: false, map: glowTexture(), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  if (poolMesh) { poolMesh.renderOrder = 1; scene.add(poolMesh); }
+}
+
+/** Massing blocks, measured against the streets that can see each face. */
+function buildingSites(): BuildingSite[] {
+  return DISTRICT_BLOCKS.map(block => {
+    const faces: [number, number, number, number] = [
+      projectOntoDistrict(block.x, block.z + block.depth / 2).distance,
+      projectOntoDistrict(block.x, block.z - block.depth / 2).distance,
+      projectOntoDistrict(block.x + block.width / 2, block.z).distance,
+      projectOntoDistrict(block.x - block.width / 2, block.z).distance,
+    ];
+    return { ...block, faceDistances: faces };
+  });
+}
+
+/**
+ * A dome, not a flat background colour: the district's horizon carries the glow
+ * of the city it sits in, and a uniform sky makes every distant rooftop read as
+ * a cut-out. Unfogged and drawn first, so it never occludes anything. It rides
+ * with the camera (see `SKY_NAME`), because a fixed dome smaller than the
+ * district would pass through the buildings at the far belts.
+ */
+export const SKY_NAME = "district-sky";
+
+function addNightSky(scene: THREE.Scene): void {
+  const geometry = new THREE.SphereGeometry(480, 24, 16);
+  const position = geometry.getAttribute("position");
+  const colors = new Float32Array(position.count * 3);
+  const zenith = new THREE.Color(0x040711), horizon = new THREE.Color(0x2a2a3c);
+  const haze = new THREE.Color(0x4a3a3f);
+  const color = new THREE.Color();
+  for (let i = 0; i < position.count; i++) {
+    const height = Math.max(0, position.getY(i) / 480);
+    color.copy(horizon).lerp(zenith, Math.min(1, Math.pow(height, 0.55)));
+    // A last band of sodium haze right on the skyline, where the unseen rest of
+    // the city is throwing its light up into the smog.
+    color.lerp(haze, Math.max(0, 1 - Math.abs(position.getY(i) / 480) * 14) * 0.5);
+    colors.set([color.r, color.g, color.b], i * 3);
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const sky = mesh(SKY_NAME, geometry, new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false,
+  }));
+  sky.renderOrder = -1;
+  scene.add(sky);
+}
+
+/**
+ * `night` is the district's real presentation. `blockout` is the flat work view
+ * the layout was judged under, and it stays a genuine blockout — no dressing at
+ * all, because neon and lit windows hide exactly the surface errors it exists
+ * to find.
+ */
+export type DistrictDressing = "night" | "blockout";
+
+export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, authored?: THREE.Group,
+  dressing: DistrictDressing = "night"): void {
+  // Wet, not matte: the district is night-only, and a low-roughness road is what
+  // lets the lamp pools and neon streak instead of sitting flat on grey felt.
+  const asphalt = dressing === "night"
+    ? new THREE.MeshStandardMaterial({ color: 0x353d49, roughness: 0.48, metalness: 0.05 })
+    : new THREE.MeshStandardMaterial({ color: 0x343d47, roughness: 0.96 });
   const concrete = new THREE.MeshStandardMaterial({ color: 0x65717a, roughness: 0.9 });
   // Sized from the network, not fixed: the ground was authored around a 500 m
   // loop and the belts now reach past 470 m in every direction.
   const spread = Math.max(...DISTRICT_STREETS.flatMap(street =>
     street.points.flatMap(point => [Math.abs(point.x), Math.abs(point.z)]))) * 2 + 320;
   const ground = mesh("district-ground", new THREE.PlaneGeometry(spread, spread),
-    new THREE.MeshStandardMaterial({ color: 0x202a2d, roughness: 1 }));
+    new THREE.MeshStandardMaterial({ color: dressing === "night" ? 0x0d1117 : 0x202a2d, roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.15; scene.add(ground);
 
   for (const street of DISTRICT_STREETS) {
@@ -79,11 +307,19 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
   });
   walls.receiveShadow = true; walls.castShadow = true; scene.add(walls);
 
-  const blockMaterial = new THREE.MeshStandardMaterial({ color: 0x4d5962, roughness: 1 });
-  DISTRICT_BLOCKS.forEach((block, i) => {
-    const body = mesh(`district-massing-${i}`, new THREE.BoxGeometry(block.width, block.height, block.depth), blockMaterial);
-    body.position.set(block.x, block.height / 2, block.z); body.castShadow = true; scene.add(body);
-  });
+  if (dressing === "night") {
+    addNightSky(scene);
+    addNightBuildings(scene, buildingSites(), (x, z) => projectOntoDistrict(x, z).height);
+    addLaneMarkings(scene);
+    addStreetLighting(scene);
+  } else {
+    const blockMaterial = new THREE.MeshStandardMaterial({ color: 0x4d5962, roughness: 1 });
+    DISTRICT_BLOCKS.forEach((block, i) => {
+      const body = mesh(`district-massing-${i}`,
+        new THREE.BoxGeometry(block.width, block.height, block.depth), blockMaterial);
+      body.position.set(block.x, block.height / 2, block.z); body.castShadow = true; scene.add(body);
+    });
+  }
   if (authored) scene.add(authored);
 
   // Free roam draws the district and stops: no arrows, no gates, nothing telling

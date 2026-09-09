@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { CameraLook } from "../input/input.ts";
 import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
 import type { DistrictRoute } from "../sim/district.ts";
-import { addDistrict } from "./district.ts";
+import { addDistrict, SKY_NAME } from "./district.ts";
 import { BLACKGLASS_WORLD, type RoadWorld } from "../sim/road-world.ts";
 import {
   createCameraOrbitState,
@@ -32,6 +32,8 @@ export interface View extends CarView {
   course: BlenderCourse | null;
   /** A second car driving a recorded lap, or null when nobody is out there. */
   rival: CarView | null;
+  /** The district's sky dome, which follows the camera. Null off the district. */
+  sky: THREE.Object3D | null;
 }
 
 /**
@@ -57,9 +59,14 @@ export function setRival(view: View, rival: CarView | null): void {
   if (rival) view.scene.add(rival.car);
 }
 
+/** Night is the district's real presentation; blockout is the flat work light
+ *  that exists so junctions and grades can be judged without darkness hiding a
+ *  surface error. `?lighting=blockout` still reaches it. */
+export type DistrictLighting = "night" | "blockout";
+
 export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null,
   districtRoute: DistrictRoute | null = null, roadWorld: RoadWorld = BLACKGLASS_WORLD,
-  district = districtRoute !== null): View {
+  district = districtRoute !== null, lighting: DistrictLighting = "night"): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -68,24 +75,33 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.92;
+  renderer.toneMappingExposure = district && lighting === "night" ? 1.05 : 0.92;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x10182a);
   scene.fog = new THREE.FogExp2(0x101522, 0.0019);
-  if (district) addDistrict(scene, districtRoute, course?.root);
+  if (district) addDistrict(scene, districtRoute, course?.root, lighting);
   else addCourse(scene, course?.root);
-  if (district) {
+  if (district && lighting === "blockout") {
     // Work lighting for the blockout: judge junctions and grades, not darkness.
     scene.add(new THREE.AmbientLight(0xbad4e0, 1.5));
     scene.background = new THREE.Color(0x243546);
     scene.fog = new THREE.FogExp2(0x243546, 0.0014);
+  } else if (district) {
+    // Night. Almost all of the district's light is emissive — lit windows, neon,
+    // the additive pools under the lamps — so the ambient term only has to stop
+    // unlit geometry from going pure black, and the sky has to stay out of the
+    // way of the signage.
+    scene.add(new THREE.AmbientLight(0x2a3c58, 0.85));
+    scene.background = new THREE.Color(0x05080f);
+    scene.fog = new THREE.FogExp2(0x070c16, 0.0026);
   }
 
-  scene.add(new THREE.HemisphereLight(0x466488, 0x160e12, 1.08));
-  const moon = new THREE.DirectionalLight(0xa9d2ff, 1.82);
+  const nightDistrict = district && lighting === "night";
+  scene.add(new THREE.HemisphereLight(0x466488, 0x160e12, nightDistrict ? 0.46 : 1.08));
+  const moon = new THREE.DirectionalLight(0xa9d2ff, nightDistrict ? 0.62 : 1.82);
   moon.position.set(-90, 140, 80);
   moon.castShadow = true;
   moon.shadow.mapSize.set(1024, 1024);
@@ -126,6 +142,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
     course,
+    sky: scene.getObjectByName(SKY_NAME) ?? null,
   };
 
   const resize = () => {
@@ -226,6 +243,7 @@ export function render(
 
   const car = state.vehicle;
   if (view.course) updateCourseLighting(view.course, car);
+  if (view.sky) view.sky.position.set(car.x, 0, car.z);
   placeCar(view, car);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);

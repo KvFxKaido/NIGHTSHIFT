@@ -8,13 +8,16 @@ import { applyCarCustomization, createCar, type CarView } from "./render/car.ts"
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
 import { BLENDER_COURSE_PATH } from "./render/course-asset-contract.ts";
 import { loadBlenderCourse, type BlenderCourse } from "./render/blender-course.ts";
-import { createView, render, resetViewCamera, setRival, setViewMode } from "./render/scene.ts";
-import { createSim, resetSim, step, DT, TICK_HZ, type Drivetrain, type Input, type Sim } from "./sim/sim.ts";
-import { courseGap } from "./sim/track.ts";
-import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, getDistrictRoute,
+import { createView, render, resetViewCamera, setRival, setViewMode,
+  type DistrictLighting } from "./render/scene.ts";
+import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
+  type Drivetrain, type Input, type Sim } from "./sim/sim.ts";
+import { COURSE_POINTS, courseGap } from "./sim/track.ts";
+import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, DISTRICT_STREETS, getDistrictRoute,
   pathLength, routePoints, type DistrictRoute } from "./sim/district.ts";
 import { BLACKGLASS_WORLD } from "./sim/road-world.ts";
 import { createMenuController } from "./ui/menu.ts";
+import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -34,6 +37,7 @@ let districtRoute: DistrictRoute | null = null;
 // of the guides for a specific study, and ?world=blackglass returns to the
 // original closed course with its own geometry, physics and lighting.
 let district = true;
+let lighting: DistrictLighting = "night";
 try {
   const params = new URLSearchParams(location.search);
   const world = params.get("world") ?? "district";
@@ -41,6 +45,12 @@ try {
   district = world === "district";
   const route = params.get("route");
   if (district && route) districtRoute = getDistrictRoute(route);
+  // Night is the district's presentation. The flat work lighting the blockout
+  // was judged under is still one parameter away, because a surface error is
+  // easier to see under it than under neon.
+  const requested = params.get("lighting") ?? "night";
+  if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
+  lighting = requested;
   await RAPIER.init();
   const model = new URLSearchParams(location.search).get("car") ?? "blender";
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
@@ -69,7 +79,7 @@ const roadWorld = !district ? BLACKGLASS_WORLD
   : districtRoute ? createDistrictWorld(districtRoute) : createFreeRoamWorld();
 const sim = createSim(restored.drivetrain, roadWorld);
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
-  districtRoute, roadWorld, district);
+  districtRoute, roadWorld, district, lighting);
 if (district) {
   const label = districtRoute ? `${districtRoute.name} blockout` : "Blackglass District";
   document.body.dataset.world = "district";
@@ -88,11 +98,17 @@ document.querySelectorAll<HTMLButtonElement>("[data-district-map]").forEach(butt
 });
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
-const speedElement = document.getElementById("speed")!;
-const gearElement = document.getElementById("gear")!;
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
+// The minimap draws the world the sim was given, not a second copy of it: free
+// roam shows every street, a route guide highlights its own legs in its colour,
+// and the closed circuit shows the lap.
+const hudPolylines: HudPolyline[] = district
+  ? [...DISTRICT_STREETS.map(street => ({ points: street.points })),
+    ...(districtRoute ? [{ points: routePoints(districtRoute), color: districtRoute.color }] : [])]
+  : [{ points: [...COURSE_POINTS, COURSE_POINTS[0]!], color: "#59d8ff" }];
+const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
 
@@ -269,8 +285,7 @@ document.addEventListener("visibilitychange", () => {
 
 function updateHud(): void {
   const car = sim.state.vehicle;
-  speedElement.textContent = Math.round(car.speed * 2.237).toString().padStart(3, "0");
-  gearElement.textContent = car.forwardSpeed < -0.5 ? "R" : car.speed < 0.5 ? "N" : "D";
+  hud.update(car, rivalSim?.state.vehicle ?? null);
   modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%`
     : `LIVE / ${sim.state.drivetrain.toUpperCase()}${rivalRunning() ? " / RIVAL" : ""}`;
   const gamepadName = input.gamepadName();

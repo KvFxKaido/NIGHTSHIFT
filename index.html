@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#070910" />
     <title>NIGHTSHIFT — Blackglass Circuit</title>
     <link rel="stylesheet" href="/src/ui/menu.css" />
+    <link rel="stylesheet" href="/src/ui/hud.css" />
     <style>
       :root { color-scheme: dark; font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; }
       * { box-sizing: border-box; }
@@ -36,23 +37,12 @@
         color: rgba(242, 238, 227, .52); font-size: 9px; letter-spacing: .14em;
       }
       #controls {
-        position: fixed; left: 26px; bottom: 24px; pointer-events: none;
-        max-width: 390px; color: rgba(230, 229, 220, .62);
+        position: fixed; left: 26px; bottom: 200px; pointer-events: none;
+        max-width: 430px; color: rgba(230, 229, 220, .62);
         font: 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
         letter-spacing: .06em; text-transform: uppercase;
       }
       #controls strong { color: rgba(255, 255, 255, .92); font-weight: 600; }
-      #speedometer {
-        position: fixed; right: 28px; bottom: 22px; pointer-events: none;
-        display: grid; grid-template-columns: auto auto; align-items: end; column-gap: 10px;
-        filter: drop-shadow(0 3px 15px rgba(0, 0, 0, .8));
-      }
-      #speed { font-size: clamp(52px, 7vw, 82px); font-weight: 900; line-height: .76; letter-spacing: -.06em; }
-      #unit { color: rgba(242, 238, 227, .58); font: 10px/1 ui-monospace, monospace; letter-spacing: .14em; }
-      #gear {
-        grid-column: 2; grid-row: 1; min-width: 28px; color: #ff3158;
-        font-size: 34px; font-weight: 900; line-height: .75; text-align: center;
-      }
       #telemetry {
         position: fixed; top: 60px; left: 26px; padding: 11px 13px;
         border-left: 2px solid #59d8ff; background: rgba(5, 8, 15, .72);
@@ -62,10 +52,8 @@
       }
       #telemetry.visible { opacity: 1; transform: translateX(0); }
       @media (max-width: 640px) {
-        #brand { top: 15px; left: 16px; }
-        #controls { left: 16px; bottom: 15px; max-width: 235px; font-size: 9px; }
-        #speedometer { right: 17px; bottom: 17px; }
-        body[data-world="district"] #controls { max-width: calc(100vw - 185px); }
+        #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
+        #controls { left: 16px; bottom: 138px; max-width: calc(100vw - 32px); font-size: 9px; }
       }
     </style>
   </head>
@@ -79,13 +67,24 @@
       </div>
       <div id="telemetry"></div>
       <div id="controls">
-        <strong>WASD / arrows · left stick / D-pad</strong> steer<br />
-        <strong>W / RT</strong> gas &nbsp; <strong>S / LT</strong> brake &nbsp; <strong>space / A</strong> handbrake<br />
-        <strong>right stick</strong> camera &nbsp; <strong>R3 / C</strong> recenter<br />
-        <strong>esc / options</strong> pause &nbsp; <strong>R / Y</strong> reset &nbsp; <strong>P / View</strong> replay &nbsp; <strong>H / LB</strong> telemetry
+        <strong>WASD</strong> drive &nbsp; <strong>space</strong> handbrake &nbsp; <strong>right stick</strong> camera<br />
+        <strong>esc</strong> pause &nbsp; <strong>R</strong> reset &nbsp; <strong>P</strong> replay &nbsp; <strong>H</strong> telemetry &nbsp; <strong>C</strong> recenter
       </div>
-      <div id="speedometer" aria-label="Vehicle speed">
-        <span id="speed">000</span><span id="gear">N</span><span id="unit">MPH</span>
+      <div id="minimap-frame" aria-hidden="true">
+        <canvas id="minimap" width="336" height="336"></canvas>
+        <span id="minimap-heading"></span>
+      </div>
+      <div id="cluster" aria-label="Vehicle speed">
+        <svg id="gauge" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="gauge-shell" cx="100" cy="100" r="88" />
+          <circle class="gauge-track" cx="100" cy="100" r="78" stroke-dasharray="381.2 490.1" />
+          <circle id="gauge-sweep" class="gauge-sweep" cx="100" cy="100" r="78" stroke-dasharray="0 490.1" />
+          <g id="gauge-ticks"></g>
+        </svg>
+        <div id="cluster-readout">
+          <span id="speed">000</span><span id="unit">MPH</span>
+        </div>
+        <span id="gear">N</span>
       </div>
     </div>
 

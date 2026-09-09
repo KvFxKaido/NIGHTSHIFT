@@ -149,6 +149,28 @@ It captures desktop/mobile screenshots. Staged junction poses are visual QA,
 not driven-lap evidence. Physical controller feel and mobile GPU performance
 still need human/device playtesting.
 
+## Presentation
+
+The district is now dressed for night by default (GDD §15.1): sodium lamps and
+their light pools, lane paint, lit facades, shopfront glass, neon signage and a
+sky dome carrying the city's horizon glow. `?lighting=blockout` restores the flat
+work view — grey massing, matte asphalt, no dressing at all — because neon hides
+exactly the surface errors that view exists to find.
+
+This runs ahead of step 5 below, which says to dress only the road sections that
+survive a timed event. That ordering was written to stop hand-authored art being
+thrown away when a junction moves. It does not apply here: every piece of the
+dressing is generated from `DISTRICT_STREETS`, `DISTRICT_BLOCKS` and
+`DISTRICT_JUNCTIONS` at load, so moving a street re-dresses it for free and
+nothing is lost. Hand-authored art still waits for step 5.
+
+What the dressing is not: there is no traffic (GDD §12 — a sim feature, not a
+renderer one), no post-processing bloom, no reflections, no wet-road normal map,
+and no interior detail. The glow is additive quads and emissive surfaces, and
+the lamps are geometry rather than lights, so the light count is unchanged.
+Desktop screenshots do not certify mobile GPU performance; the dressing costs
+roughly ten draw calls and around 60k triangles over the blockout.
+
 ## What to decide before more art
 
 1. Drive Market Loop first. Is the civic turn readable early enough?
