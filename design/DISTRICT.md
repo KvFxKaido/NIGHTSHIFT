@@ -246,7 +246,7 @@ where a divider sits. Before this existed the renderer painted lanes at
 
 Not yet: lanes are district-only. `RoadWorld` does not expose them and the
 Blackglass circuit has none, so anything built on lanes works in the district
-only until that is addressed. Nothing drives them — there is no traffic.
+only until that is addressed.
 
 ## Traffic
 
@@ -317,9 +317,9 @@ dressing is generated from `DISTRICT_STREETS`, `DISTRICT_BLOCKS` and
 `DISTRICT_JUNCTIONS` at load, so moving a street re-dresses it for free and
 nothing is lost. Hand-authored art still waits for step 5.
 
-What the dressing is not: there is no traffic (GDD §12 — a sim feature, not a
-renderer one), no post-processing bloom, no reflections, no wet-road normal map,
-and no interior detail. The glow is additive quads and emissive surfaces, and
+What the dressing is not: no post-processing bloom, no reflections, no wet-road
+normal map, and no interior detail. Traffic is a sim feature and lives in its own
+section above. The glow is additive quads and emissive surfaces, and
 the lamps are geometry rather than lights, so the light count is unchanged.
 Desktop screenshots do not certify mobile GPU performance; the dressing costs
 roughly ten draw calls and around 60k triangles over the blockout.

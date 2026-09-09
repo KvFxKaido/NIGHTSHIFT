@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DISTRICT_TRAFFIC, createDistrictTraffic, projectOntoDistrict } from "../src/sim/district.ts";
+import { districtTraffic, createDistrictTraffic, projectOntoDistrict } from "../src/sim/district.ts";
 import { mix, stepTraffic, TRAFFIC_KINDS, TRAFFIC_SPACING,
   type TrafficVehicleState } from "../src/sim/traffic.ts";
 
 const DT = 1 / 60;
-const network = DISTRICT_TRAFFIC;
+const network = districtTraffic();
 
 /** Overlap depth of two vehicles' oriented boxes, 0 when clear.
  *

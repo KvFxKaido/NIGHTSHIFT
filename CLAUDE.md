@@ -127,7 +127,6 @@ lives in the sim; the renderer paints those lanes rather than deriving its own,
 and `laneMarkings` is the single authority on where a divider or an edge line
 goes. `districtLanePose` binds it to the district's graded surface. Lanes are
 district-only so far; `RoadWorld` does not carry them and Blackglass has none.
-Nothing drives the lanes yet — traffic (GDD §12) is unimplemented.
 `src/sim/traffic.ts` drives those lanes: about two dozen vehicles over the
 district (GDD §12 asks for sparse, not dense), deterministic via an integer hash
 — never the renderer's `Math.sin`-based `hash01`, whose last bits are not
@@ -148,7 +147,7 @@ of it is generated from the street/block/junction data, is deterministic
 (`hash01`, never `Math.random`), and merges into a handful of meshes rather than
 adding lights. `?lighting=blockout` restores the flat work view with no dressing
 at all, because neon hides the surface errors that view exists to find. There is
-no traffic, no bloom pass and no reflections. Baseline Blackglass presentation is
+no bloom pass and no reflections. Baseline Blackglass presentation is
 untouched. `src/ui/hud.ts` draws the speed dial and the heading-up minimap from
 `src/ui/hud-state.ts`; the map reads street data, never the renderer, and the
 cluster binds to ids that `tests/hud.test.ts` checks against `index.html`.

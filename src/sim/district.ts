@@ -636,7 +636,8 @@ function worldFrom(id: string, points: readonly CoursePoint[]): RoadWorld {
   // Boundaries and projection are the whole network in both modes: a route is a
   // guide drawn over the district, never a subset of the road you may drive on.
   return { id: `${DISTRICT_VERSION}/${id}`, walls: DISTRICT_WALLS, solids: DISTRICT_BLOCKS,
-    traffic: DISTRICT_TRAFFIC, project: projectOntoDistrict,
+    // A getter, so the network is built only if something asks for traffic.
+    get traffic() { return districtTraffic(); }, project: projectOntoDistrict,
     start: { x: a.x, y: a.y, z: a.z, heading: Math.atan2(a.x - b.x, a.z - b.z),
       pitch: Math.atan2(b.y - a.y, Math.hypot(b.x - a.x, b.z - a.z)) } };
 }
@@ -1000,46 +1001,6 @@ function buildTrafficNetwork(): TrafficNetwork {
     return lanePose(entry.street.points, entry.lane, distance, () => 0, entry.street.kind);
   };
 
-  // Where each lane shares space with any other lane: its junction region,
-  // defined by geometry rather than by a radius.
-  //
-  // Deriving it from movement conflicts alone leaves a gap. Two exits of one
-  // junction diverge slowly and stay within a vehicle's width of each other
-  // well past the node; a vehicle on each is "clear" of the junction by any
-  // movement-based measure and they still touch. Asking the lanes directly —
-  // how far from my ends am I sharing tarmac with anybody — covers that, and
-  // subsumes the crossing reaches it replaces.
-  const sharedTail = entries.map(() => 0);
-  const sharedHead = entries.map(() => 0);
-  const laneSamples = entries.map((_, id) => {
-    const out: { x: number; z: number; d: number }[] = [];
-    for (let d = 0; d <= lengths[id]!; d += CONFLICT_STEP) out.push({ ...flatPose(id, d), d });
-    return out;
-  });
-  const laneBounds = laneSamples.map(samples => ({
-    minX: Math.min(...samples.map(s => s.x)), maxX: Math.max(...samples.map(s => s.x)),
-    minZ: Math.min(...samples.map(s => s.z)), maxZ: Math.max(...samples.map(s => s.z)),
-  }));
-  for (let a = 0; a < entries.length; a++) {
-    for (let b = a + 1; b < entries.length; b++) {
-      const boxA = laneBounds[a]!, boxB = laneBounds[b]!;
-      if (boxA.minX - CONFLICT_CLEARANCE > boxB.maxX || boxB.minX - CONFLICT_CLEARANCE > boxA.maxX
-        || boxA.minZ - CONFLICT_CLEARANCE > boxB.maxZ || boxB.minZ - CONFLICT_CLEARANCE > boxA.maxZ) continue;
-      const sa = laneSamples[a]!, sb = laneSamples[b]!;
-      for (let m = 1; m < sa.length; m++) {
-        const boxAB = sweptBox(sa[m - 1]!.x, sa[m - 1]!.z, sa[m]!.x, sa[m]!.z);
-        for (let n = 1; n < sb.length; n++) {
-          if (!sweptBoxesOverlap(boxAB, sweptBox(sb[n - 1]!.x, sb[n - 1]!.z, sb[n]!.x, sb[n]!.z))) continue;
-          for (const [lane, sample, length] of
-            [[a, sa[m]!, lengths[a]!], [b, sb[n]!, lengths[b]!]] as const) {
-            sharedHead[lane] = Math.max(sharedHead[lane]!, sample.d);
-            sharedTail[lane] = Math.max(sharedTail[lane]!, length - sample.d);
-          }
-        }
-      }
-    }
-  }
-
   /**
    * A movement's path through its junction: the tail of the lane it arrives on,
    * then the head of the lane it leaves by. `along` is signed — negative metres
@@ -1052,9 +1013,7 @@ function buildTrafficNetwork(): TrafficNetwork {
     for (let back = reach(movement.from); back >= 0; back -= CONFLICT_STEP) {
       path.push({ ...flatPose(movement.from, fromLength - back), along: -back, lane: movement.from });
     }
-    const ahead = Math.min(reach(movement.to),
-      Math.max(movement.clear, sharedHead[movement.to]!));
-    for (let forward = CONFLICT_STEP; forward <= ahead; forward += CONFLICT_STEP) {
+    for (let forward = CONFLICT_STEP; forward <= reach(movement.to); forward += CONFLICT_STEP) {
       path.push({ ...flatPose(movement.to, forward), along: forward, lane: movement.to });
     }
     return path;
@@ -1092,8 +1051,16 @@ function buildTrafficNetwork(): TrafficNetwork {
         for (let m = 1; m < pathA.length; m++) {
           const a0 = pathA[m - 1]!, a1 = pathA[m]!;
           const boxA = sweptBox(a0.x, a0.z, a1.x, a1.z);
+          // One distance against a bounding radius, before four axes of exact
+          // test. A movement path spans up to 140 m, so its own bounding box is
+          // far too coarse to reject the pair; the segments are not.
+          const radiusA = boxA.halfLength + boxA.halfWidth;
           for (let n = 1; n < pathB.length; n++) {
             const b0 = pathB[n - 1]!, b1 = pathB[n]!;
+            const midX = (b0.x + b1.x) / 2 - boxA.x, midZ = (b0.z + b1.z) / 2 - boxA.z;
+            const radiusB = Math.hypot(b1.x - b0.x, b1.z - b0.z) / 2
+              + CONFLICT_LENGTH / 2 + CONFLICT_WIDTH / 2;
+            if (midX * midX + midZ * midZ > (radiusA + radiusB) ** 2) continue;
             // Once two movements are on the same lane they have merged, and a
             // merge is a queue: the follower rule owns it from there. Counting
             // the shared lane as conflict makes two movements onto one street
@@ -1158,6 +1125,18 @@ function buildTrafficNetwork(): TrafficNetwork {
   // the lanes against the boxes is the same question the conflict pass asks,
   // put to stationary vehicles instead of to other movements.
   const SWEEP_STEP = 2;
+  // Lane extents, so a movement only samples the lanes it could possibly reach.
+  // Without this the pass walks every lane end to end for every movement — 209
+  // million box tests, and most of a 26-second module import.
+  const laneExtent = entries.map((_, id) => {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let d = 0; d <= lengths[id]!; d += SWEEP_STEP) {
+      const point = flatPose(id, d);
+      minX = Math.min(minX, point.x); maxX = Math.max(maxX, point.x);
+      minZ = Math.min(minZ, point.z); maxZ = Math.max(maxZ, point.z);
+    }
+    return { minX, maxX, minZ, maxZ };
+  });
   const sweeps = movements.map(movement => {
     const boxes = [];
     const path = paths[movement.id]!;
@@ -1165,11 +1144,20 @@ function buildTrafficNetwork(): TrafficNetwork {
       boxes.push(sweptBox(path[m - 1]!.x, path[m - 1]!.z, path[m]!.x, path[m]!.z));
     }
     const spans = new Map<number, { from: number; to: number }>();
+    const box = bounds[movement.id]!;
     for (let lane = 0; lane < entries.length; lane++) {
       if (lane === movement.from || lane === movement.to) continue;
+      const extent = laneExtent[lane]!;
+      if (box.minX - CONFLICT_CLEARANCE > extent.maxX || extent.minX - CONFLICT_CLEARANCE > box.maxX
+        || box.minZ - CONFLICT_CLEARANCE > extent.maxZ || extent.minZ - CONFLICT_CLEARANCE > box.maxZ) continue;
       for (let distance = 0; distance <= lengths[lane]!; distance += SWEEP_STEP) {
         const point = flatPose(lane, distance);
-        const hit = boxes.some(box => sweptBoxesOverlap(box,
+        // Four comparisons against the whole path's extent before ~47 exact box
+        // tests. Most of a lane lies nowhere near any one movement, and this is
+        // the single hottest loop in the build.
+        if (point.x < box.minX - CONFLICT_CLEARANCE || point.x > box.maxX + CONFLICT_CLEARANCE
+          || point.z < box.minZ - CONFLICT_CLEARANCE || point.z > box.maxZ + CONFLICT_CLEARANCE) continue;
+        const hit = boxes.some(swept => sweptBoxesOverlap(swept,
           { x: point.x, z: point.z, dirX: 1, dirZ: 0, halfLength: 0, halfWidth: 0 }));
         if (!hit) continue;
         const span = spans.get(lane);
@@ -1216,8 +1204,21 @@ function buildTrafficNetwork(): TrafficNetwork {
 /** Spacing of the sampled lane height profile, in metres. */
 export const TRAFFIC_HEIGHT_STEP = 4;
 
-export const DISTRICT_TRAFFIC: TrafficNetwork = buildTrafficNetwork();
+let trafficNetwork: TrafficNetwork | null = null;
+
+/**
+ * The district's traffic network, built once on first use.
+ *
+ * Not at module load. `main.ts` imports this module for the world builders
+ * whichever world is being played, so an eager build charges a Blackglass
+ * session — which has no lanes and no traffic — for the whole geometric pass,
+ * and charges every test that touches the district but not traffic.
+ */
+export function districtTraffic(): TrafficNetwork {
+  trafficNetwork ??= buildTrafficNetwork();
+  return trafficNetwork;
+}
 
 export function createDistrictTraffic(): TrafficState {
-  return createTraffic(DISTRICT_TRAFFIC);
+  return createTraffic(districtTraffic());
 }

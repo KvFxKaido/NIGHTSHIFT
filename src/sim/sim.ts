@@ -330,8 +330,8 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   // That makes it an immovable hazard rather than a second handling model, and
   // it keeps the player's contact response the only dynamics in the tick — the
   // handling gate (GDD §22) must not move because a van exists.
-  const traffic = roadWorld.traffic && options.traffic !== false
-    ? createTraffic(roadWorld.traffic) : null;
+  const network = options.traffic === false ? null : roadWorld.traffic;
+  const traffic = network ? createTraffic(network) : null;
   const trafficBodies = (traffic?.vehicles ?? []).map(vehicle => {
     const spec = TRAFFIC_KINDS[vehicle.kind];
     const trafficBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
