@@ -1,9 +1,11 @@
 import { createSim, maxCorneringSpeed, step, type Sim } from "../../src/sim/sim.ts";
+import type { RaceDefinition } from "../../src/sim/race.ts";
 import { createDistrictWorld, pathLength, projectOntoPath, routePoints, type DistrictRoute } from "../../src/sim/district.ts";
 import { hasContact } from "./handling.ts";
 
 /** Conservative inspection driver, not racing AI. Never teleports or disables collisions. */
-export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) => void) {
+export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) => void,
+  options: { race?: RaceDefinition } = {}) {
   const points = routePoints(route), length = pathLength(points), cumulative = [0];
   for (let i = 1; i < points.length; i++) cumulative.push(cumulative.at(-1)! +
     Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
@@ -26,7 +28,7 @@ export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) =>
   // allows. Leaving traffic in would make it a test of whether a van happened to
   // be there, and it would fail on any route where one was. Traffic has its own
   // tests in tests/traffic.test.ts.
-  const sim = createSim("fwd", createDistrictWorld(route), { traffic: false });
+  const sim = createSim("fwd", createDistrictWorld(route), { traffic: false, race: options.race });
   let previous = 0, contactTicks = 0, maxOffset = 0, maxHeightStep = 0;
   let previousY = sim.state.vehicle.y;
   // The cap exists to catch a driver that is stuck, not to impose a lap time,
@@ -42,11 +44,11 @@ export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) =>
       if (tick > 1) maxHeightStep = Math.max(maxHeightStep, Math.abs(car.y - previousY));
       previousY = car.y;
       if (projection.distance > projection.width / 2 - 1.1) {
-        return { completed: false, seconds: tick / 60, contactTicks, maxOffset, maxHeightStep, along: projection.along, reason: "left road" };
+        return { completed: false, seconds: tick / 60, contactTicks, maxOffset, maxHeightStep, along: projection.along, reason: "left road", race: sim.state.race };
       }
       if ((route.kind === "circuit" && previous > length * 0.9 && projection.along < length * 0.1) ||
           (route.kind === "sprint" && projection.along > length - 2)) {
-        return { completed: true, seconds: tick / 60, contactTicks, maxOffset, maxHeightStep, along: projection.along };
+        return { completed: true, seconds: tick / 60, contactTicks, maxOffset, maxHeightStep, along: projection.along, race: sim.state.race };
       }
       previous = projection.along;
       const lookAhead = 8 + car.speed * 0.35;
@@ -63,6 +65,6 @@ export function driveDistrictRoute(route: DistrictRoute, inspect?: (sim: Sim) =>
       step(sim, input);
       if (hasContact(sim)) contactTicks++;
     }
-    return { completed: false, seconds: budget / 60, contactTicks, maxOffset, maxHeightStep, along: previous, reason: "timeout" };
+    return { completed: false, seconds: budget / 60, contactTicks, maxOffset, maxHeightStep, along: previous, reason: "timeout", race: sim.state.race };
   } finally { sim.world.free(); }
 }

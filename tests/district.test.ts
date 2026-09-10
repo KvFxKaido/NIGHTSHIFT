@@ -300,3 +300,62 @@ test("the drawn ground never covers the road", () => {
   scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
   assert.ok(worst <= 0, `the ground stands ${worst.toFixed(2)} m over the road at ${worstAt}`);
 });
+
+// The building you cannot drive through must be the building you can see. The
+// collider carried the footprint's yaw NUMBER with the opposite handedness —
+// roadRotation is a rotation about +Y, whose width axis is (cos, -sin); the
+// footprint, the drawn mesh and every placement test use (cos, sin) — so each
+// physics box was the mirror image of its footprint. Near-square blocks in the
+// core hid it for two days. A 32 x 11 warehouse on Crane Alley put an
+// invisible wall across the road at dead centre, and the first race found it.
+//
+// Executed against Rapier itself, not against the arithmetic: for every
+// building long enough to tell a mirror from itself, its own corner must lie
+// inside its collider and the mirror's corner must not.
+test("a building's collider stands where its footprint does, not where its mirror does", () => {
+  const sim = createSim("fwd", createDistrictWorld(getDistrictRoute("market-loop")), { traffic: false });
+  try {
+    // Rapier's spatial queries answer nothing until the world has stepped once:
+    // the query pipeline is built by the step. Asked cold, every probe below
+    // read false — including the centre of the box — and it looked like the
+    // collider was somewhere else entirely.
+    sim.world.step();
+    const inThisBuilding = (block: typeof DISTRICT_BLOCKS[number], x: number, z: number) => {
+      let hit = false;
+      sim.world.intersectionsWithPoint({ x, y: block.height / 2, z }, collider => {
+        // Rapier stores translations as f32; 1e-6 against an f64 misses a
+        // building at |x| > 100 on rounding alone.
+        const t = collider.translation();
+        if (Math.abs(t.x - block.x) < 1e-3 && Math.abs(t.z - block.z) < 1e-3) { hit = true; return false; }
+        return true;
+      });
+      return hit;
+    };
+    let checked = 0, mirrorsTested = 0;
+    for (const block of DISTRICT_BLOCKS) {
+      if (block.width < block.depth * 1.8 && block.depth < block.width * 1.8) continue;
+      const cos = Math.cos(block.rotation), sin = Math.sin(block.rotation);
+      const lx = block.width / 2 - 0.5, lz = block.depth / 2 - 0.5;
+      // The footprint's own corner, half a metre in.
+      const ownX = block.x + lx * cos - lz * sin, ownZ = block.z + lx * sin + lz * cos;
+      assert.ok(inThisBuilding(block, ownX, ownZ),
+        `building at ${block.x.toFixed(0)},${block.z.toFixed(0)}: its own corner is outside its collider`);
+      checked++;
+      // The same corner under the opposite handedness: where the mirror stood.
+      // Only a probe where the mirror actually leaves the footprint — an
+      // axis-aligned box is its own mirror and cannot tell.
+      const mirX = block.x + lx * cos + lz * sin, mirZ = block.z - lx * sin + lz * cos;
+      const dx = mirX - block.x, dz = mirZ - block.z;
+      const along = dx * cos + dz * sin, across = -dx * sin + dz * cos;
+      if (Math.abs(along) < block.width / 2 + 0.5 && Math.abs(across) < block.depth / 2 + 0.5) continue;
+      mirrorsTested++;
+      assert.ok(!inThisBuilding(block, mirX, mirZ),
+        `building at ${block.x.toFixed(0)},${block.z.toFixed(0)}: its MIRROR's corner is inside its collider`);
+    }
+    // 29 buildings are long enough to tell a mirror from itself, and 20-odd of
+    // them stand at an angle where the mirror leaves the footprint. Enough to
+    // mean something; the floors guard against the loop silently skipping all.
+    assert.ok(checked >= 20, `only ${checked} long buildings to check`);
+    assert.ok(mirrorsTested >= 10, `only ${mirrorsTested} buildings where the mirror differs`);
+  } finally { sim.world.free(); }
+});

@@ -115,7 +115,17 @@ apart from `walls` because a wall is 1.3 m of guard rail and renders as one.
 Two footprints are kept apart by a separating-axis test on the rectangles
 (`blockPenetration`), never by circumscribed circles: a circle cannot express a
 shared party wall, so it needs slack, and slack let 15 pairs interpenetrate by
-up to 4.21 m. `blockClearsStreets` samples every footprint edge against the
+up to 4.21 m. A solid's `rotation` is in `blockCorners`' convention — a 2D
+rotation in the (x, z) plane — which placement, every footprint test and the
+drawn mesh (`rotation.y = -rotation`) share; the Rapier collider must NEGATE it
+(`roadRotation(-rotation, 0)`), because a rotation about +Y has the opposite
+handedness. With the sign dropped every building's collider was the mirror
+image of its footprint for two days — near-square core blocks hid it; a 32 x 11
+warehouse put an invisible wall across Crane Alley and the first race found it.
+`tests/district.test.ts` now asks Rapier itself whether each long building's
+collider contains its own corner and not its mirror's; note Rapier's spatial
+queries answer nothing until the world has stepped once, and its translations
+are f32, so match them at 1e-3, not 1e-6. Walls keep their own sign. `blockClearsStreets` samples every footprint edge against the
 width the road ACTUALLY has there, never corners only and never the narrowest
 width: corners let a straight frontage cut the chord of a bend by 10 m, and the
 narrow width let a building stand on a junction flare a car can drive on.
@@ -177,6 +187,26 @@ Raising the ceiling means per-conflict-point arrival windows instead of
 whole-movement occupancy. `createSim(..., { traffic: false })` turns it
 off, which the district reference drivers use because they are geometry checks.
 `src/render/traffic.ts` draws it as instanced bodies and lamps, eight draw calls.
+**Open-checkpoint racing exists** (GDD §7.3, the Midnight Club format, and the
+primary event). `src/sim/race.ts` is the rules — ordered gates, a tick-based
+countdown that the sim enforces by zeroing driving input, splits, finish — as a
+pure step over the vehicle state, so a replay reproduces the splits;
+`src/sim/events.ts` holds the district's races as checkpoint sequences plus a
+reference route that is the grid and an authored rival's line, never a
+constraint on the player. `SimOptions.race` / `SimState.race` mirror traffic:
+stepped after `syncState` at the end of `step()`. `?race=<id>` is a page-level
+choice like `?route=` (the main-menu Race button reloads into it); the HUD
+shows gate, countdown/clock/finish and position at top centre and draws the
+next gate on the minimap (a ring, or a chevron on the rim); `src/render/race.ts`
+stands a column of light on the next gate from `state.race.next`. The rival
+needs nothing new: reset archives your last run and races it back through the
+same gates, so "Restart Run" after a finish is a race against yourself. An
+authored, bundled rival log is the follow-up and must carry physics identity.
+Checkpoints are placed where route choice exists, measured per leg with the
+critique's arithmetic; `tests/race.test.ts` gates every race on most legs
+having a real alternative, and drives the reference line through every gate
+with the real sim. The first event is Crane to Crest: Wharf Gate to Hillcrest,
+0.88 km, and both real-choice legs are the two alleys.
 The district is dressed for night by default (GDD §15.1): lane paint dropped
 onto the graded surface, sodium lamps with additive light pools, lit facades and
 shopfront glass, neon signage, wet asphalt and a camera-following sky dome. All

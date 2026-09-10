@@ -26,6 +26,33 @@ Players build one car into a personal street-racing machine, challenge recogniza
 
 The city is not intended to be a large open world. It is a carefully designed racing space where every alley, parking garage, overpass, and construction gap has a gameplay purpose.
 
+### 1.1 The Reference Is Midnight Club 3, Not Los Angeles
+
+Project Nightshift is a spiritual successor to Midnight Club 3: DUB Edition in
+its **format** — open-checkpoint racing through a city you learn, shortcuts as
+the skill, rivals you find cruising and flash to challenge, a garage that makes
+the car yours. It is not a successor to Midnight Club: Los Angeles in its
+**simulation trappings** — police, day/night, weather, damage, a licensed
+roster. Every one of those is on the out-of-scope list in §21, and that is not
+a coincidence: §21 is the LA feature list.
+
+LA features are taken where they serve the format and refused where they
+change the verb. Reputation as gate and currency is Live Cred. The phone and
+challenge flow is the hub loop. Cruising rivals you flash to challenge are in
+the vertical slice. Police are refused even beyond §21: they turn *learn the
+city* into *flee the city*, which is a different game.
+
+What the game holds against Midnight Club gravity: **one district**, not three
+cities — §2's whole thesis is that a small city feels enormous. **One car** with
+DUB-depth customization, not a DUB roster: take the garage, refuse the car
+list. **One Surge**, not Agro, Roar and Zone: three abilities is roster thinking
+in disguise.
+
+Shortcuts are the content, not a garnish. The rule is not *few*; it is **every
+shortcut has a cost** — it is narrower, or blind, or a jump you can miss, or it
+puts you in traffic. A shortcut with no cost is just a shorter road, and a
+district with few shortcuts is a district with nothing to learn.
+
 ---
 
 ## 2. Design Thesis
@@ -219,21 +246,40 @@ This allows the same environment to support both open navigation and tightly aut
 
 ### 6.4 Current District Layout Study
 
-The shared-district blockout retains Blackglass's perimeter and grows outward
-from it: Market Avenue and a Civic Link across the interior, then two orbital
-belts and seven radials. It covers 935 x 935 m with 11.31 km of street across
-51 edges and 33 junctions, closed by a district boundary. Fixed street data is
-separate from directed route definitions; six route guides reuse those
-streets. **Free roam is how the district is entered** — there is no track
-selection, and the guides are overlays for specific studies rather than a way
-to start. The interactive top-down board and playable scope are described in
-[DISTRICT.md](DISTRICT.md). This is an authored layout study, not runtime
-procedural roads, and junctions are open with no scored races yet. Preserve the
-original course as the handling reference while judging the new network.
+The district retains Blackglass's perimeter and is laid out around a
+geography rather than a diagram: a river along the east with three crossings
+and a far bank reached only over them, a freight line cutting the north, and
+terrain rising 20 m to the old quarter in the north-west. It covers 933 x 867 m
+with 9.26 km of street across 53 edges and 35 junctions (24 of them real
+choice points), a road-width hierarchy from 24 m arterials to 8 m alleys, 321
+buildings standing on 18 of its 19 enclosed blocks, and about two dozen
+traffic vehicles. Fixed street data is separate from directed route
+definitions; six route guides reuse those streets. **Free roam is how the
+district is entered** — there is no track selection, and the guides are
+overlays for specific studies rather than a way to start. The interactive
+top-down board, the layout critique (`pnpm district:critique`) and the playable
+scope are described in [DISTRICT.md](DISTRICT.md). This is an authored layout,
+not runtime procedural roads. Preserve the original course as the handling
+reference while judging the new network.
 
 ---
 
 ## 7. Race Types
+
+Open checkpoint (§7.3) is the primary event and the one the district is tuned
+for. The others are variations on it — a circuit is an open checkpoint race
+whose checkpoints repeat, a sprint is one whose route between checkpoints is
+fixed — and none of them is built before open checkpoint works.
+
+A race is a sequence of checkpoints, and its route choice is measured **per
+leg**, not over the whole city: for each leg, close the single most important
+street on the best route and see what the detour costs. Under about 10% the
+two routes are near-equal and knowing the shortcut is barely rewarded; over
+about 25% there is one way and the leg is a sprint in disguise; between them
+is the Midnight Club sweet spot, where the main road is viable and the alley
+wins. Checkpoints are placed where that choice exists. `pnpm district:critique`
+measures the city; the same arithmetic applied to a checkpoint sequence
+measures a race, and the first event was chosen that way.
 
 ### 7.1 Circuit
 
@@ -815,6 +861,13 @@ Phase 3: District Prototype
 - Shortcuts
 - Lighting
 - Performance profiling
+
+*Note (2026-09-09): Phase 3 was built before Phase 2. The district, traffic,
+massing and lighting exist; no race does. Under the Midnight Club 3 reference
+the most important missing thing is not more map but one open-checkpoint
+event, so Phase 2's checkpoints, start, finish and timing are next, built on
+the district as it stands. Racing it is what will show where route choice is
+actually thin, rather than tuning the network in the abstract.*
 
 Phase 4: Game Loop
 

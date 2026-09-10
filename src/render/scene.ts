@@ -5,6 +5,8 @@ import type { TrafficState } from "../sim/traffic.ts";
 import type { DistrictRoute } from "../sim/district.ts";
 import { addDistrict, SKY_NAME } from "./district.ts";
 import { addTraffic, updateTraffic, type TrafficView } from "./traffic.ts";
+import { addRaceBeacon, updateRaceBeacon, type RaceView } from "./race.ts";
+import { GATE_RADIUS } from "../sim/events.ts";
 import { BLACKGLASS_WORLD, type RoadWorld } from "../sim/road-world.ts";
 import {
   createCameraOrbitState,
@@ -38,6 +40,10 @@ export interface View extends CarView {
   sky: THREE.Object3D | null;
   /** Traffic instances, or null in a world with none. */
   traffic: TrafficView | null;
+  /** The next-checkpoint beacon. Hidden unless the state carries a race. */
+  race: RaceView;
+  /** Road surface height, for things that stand on the road. */
+  surface: (x: number, z: number) => number;
 }
 
 /**
@@ -149,6 +155,8 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     course,
     sky: scene.getObjectByName(SKY_NAME) ?? null,
     traffic: traffic ? addTraffic(scene, traffic) : null,
+    race: addRaceBeacon(scene, GATE_RADIUS),
+    surface: (x, z) => roadWorld.project(x, z).height,
   };
 
   const resize = () => {
@@ -253,6 +261,7 @@ export function render(
   // Traffic is drawn from the state the tick left behind, never interpolated or
   // guessed at: the renderer still only draws what a tick decided.
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
+  updateRaceBeacon(view.race, state.race, view.surface);
   placeCar(view, car);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);

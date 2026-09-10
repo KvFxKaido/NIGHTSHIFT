@@ -485,3 +485,48 @@ Quay to Millgate — that is the cost of "reachable only over the water". A
 riverside lane is the only candidate that touches it and it barely moves
 choice. Whether that corridor is scenery or a defect is a design call, not a
 measurement, and it is open.
+
+## The first race, and what it found in its first 125 metres
+
+Open checkpoint is the primary event (GDD §7.3) and the district now has one:
+**Crane to Crest**, Wharf Gate to Hillcrest through Northgate and Quarter
+North, 0.88 km and 20 m of climb. It was placed by scoring candidate sequences
+leg by leg with the critique's arithmetic. "Northgate Run", which spans the
+whole city, had every leg one-way — a sprint in disguise. Crane to Crest's two
+real-choice legs are exactly the two alleys: Crane Alley against the arterial
+(2% detour if the alley closes — near-equal, the alley barely wins) and
+Cutlers Alley against the long way round (11%, the sweet spot). The last leg is
+one way and is the finish run. `tests/race.test.ts` gates every race on most
+of its legs having a real alternative, so a race cannot be authored where the
+city offers no choice.
+
+The reference route is the grid and the line an inspection driver or an
+authored rival follows. Driving it with the real sim was the first time
+anything had driven an 8 m alley — every earlier route ran 12-24 m roads — and
+the driver stopped dead at 125 m, at the alley's bend, at an offset of 0.09 m
+from the centreline, with the nearest rail 4.7 m off and the nearest building
+corner 10 m off. Nothing geometric was there. Asked directly, Rapier reported
+the car touching a 32 x 11 m warehouse whose collider yaw matched its footprint
+in *number* and not in *handedness*: a rotation about +Y turns (x, z) the
+opposite way to the 2D rotation the footprint, the drawn mesh and every
+placement test use. Every building's physics box had been the mirror image of
+its footprint since rotation reached the sim. The core's near-square blocks
+are nearly their own mirrors and hid it for two days; a long warehouse on a
+curved alley swung its mirror across the road.
+
+The collider now negates the yaw, and a test asks Rapier itself — not the
+arithmetic — whether each long building's collider contains its own corner and
+not its mirror's. Two things that test had to learn: Rapier's spatial queries
+answer nothing until the world has stepped once, so asked cold every probe
+including the box's centre read false; and Rapier stores translations as f32,
+so a 1e-6 match against an f64 misses a building at |x| > 100 on rounding
+alone.
+
+The race loop is sim-owned and deterministic: gates are a radius at a junction
+and count only in order; the countdown is enforced by the sim zeroing driving
+input, so a replay holds the same three seconds; splits are ticks. The HUD
+shows gate, clock and position; the next gate is a ring on the minimap or a
+chevron on its rim, and a column of light in the world. The rival needs
+nothing new — reset archives your last run and races it back through the same
+gates. An authored rival log bundled with the race is the follow-up, and it
+must carry physics identity.

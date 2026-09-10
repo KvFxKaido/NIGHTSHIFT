@@ -70,7 +70,7 @@ test("a street segment is drawn whenever any part of it crosses the disc", () =>
 // arithmetic above would catch.
 test("index.html carries every element the cluster binds to", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "minimap"]) {
+  for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "minimap", "race", "race-gate", "race-time"]) {
     assert.ok(html.includes(`id="${id}"`), `index.html is missing #${id}`);
   }
   assert.ok(html.includes('href="/src/ui/hud.css"'), "the cluster stylesheet is not linked");

@@ -23,8 +23,17 @@ export interface HudVehicle {
   forwardSpeed: number;
 }
 
+/** What the cluster shows of a race: the gate you are on, a label for the
+ *  readout (countdown, time, position), and where the next gate is. */
+export interface HudRace {
+  checkpoint: number;
+  total: number;
+  label: string;
+  next: { x: number; z: number } | null;
+}
+
 export interface Hud {
-  update(vehicle: HudVehicle, rival: { x: number; z: number } | null): void;
+  update(vehicle: HudVehicle, rival: { x: number; z: number } | null, race?: HudRace | null): void;
 }
 
 /** How much of the world the minimap disc covers, edge to centre. */
@@ -44,6 +53,9 @@ export function createHud(options: HudOptions): Hud {
   const ticks = root.getElementById("gauge-ticks");
   const canvas = root.getElementById("minimap") as HTMLCanvasElement | null;
   const context = canvas?.getContext("2d") ?? null;
+  const raceElement = root.getElementById("race");
+  const raceGateElement = root.getElementById("race-gate");
+  const raceTimeElement = root.getElementById("race-time");
 
   if (ticks) {
     // Twelve marks around the sweep, every third one long. Generated rather than
@@ -73,7 +85,7 @@ export function createHud(options: HudOptions): Hud {
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
   };
 
-  const drawMinimap = (vehicle: HudVehicle, rival: { x: number; z: number } | null) => {
+  const drawMinimap = (vehicle: HudVehicle, rival: { x: number; z: number } | null, race: HudRace | null) => {
     if (!canvas || !context) return;
     sizeCanvas();
     const size = mapSize / Math.min(devicePixelRatio || 1, 2);
@@ -118,6 +130,35 @@ export function createHud(options: HudOptions): Hud {
       context.fill();
     }
 
+    // The next gate: a ring where it is, or a chevron on the rim pointing at it
+    // when it is off the disc. The Midnight Club arrow.
+    if (race?.next) {
+      const gate = race.next;
+      context.strokeStyle = "#ffb347";
+      context.lineWidth = 2.2;
+      if (withinMinimap(camera, gate.x, gate.z, 1)) {
+        const pixel = minimapPixel(camera, gate.x, gate.z);
+        context.beginPath();
+        context.arc(pixel.x, pixel.y, 5.5, 0, Math.PI * 2);
+        context.stroke();
+      } else {
+        const pixel = minimapPixel(camera, gate.x, gate.z);
+        const angle = Math.atan2(pixel.y, pixel.x);
+        const rim = radius - 9;
+        context.save();
+        context.translate(Math.cos(angle) * rim, Math.sin(angle) * rim);
+        context.rotate(angle);
+        context.fillStyle = "#ffb347";
+        context.beginPath();
+        context.moveTo(6, 0);
+        context.lineTo(-4, 5);
+        context.lineTo(-4, -5);
+        context.closePath();
+        context.fill();
+        context.restore();
+      }
+    }
+
     // The player is always the middle of the disc, pointing up — that is what
     // "heading up" means, and it is why the streets rotate instead.
     context.fillStyle = "#f4f7fa";
@@ -132,16 +173,23 @@ export function createHud(options: HudOptions): Hud {
   };
 
   return {
-    update(vehicle, rival) {
+    update(vehicle, rival, race = null) {
       const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed);
       speedElement.textContent = reading.mph.toString().padStart(3, "0");
       gearElement.textContent = reading.gear;
+      if (raceElement) {
+        raceElement.hidden = !race;
+        if (race && raceGateElement && raceTimeElement) {
+          raceGateElement.textContent = `GATE ${Math.min(race.checkpoint + 1, race.total)}/${race.total}`;
+          raceTimeElement.textContent = race.label;
+        }
+      }
       if (sweep) {
         const arc = GAUGE_CIRCUMFERENCE * (GAUGE_SWEEP_DEGREES / 360);
         sweep.style.strokeDasharray = `${arc * reading.ratio} ${GAUGE_CIRCUMFERENCE}`;
         sweep.classList.toggle("redline", reading.redline);
       }
-      drawMinimap(vehicle, rival);
+      drawMinimap(vehicle, rival, race);
     },
   };
 }

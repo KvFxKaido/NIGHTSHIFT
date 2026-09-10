@@ -3,6 +3,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
 import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficState } from "./traffic.ts";
+import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState } from "./race.ts";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -65,6 +66,10 @@ export interface SimState {
   /** Null where the world has no lane graph, or where traffic is switched off
    *  for a geometry check. Never null in ordinary district play. */
   traffic: TrafficState | null;
+  /** Null in free roam. Progress through an open-checkpoint race: rules about
+   *  where the car has been, decided per tick, so a replay reproduces the
+   *  splits. The definition itself is static and lives on `Sim.race`. */
+  race: RaceState | null;
 }
 
 export interface Sim {
@@ -76,6 +81,8 @@ export interface Sim {
    *  Created once and never added to or removed from: a changing collider set
    *  changes the solver's own bookkeeping, and a replay has to reproduce it. */
   trafficBodies: readonly RAPIER.RigidBody[];
+  /** The race being run, or null. Static; progress is `state.race`. */
+  race: RaceDefinition | null;
 }
 
 /** Traffic is part of the world, so it is on by default. A geometry check that
@@ -83,6 +90,8 @@ export interface Sim {
  *  is about road surface and barriers, not about whether a van was in the way. */
 export interface SimOptions {
   readonly traffic?: boolean;
+  /** Run an open-checkpoint race on this world from its start pose. */
+  readonly race?: RaceDefinition;
 }
 
 // Feel stays centralized. No suspension or wheel inertia yet: the chassis
@@ -307,11 +316,22 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   // Massing is solid. Driving through a building was invisible on a fixed route
   // and is the first thing free roam does. Rotated, because a building fronting
   // a street is not aligned to the world axes.
+  //
+  // NEGATED. A solid's rotation is in blockCorners' convention — a 2D rotation
+  // in the (x, z) plane, width axis (cos, sin) — which is what placement, the
+  // overlap and clearance tests, and the drawn mesh (rotation.y = -rotation)
+  // all share. roadRotation is a rotation about +Y, whose width axis is
+  // (cos, -sin): the same yaw number, the opposite handedness. With the sign
+  // dropped every building's collider was the MIRROR of its footprint. The
+  // core's near-square blocks hid it; a 32 x 11 warehouse on Crane Alley put an
+  // invisible wall across the road at dead centre, which the first race found
+  // 125 m in. Walls keep their own sign: their rotation was derived in
+  // roadRotation's convention and six inspection drives verify it.
   for (const solid of roadWorld.solids ?? []) {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(solid.width * 0.5, solid.height * 0.5, solid.depth * 0.5)
         .setTranslation(solid.x, solid.height * 0.5, solid.z)
-        .setRotation(roadRotation(solid.rotation ?? 0, 0))
+        .setRotation(roadRotation(-(solid.rotation ?? 0), 0))
         .setFriction(0.25).setRestitution(0.08),
     );
   }
@@ -346,20 +366,21 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   return {
     roadWorld,
     state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
-      vehicle: initialVehicle(roadWorld), traffic },
-    world, body, trafficBodies,
+      vehicle: initialVehicle(roadWorld), traffic, race: options.race ? createRace(options.race) : null },
+    world, body, trafficBodies, race: options.race ?? null,
   };
 }
 
 export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null });
+  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
   sim.state = fresh.state;
   sim.trafficBodies = fresh.trafficBodies;
+  sim.race = fresh.race;
 }
 
 interface WheelInput {
@@ -451,7 +472,8 @@ function summarizeAxle(left: WheelState, right: WheelState, axle: AxleState): vo
 
 export function step(sim: Sim, rawInput: Input): void {
   const input: Input = {
-    throttle: clamp(rawInput.throttle, 0, 1), brake: clamp(rawInput.brake, 0, 1),
+    throttle: raceHolding(sim.state.race) ? 0 : clamp(rawInput.throttle, 0, 1),
+    brake: raceHolding(sim.state.race) ? 0 : clamp(rawInput.brake, 0, 1),
     steer: clamp(rawInput.steer, -1, 1), handbrake: clamp(rawInput.handbrake, 0, 1),
   };
   const { body } = sim;
@@ -573,6 +595,8 @@ export function step(sim: Sim, rawInput: Input): void {
     z: resolved.z }, true);
   sim.state.tick++;
   syncState(sim);
+  // After syncState: the race reads the vehicle where this tick left it.
+  if (sim.race && sim.state.race) stepRace(sim.race, sim.state.race, sim.state.vehicle);
 }
 
 function syncState(sim: Sim): void {

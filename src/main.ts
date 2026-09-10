@@ -18,6 +18,8 @@ import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, DISTRICT_ST
 import { BLACKGLASS_WORLD } from "./sim/road-world.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
+import { createRaceWorld, getRace, type DistrictRace } from "./sim/events.ts";
+import { formatRaceTime, racePosition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -36,11 +38,16 @@ let districtRoute: DistrictRoute | null = null;
 // picked, no line to follow, the whole network open. ?route= still overlays one
 // of the guides for a specific study, and ?world=blackglass returns to the
 // original closed course with its own geometry, physics and lighting.
+// ?race=<id> runs an open-checkpoint event on the district from its grid.
+// Like ?route=, it is a page-level choice: changing it reloads.
+let race: DistrictRace | null = null;
 let district = true;
 let lighting: DistrictLighting = "night";
 try {
   const params = new URLSearchParams(location.search);
   const world = params.get("world") ?? "district";
+  const raceId = params.get("race");
+  if (raceId) race = getRace(raceId);
   if (world !== "blackglass" && world !== "district") throw new Error(`Unknown world '${world}'`);
   district = world === "district";
   const route = params.get("route");
@@ -76,8 +83,9 @@ try {
 
 const input = createInputController();
 const roadWorld = !district ? BLACKGLASS_WORLD
+  : race ? createRaceWorld(race)
   : districtRoute ? createDistrictWorld(districtRoute) : createFreeRoamWorld();
-const sim = createSim(restored.drivetrain, roadWorld);
+const sim = createSim(restored.drivetrain, roadWorld, race ? { race } : {});
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
   districtRoute, roadWorld, district, lighting, sim.state.traffic);
 if (district) {
@@ -172,7 +180,7 @@ function startRival(run: { drivetrain: Drivetrain; inputs: readonly Input[] } | 
     return;
   }
   // Reuse one world rather than leaking a Rapier world per restart.
-  rivalSim ??= createSim(run.drivetrain, roadWorld);
+  rivalSim ??= createSim(run.drivetrain, roadWorld, race ? { race } : {});
   resetSim(rivalSim, run.drivetrain);
   rivalInputs = run.inputs;
   rivalTick = 0;
@@ -289,9 +297,16 @@ document.addEventListener("visibilitychange", () => {
 
 function updateHud(): void {
   const car = sim.state.vehicle;
-  hud.update(car, rivalSim?.state.vehicle ?? null);
+  const raceState = sim.state.race;
+  hud.update(car, rivalSim?.state.vehicle ?? null, race && raceState ? {
+    checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
+    label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
+      : `${raceState.finished ? "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}` +
+        (rivalSim?.state.race ? ` P${racePosition(race, { race: raceState, x: car.x, z: car.z },
+          { race: rivalSim.state.race, x: rivalSim.state.vehicle.x, z: rivalSim.state.vehicle.z })}` : ""),
+  } : null);
   modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%`
-    : `LIVE / ${sim.state.drivetrain.toUpperCase()}${rivalRunning() ? " / RIVAL" : ""}`;
+    : `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${rivalRunning() ? " / RIVAL" : ""}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "No standard gamepad detected";
@@ -456,6 +471,15 @@ installDebugApi({
       nowPlaying: soundtrack?.nowPlaying()?.title ?? null,
     };
   },
+});
+
+// A race is a page-level choice, like a route: the button reloads into it.
+document.querySelectorAll<HTMLButtonElement>("[data-race]").forEach(button => {
+  button.addEventListener("click", () => {
+    const params = new URLSearchParams(location.search);
+    params.set("race", button.dataset.race!);
+    location.search = params.toString();
+  });
 });
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
