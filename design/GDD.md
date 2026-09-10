@@ -335,7 +335,8 @@ refuses to violate rather than a paragraph to remember. The seed is the
 race's identity: the same seed draws the same gates and the same rival line,
 which is all a saved playlist or a ghost needs to carry. A race repeats only
 if the player keeps it. Rivals biasing the draw towards their own streets,
-and rivals learning the player's lines per street, are the next two steps.
+and rivals learning the player's lines per street, are the next two steps;
+`design/PROCEDURAL_RACES.md` is the long form and the order of work.
 
 ### 7.4 Drag
 

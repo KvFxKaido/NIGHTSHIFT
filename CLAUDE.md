@@ -108,7 +108,10 @@ slice: the weighting doubles the share of priced-or-even legs (54% against
 race tried with no recoveries and no resets. Sound to Sky stays as the
 authored race and the rival tests' fixture. The seed uses `mix`, never
 `Math.random`; the leg table is measured once per graph, so a draw costs
-microseconds after the first.
+microseconds after the first. `design/PROCEDURAL_RACES.md` holds Shawn's
+procedural direction — every flash a new race, playlists keep one, flashed
+rivals learn your line per street — and the order of the work that follows;
+read it before touching races or rivals.
 
 Free roam starts at Wharf Garage in SoDo. Stop at its mapped entrance to
 enter; the garage camera is fixed and right stick rotates the platform/car.
