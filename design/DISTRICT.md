@@ -759,4 +759,28 @@ named the mesh in one call. A thing drawn that the district did not generate
 is outside every rule the district enforces — look at what is drawn, not at
 what the generator thinks it drew.
 
+### Where the 50 microseconds went
+
+The apron work adds a mesh per junction, tens of thousands more surface
+queries at load, so the projection cost had to come down first — and the
+summary's diagnosis was wrong. A run index over each polyline (eight segments
+and a box per run, skipped when the box is already farther than the best
+segment found; bit-identical to the plain scan and tested against it) took
+`projectOntoPath` from 7 us to 4 and the district projection only from 50 to
+40. The measurement then said: 1.0 candidate streets per call. For a point
+outside every street's padded box — most of the terrain — the fallback was
+"project onto all fifty streets", and that was the cost. The search now
+widens its box margin (0, 32, 64, ... m) until the nearest candidate found is
+closer than any street the boxes excluded, which a street outside every box
+at margin m is by more than m plus the narrowest street's padding. One round
+on a road, three or four in open ground: 14.5 us, district build 2.2 s to
+0.9 s.
+
+It also fixed an answer that was quietly wrong. With a non-empty candidate
+set the old code never widened, so a point inside a long street's box, far
+from that street, was answered with it even when a nearer street's box had
+missed the point. The ground clamp and the off-road surface read that
+answer. A seeded brute-force comparison over every street is the test, and
+with the widening removed it fails on the first open-ground point.
+
 Still to do: one surface per junction, for the 18 aprons with a ridge.

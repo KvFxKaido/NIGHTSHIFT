@@ -3,7 +3,7 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, inRiver, DISTRICT_WALLS, DISTRICT_STREET_RAILS, DISTRICT_RIVER_FENCE, DISTRICT_RAIL_FENCE, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
-  districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
+  districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, projectOntoPathUnindexed, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
 import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse, type CoursePoint } from "../src/sim/track.ts";
@@ -565,4 +565,49 @@ test("the river and rail fences are continuous away from their crossings", () =>
       }
     }
   }
+});
+
+
+test("the indexed projection is the plain scan, field for field", () => {
+  // Seeded, not random: the sim's law applies to its tests too. Points spread
+  // over the district and beyond it, plus points ON each path, where a run's
+  // box gap is zero and the skip must not fire early.
+  let seed = 7;
+  const next = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  let compared = 0;
+  for (const street of DISTRICT_STREETS) {
+    const samples: { x: number; z: number }[] = [];
+    for (let i = 0; i < 60; i++) samples.push({ x: next() * 1200 - 600, z: next() * 1200 - 650 });
+    for (const point of street.points) samples.push({ x: point.x + next() - 0.5, z: point.z + next() - 0.5 });
+    for (const { x, z } of samples) {
+      const fast = projectOntoPath(street.points, x, z), plain = projectOntoPathUnindexed(street.points, x, z);
+      for (const key of ["along", "segmentIndex", "distance", "height", "pitch", "ux", "uz", "width"] as const) {
+        assert.ok(Math.abs(fast[key] - plain[key]) <= 1e-9, `${street.id} ${key} at (${x.toFixed(1)}, ${z.toFixed(1)}): ${fast[key]} vs ${plain[key]}`);
+      }
+      compared++;
+    }
+  }
+  assert.ok(compared > 4000, `only ${compared} projections compared`);
+});
+
+test("the nearest street is the nearest street, on the road and in open ground", () => {
+  // Brute force over every street is the reference. Seeded points across the
+  // whole terrain, most of them nowhere near a road: that is where the boxes
+  // used to answer with whichever long street's box happened to hold the point.
+  let seed = 11;
+  const next = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  let offRoad = 0;
+  for (let i = 0; i < 3000; i++) {
+    const x = next() * 1400 - 700, z = next() * 1400 - 750;
+    const fast = projectOntoDistrict(x, z);
+    let plain: ReturnType<typeof projectOntoPathUnindexed> | undefined;
+    for (const street of DISTRICT_STREETS) {
+      const projected = projectOntoPathUnindexed(street.points, x, z);
+      if (!plain || projected.distance < plain.distance) plain = projected;
+    }
+    assert.ok(Math.abs(fast.distance - plain!.distance) <= 1e-9,
+      `at (${x.toFixed(0)}, ${z.toFixed(0)}) the district answered ${fast.distance.toFixed(2)} m, the nearest street is ${plain!.distance.toFixed(2)} m`);
+    if (plain!.distance > 30) offRoad++;
+  }
+  assert.ok(offRoad > 1000, `only ${offRoad} points were in open ground`);
 });

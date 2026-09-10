@@ -235,9 +235,18 @@ loop, which left ground drawn over 39% of road samples; it cannot be fixed
 inside `outerTerrain` because street construction calls that for node heights
 and the dependency would be circular. A terrain vertex asks `groundHeightNear`
 for the lowest ground in its cell, because what is drawn between two vertices is
-a straight line a curving road passes under. This costs district load 1.2 s ->
-2.4 s, all of it `projectOntoDistrict` at 53 us a call; a spatial index over
-street segments is the open fix and would cut the traffic build too. `RoadWorld` supplies the sim's start,
+a straight line a curving road passes under. A projection now costs 14.5 us,
+not 50: `projectOntoPath` indexes each polyline in runs of eight segments with a
+box each and skips runs that cannot be nearer (bit-identical to the plain
+scan, and tested against it), but that was only a quarter of the cost — the
+rest was the fallback `candidates.length ? candidates : DISTRICT_STREETS`,
+which projected every terrain vertex beyond the roads onto all fifty streets.
+`nearestStreetProjection` widens the box margin instead until the nearest
+found is provably nearer than anything the boxes excluded. That also corrected
+an old wrong answer: with a non-empty candidate set the old code never widened,
+so a point inside one long street's box was answered with that street even when
+a nearer street's box had missed it; the test compares against brute force
+over every street. District load is 0.9 s (2.2 s before). `RoadWorld` supplies the sim's start,
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.

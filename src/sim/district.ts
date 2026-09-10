@@ -206,13 +206,7 @@ function clampBelowRoad(shape: number, x: number, z: number): number {
   // costs two extra apron scans per call to answer a question about grade the
   // ground does not ask, and the terrain mesh runs this tens of thousands of
   // times at district load.
-  let nearest: CourseProjection | undefined;
-  const candidates = streetsNear(x, z);
-  for (const street of (candidates.length ? candidates : DISTRICT_STREETS)) {
-    const projected = projectOntoPath(street.points, x, z);
-    if (!nearest || projected.distance < nearest.distance) nearest = projected;
-  }
-  const road = nearest!;
+  const road = nearestStreetProjection(x, z);
   const kerb = road.width / 2;
   if (road.distance > kerb + GROUND_CORRIDOR) return shape;
   const ceiling = districtSurfaceHeight(x, z, road.height) - GROUND_CLEARANCE;
@@ -553,7 +547,71 @@ export function districtRouteGap(route: DistrictRoute, fromX: number, fromZ: num
   return gap;
 }
 
+/**
+ * A path's segments in runs of eight with a plan-view box each, and the arc
+ * length at every point, built once per points array. A projection then skips
+ * every run whose box is already farther than the nearest segment found, and
+ * the answer is the one the plain scan gives: a run is skipped only when no
+ * segment in it can be strictly nearer, and the arc lengths are the same sums
+ * in the same order. This is the spatial index the district was waiting for:
+ * `projectOntoDistrict` was 50 us a call, all of it walking the whole polyline
+ * of every candidate street, and the terrain, the ribbons, the traffic build
+ * and now the junction aprons each ask tens of thousands of times.
+ */
+const PATH_RUN = 8;
+interface PathRun { start: number; end: number; minX: number; maxX: number; minZ: number; maxZ: number }
+interface PathIndex { runs: PathRun[]; along: number[] }
+const PATH_INDEX = new WeakMap<readonly CoursePoint[], PathIndex>();
+function pathIndex(points: readonly CoursePoint[]): PathIndex {
+  let index = PATH_INDEX.get(points);
+  if (index) return index;
+  const along = [0];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i]!, b = points[i + 1]!;
+    along.push(along[i]! + Math.hypot(b.x - a.x, b.z - a.z));
+  }
+  const runs: PathRun[] = [];
+  for (let start = 0; start < points.length - 1; start += PATH_RUN) {
+    const end = Math.min(points.length - 1, start + PATH_RUN);
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = start; i <= end; i++) {
+      const point = points[i]!;
+      minX = Math.min(minX, point.x); maxX = Math.max(maxX, point.x);
+      minZ = Math.min(minZ, point.z); maxZ = Math.max(maxZ, point.z);
+    }
+    runs.push({ start, end, minX, maxX, minZ, maxZ });
+  }
+  index = { runs, along };
+  PATH_INDEX.set(points, index);
+  return index;
+}
+
 export function projectOntoPath(points: readonly CoursePoint[], x: number, z: number): CourseProjection {
+  const { runs, along } = pathIndex(points);
+  let nearest: CourseProjection | undefined;
+  for (const run of runs) {
+    if (nearest) {
+      const gapX = Math.max(run.minX - x, 0, x - run.maxX), gapZ = Math.max(run.minZ - z, 0, z - run.maxZ);
+      if (gapX * gapX + gapZ * gapZ > nearest.distance * nearest.distance) continue;
+    }
+    for (let i = run.start; i < run.end; i++) {
+      const a = points[i]!, b = points[i + 1]!;
+      const dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (length * length)));
+      const distance = Math.hypot(x - a.x - t * dx, z - a.z - t * dz);
+      if (!nearest || distance < nearest.distance) nearest = { along: along[i]! + length * t,
+        segmentIndex: i, distance, height: a.y + (b.y - a.y) * t,
+        pitch: Math.atan2(b.y - a.y, length), ux: dx / length, uz: dz / length,
+        width: a.width + (b.width - a.width) * t };
+    }
+  }
+  if (!nearest) throw new RangeError("A road needs at least two distinct points");
+  return nearest;
+}
+
+/** The plain scan `projectOntoPath` must agree with, kept for the test that
+ *  says so; never call it from the district. */
+export function projectOntoPathUnindexed(points: readonly CoursePoint[], x: number, z: number): CourseProjection {
   let nearest: CourseProjection | undefined;
   let along = 0;
   for (let i = 0; i < points.length - 1; i++) {
@@ -594,14 +652,34 @@ function streetsNear(x: number, z: number, margin = 0): Street[] {
     z >= bounds.minZ - margin && z <= bounds.maxZ + margin).map(bounds => bounds.street);
 }
 
-export function projectOntoDistrict(x: number, z: number): CourseProjection {
+/** A street outside its own padded box by this much is at least this far from
+ *  the point: the narrowest street's half width plus the box's 4 m. */
+const STREET_BOX_PAD = Math.min(...DISTRICT_STREETS.map(street =>
+  Math.max(...street.points.map(point => point.width)) / 2 + 4));
+
+/**
+ * The street nearest a point, certainly. The search widens the box margin until
+ * the nearest candidate found is closer than any street the boxes excluded —
+ * a street outside every box at margin m is more than m + STREET_BOX_PAD away.
+ * A point on a road is answered in one round; open ground in three or four.
+ * It used to be `candidates.length ? candidates : DISTRICT_STREETS`: every
+ * terrain vertex beyond the roads projected onto all fifty streets, which was
+ * the 40 us a projection cost, and a point inside one long street's box was
+ * answered with that street even when a nearer street's box had missed it.
+ */
+function nearestStreetProjection(x: number, z: number): CourseProjection {
   let nearest: CourseProjection | undefined;
-  const candidates = streetsNear(x, z);
-  for (const street of candidates.length ? candidates : DISTRICT_STREETS) {
-    const projected = projectOntoPath(street.points, x, z);
-    if (!nearest || projected.distance < nearest.distance) nearest = projected;
+  for (let margin = 0; ; margin = margin ? margin * 2 : 32) {
+    for (const street of streetsNear(x, z, margin)) {
+      const projected = projectOntoPath(street.points, x, z);
+      if (!nearest || projected.distance < nearest.distance) nearest = projected;
+    }
+    if (nearest && (nearest.distance <= margin + STREET_BOX_PAD || margin > 8192)) return nearest;
   }
-  const road = nearest!;
+}
+
+export function projectOntoDistrict(x: number, z: number): CourseProjection {
+  const road = nearestStreetProjection(x, z);
   // All incident streets meet the same flat junction apron, then blend back
   // into their authored grade. Nearest-street changes cannot produce a curb.
   const before = districtSurfaceHeight(x - road.ux, z - road.uz, road.height - Math.tan(road.pitch));
