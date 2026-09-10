@@ -180,13 +180,33 @@ disagrees with a passing footprint test, scan the rendered scene's vertices —
 `addDistrict` into a bare scene and project them — before trusting either.
 The fourth rule the screenshots want is
 road-over-road inside junction aprons, which is the apron work below.
-Measured and not yet acted on: of 10,808 rail pieces, 70% guard open ground and
-20% stand in front of a solid building; only 9% guard the river, the rail
-cutting, the boundary or a real drop. And inside 18 of 35 junction aprons two
-ribbons overlap at different heights (11 over 30 cm, worst 1.07 m at Lower
-Hill), physically as well as visually, because the sim follows the NEAREST
-street and the nearest flips at the bisector. Those are the next two map
-changes: rails only at real edges, and one surface per junction. `blockClearsStreets` samples every footprint edge against the
+**The rail rule.** A rail stands only where it guards something: the boundary,
+the river and rail fences, the tunnel and bridge (their barriers are the
+deck's edge and the bore's wall), or a street edge with a drop of 1.5 m in
+the raw terrain to either side — or water, which the terrain does not show
+because the river is drawn 1.6 m under it. 10,808 pieces became 1,756 (1,363
+street rails, 192 boundary, 131 river fence, 70 rail fence); buildings are
+the walls now and the gaps between them are the shortcuts. `DISTRICT_WALLS`
+is the concatenation of four exported sources so a test can ask each its own
+question; classifying by geometry mistook a fence piece inside a river bend
+for a street rail. The fences follow a MITRED offset of their corridor, like a
+lane — per-segment offsets opened an 89 m hole outside the river's bend and
+piled up inside it — and a fence piece is removed only where a road CROSSES it
+(near and transverse) or where it stands ON a carriageway: the west bank's line
+runs down Wharf Road and the east bank's down Ferry Reach, and there the
+road's own rail is the barrier. "Near a road" alone opened 77 m of bank beside
+Ferry Reach. With the rails gone the car can leave the road, so `RoadWorld`
+carries an optional `surface` the sim rides through `drivenSurface` at all
+three of its height reads: the road across the carriageway, the drawn ground
+beyond it, chamfered over 1.5 m at the kerb because the ground sits 0.35 m
+under the road and that step in one tick is a jolt. Blackglass has no
+`surface` and is unchanged. `tests/offroad.test.ts` drives off a kerb chosen
+by measurement and asserts the car rides the ground without a step.
+Measured and not yet acted on: inside 18 of 35 junction aprons two ribbons
+overlap at different heights (11 over 30 cm, worst 1.07 m at Lower Hill),
+physically as well as visually, because the sim follows the NEAREST street and
+the nearest flips at the bisector. That is the next map change: one surface
+per junction. `blockClearsStreets` samples every footprint edge against the
 width the road ACTUALLY has there, never corners only and never the narrowest
 width: corners let a straight frontage cut the chord of a bend by 10 m, and the
 narrow width let a building stand on a junction flare a car can drive on.

@@ -686,3 +686,57 @@ holds the bore free of posts.
 The fourth rule the screenshots are really asking for is *road cannot clip
 above road*: the ridge inside 18 junction aprons where two ribbons overlap at
 different heights. That is not ground, and it is the apron work.
+
+## The rail rule
+
+Of 10,808 rail pieces, 70% guarded open ground and 20% stood in front of a
+building that is already solid. The district drove like a slot-car track, and
+Midnight Club's whole thesis — the gap between two buildings is a route — was
+impossible while every kerb was fenced.
+
+A rail now stands only where it guards something: the boundary, the river and
+rail fences, the tunnel and bridge (their barriers are the deck's edge and the
+bore's wall), or a street edge beside a drop of 1.5 m in the raw terrain to
+either side — either side, because a piece does not know which way is out and
+an embankment falls away on both — or beside water, which the terrain does
+not show because the river is drawn 1.6 m under it. **10,808 pieces became
+1,756**: 1,363 street rails, 192 boundary, 131 river fence, 70 rail fence.
+
+Two things the fences had to learn on the way. They follow a **mitred offset**
+of their corridor now, as a lane does: laid per segment at a fixed offset, the
+two segments either side of a bend diverge, and the test found an 89 m hole on
+the outside of the river's bend at (240, 196) and a pile-up inside it. And a
+fence piece is removed only where a road **crosses** it — near *and*
+transverse — or where it stands **on** a carriageway. "Near a road" alone was
+the old rule, and it could not tell a crossing from Ferry Reach running
+alongside the bank for eighty metres: 77 m of open bank. The transverse rule
+alone then left the west bank's fence standing in the middle of Wharf Road,
+whose carriageway the 44 m line runs straight down, and stopped two
+inspection drives. Where the corridor line lies on a road, the road's own rail
+is the barrier — which is why water had to count as a drop.
+
+### The ground under the car
+
+With the rails gone the car can leave the road, and a car that still rode the
+nearest street's height would float on it — on the hill, metres above the
+ground it can see. `RoadWorld` carries an optional `surface`: the road across
+the carriageway, the drawn ground beyond it, eased over 1.5 m at the kerb
+because the ground is clamped 0.35 m under the road and that step in one tick
+is a jolt. The sim rides it at all three of its height reads. Blackglass has
+no `surface` and is unchanged. The test drives off a kerb chosen by
+measurement — open ground, no drop, no building, ground that differs from the
+road — and asserts the car rides the ground within 0.6 m without a step over
+0.25 m; without the surface it fails, floating.
+
+### What the tests taught, again
+
+The continuity test took four versions. It classified fences by distance and
+mistook a corner piece for a street rail. It measured gaps by projecting onto
+the river and, on the inside of a bend where the mitred fence is shorter than
+the river, read two touching pieces as a 44 m hole. It excused a gap by one
+midpoint while the fence bent 4-7 m away from the chord. And its crossing
+check was called with two arguments and took four — tests are not
+type-checked, the dot product was NaN, and every gap failed including the
+bridges. Each version was wrong in a way the map was not.
+
+Still to do: one surface per junction, for the 18 aprons with a ridge.

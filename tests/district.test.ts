@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, DISTRICT_WALLS, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, inRiver, DISTRICT_WALLS, DISTRICT_STREET_RAILS, DISTRICT_RIVER_FENCE, DISTRICT_RAIL_FENCE, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
@@ -470,6 +470,98 @@ test("no building stands in the tunnel bore or on the bridge deck", () => {
         const on = projectOntoPath(span, corner.x, corner.z);
         assert.ok(on.distance > on.width / 2 + 4,
           `a building at ${block.x.toFixed(0)},${block.z.toFixed(0)} stands ${on.distance.toFixed(0)} m from the ${span[0]!.zone} centreline`);
+      }
+    }
+  }
+});
+
+// The rail rule. Of 10,808 pieces, 70% guarded open ground and 20% stood in
+// front of a building that is already solid; the district drove like a
+// slot-car track and the gaps between buildings — the shortcuts — did not
+// exist. A rail now stands only where it guards something: the boundary, the
+// river and rail fences, the tunnel and bridge, or a drop of 1.5 m beside the
+// road. Every kept street rail has to justify itself.
+test("a rail stands only where it guards something", () => {
+  // By source, not by geometry: classifying by distance mistook a fence piece
+  // inside the river's bend for a street rail guarding nothing.
+  let street = 0, unjustified = 0, firstAt = "";
+  for (const wall of DISTRICT_STREET_RAILS) {
+    street++;
+    if (wall.zone === "bridge" || wall.zone === "tunnel") continue;
+    const nx = Math.sin(wall.rotation), nz = Math.cos(wall.rotation);
+    const drop = Math.max(wall.y - outerTerrain(wall.x + nx * 4, wall.z + nz * 4),
+      wall.y - outerTerrain(wall.x - nx * 4, wall.z - nz * 4));
+    if (drop >= 1.4) continue;
+    // Water is a drop the terrain does not show.
+    if (inRiver(wall.x + nx * 4, wall.z + nz * 4) || inRiver(wall.x - nx * 4, wall.z - nz * 4)) continue;
+    unjustified++;
+    if (!firstAt) firstAt = `${wall.x.toFixed(0)},${wall.z.toFixed(0)} (drop ${drop.toFixed(2)} m)`;
+  }
+  // Under a fifth of the 9,607 there were: the rule keeps 1,363, and 527 of
+  // those are river-side rails that count the water as their drop.
+  assert.ok(street < 2000, `${street} street rails is most of a slot-car track again`);
+  assert.equal(unjustified, 0, `${unjustified} rails guard nothing, first at ${firstAt}`);
+});
+
+// What remains has to be whole. A fence with a hole in it is a shortcut into
+// the river.
+test("the river and rail fences are continuous away from their crossings", () => {
+  for (const [label, path, pieces] of [["river", RIVER, DISTRICT_RIVER_FENCE], ["rail", RAIL, DISTRICT_RAIL_FENCE]] as const) {
+    // Along-corridor distance and side, from the polyline.
+    const along = (x: number, z: number) => {
+      let travelled = 0, best = { along: 0, side: 1, distance: Infinity };
+      for (let i = 0; i < path.length - 1; i++) {
+        const [ax, az] = path[i]!, [bx, bz] = path[i + 1]!;
+        const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz);
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (length * length)));
+        const px = ax + dx * t, pz = az + dz * t, distance = Math.hypot(x - px, z - pz);
+        if (distance < best.distance) best = { along: travelled + length * t, side: Math.sign(dx * (z - pz) - dz * (x - px)) || 1, distance };
+        travelled += length;
+      }
+      return best;
+    };
+    // A crossing is a road that is near AND transverse to the fence. Ferry
+    // Reach runs alongside the river fence for eighty metres; near alone would
+    // excuse the hole it used to open.
+    // A gap is excused where a road CROSSES the fence — near and transverse —
+    // or where the fence line lies ON a road: the west bank's line runs down
+    // Wharf Road's carriageway, and there the road's own drop rail is the
+    // barrier. The first version passed two arguments to this four-parameter
+    // function; tests are not type-checked, the dot product was NaN, and every
+    // gap failed including the bridges.
+    const crossing = (x: number, z: number, ux: number, uz: number) => DISTRICT_STREETS.some(street => {
+      const on = projectOntoPath(street.points, x, z);
+      // Sampled along the straight chord between two kept pieces, while the
+      // fence itself bends between them — at the river's bend the chord runs
+      // 4-7 m off the pieces that were removed. Eight metres of grace is sound
+      // now: the generator removes a piece only when it is ON a road or at a
+      // transverse crossing, so a gap beside a parallel road can only be the
+      // former, and the old "near a road" hole cannot come back through here.
+      if (on.distance < on.width / 2 + 8) return true;
+      return on.distance < on.width / 2 + 10 && Math.abs(on.ux * ux + on.uz * uz) < 0.7;
+    });
+    for (const side of [-1, 1]) {
+      const marks = pieces.map(wall => ({ wall, at: along(wall.x, wall.z) })).filter(k => k.at.side === side)
+        .sort((p, q) => p.at.along - q.at.along);
+      for (let i = 1; i < marks.length; i++) {
+        // Ordered along the river, but measured in SPACE: the fence is a mitred
+        // offset of the river and on the inside of a bend it is shorter than the
+        // river is, so along-values jump there and two touching pieces read as a
+        // 44 m hole. Two pieces are contiguous when their centres are no further
+        // apart than their half-widths add up to.
+        const a = marks[i - 1]!.wall, b = marks[i]!.wall;
+        const gap = Math.hypot(b.x - a.x, b.z - a.z) - (a.width + b.width) / 2;
+        if (gap < 3) continue;
+        const gx = b.x - a.x, gz = b.z - a.z, gl = Math.hypot(gx, gz) || 1;
+        // Sampled along the gap, the way the generator decided piece by piece:
+        // one midpoint sat 12 m from Ferry Reach while both missing pieces were
+        // on it.
+        let excused = false;
+        for (let d = 0; d <= gl && !excused; d += 5) {
+          excused = crossing(a.x + gx / gl * d, a.z + gz / gl * d, gx / gl, gz / gl);
+        }
+        if (excused) continue;
+        assert.fail(`${label} fence has a ${gap.toFixed(0)} m hole between ${a.x.toFixed(0)},${a.z.toFixed(0)} and ${b.x.toFixed(0)},${b.z.toFixed(0)}`);
       }
     }
   }

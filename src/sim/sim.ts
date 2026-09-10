@@ -288,6 +288,12 @@ function initialWheels(): Record<WheelId, WheelState> {
   }])) as Record<WheelId, WheelState>;
 }
 
+/** What the car rides on here: the driven surface when the world has one,
+ *  the road otherwise. Blackglass has no surface and is unchanged. */
+function drivenSurface(roadWorld: RoadWorld, x: number, z: number) {
+  return roadWorld.surface ? roadWorld.surface(x, z) : roadWorld.project(x, z);
+}
+
 function initialVehicle(roadWorld: RoadWorld): VehicleState {
   return {
     x: roadWorld.start.x, y: roadWorld.start.y, z: roadWorld.start.z,
@@ -479,7 +485,7 @@ export function step(sim: Sim, rawInput: Input): void {
   const { body } = sim;
   const car = sim.state.vehicle;
   const position = body.translation();
-  const road = sim.roadWorld.project(position.x, position.z);
+  const road = drivenSurface(sim.roadWorld, position.x, position.z);
   // Still a vertical road constraint; never reposition x/z or overwrite the
   // solver's linear/angular velocities. Tyre forces are refreshed every tick.
   body.setTranslation({ x: position.x, y: road.height + START_Y, z: position.z }, true);
@@ -591,7 +597,7 @@ export function step(sim: Sim, rawInput: Input): void {
   }
   sim.world.step();
   const resolved = body.translation();
-  body.setTranslation({ x: resolved.x, y: sim.roadWorld.project(resolved.x, resolved.z).height + START_Y,
+  body.setTranslation({ x: resolved.x, y: drivenSurface(sim.roadWorld, resolved.x, resolved.z).height + START_Y,
     z: resolved.z }, true);
   sim.state.tick++;
   syncState(sim);
@@ -605,7 +611,7 @@ function syncState(sim: Sim): void {
   const velocity = sim.body.linvel();
   const forwardSpeed = -velocity.x * Math.sin(heading) - velocity.z * Math.cos(heading);
   const lateralSpeed = velocity.x * Math.cos(heading) - velocity.z * Math.sin(heading);
-  const road = sim.roadWorld.project(position.x, position.z);
+  const road = drivenSurface(sim.roadWorld, position.x, position.z);
   const alignment = -Math.sin(heading) * road.ux - Math.cos(heading) * road.uz;
   const car = sim.state.vehicle;
   for (const layout of WHEEL_LAYOUT) {

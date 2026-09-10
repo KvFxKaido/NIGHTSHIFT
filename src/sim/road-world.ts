@@ -29,6 +29,12 @@ export interface RoadWorld {
    *  not: its lanes were never modelled, so it simply has no traffic. */
   readonly traffic?: TrafficNetwork;
   project(x: number, z: number): CourseProjection;
+  /** The surface the car actually rides: the road across the carriageway, the
+   *  ground beyond it, chamfered at the kerb. Absent on a world with nowhere
+   *  to go but the road — the sim rides `project` there. A district with its
+   *  rails removed needs this, or the first gap a car drives through leaves it
+   *  floating on the nearest road's height. */
+  surface?(x: number, z: number): CourseProjection;
 }
 
 export const BLACKGLASS_WORLD: RoadWorld = {

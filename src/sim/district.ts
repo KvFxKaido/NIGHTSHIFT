@@ -639,6 +639,9 @@ function connectorWalls(street: Street): CourseWall[] {
  * Subdivision keeps clipping local instead of removing an entire long barrier.
  * The exact result is shared by the renderer and Rapier.
  */
+/** A street rail stays only beside a fall of at least this much. */
+const RAIL_DROP = 1.5;
+
 function buildDistrictWalls(): CourseWall[] {
   const candidates = [
     ...COURSE_WALLS.map(wall => ({ wall, others: DISTRICT_STREETS.filter(s => s.added) })),
@@ -663,7 +666,26 @@ function buildDistrictWalls(): CourseWall[] {
         const ux = Math.cos(wall.rotation), uz = -Math.sin(wall.rotation), slope = Math.tan(wall.pitch);
         const before = districtSurfaceHeight(x - ux, z - uz, y - slope);
         const after = districtSurfaceHeight(x + ux, z + uz, y + slope);
-        pieces.push({ ...wall, x, y: districtSurfaceHeight(x, z, y), z,
+        const graded = districtSurfaceHeight(x, z, y);
+        // The rule: a rail stands only where it guards something. Structures
+        // keep theirs — the deck's edge and the bore's wall are what the sim
+        // has to stop you at. Everywhere else a rail stays only beside a drop:
+        // the raw terrain 4 m to either side more than RAIL_DROP below the
+        // road. Either side, because a piece does not know which way is out and
+        // an embankment falls away on both. Of 10,808 pieces, 70% guarded open
+        // ground and 20% stood in front of a building that is already solid;
+        // the rule keeps 1,436. Buildings are the walls now, and the gaps
+        // between them are the shortcuts.
+        const structural = wall.zone === "bridge" || wall.zone === "tunnel";
+        const nx = Math.sin(wall.rotation), nz = Math.cos(wall.rotation);
+        const drop = Math.max(graded - outerTerrain(x + nx * 4, z + nz * 4), graded - outerTerrain(x - nx * 4, z - nz * 4));
+        // Water is a drop the terrain does not show: the river is drawn 1.6 m
+        // under the ground it sits in, and where the corridor's own fence line
+        // runs down a road — Ferry Reach hugs the bank at the river's bend — the
+        // road's rail is all there is between the car and the water.
+        const water = inRiver(x + nx * 4, z + nz * 4) || inRiver(x - nx * 4, z - nz * 4);
+        if (!structural && !water && drop < RAIL_DROP) continue;
+        pieces.push({ ...wall, x, y: graded, z,
           pitch: Math.atan2(after - before, 2), width: wall.width / count + 0.08 });
       }
     }
@@ -713,20 +735,48 @@ function corridorWalls(
 ): CourseWall[] {
   const walls: CourseWall[] = [];
   const step = 22;
-  for (let i = 0; i < path.length - 1; i++) {
-    const [ax, az] = path[i]!, [bx, bz] = path[i + 1]!;
-    const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz);
-    if (length < 1) continue;
-    const ux = dx / length, uz = dz / length;
-    for (let along = 0; along < length; along += step) {
-      const run = Math.min(step, length - along);
-      const cx = ax + ux * (along + run / 2), cz = az + uz * (along + run / 2);
-      for (const side of [-1, 1]) {
-        const x = cx - uz * halfWidth * side, z = cz + ux * halfWidth * side;
-        // Leave the bank open where a road genuinely crosses: that is a bridge.
+  for (const side of [-1, 1]) {
+    // The fence follows an OFFSET POLYLINE with mitred vertices, exactly as a
+    // lane does. Laid per segment at a fixed offset instead, the two segments
+    // either side of a bend diverge: an 89 m hole opened on the outside of the
+    // river's bend at (240, 196), beside Ferry Reach, and on the inside the
+    // pieces piled up 26-35 m from a line that is 44 m out. The mitre is
+    // clamped like the road ribbon's, so a hairpin cannot throw it to infinity.
+    const offset: { x: number; z: number }[] = [];
+    for (let i = 0; i < path.length; i++) {
+      const prev = path[Math.max(0, i - 1)]!, here = path[i]!, next = path[Math.min(path.length - 1, i + 1)]!;
+      const inX = here[0] - prev[0], inZ = here[1] - prev[1];
+      const outX = next[0] - here[0], outZ = next[1] - here[1];
+      const inLength = Math.hypot(inX, inZ) || 1, outLength = Math.hypot(outX, outZ) || 1;
+      let nx = -inZ / inLength - outZ / outLength, nz = inX / inLength + outX / outLength;
+      const length = Math.hypot(nx, nz) || 1;
+      nx /= length;
+      nz /= length;
+      const miter = 1 / Math.max(0.5, nx * (-outZ / outLength) + nz * (outX / outLength));
+      offset.push({ x: here[0] + nx * halfWidth * side * miter, z: here[1] + nz * halfWidth * side * miter });
+    }
+    for (let i = 0; i < offset.length - 1; i++) {
+      const a = offset[i]!, b = offset[i + 1]!;
+      const dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+      if (length < 1) continue;
+      const ux = dx / length, uz = dz / length;
+      for (let along = 0; along < length; along += step) {
+        const run = Math.min(step, length - along);
+        const x = a.x + ux * (along + run / 2), z = a.z + uz * (along + run / 2);
+        // Leave the bank open where a road genuinely CROSSES: that is a bridge
+        // or a level crossing. Near is not enough — Ferry Reach runs alongside
+        // the river fence for eighty metres on the outside of its bend, and
+        // "near a road" opened a 77 m hole in the bank there. A crossing road is
+        // transverse to the fence.
+        // And never ON a road at all: the west bank's line runs straight down
+        // Wharf Road's carriageway, and a fence in the middle of the shipping
+        // frontage stopped two inspection drives. Where the corridor line lies
+        // on a road, the road's own drop rail is the barrier.
         const spanned = streetsNear(x, z, 26).some(street => {
           const road = projectOntoPath(street.points, x, z);
-          return road.distance < road.width / 2 + 9;
+          if (road.distance < road.width / 2 + 0.5) return true;
+          if (road.distance >= road.width / 2 + 6) return false;
+          return Math.abs(road.ux * ux + road.uz * uz) < 0.7;
         });
         if (spanned) continue;
         walls.push({ x, z, y: outerTerrain(x, z), width: run + 0.4, depth: 1.2,
@@ -737,13 +787,40 @@ function corridorWalls(
   return walls;
 }
 
-export const DISTRICT_WALLS = [
-  ...buildDistrictWalls(),
-  ...boundaryWalls(),
-  ...corridorWalls(RIVER, RIVER_HALF_WIDTH),
-  ...corridorWalls(RAIL, RAIL_HALF_WIDTH),
+/** The three kinds of wall, kept apart so a test can ask each one its own
+ *  question: a street rail must guard something, a fence must be whole, the
+ *  boundary must close. Classifying them by geometry instead mistook a fence
+ *  piece inside a river bend for a street rail guarding nothing. */
+export const DISTRICT_STREET_RAILS: readonly CourseWall[] = buildDistrictWalls();
+export const DISTRICT_BOUNDARY_WALLS: readonly CourseWall[] = boundaryWalls();
+export const DISTRICT_RIVER_FENCE: readonly CourseWall[] = corridorWalls(RIVER, RIVER_HALF_WIDTH);
+export const DISTRICT_RAIL_FENCE: readonly CourseWall[] = corridorWalls(RAIL, RAIL_HALF_WIDTH);
+export const DISTRICT_WALLS: readonly CourseWall[] = [
+  ...DISTRICT_STREET_RAILS, ...DISTRICT_BOUNDARY_WALLS, ...DISTRICT_RIVER_FENCE, ...DISTRICT_RAIL_FENCE,
 ];
 
+
+/** Metres past the kerb over which the driven surface eases from the road
+ *  down onto the ground: a chamfered kerb, not a step. The ground is clamped
+ *  to 0.35 m under the road beside it, and a 0.35 m step in one tick is a jolt. */
+const KERB_CHAMFER = 1.5;
+
+/**
+ * The surface the car rides: the road across the carriageway, the drawn ground
+ * beyond it. With the rails gone the car can leave the road, and a car that
+ * still rode `projectOntoDistrict` would float on the nearest road's height —
+ * on the hill, metres above the ground it can see. Grade eases to zero off
+ * the kerb: the height follows the ground, the pitch does not try to.
+ */
+export function districtSurface(x: number, z: number): CourseProjection {
+  const road = projectOntoDistrict(x, z);
+  const over = road.distance - road.width / 2;
+  if (over <= 0) return road;
+  const t = Math.min(1, over / KERB_CHAMFER);
+  const blend = t * t * (3 - 2 * t);
+  const ground = groundHeight(x, z);
+  return { ...road, height: road.height + (ground - road.height) * blend, pitch: road.pitch * (1 - blend) };
+}
 
 function worldFrom(id: string, points: readonly CoursePoint[]): RoadWorld {
   const a = points[0]!, b = points[1]!;
@@ -751,7 +828,7 @@ function worldFrom(id: string, points: readonly CoursePoint[]): RoadWorld {
   // guide drawn over the district, never a subset of the road you may drive on.
   return { id: `${DISTRICT_VERSION}/${id}`, walls: DISTRICT_WALLS, solids: DISTRICT_BLOCKS,
     // A getter, so the network is built only if something asks for traffic.
-    get traffic() { return districtTraffic(); }, project: projectOntoDistrict,
+    get traffic() { return districtTraffic(); }, project: projectOntoDistrict, surface: districtSurface,
     start: { x: a.x, y: a.y, z: a.z, heading: Math.atan2(a.x - b.x, a.z - b.z),
       pitch: Math.atan2(b.y - a.y, Math.hypot(b.x - a.x, b.z - a.z)) } };
 }
