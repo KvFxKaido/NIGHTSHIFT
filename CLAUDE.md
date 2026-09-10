@@ -75,6 +75,25 @@ explicitly retired the Blackglass map on September 10, 2026. Old world links
 migrate to Seattle; `district.html` redirects to the Seattle map board.
 Read `design/SEATTLE.md` for source geometry, regeneration and scope.
 
+`pnpm seattle:critique` is the measuring stick for route choice, and the
+material a race generator would draw from. The rule the map is held to is
+"every shortcut has a cost": between two gates the faster way should be the
+riskier way, or it is just a shorter road. The script scores risk per street
+from the map data (width, bends, grade, blind corners) and reward per leg as
+the TIME the best genuinely different alternative costs, routed on the line
+graph so turns cost and straight-through is free — on a grid two ways round a
+block are the same length, and only time tells them apart. First reading of
+the slice: 1056 directed legs between choice points, 77% with an alternative
+within 40% of the fastest time, median detour 11%; but only 66 are PRICED
+(fastest is riskier) against 254 FREE (fastest is also safest) and 250 twins.
+The grid's arterials win nearly everywhere; the real shortcuts are Western
+Ave, 6th Ave S and the 2nd Ave / James St corridor, and there are no blind
+corners in the slice at all (16 bends over 25 degrees, nearest building 24 m).
+Width belongs in risk, not pace — with width cutting pace, every narrow
+street was dominated by construction and the report said so about the model,
+not the map. The pace model and the risk weights are declared proposals; it
+asserts nothing; `--json` is for agents. Run it before and after authoring.
+
 Free roam starts at Wharf Garage in SoDo. Stop at its mapped entrance to
 enter; the garage camera is fixed and right stick rotates the platform/car.
 Races keep their separate street start and cannot enter the garage. The

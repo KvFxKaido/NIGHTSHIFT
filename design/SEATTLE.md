@@ -36,6 +36,48 @@ Automated checks cover connected route choices, reachable gates, building setbac
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
 
+## Route choice, measured
+
+`pnpm seattle:critique` reports whether the slice has anything to learn. The
+rule it measures against is "every shortcut has a cost": between two gates,
+the faster way should be the riskier way.
+
+- **Risk per street**, from the map data, each 0..1: narrowness (24 m is 0,
+  16 m is 1), bends (turn per 100 m or the sharpest corner, over 90 degrees),
+  grade (steepest metre over 12%), blind corners (a bend over 25 degrees with a
+  building on its inside within half the width plus 10 m). Weights 0.35 /
+  0.25 / 0.2 / 0.2, a proposal.
+- **Reward per leg**, as time, not length: on a grid two ways round a block
+  are the same length. A committed pace of 32 m/s, a 90 degree turn costing
+  2.5 s, a climb 1 + 1.5 x grade, routed on the line graph so a turn at a
+  junction costs and straight-through is free. Width barely touches pace: the
+  lane count is the same on a 16 m street, so width lives in risk. With width
+  cutting pace to 78%, every narrow street was dominated by construction —
+  the model, not the map.
+- **The leg's alternative** is the quickest route that shares under 60% of
+  the fast route's time once one of its streets is closed. Under 4% apart:
+  a twin, no shortcut either way. Within 40%: priced if the fast route is
+  the riskier by 0.05, free if it is the safer, even between.
+
+First reading (2026-09-10): 63 streets, 38 nodes, all of them choice points,
+no dead ends. 1056 directed legs of 300–1600 m; 77% have an alternative
+within 40% of their time; median detour 11%; 250 in the 10–25% sweet spot.
+Priced 66, free 254, even 238, twins 250, no choice 248. The arterials win
+nearly everywhere: 4th Ave S and 1st Ave are both the fast way and the safe
+way. The slice's genuine priced shortcuts are Western Ave (risk 0.63) against
+1st Ave, 6th Ave S against 4th Ave S from S Jackson St, and the 2nd Ave /
+James St corridor against 1st Ave / Yesler Way — which is where a generator
+would put its gates: Harbor Access / Western / 1st, Western / Madison,
+Yesler / James. There are no blind corners: 16 bends over 25 degrees, and the
+nearest building to any of them is 24 m away. The no-choice legs are the
+waterfront: Harbor Way and 1st Ave S to Pike with nothing under +53%.
+
+What this says to authoring: the grid has route choice but not shortcuts.
+Cut-throughs — diagonals, passages through the larger parcels, an alley that
+saves time and costs width — are what turn free legs into priced ones, and
+the report will show the count move. Traffic is not scored yet; it is
+seeded uniformly per lane length.
+
 
 ## First racing rival
 

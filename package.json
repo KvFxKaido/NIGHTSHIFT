@@ -16,7 +16,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts"
+    "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts",
+    "seattle:critique": "node --experimental-strip-types --no-warnings scripts/critique-seattle.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.19.3",
