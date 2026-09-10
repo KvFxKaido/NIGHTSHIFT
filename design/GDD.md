@@ -326,6 +326,17 @@ Open checkpoint events reward:
 - Vehicle-specific route choices
 - Improvisation after mistakes
 
+**Generated, not authored (2026-09-10).** Flashing a rival draws a new race
+from the city every time: three to five gates at junctions, each leg chosen
+for the choice it offers. The rule "every shortcut has a cost" — between two
+gates, the faster way should be the riskier way — is measured per leg from
+the map data (`pnpm seattle:critique`) and is the constraint the generator
+refuses to violate rather than a paragraph to remember. The seed is the
+race's identity: the same seed draws the same gates and the same rival line,
+which is all a saved playlist or a ghost needs to carry. A race repeats only
+if the player keeps it. Rivals biasing the draw towards their own streets,
+and rivals learning the player's lines per street, are the next two steps.
+
 ### 7.4 Drag
 
 A short, highly directed race focused on shifting, traffic timing, and lane selection.

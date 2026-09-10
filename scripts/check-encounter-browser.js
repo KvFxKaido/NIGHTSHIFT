@@ -42,7 +42,7 @@ async page => {
   await page.locator('[data-menu-screen="pause"] [data-menu-action="resume"]').click();
   await page.waitForFunction(()=>document.querySelector('#rival-challenge').textContent.startsWith('G'));
   await page.keyboard.press('g');
-  await page.waitForURL('**/*race=sound-to-sky*',{timeout:15000});await ready();
+  await page.waitForURL('**/*race=gen-*',{timeout:15000});await ready();
   await page.evaluate(()=>{
     __ns.freeze();
     if(!__ns.sim.state.rival||__ns.sim.state.encounter)throw Error('Race did not replace encounter');
@@ -65,7 +65,7 @@ async page => {
   });
   await page.waitForFunction(()=>document.querySelector('#rival-challenge').textContent.startsWith('X / Square'));
   await page.evaluate(()=>{window.testPad.buttons[2]={pressed:true,touched:true,value:1};});
-  await page.waitForURL('**/*race=sound-to-sky*',{timeout:15000});await ready();
+  await page.waitForURL('**/*race=gen-*',{timeout:15000});await ready();
   await page.evaluate(()=>{
     __ns.freeze();
     if(__ns.state().rival.model!=='ns-01'||__ns.state().carModel!=='ns-bulwark')throw Error('Pad challenge lost garage selection');

@@ -15,7 +15,9 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setView
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE } from "./sim/seattle.ts";
+import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace } from "./sim/seattle.ts";
+import { seedFromTick } from "./sim/race-generator.ts";
+import type { RivalDefinition } from "./sim/rival.ts";
 import { addSeattle } from "./render/seattle.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
@@ -36,6 +38,7 @@ let rivalParts: CarView | null = null;
 const opponentCar = (id: string) => id === "bulwark" ? "blender" : "bulwark";
 let selectedCar = "blender";
 let race: RaceDefinition | null = null;
+let rival: RivalDefinition | null = null;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -47,8 +50,14 @@ try {
   params.delete("route"); params.delete("environment"); params.delete("rival");
   history.replaceState(history.state, "", url);
   const raceId = params.get("race");
-  if (raceId && raceId !== SEATTLE_RACE.id) throw new Error(`Unknown race '${raceId}'`);
-  if (raceId) race = SEATTLE_RACE;
+  // A generated race is its seed: ?race=gen-<seed> draws the same gates and
+  // the same rival line every time, which is all a playlist needs to keep.
+  const generated = raceId ? /^gen-(\d{1,9})$/.exec(raceId) : null;
+  if (raceId && !generated && raceId !== SEATTLE_RACE.id) throw new Error(`Unknown race '${raceId}'`);
+  if (generated) {
+    const drawn = seattleGeneratedRace(Number(generated[1]));
+    race = drawn.race; rival = drawn.rival;
+  } else if (raceId) { race = SEATTLE_RACE; rival = SEATTLE_RIVAL; }
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
@@ -74,7 +83,7 @@ try {
 const input = createInputController();
 const controls = createControlsPanel(input);
 const roadWorld = createSeattleWorld(!!race);
-const sim = createSim(restored.drivetrain, roadWorld, race ? { race, rival: SEATTLE_RIVAL } : { encounter: SEATTLE_ENCOUNTER });
+const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: SEATTLE_ENCOUNTER });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
 if (rivalParts) setRivalCar(view, rivalParts);
@@ -292,7 +301,9 @@ function updateFlash(dt: number, active: boolean): void {
   });
   if (challengePending && flashRemaining === 0 && active) {
     challengePending = false;
-    loadDrive(SEATTLE_RACE.id);
+    // Every flash draws a new race; the seed comes from the tick of the flash,
+    // so a replay of the cruise would draw the same one.
+    loadDrive(`gen-${seedFromTick(sim.state.tick)}`);
   }
 }
 
@@ -348,7 +359,7 @@ function frame(now: number): void {
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
-  rivalPrompt.textContent = challengePending ? "Challenge accepted · Lining up for Sound to Sky…"
+  rivalPrompt.textContent = challengePending ? "Challenge accepted · Drawing a race…"
     : `${input.gamepadName() ? PAD_LABELS[input.bindings().gamepad.flash] : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);

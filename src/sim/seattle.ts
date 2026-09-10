@@ -8,6 +8,9 @@ import type { CourseProjection } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { TrafficNetwork } from "./traffic.ts";
 import type { RaceDefinition } from "./race.ts";
+import type { RivalDefinition } from "./rival.ts";
+import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
+import { generateRace, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 
 export const SEATTLE_DATA = data;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
@@ -113,3 +116,18 @@ export const SEATTLE_RACE: RaceDefinition = {
   id:"sound-to-sky", name:"Sound to Sky", countdownTicks:180,
   checkpoints:[gateAt('S Jackson St',0),gateAt('Harbor Way',0),gateAt('Madison St',0),gateAt('Pike St',0)],
 };
+
+let routing: RoutingGraph | undefined;
+/** The slice's route-choice graph, measured once: the critique's numbers and the generator's material. */
+export function seattleRouting(): RoutingGraph {
+  return routing ??= buildRoutingGraph(SEATTLE_STREETS, seattleHeight, SEATTLE_BLOCKS);
+}
+/** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
+ *  the rival's line through its gates. (SEATTLE_VERSION, seed) reproduces it. */
+export function seattleGeneratedRace(seed: number): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
+  const graph = seattleRouting();
+  const approach = startApproach(SEATTLE_STREETS, start);
+  const generated = generateRace(graph, seed, approach.node, [approach.street.id]);
+  return { race: generated.definition, generated,
+    rival: rivalLineFor(graph, generated, SEATTLE_STREETS, start, seattleHeight) };
+}

@@ -78,6 +78,31 @@ saves time and costs width — are what turn free legs into priced ones, and
 the report will show the count move. Traffic is not scored yet; it is
 seeded uniformly per lane length.
 
+## Generated races
+
+The flash draws a new race every time. `src/sim/race-generator.ts` takes the
+same graph the critique measures, starts at the junction the race grid on
+1st Ave S leads to, and draws three to five gates at junctions: each next
+gate is chosen among the legs 12–40 s away whose fastest route reuses no
+street already driven, weighted by the leg's class — priced 4, even 1.5,
+free 0.5, twin 0.3, none 0.4, plus 1.5 for a detour in the 10–25% sweet
+spot — until the race is 45–160 s long. The seed drives every draw through
+the traffic's integer hash, so `?race=gen-<seed>` is the race and the same
+seed is the same race. The rival's line is the streets of every leg in the
+direction they are driven, joined at the junctions they share, with the
+approach from the grid before the first gate and one street past the finish,
+and its gates are the junction vertices every arm's points contain exactly.
+The race is named after its first and last gates: "Jackson to Holgate".
+
+First reading: 60 of 60 seeds draw; races average 3.6 gates and 90–130 s;
+the weighting takes the share of priced-or-even legs from 27% (uniform) to
+54%; six of six generated races driven by the rival in normal traffic
+finished with no recoveries and no resets, straying at most 14 m from a
+centreline. Sound to Sky remains the authored race and the fixture for the
+rival tests. Not yet: rivals biasing the draw towards their own streets, a
+race starting where the flash happened rather than at the grid, saved
+playlists, and rivals learning the player's line per street.
+
 
 ## First racing rival
 

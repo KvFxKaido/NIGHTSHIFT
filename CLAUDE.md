@@ -93,6 +93,22 @@ Width belongs in risk, not pace — with width cutting pace, every narrow
 street was dominated by construction and the report said so about the model,
 not the map. The pace model and the risk weights are declared proposals; it
 asserts nothing; `--json` is for agents. Run it before and after authoring.
+That arithmetic lives in `src/sim/route-choice.ts` (risk per street, the line
+graph, `measureLeg`, `legTable`) and the critique only formats it, because
+**races are generated from it**: `src/sim/race-generator.ts` draws three to
+five junction gates per seed, each leg weighted by its class (priced 4, even
+1.5, free 0.5, twin 0.3, none 0.4, +1.5 in the 10–25% sweet spot), never
+reusing a street, 12–40 s a leg and 45–160 s a race, and routes the rival's
+line through the gates from the streets' own points exactly as the authored
+Sound to Sky line was built. `?race=gen-<seed>` is the race; the flash in
+free roam loads `gen-${seedFromTick(tick)}`, so a replay of the cruise draws
+the same race and every real flash draws a new one. Measured on the first
+slice: the weighting doubles the share of priced-or-even legs (54% against
+27% uniform), 60 of 60 seeds draw, and the rival finishes every generated
+race tried with no recoveries and no resets. Sound to Sky stays as the
+authored race and the rival tests' fixture. The seed uses `mix`, never
+`Math.random`; the leg table is measured once per graph, so a draw costs
+microseconds after the first.
 
 Free roam starts at Wharf Garage in SoDo. Stop at its mapped entrance to
 enter; the garage camera is fixed and right stick rotates the platform/car.
