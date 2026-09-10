@@ -202,6 +202,15 @@ beyond it, chamfered over 1.5 m at the kerb because the ground sits 0.35 m
 under the road and that step in one tick is a jolt. Blackglass has no
 `surface` and is unchanged. `tests/offroad.test.ts` drives off a kerb chosen
 by measurement and asserts the car rides the ground without a step.
+The district takes the tunnel and the bridge from the authored course, not its
+horizon: the Rivergate backdrop was composed "beyond the bridge" of the closed
+circuit, and in the district those coordinates are inside the street grid —
+its 104 m tower stood across Millgate Crossing with no collider, and no
+footprint rule saw it because it is not a `DistrictBlock`. `addDistrict`
+detaches `rivergate-backdrop`; Blackglass keeps it. The general lesson: a
+thing drawn in the district that the district did not generate is outside
+every rule the district enforces, and `__ns.pick` on the offending pixel is
+how it was identified — geometry alone spent an hour on the wrong candidates.
 Measured and not yet acted on: inside 18 of 35 junction aprons two ribbons
 overlap at different heights (11 over 30 cm, worst 1.07 m at Lower Hill),
 physically as well as visually, because the sim follows the NEAREST street and

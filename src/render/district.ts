@@ -441,7 +441,16 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
       body.castShadow = true; scene.add(body);
     });
   }
-  if (authored) scene.add(authored);
+  if (authored) {
+    // The tunnel and the bridge, not the horizon. The Rivergate backdrop was
+    // composed "beyond the bridge" of the closed circuit, and those coordinates
+    // are inside this district's street grid: its 104 m tower at (-290, 235)
+    // stands across Millgate Crossing's carriageway, with no collider, so the
+    // car drives through the lobby. It is not a DistrictBlock, so no footprint
+    // rule ever saw it. The district is its own skyline.
+    authored.getObjectByName("rivergate-backdrop")?.removeFromParent();
+    scene.add(authored);
+  }
 
   // Free roam draws the district and stops: no arrows, no gates, nothing telling
   // you where to go. The streets and boundaries above are identical either way.

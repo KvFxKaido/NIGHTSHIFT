@@ -8,6 +8,8 @@ import { createBlenderCourse, updateCourseLighting } from "../src/render/blender
 import { courseFingerprint } from "../src/render/course-asset-contract.ts";
 import { COURSE_POINTS, COURSE_SEGMENTS, COURSE_WALLS } from "../src/sim/track.ts";
 import { addCourse } from "../src/render/course.ts";
+import { addDistrict } from "../src/render/district.ts";
+import { projectOntoDistrict } from "../src/sim/district.ts";
 
 const bytes = await readFile(new URL("../public/assets/tracks/blackglass-rivergate.glb", import.meta.url));
 async function asset() {
@@ -147,4 +149,40 @@ test("authored and classic environments retain the same road and collision-wall 
   assert.ok(classic.getObjectByName("tunnel-roof-20"));
   assert.equal(authored.getObjectByName("tunnel-roof-20"), undefined);
   assert.ok(authored.getObjectByName("blackglass-rivergate"));
+});
+
+test("the Rivergate backdrop stays on the circuit's horizon and out of the district", async () => {
+  // The backdrop was composed beyond the closed circuit's bridge. In the
+  // district those coordinates are inside the street grid, and a backdrop tower
+  // is not a DistrictBlock, so the footprint rules never saw it. First the
+  // reason: the skyline has corners over a district carriageway. The export
+  // batches the three towers into one mesh per material, so ask the vertices.
+  const root = await asset();
+  root.updateMatrixWorld(true);
+  const backdrop = root.getObjectByName("rivergate-backdrop");
+  assert.ok(backdrop, "the circuit's backdrop is missing from the asset");
+  const skyline = root.getObjectByName("rivergate-backdrop-skyline-stone");
+  assert.ok(skyline instanceof THREE.Mesh);
+  const position = skyline.geometry.getAttribute("position");
+  const vertex = new THREE.Vector3();
+  let over = 0;
+  for (let i = 0; i < position.count; i++) {
+    vertex.fromBufferAttribute(position, i).applyMatrix4(skyline.matrixWorld);
+    const road = projectOntoDistrict(vertex.x, vertex.z);
+    if (road.distance < road.width / 2) over++;
+  }
+  assert.ok(over > 0, "the backdrop no longer stands on a district street; is this test still needed?");
+
+  // Then the rule: the district takes the tunnel and the bridge, not the horizon.
+  const district = new THREE.Scene();
+  addDistrict(district, null, createBlenderCourse(root).root, "night");
+  assert.ok(district.getObjectByName("authored-course"), "the tunnel and bridge still arrive");
+  const drawn: string[] = [];
+  district.traverse(object => { if (object.name.startsWith("rivergate-backdrop")) drawn.push(object.name); });
+  assert.deepEqual(drawn, [], "backdrop drawn in the district");
+
+  // Blackglass keeps its skyline.
+  const circuit = new THREE.Scene();
+  addCourse(circuit, createBlenderCourse(await asset()).root);
+  assert.ok(circuit.getObjectByName("rivergate-backdrop-skyline-stone"), "the circuit lost its horizon");
 });

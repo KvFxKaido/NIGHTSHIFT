@@ -739,4 +739,24 @@ check was called with two arguments and took four — tests are not
 type-checked, the dot product was NaN, and every gap failed including the
 bridges. Each version was wrong in a way the map was not.
 
+### The tower that was not a building
+
+Heading north over Millgate Crossing, a 104 m tower stood across the far end
+of the road, the carriageway running into its lobby. It was not in
+`DISTRICT_BLOCKS`. It was the Rivergate backdrop — the three towers composed
+for the closed circuit's horizon "beyond the bridge" — and the district had
+been taking the whole authored asset for the sake of its tunnel and bridge.
+The backdrop's coordinates fall inside the district's street grid; it has no
+collider, so the car drove through it; and it is not a block, so none of the
+footprint rules ever saw it. `addDistrict` now detaches it, and the test
+asks the shipped GLB's own vertices whether the skyline stands over a
+district carriageway (it does: 12 of the stone's 72) before asserting the
+district draws none of it and the circuit still does.
+
+Finding it was the lesson. Four railed roads with towers "ahead" were
+measured, screenshotted from the car and rejected; `__ns.pick` on the pixel
+named the mesh in one call. A thing drawn that the district did not generate
+is outside every rule the district enforces — look at what is drawn, not at
+what the generator thinks it drew.
+
 Still to do: one surface per junction, for the 18 aprons with a ridge.
