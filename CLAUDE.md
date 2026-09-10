@@ -163,7 +163,22 @@ structural span is one contiguous run, not two. 274 buildings became 272. The
 frontage test measures against the kerb that is actually there, never the
 narrowest width lanes are laid to — on a flare that put the kerb metres
 inboard and read 162 of 272 buildings as off their frontage when 242 stand
-within 5 m of the real one. The fourth rule the screenshots want is
+within 5 m of the real one. **The night dressing is
+built in each building's own frame and then turned by `-site.rotation`** — the
+blockout's sign, which matches `blockCorners`. It used to be placed
+axis-aligned at `site.x +/- width/2` with the rotation never applied, while the
+footprint, the collider, the blockout massing and every clearance test rotate:
+218 of 272 buildings were drawn more than a metre out of their own footprint,
+with corners in roads, through rails and five metres into the tunnel bore. It
+was the actual cause of "buildings clipping" in every night-mode screenshot,
+and three other real fixes landed before it was found, because each of them
+measured the FOOTPRINT and the footprint was right. `tests/night.test.ts`
+now asserts every drawn facade vertex lies inside a real footprint, and that
+no lamp post stands in the tunnel (`nearStructure` keeps street furniture out
+of the structural corridors; the tunnel lights itself). When a screenshot
+disagrees with a passing footprint test, scan the rendered scene's vertices —
+`addDistrict` into a bare scene and project them — before trusting either.
+The fourth rule the screenshots want is
 road-over-road inside junction aprons, which is the apron work below.
 Measured and not yet acted on: of 10,808 rail pieces, 70% guard open ground and
 20% stand in front of a solid building; only 9% guard the river, the rail

@@ -652,6 +652,37 @@ that is actually there, **242 of 272 stand within 5 m, median gap 3.5 m**,
 which is a pavement. The same mistake `blockClearsStreets` made two days ago,
 in the test that checks frontage. Fixed in the test; the map was right.
 
+### The building you see was not the building that was there
+
+"Still the same on my end" — after the height fix, the corridor rules and the
+tunnel corridor, with the served code confirmed current. So the rendered scene
+was scanned directly: `addDistrict` into a bare scene, every mesh's vertices
+projected onto the tunnel, anything between its floor and roof inside its
+walls listed by mesh name. The road, the paint — and four facade vertices, two
+roof vertices, one sign glow, and eight sodium lamp posts.
+
+The facade belonged to a building whose *footprint* stood 15.8 m from the
+tunnel, correctly outside the corridor. Its drawn corner was at 5.2 m. The
+footprint is rotated −78°; the drawn box was axis-aligned. **`night.ts` placed
+every facade, sign, shopfront, spill and roof at `site.x ± width/2`,
+`site.z ± depth/2`, and never applied the building's rotation** — while the
+footprint, the collider (since yesterday), the blockout massing and every
+clearance test all rotate. Measured: **218 of 272 buildings were drawn more
+than a metre out of their own footprint.** That is the clipping in every
+night-mode screenshot, and it had been there since the night dressing was
+written. Three real fixes landed before it was found — buildings on the
+ground, buildings out of corridors, buildings out of the tunnel — because each
+measured the footprint and the footprint was right. The lesson written into
+CLAUDE.md: when a screenshot disagrees with a passing footprint test, scan the
+rendered vertices before trusting either.
+
+Every piece is now built in the building's own frame and turned by
+`-site.rotation`, the blockout's sign; the shopfront's lift is read where its
+pavement actually is once turned. The test asserts every drawn facade vertex
+lies inside a real footprint, and fails with the rotation dropped. The lamp
+pass skips the structural corridors — the tunnel lights itself — and a test
+holds the bore free of posts.
+
 The fourth rule the screenshots are really asking for is *road cannot clip
 above road*: the ridge inside 18 junction aprons where two ribbons overlap at
 different heights. That is not ground, and it is the apron work.

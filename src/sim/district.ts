@@ -970,6 +970,18 @@ const STRUCTURE_SPANS: readonly (readonly CoursePoint[])[] = (() => {
   return spans;
 })();
 
+/** Inside the tunnel or bridge corridor: half the road's width plus the
+ *  structure's own margin. Street furniture has no business there either —
+ *  the tunnel carries its own authored lights, and eight sodium posts stood
+ *  inside the bore because the lamp pass walks every street including the
+ *  loop's tunnel section. */
+export function nearStructure(x: number, z: number): boolean {
+  return STRUCTURE_SPANS.some(span => {
+    const on = projectOntoPath(span, x, z);
+    return on.distance <= on.width / 2 + STRUCTURE_CLEARANCE;
+  });
+}
+
 /** Rule: a building cannot stand in the tunnel or on the bridge. */
 export function blockClearsStructures(block: DistrictBlock): boolean {
   return [...blockCorners(block), { x: block.x, z: block.z }].every(point =>

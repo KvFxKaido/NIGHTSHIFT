@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth, laneMarkings,
-  groundHeight, groundHeightNear, GROUND_CORRIDOR, outerTerrain, pathSamples, projectOntoDistrict,
+  groundHeight, groundHeightNear, GROUND_CORRIDOR, nearStructure, outerTerrain, pathSamples, projectOntoDistrict,
   RAIL, RAIL_HALF_WIDTH, RIVER, RIVER_HALF_WIDTH,
   routePoints,
   type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
@@ -222,6 +222,8 @@ function addStreetLighting(scene: THREE.Scene): void {
       const nx = -sample.dirZ * side, nz = sample.dirX * side;
       const x = sample.x + nx * (sample.width / 2 + 1.5), z = sample.z + nz * (sample.width / 2 + 1.5);
       if (inJunction(x, z)) continue;
+      // The tunnel lights itself and the bridge deck has no pavement.
+      if (nearStructure(x, z)) continue;
       // Clear of its own street is not clear of the network: belts and radials
       // run close enough that a post set beside one lands in the middle of the
       // next. The sim has no collider for street furniture, so the only thing

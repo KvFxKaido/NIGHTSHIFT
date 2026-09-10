@@ -179,6 +179,23 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // Everything on this building is measured from its base, which is on the
     // ground it stands on — not from datum, which on the hill is underground.
     const base = site.base ?? 0;
+    // And built in the building's OWN frame, then turned to face its street.
+    // Every piece used to be placed axis-aligned at site.x +/- width/2, with
+    // site.rotation never applied — while the footprint, the collider, the
+    // blockout massing and every clearance test rotate. 218 of 272 buildings
+    // were drawn more than a metre out of their own footprint, with corners in
+    // roads, through rails and, on the loop, five metres into the tunnel bore.
+    // The sign is the blockout's: rotation.y = -rotation matches blockCorners.
+    const yaw = -(site.rotation ?? 0);
+    const finish = <T extends THREE.BufferGeometry>(geometry: T): T => {
+      geometry.rotateY(yaw);
+      geometry.translate(site.x, 0, site.z);
+      return geometry;
+    };
+    const toWorld = (localX: number, localZ: number) => ({
+      x: site.x + localX * Math.cos(yaw) + localZ * Math.sin(yaw),
+      z: site.z - localX * Math.sin(yaw) + localZ * Math.cos(yaw),
+    });
     const faces = [
       { rotation: 0, x: 0, z: site.depth / 2, width: site.width },
       { rotation: Math.PI, x: 0, z: -site.depth / 2, width: site.width },
@@ -188,8 +205,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     faces.forEach((face, side) => {
       const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side));
       panel.rotateY(face.rotation);
-      panel.translate(site.x + face.x, base + site.height / 2, site.z + face.z);
-      facades.push(panel);
+      panel.translate(face.x, base + site.height / 2, face.z);
+      facades.push(finish(panel));
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
       // courtyard nobody drives past is cost with no image behind it.
@@ -206,13 +223,13 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
         const across = (slot - 0.5) * face.width * 0.44 + (hash01(seed * 2.7) - 0.5) * 3;
         const place = (geometry: THREE.BufferGeometry, depth: number) => {
           geometry.rotateY(face.rotation);
-          geometry.translate(site.x + face.x, base + y, site.z + face.z);
+          geometry.translate(face.x, base + y, face.z);
           geometry.translate(
             Math.cos(face.rotation) * across + Math.sin(face.rotation) * depth,
             0,
             -Math.sin(face.rotation) * across + Math.cos(face.rotation) * depth,
           );
-          return geometry;
+          return finish(geometry);
         };
         signs.push(tint(place(new THREE.PlaneGeometry(width, height), 0.32), color));
         glows.push(tint(place(new THREE.PlaneGeometry(width + 4, height + 4), 0.5),
@@ -229,9 +246,12 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       // 24 m up, and 27 of the district's 165 street-facing blocks sit under
       // some lift — there is no ground floor to light. Dressing one anyway put
       // a detached pool of glow in the air beside the upper roadway.
-      const spillX = site.x + face.x + Math.sin(face.rotation) * 6.5;
-      const spillZ = site.z + face.z + Math.cos(face.rotation) * 6.5;
-      const street = groundAt(spillX, spillZ);
+      // The pavement in front of this face, in the building's frame — and the
+      // lift is read where that pavement actually is in the world, turned.
+      const spillLocalX = face.x + Math.sin(face.rotation) * 6.5;
+      const spillLocalZ = face.z + Math.cos(face.rotation) * 6.5;
+      const spillWorld = toWorld(spillLocalX, spillLocalZ);
+      const street = groundAt(spillWorld.x, spillWorld.z);
       if (Math.abs(street - base) > SHOPFRONT_MAX_LIFT) return;
       // A block front stands in for a row of shops, so light it as a row: one
       // unbroken strip of glass reads as a lightbox, not as a street.
@@ -247,17 +267,17 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
         const glass = new THREE.PlaneGeometry(unitWidth * 0.82, 1.9);
         glass.rotateY(face.rotation);
         const across = (unit + 0.5) / units * face.width - face.width / 2;
-        glass.translate(site.x + face.x, base + 1.8, site.z + face.z);
+        glass.translate(face.x, base + 1.8, face.z);
         glass.translate(Math.cos(face.rotation) * across + Math.sin(face.rotation) * 0.22, 0,
           -Math.sin(face.rotation) * across + Math.cos(face.rotation) * 0.22);
-        signs.push(tint(glass, warm.clone().multiplyScalar(0.34)));
+        signs.push(tint(finish(glass), warm.clone().multiplyScalar(0.34)));
       }
 
       const bloom = new THREE.PlaneGeometry(face.width * 1.35, 9);
       bloom.rotateY(face.rotation);
-      bloom.translate(site.x + face.x + Math.sin(face.rotation) * 0.4, base + 2.4,
-        site.z + face.z + Math.cos(face.rotation) * 0.4);
-      glows.push(tint(bloom, warm.clone().multiplyScalar(0.16)));
+      bloom.translate(face.x + Math.sin(face.rotation) * 0.4, base + 2.4,
+        face.z + Math.cos(face.rotation) * 0.4);
+      glows.push(tint(finish(bloom), warm.clone().multiplyScalar(0.16)));
 
       // And the spill onto the pavement in front of it, on the local surface
       // rather than at datum — within the lift checked above the two are within
@@ -265,7 +285,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       const spill = new THREE.PlaneGeometry(face.width * 1.3, 12);
       spill.rotateX(-Math.PI / 2);
       spill.rotateY(face.rotation);
-      spill.translate(spillX, street + 0.06, spillZ);
+      spill.translate(spillLocalX, street + 0.06, spillLocalZ);
+      finish(spill);
       // Whose spill this is, for the test that asks whether it stayed on its
       // own building's pavement. Nearest-building pairing gets it wrong where
       // the ground steps between two levels beside the loop.
@@ -275,8 +296,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
 
     const roof = new THREE.PlaneGeometry(site.width, site.depth);
     roof.rotateX(-Math.PI / 2);
-    roof.translate(site.x, base + site.height, site.z);
-    roofs.push(roof);
+    roof.translate(0, base + site.height, 0);
+    roofs.push(finish(roof));
   });
 
   const facadeMesh = mergedMesh("district-facades", facades, facadeMaterial);

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { addDistrict } from "../src/render/district.ts";
 import { hash01 } from "../src/render/night.ts";
 import { DISTRICT_BLOCKS, DISTRICT_STREETS, projectOntoPath, carriagewayWidth, projectOntoDistrict } from "../src/sim/district.ts";
+import { COURSE_POINTS } from "../src/sim/track.ts";
 
 function build(dressing: "night" | "blockout"): THREE.Scene {
   const scene = new THREE.Scene();
@@ -159,4 +160,46 @@ test("the blockout keeps its work view and its massing", () => {
   assert.equal(road(scene), road(night));
   dispose(scene);
   dispose(night);
+});
+
+// The building you see must be the building that is there. Every piece of
+// night dressing used to be placed axis-aligned, site.x +/- width/2, with the
+// footprint's rotation never applied — while the footprint, the collider, the
+// blockout and every clearance test rotate. 218 of 272 buildings were drawn
+// more than a metre out of their own footprint: corners in the road, through
+// the rails, and five metres into the tunnel bore, which is what a lit
+// building standing in the tunnel was.
+test("every drawn facade stands inside a real footprint", () => {
+  const scene = build("night");
+  const contains = (block: typeof DISTRICT_BLOCKS[number], x: number, z: number) => {
+    const cos = Math.cos(-block.rotation), sin = Math.sin(-block.rotation);
+    const dx = x - block.x, dz = z - block.z;
+    return Math.abs(dx * cos - dz * sin) <= block.width / 2 + 0.35
+      && Math.abs(dx * sin + dz * cos) <= block.depth / 2 + 0.35;
+  };
+  let outside = 0, checked = 0, worstAt = "";
+  for (const vertex of vertices(scene, "district-facades")) {
+    checked++;
+    if (DISTRICT_BLOCKS.some(block => Math.hypot(block.x - vertex.x, block.z - vertex.z) < 60
+      && contains(block, vertex.x, vertex.z))) continue;
+    outside++;
+    if (!worstAt) worstAt = `${vertex.x.toFixed(1)},${vertex.z.toFixed(1)}`;
+  }
+  assert.ok(checked > 1000, `only ${checked} facade vertices`);
+  assert.equal(outside, 0, `${outside} facade vertices stand outside every footprint, first at ${worstAt}`);
+  dispose(scene);
+});
+
+// And nothing of the district's own furniture stands in the tunnel: it lights
+// itself, and eight sodium posts used to stand inside the bore.
+test("no lamp post stands inside the tunnel bore", () => {
+  const scene = build("night");
+  const bore = COURSE_POINTS.filter(point => point.zone === "tunnel");
+  let inside = 0;
+  for (const vertex of vertices(scene, "district-lamp-posts")) {
+    const on = projectOntoPath(bore, vertex.x, vertex.z);
+    if (on.distance <= 10.5 && vertex.y > on.height - 1 && vertex.y < on.height + 8) inside++;
+  }
+  assert.equal(inside, 0, `${inside} lamp post vertices stand inside the tunnel`);
+  dispose(scene);
 });
