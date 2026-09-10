@@ -125,7 +125,29 @@ warehouse put an invisible wall across Crane Alley and the first race found it.
 `tests/district.test.ts` now asks Rapier itself whether each long building's
 collider contains its own corner and not its mirror's; note Rapier's spatial
 queries answer nothing until the world has stepped once, and its translations
-are f32, so match them at 1e-3, not 1e-6. Walls keep their own sign. `blockClearsStreets` samples every footprint edge against the
+are f32, so match them at 1e-3, not 1e-6. Walls keep their own sign.
+Every building has a `base`: the LOWEST drawn ground under its footprint, so no
+corner floats and the uphill side is buried by at most the ground's spread,
+and placement refuses a plot whose ground drops more than 4 m across it (18
+did, all beside the old loop's grades; they stay embankment). Mesh, collider
+and every element of the night dressing measure from `base`, never from
+datum — at datum, on a district that climbs 20 m, 227 of 321 buildings stood
+more than a metre underground and a road on an embankment ran through a
+building's floors, which from the car reads as a building clipping the road.
+The boundary walls stand on `outerTerrain` for the same reason. A shop spill is
+stamped with its own building's base as a vertex attribute so the test that
+says "on its own pavement" has a reference that neither flips to the Rivergate
+deck (nearest road) nor steps 11 m beside the loop (drawn ground) nor pairs it
+with a building on the other level (nearest building). The race readout needs
+`#race[hidden] { display: none; }`: its own `display: flex` beat the attribute
+and it showed GATE 1/3 in free roam on every screen.
+Measured and not yet acted on: of 10,808 rail pieces, 70% guard open ground and
+20% stand in front of a solid building; only 9% guard the river, the rail
+cutting, the boundary or a real drop. And inside 18 of 35 junction aprons two
+ribbons overlap at different heights (11 over 30 cm, worst 1.07 m at Lower
+Hill), physically as well as visually, because the sim follows the NEAREST
+street and the nearest flips at the bisector. Those are the next two map
+changes: rails only at real edges, and one surface per junction. `blockClearsStreets` samples every footprint edge against the
 width the road ACTUALLY has there, never corners only and never the narrowest
 width: corners let a straight frontage cut the chord of a bend by 10 m, and the
 narrow width let a building stand on a junction flare a car can drive on.

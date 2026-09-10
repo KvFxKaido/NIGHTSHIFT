@@ -12,6 +12,11 @@ export interface RoadSolid {
   readonly height: number;
   /** Yaw, so massing can stand square to the street it fronts. */
   readonly rotation?: number;
+  /** Height of the base above datum. Absent on a flat world. A district with
+   *  20 m of hill stood every building at zero for two days: 227 of 321 had
+   *  their base more than a metre underground, 32 past half their height, and
+   *  a road on an embankment ran through a building's upper floors. */
+  readonly base?: number;
 }
 
 /** Geometry dependency of the simulation. No renderer or browser state. */

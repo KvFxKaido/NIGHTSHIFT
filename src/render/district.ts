@@ -434,7 +434,7 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
     DISTRICT_BLOCKS.forEach((block, i) => {
       const body = mesh(`district-massing-${i}`,
         new THREE.BoxGeometry(block.width, block.height, block.depth), blockMaterial);
-      body.position.set(block.x, block.height / 2, block.z);
+      body.position.set(block.x, block.base + block.height / 2, block.z);
       body.rotation.y = -block.rotation;
       body.castShadow = true; scene.add(body);
     });

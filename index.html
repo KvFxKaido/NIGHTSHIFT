@@ -39,6 +39,9 @@
         display: flex; flex-direction: column; align-items: center; gap: 2px;
         color: rgba(242, 238, 227, .9); text-transform: uppercase;
       }
+      /* An author display beats the [hidden] attribute's display:none, so the
+         readout showed GATE 1/3 in free roam on every screen. Say it explicitly. */
+      #race[hidden] { display: none; }
       #race-gate { font-size: 10px; font-weight: 800; letter-spacing: .26em; color: #ffb347; }
       #race-time {
         font: 800 26px/1 ui-monospace, SFMono-Regular, Consolas, monospace;

@@ -530,3 +530,65 @@ chevron on its rim, and a column of light in the world. The rival needs
 nothing new — reset archives your last run and races it back through the same
 gates. An authored rival log bundled with the race is the follow-up, and it
 must carry physics identity.
+
+## Buildings stand on the ground they are on
+
+Three of Shawn's screenshots from driving around, and a fourth thing they
+showed that neither of us named at first.
+
+Every building — mesh, collider, facades, signs, glass, roof — was measured from
+`y = 0`, on a district that climbs 20 m. Measured: **227 of 321 buildings stood
+with their base more than a metre underground**, median 3.2 m, 32 past half
+their height, and the worst — a 12 m building at (-252, -468) — entirely under
+the hill, collider included. Where a road ran on an embankment beside one, the
+road passed through its upper floors, which from the car is "a building
+clipping the road". The night dressing knew, in its own way: it skipped
+shopfronts wherever the road stood more than 3 m over the base and called that
+a viaduct — 27 of 165 street-facing blocks by its own comment. They were buried.
+
+Every building now has a `base`: the lowest drawn ground under its footprint,
+so no corner floats and the uphill side is buried by at most the ground's
+spread. A plot whose ground drops more than 4 m across it is refused — 18
+candidates did, all beside the old loop where its authored grade meets the
+inland ramp, the worst spanning 10.9 m; push-back found other setbacks for all
+but one, and they stay embankment. The boundary walls stand on the terrain for
+the same reason; at the hill's far corner datum is 20 m down.
+
+### The test that took four references to write
+
+"A shop spill stays on the ground its own storefront stands on" used to assert
+|y| < 3.5 — true only while every building stood at zero. Against the nearest
+road it failed at 22.8 m: beside the Rivergate bridge the nearest road flips
+from the quay to the deck. Against the drawn ground it failed at 11.0 m: the
+ground genuinely steps 11 m beside the loop's embankment, and a flat 12 m spill
+plane overhangs the edge. Against the nearest building it failed at 11.4 m:
+where the ground steps, buildings stand on both levels within twenty metres and
+the nearest one is the wrong one. The renderer now stamps every spill vertex
+with the base of the building that casts it, and the test asserts the rule that
+placed it: within the shopfront lift of its own base.
+
+### The race readout showed in free roam
+
+All three screenshots carry "GATE 1/3 / 3" at the top, in free roam. The
+readout's `display: flex` beat the `[hidden]` attribute's `display: none`, so
+it could never hide. `#race[hidden] { display: none; }`, and the markup test
+now demands it.
+
+### Measured, not yet changed
+
+Of **10,808 rail pieces, 70% guard open ground** and 20% stand in front of a
+building that is already solid; 9% guard the river, the rail cutting, the
+boundary or a drop over 1.5 m. Rails are the pale parapets in every frame.
+
+Inside **18 of 35 junction aprons** two road ribbons overlap at different
+heights — 11 over 30 cm, worst 1.07 m at Lower Hill — because each arm is
+graded toward the junction along its own authored profile and they agree only
+at the centre. That is the hump across the road in the third screenshot, and it
+is physical: the sim's height follows the *nearest* street, which flips at the
+bisector between two arms, up to 20 m out. The six inspection drives cross it
+at the centre where both agree; cutting the corner does not.
+
+Rail gaps: eight one-sided gaps of 4-5 m, all on the ring, 36 m in total; what
+reads as random elsewhere is junction clipping opening every side street across
+a 28 m apron. Under the rail rule most of it goes; what remains gets a
+continuity test.

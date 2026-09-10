@@ -692,9 +692,10 @@ function boundaryWalls(): CourseWall[] {
     const width = Math.min(step, extent - start) + 0.4;
     for (const side of [-1, 1]) {
       // rotation 0 runs along +X; -PI/2 runs along +Z, matching connectorWalls.
-      walls.push({ x: mid, z: side * extent, y: 0, width, depth: 1.2,
+      // On the ground, not at datum: at the hill's far corner datum is 20 m down.
+      walls.push({ x: mid, z: side * extent, y: outerTerrain(mid, side * extent), width, depth: 1.2,
         rotation: 0, pitch: 0, accent: "white", zone: "old-quarter" });
-      walls.push({ x: side * extent, z: mid, y: 0, width, depth: 1.2,
+      walls.push({ x: side * extent, z: mid, y: outerTerrain(side * extent, mid), width, depth: 1.2,
         rotation: -Math.PI / 2, pitch: 0, accent: "white", zone: "old-quarter" });
     }
   }
@@ -853,6 +854,11 @@ export interface DistrictBlock {
   readonly height: number;
   /** Yaw, so a building can stand square to the street it fronts. */
   readonly rotation: number;
+  /** Height of the base: the LOWEST drawn ground under the footprint, so no
+   *  corner floats and the uphill side is buried by at most the ground's spread
+   *  across the block. Not zero. This district climbs 20 m, and at zero 227 of
+   *  321 buildings stood with their base more than a metre underground. */
+  readonly base: number;
 }
 
 /** The four corners of an oriented footprint. Clearance is a rectangle problem;
@@ -913,6 +919,8 @@ const BLOCK_GAP = 1.2;
 /** How far, in metres, a building may retreat from the pavement line to clear
  *  the asphalt before the candidate is given up on. */
 const PUSH_BACK = 6;
+/** The most the ground may drop across one footprint for it to be a plot. */
+const MAX_PLOT_DROP = 4;
 
 /**
  * How deeply two oriented footprints interpenetrate; <= 0 when they are apart,
@@ -1013,8 +1021,22 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
           if (!inside(face, x, z)) break;
           const seed = ((faceIndex * 31 + Math.round(x) * 7 + Math.round(z) * 13) % 6 + 6) % 6;
           const inland = Math.max(0, Math.min(1, -(x + z) / 900 + 0.25));
+          const shape = { x, z, width: frontage - 2 - (seed % 3), depth, rotation: Math.atan2(dirZ, dirX) };
+          // Stand it on the ground it is actually on. The lowest of the corners
+          // and the centre: the uphill side is buried by the spread, nothing
+          // floats, and the ground floor meets the pavement it fronts because
+          // groundHeight is clamped to the road there.
+          const grounds = [groundHeight(x, z),
+            ...blockCorners({ ...shape, height: 0, base: 0 }).map(corner => groundHeight(corner.x, corner.z))];
+          const base = Math.min(...grounds);
+          // A plot, not a slope. Past this much drop across one footprint the
+          // building either floats on its downhill side or is buried past its
+          // ground floor uphill; 18 candidates straddle more, all beside the
+          // old loop where its authored grade meets the inland ramp, and the
+          // worst spans 10.9 m. Those stay embankment.
+          if (Math.max(...grounds) - base > MAX_PLOT_DROP) continue;
           const block: DistrictBlock = {
-            x, z, width: frontage - 2 - (seed % 3), depth, rotation: Math.atan2(dirZ, dirX),
+            ...shape, base: Math.round(base * 10) / 10,
             height: Math.round(industrial ? 8 + seed * 3.5 : 13 + seed * 5 + inland * 18),
           };
           // Two frontages meeting at a corner, or facing each other across a

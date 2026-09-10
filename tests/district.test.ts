@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { RIVER, outerTerrain, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
@@ -322,7 +322,8 @@ test("a building's collider stands where its footprint does, not where its mirro
     sim.world.step();
     const inThisBuilding = (block: typeof DISTRICT_BLOCKS[number], x: number, z: number) => {
       let hit = false;
-      sim.world.intersectionsWithPoint({ x, y: block.height / 2, z }, collider => {
+      // Mid-height of the box where it actually stands, not half its height above datum.
+      sim.world.intersectionsWithPoint({ x, y: block.base + block.height / 2, z }, collider => {
         // Rapier stores translations as f32; 1e-6 against an f64 misses a
         // building at |x| > 100 on rounding alone.
         const t = collider.translation();
@@ -358,4 +359,29 @@ test("a building's collider stands where its footprint does, not where its mirro
     assert.ok(checked >= 20, `only ${checked} long buildings to check`);
     assert.ok(mirrorsTested >= 10, `only ${mirrorsTested} buildings where the mirror differs`);
   } finally { sim.world.free(); }
+});
+
+// Every building stood at y = 0 on a district that climbs 20 m: 227 of 321 had
+// their base more than a metre underground, 32 past half their height, and a
+// road on an embankment ran through a building's upper floors — which read,
+// from the car, as a building clipping the road. The dressing knew, in its own
+// way: it skipped shopfronts wherever the road stood more than 3 m over the
+// base, and called that a viaduct.
+test("every building stands on the ground it is on, and no corner floats", () => {
+  let worstFloat = 0, floatAt = "", worstBury = 0, buryAt = "";
+  for (const block of DISTRICT_BLOCKS) {
+    const grounds = [groundHeight(block.x, block.z),
+      ...blockCorners(block).map(corner => groundHeight(corner.x, corner.z))];
+    const lowest = Math.min(...grounds), highest = Math.max(...grounds);
+    // The base sits on the lowest ground under the footprint...
+    const float = block.base - lowest;
+    if (float > worstFloat) { worstFloat = float; floatAt = `${block.x.toFixed(0)},${block.z.toFixed(0)}`; }
+    // ...and is buried on the uphill side only by the ground's own spread.
+    const bury = highest - block.base;
+    if (bury > worstBury) { worstBury = bury; buryAt = `${block.x.toFixed(0)},${block.z.toFixed(0)}`; }
+  }
+  assert.ok(worstFloat < 0.15, `a building at ${floatAt} floats ${worstFloat.toFixed(2)} m above the ground`);
+  // Placement refuses a plot whose ground drops more than 4 m across it, and
+  // stores the base to 0.1 m; so 4 m is the limit and a tenth is rounding.
+  assert.ok(worstBury <= 4.15, `a building at ${buryAt} is buried ${worstBury.toFixed(2)} m on its uphill side`);
 });

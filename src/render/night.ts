@@ -176,6 +176,9 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
   const spills: THREE.BufferGeometry[] = [];
 
   sites.forEach((site, index) => {
+    // Everything on this building is measured from its base, which is on the
+    // ground it stands on — not from datum, which on the hill is underground.
+    const base = site.base ?? 0;
     const faces = [
       { rotation: 0, x: 0, z: site.depth / 2, width: site.width },
       { rotation: Math.PI, x: 0, z: -site.depth / 2, width: site.width },
@@ -185,7 +188,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     faces.forEach((face, side) => {
       const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side));
       panel.rotateY(face.rotation);
-      panel.translate(site.x + face.x, site.height / 2, site.z + face.z);
+      panel.translate(site.x + face.x, base + site.height / 2, site.z + face.z);
       facades.push(panel);
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
@@ -203,7 +206,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
         const across = (slot - 0.5) * face.width * 0.44 + (hash01(seed * 2.7) - 0.5) * 3;
         const place = (geometry: THREE.BufferGeometry, depth: number) => {
           geometry.rotateY(face.rotation);
-          geometry.translate(site.x + face.x, y, site.z + face.z);
+          geometry.translate(site.x + face.x, base + y, site.z + face.z);
           geometry.translate(
             Math.cos(face.rotation) * across + Math.sin(face.rotation) * depth,
             0,
@@ -229,7 +232,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       const spillX = site.x + face.x + Math.sin(face.rotation) * 6.5;
       const spillZ = site.z + face.z + Math.cos(face.rotation) * 6.5;
       const street = groundAt(spillX, spillZ);
-      if (Math.abs(street) > SHOPFRONT_MAX_LIFT) return;
+      if (Math.abs(street - base) > SHOPFRONT_MAX_LIFT) return;
       // A block front stands in for a row of shops, so light it as a row: one
       // unbroken strip of glass reads as a lightbox, not as a street.
       const units = Math.max(3, Math.round(face.width / 6));
@@ -244,7 +247,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
         const glass = new THREE.PlaneGeometry(unitWidth * 0.82, 1.9);
         glass.rotateY(face.rotation);
         const across = (unit + 0.5) / units * face.width - face.width / 2;
-        glass.translate(site.x + face.x, 1.8, site.z + face.z);
+        glass.translate(site.x + face.x, base + 1.8, site.z + face.z);
         glass.translate(Math.cos(face.rotation) * across + Math.sin(face.rotation) * 0.22, 0,
           -Math.sin(face.rotation) * across + Math.cos(face.rotation) * 0.22);
         signs.push(tint(glass, warm.clone().multiplyScalar(0.34)));
@@ -252,7 +255,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
 
       const bloom = new THREE.PlaneGeometry(face.width * 1.35, 9);
       bloom.rotateY(face.rotation);
-      bloom.translate(site.x + face.x + Math.sin(face.rotation) * 0.4, 2.4,
+      bloom.translate(site.x + face.x + Math.sin(face.rotation) * 0.4, base + 2.4,
         site.z + face.z + Math.cos(face.rotation) * 0.4);
       glows.push(tint(bloom, warm.clone().multiplyScalar(0.16)));
 
@@ -263,12 +266,16 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       spill.rotateX(-Math.PI / 2);
       spill.rotateY(face.rotation);
       spill.translate(spillX, street + 0.06, spillZ);
+      // Whose spill this is, for the test that asks whether it stayed on its
+      // own building's pavement. Nearest-building pairing gets it wrong where
+      // the ground steps between two levels beside the loop.
+      spill.setAttribute("base", new THREE.Float32BufferAttribute(new Array(spill.getAttribute("position").count).fill(base), 1));
       spills.push(tint(spill, warm.clone().multiplyScalar(0.11)));
     });
 
     const roof = new THREE.PlaneGeometry(site.width, site.depth);
     roof.rotateX(-Math.PI / 2);
-    roof.translate(site.x, site.height, site.z);
+    roof.translate(site.x, base + site.height, site.z);
     roofs.push(roof);
   });
 

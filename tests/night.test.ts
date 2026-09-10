@@ -3,7 +3,7 @@ import test from "node:test";
 import * as THREE from "three";
 import { addDistrict } from "../src/render/district.ts";
 import { hash01 } from "../src/render/night.ts";
-import { DISTRICT_STREETS, projectOntoPath, carriagewayWidth, projectOntoDistrict } from "../src/sim/district.ts";
+import { DISTRICT_BLOCKS, DISTRICT_STREETS, projectOntoPath, carriagewayWidth, projectOntoDistrict } from "../src/sim/district.ts";
 
 function build(dressing: "night" | "blockout"): THREE.Scene {
   const scene = new THREE.Scene();
@@ -102,11 +102,26 @@ test("lamp pools lie on the road surface across their whole width", () => {
 // The spill is the light a shopfront throws on the pavement, so it has to be on
 // the pavement the shopfront is on. Anchored to the nearest road height instead,
 // a block beside the bridge crown put its glow 24 m up with nothing casting it.
+//
+// Measured against the spill's OWN building's base, which the renderer stamps
+// on every spill vertex. Three references were wrong first: datum (only true
+// while every building stood at zero), the nearest road (flips to the Rivergate
+// deck 24 m up beside the quay), the drawn ground (steps 11 m beside the old
+// loop's embankment), and the nearest building (pairs a spill with a building
+// on the other level, 9-22 m away). The rule that places a spill is that the
+// road in front stands within SHOPFRONT_MAX_LIFT of the base, so that is the
+// claim, plus the plane's own 6 cm.
 test("a shop spill stays on the ground its own storefront stands on", () => {
   const scene = build("night");
-  let highest = 0;
-  for (const vertex of vertices(scene, "district-shop-spill")) highest = Math.max(highest, Math.abs(vertex.y));
-  assert.ok(highest < 3.5, `a shop spill floats ${highest.toFixed(1)} m from its building's base`);
+  const mesh = scene.getObjectByName("district-shop-spill") as THREE.Mesh;
+  const position = mesh.geometry.getAttribute("position"), base = mesh.geometry.getAttribute("base");
+  assert.ok(base, "spills carry the base of the building that casts them");
+  let worst = 0, worstAt = "";
+  for (let i = 0; i < position.count; i++) {
+    const off = Math.abs(position.getY(i) - base.getX(i));
+    if (off > worst) { worst = off; worstAt = `${position.getX(i).toFixed(0)},${position.getZ(i).toFixed(0)}`; }
+  }
+  assert.ok(worst < 3.5, `a shop spill floats ${worst.toFixed(1)} m from its own building's base at ${worstAt}`);
   dispose(scene);
 });
 

@@ -330,7 +330,7 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   for (const solid of roadWorld.solids ?? []) {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(solid.width * 0.5, solid.height * 0.5, solid.depth * 0.5)
-        .setTranslation(solid.x, solid.height * 0.5, solid.z)
+        .setTranslation(solid.x, (solid.base ?? 0) + solid.height * 0.5, solid.z)
         .setRotation(roadRotation(-(solid.rotation ?? 0), 0))
         .setFriction(0.25).setRestitution(0.08),
     );
