@@ -6,7 +6,7 @@
   --menu-panel: rgba(5, 8, 15, 0.86);
 }
 
-#garage-entry {
+#garage-entry, #rival-challenge {
   position: fixed;
   left: 50%; bottom: 32px;
   transform: translateX(-50%);
@@ -18,7 +18,10 @@
   font: 600 13px/1.4 ui-monospace, monospace;
   cursor: pointer;
 }
-#garage-entry[hidden], body:not([data-game-screen="playing"]) #garage-entry { display: none; }
+#garage-entry[hidden], body:not([data-game-screen="playing"]) #garage-entry,
+#rival-challenge[hidden], body:not([data-game-screen="playing"]) #rival-challenge,
+[data-free-roam][hidden] { display: none; }
+#rival-challenge { border-color: #ff6679; color: #ffd8dd; }
 
 #hud {
   opacity: 1;

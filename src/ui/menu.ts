@@ -18,7 +18,7 @@ type MenuItem = HTMLButtonElement | HTMLInputElement;
  * not merely unreachable, it makes navigation skip past onto something else.
  */
 export const MENU_ITEM_SELECTOR =
-  "button:not([disabled]), input[type=\"range\"]:not([disabled])";
+  "button:not([disabled]):not([hidden]), input[type=\"range\"]:not([disabled]):not([hidden])";
 
 interface MenuCallbacks {
   startTrack(): void;

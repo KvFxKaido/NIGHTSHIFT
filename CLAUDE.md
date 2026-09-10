@@ -358,7 +358,8 @@ shows gate, countdown/clock/finish and position at top centre and draws the
 next gate on the minimap (a ring, or a chevron on the rim); `src/render/race.ts`
 stands a column of light on the next gate from `state.race.next`. In-game
 replay, input recording and the recorded-input rival have been removed.
-Restart starts a fresh solo run. Actual navigating rival AI remains future work.
+Restart starts a fresh run. Seattle now has an authored-route AI opponent;
+see the racing-rival notes below. Flexible city navigation remains future work.
 Checkpoints are placed where route choice exists, measured per leg with the
 critique's arithmetic; `tests/race.test.ts` gates every race on most legs
 having a real alternative, and drives the reference line through every gate
@@ -442,3 +443,30 @@ cancels on Escape, Menu/Options, blur or screen exit. Preserve the driving relea
 gate and analog trigger values. The garage prompt and recenter hint read bindings.
 Tests cover mappings, capture and pause return; `scripts/check-controls-browser.js`
 checks live keyboard/simulated-pad delivery, storage, navigation and viewport fit.
+
+
+### First racing rival
+
+`SimOptions.rival` opts a race into the AI driver. Free roam uses
+`SimOptions.encounter` instead: a handbraked dynamic vehicle with no race state,
+spawned from `SEATTLE_ENCOUNTER`. Fixtures omit both by default. `canChallenge`
+owns proximity/speed/elevation eligibility. The input adapter supplies a remappable
+flash command; main presents the double flash and loads the existing race grid.
+Never add race clock/checkpoint progress to the waiting encounter. Keep the garage
+body pairing and return-to-free-roam path working in both modes.
+`Sim.state.rival` owns vehicle, race, input and driver state;
+`Sim.rivalBody` is another dynamic body in the same world. Apply both vehicles'
+forces before the single world step; sync both and evaluate their gates afterward.
+Do not give the rival a separate physics world or call `world.step()` per vehicle.
+Reset reconstructs both bodies, traffic and the driver. The player handling
+constants stay unchanged; AI speed plans use the shared cornering envelope.
+`seattle-rival.ts` owns Sound to Sky's preferred line and checkpoint distances;
+`rival.ts` supplies actual inputs and reversing recovery. After 12 seconds without
+4 metres of net forward progress, `sim.ts` may reset it at rest near its own route
+position. Preserve its clock/checkpoints, stay behind the next gate, check physical
+and approaching-vehicle clearance, and retry once per second if blocked. No
+catch-up relocation or rubber-banding. The opponent always takes the other garage body, including after
+an in-page garage selection. `view.rivalCar` is presentation only; `__ns.state()`
+includes rival diagnostics. `tests/rival.test.ts` and the browser harness cover
+completion, contact, reset and integration. General routing and personalities
+remain future work. See design/SEATTLE.md for the first driver's limitations.

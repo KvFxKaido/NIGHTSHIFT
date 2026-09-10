@@ -1,5 +1,8 @@
+import { SEATTLE_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
+import type { SpotLight } from "three";
+import { SEATTLE_RIVAL } from "./sim/seattle-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
-import { keyLabel } from "./input/bindings.ts";
+import { PAD_LABELS, keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
   updateCustomization,
@@ -8,7 +11,7 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
-import { createView, render, resetViewCamera, setPlayerCar, setViewMode,
+import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
@@ -17,7 +20,7 @@ import { addSeattle } from "./render/seattle.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
-import { formatRaceTime, type RaceDefinition } from "./sim/race.ts";
+import { formatRaceTime, racePosition, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -29,6 +32,8 @@ const restored = settings.get();
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
+let rivalParts: CarView | null = null;
+const opponentCar = (id: string) => id === "bulwark" ? "blender" : "bulwark";
 let selectedCar = "blender";
 let race: RaceDefinition | null = null;
 let lighting: DistrictLighting = "night";
@@ -53,6 +58,10 @@ try {
   selectedCar = model;
   carParts = model === "classic" ? createCar()
     : await loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model);
+  {
+    const opponent = opponentCar(model);
+    rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+  }
 } catch (error) {
   document.body.dataset.assetState = "error";
   assetStatus.setAttribute("role", "alert");
@@ -65,9 +74,10 @@ try {
 const input = createInputController();
 const controls = createControlsPanel(input);
 const roadWorld = createSeattleWorld(!!race);
-const sim = createSim(restored.drivetrain, roadWorld, race ? { race } : {});
+const sim = createSim(restored.drivetrain, roadWorld, race ? { race, rival: SEATTLE_RIVAL } : { encounter: SEATTLE_ENCOUNTER });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
+if (rivalParts) setRivalCar(view, rivalParts);
 document.body.dataset.world = "seattle";
 document.title = "NIGHTSHIFT — Seattle";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / SEATTLE";
@@ -132,12 +142,15 @@ function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
 }
 
 function reset(drivetrain = sim.state.drivetrain): void {
+  challengePending = false;
+  flashRemaining = 0;
   resetSim(sim, drivetrain);
   resetViewCamera(view);
 }
 
 // Cache each loaded body once; only the active body belongs to a scene.
 const cars = new Map<string, CarView>([[selectedCar, carParts]]);
+if (rivalParts) cars.set(opponentCar(selectedCar), rivalParts);
 let carLoading = false;
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
@@ -155,7 +168,13 @@ async function selectCar(id: string): Promise<void> {
     const parts = cars.get(id)
       ?? await loadBlenderCar(new URL(BLENDER_CARS[id].path, document.baseURI).href, id);
     cars.set(id, parts);
+    const opponent = opponentCar(id);
+    const other = cars.get(opponent)
+      ?? await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    if (other) cars.set(opponent, other);
+    setRivalCar(view, null);
     setPlayerCar(view, parts);
+    if (other) setRivalCar(view, other);
     applyCarCustomization(view, customization);
     selectedCar = id;
     saveSettings({ car: id }, ["car"]);
@@ -242,6 +261,41 @@ garagePrompt.addEventListener("click", () => {
   if (menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
 });
 
+const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElement;
+let flashRemaining = 0;
+let challengePending = false;
+const challengeAvailable = () => canChallenge(sim.state.vehicle, sim.state.encounter, !!sim.state.race);
+function loadDrive(raceId: string | null): void {
+  const url = new URL(location.href);
+  if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
+  url.searchParams.set("scene", "track");
+  url.searchParams.set("car", selectedCar);
+  for (const key of ["drive", "freeze", "rival"]) url.searchParams.delete(key);
+  location.href = url.href;
+}
+function flashHeadlights(): void {
+  if (!menu.isGameplayActive() || flashRemaining > 0) return;
+  flashRemaining = .8;
+  challengePending = challengeAvailable();
+}
+rivalPrompt.addEventListener("click", flashHeadlights);
+// Flash is presentation only. Cache each lamp's authored intensity so swaps and
+// future car-specific lamps restore correctly after the double pulse.
+function updateFlash(dt: number, active: boolean): void {
+  if (active) flashRemaining = Math.max(0, flashRemaining - dt);
+  const bright = active && (flashRemaining > .6 || (flashRemaining > .2 && flashRemaining < .4));
+  view.car.traverse(object => {
+    if (!(object as SpotLight).isSpotLight) return;
+    const lamp = object as SpotLight;
+    lamp.userData.baseIntensity ??= lamp.intensity;
+    lamp.intensity = lamp.userData.baseIntensity * (bright ? 4 : 1);
+  });
+  if (challengePending && flashRemaining === 0 && active) {
+    challengePending = false;
+    loadDrive(SEATTLE_RACE.id);
+  }
+}
+
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) menu.pause();
 });
@@ -249,11 +303,15 @@ document.addEventListener("visibilitychange", () => {
 function updateHud(): void {
   const car = sim.state.vehicle;
   const raceState = sim.state.race;
+  const rival = sim.state.rival;
+  const position = race && raceState && rival ? racePosition(race,
+    { race: raceState, x: car.x, z: car.z },
+    { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) : null;
   hud.update(car, race && raceState ? {
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
-      : `${raceState.finished ? "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}`,
-  } : null);
+      : `${raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? " · RIVAL FIN" : ""}`,
+  } : null, rival?.vehicle ?? sim.state.encounter);
   modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
@@ -283,12 +341,17 @@ function frame(now: number): void {
 
   input.update();
   const commands = input.consumeMenuCommands();
+  if (commands.includes("flash")) flashHeadlights();
   if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
     menu.enterGarage();
   } else menu.handleCommands(commands);
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
-  garagePrompt.hidden = !gameplayActive || !garageAvailable();
+  rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
+  rivalPrompt.textContent = challengePending ? "Challenge accepted · Lining up for Sound to Sky…"
+    : `${input.gamepadName() ? PAD_LABELS[input.bindings().gamepad.flash] : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
+  garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
+  updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
@@ -373,13 +436,13 @@ installDebugApi({
   },
 });
 
-// A race is a page-level choice, like a route: the button reloads into it.
+// Encounter and menu shortcuts use the same grid transition.
 document.querySelectorAll<HTMLButtonElement>("[data-race]").forEach(button => {
-  button.addEventListener("click", () => {
-    const params = new URLSearchParams(location.search);
-    params.set("race", button.dataset.race!);
-    location.search = params.toString();
-  });
+  button.addEventListener("click", () => loadDrive(button.dataset.race!));
+});
+document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button => {
+  button.hidden = !race;
+  button.addEventListener("click", () => loadDrive(null));
 });
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;

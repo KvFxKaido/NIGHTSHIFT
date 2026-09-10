@@ -266,7 +266,13 @@ out returns to the forecourt. Races use a separate street start and disable
 garage entry. **Sound to Sky** is a four-checkpoint race with free route choice.
 Traffic, reset and browser-local car/customization settings exist. The garage
 offers NS-01 and Bulwark; both share the current handling and visual setup.
-In-game replay and the recorded-input ghost have been removed.
+In-game replay and the recorded-input ghost have been removed. Sound to Sky now
+has one AI rival in the other garage car, with an authored preferred route,
+corner/traffic braking, basic recovery and shared-world collisions. The player
+retains open route choice. In free roam the other car waits near Wharf Garage:
+approach and flash headlights to enter Sound to Sky. This is an authored encounter
+and race; generated routes and moving challenge encounters remain future work.
+See [SEATTLE.md](SEATTLE.md).
 Career progression, purchased upgrades, police and opponent personalities do not.
 
 The map board is `seattle.html`; `editor.html` edits Seattle building
@@ -521,7 +527,10 @@ Each rival may evaluate:
 
 AI should not rely on obvious rubber-banding.
 
-Limited recovery assistance is acceptable, but opponents should not teleport back into contention after major mistakes.
+Limited recovery assistance is acceptable. A stuck opponent may reset at rest
+on nearby clear road after a timeout, preserving its race clock and checkpoints.
+Placement follows its own route progress; it must not teleport forward to catch
+the player after a major mistake.
 
 Difficulty should come from better route selection, cleaner driving, greater aggression, and stronger cars.
 

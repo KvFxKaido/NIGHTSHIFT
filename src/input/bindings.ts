@@ -1,7 +1,7 @@
 export const ACTIONS = {
   throttle: "Accelerate", brake: "Brake / reverse", left: "Steer left", right: "Steer right",
   handbrake: "Handbrake", reset: "Reset car", camera: "Recenter camera / platform",
-  telemetry: "Toggle telemetry", interact: "Enter garage",
+  telemetry: "Toggle telemetry", flash: "Flash headlights / challenge rival", interact: "Enter garage",
 } as const;
 export type Action = keyof typeof ACTIONS;
 export type PadAction = Exclude<Action, "left" | "right" | "interact">;
@@ -9,8 +9,8 @@ export interface Bindings { keyboard: Record<Action, string>; gamepad: Record<Pa
 export type BindingDevice = keyof Bindings;
 export const DEFAULT_BINDINGS: Bindings = {
   keyboard: { throttle: "KeyW", brake: "KeyS", left: "KeyA", right: "KeyD", handbrake: "Space",
-    reset: "KeyR", camera: "KeyC", telemetry: "KeyH", interact: "KeyE" },
-  gamepad: { throttle: 7, brake: 6, handbrake: 0, reset: 3, camera: 11, telemetry: 4 },
+    reset: "KeyR", camera: "KeyC", telemetry: "KeyH", flash: "KeyF", interact: "KeyE" },
+  gamepad: { throttle: 7, brake: 6, handbrake: 0, reset: 3, camera: 11, telemetry: 4, flash: 2 },
 };
 export const PAD_LABELS: Record<number, string> = {
   0: "A / Cross", 1: "B / Circle", 2: "X / Square", 3: "Y / Triangle", 4: "LB / L1",
@@ -49,7 +49,15 @@ export function decodeBindings(raw: string | null): Bindings {
   for (const device of ["keyboard", "gamepad"] as const) {
     const seen = new Set();
     for (const action of Object.keys(result[device])) {
-      const value = data[device]?.[action];
+      let value = data[device]?.[action];
+      // Older saves predate flash. Preserve their remaps and give the new action
+      // an unused control instead of resetting the player's entire setup.
+      if (action === "flash" && value === undefined) {
+        const used = Object.values(data[device] ?? {});
+        const choices = device === "keyboard" ? ["KeyF", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(letter => `Key${letter}`)]
+          : [2, ...Object.keys(PAD_LABELS).map(Number)];
+        value = choices.find(candidate => !used.includes(candidate));
+      }
       if (seen.has(value) || (device === "keyboard" ? !validKey(value) : typeof value !== "number" || !Object.hasOwn(PAD_LABELS, value))) {
         throw new Error("Invalid controls save");
       }

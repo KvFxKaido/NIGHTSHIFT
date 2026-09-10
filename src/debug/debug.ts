@@ -225,6 +225,9 @@ export function installDebugApi(bridge: DebugBridge): void {
       screen: document.body.dataset.gameScreen ?? "unknown",
       mode: view.mode,
       carModel: view.car.userData.model ?? "classic",
+      rival: sim.state.rival ? { model: view.rivalCar?.car.userData.model,
+        vehicle: sim.state.rival.vehicle, race: sim.state.rival.race,
+        driver: sim.state.rival.driver, input: sim.state.rival.input } : null,
       environment: "seattle",
       roadWorld: sim.roadWorld.id,
       // pick() takes these coordinates. A screenshot is often scaled from them.
@@ -234,6 +237,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       drivetrain: sim.state.drivetrain,
       autoCountersteer: false,
       tick: sim.state.tick,
+      encounter: sim.state.encounter ? { model: view.rivalCar?.car.userData.model, vehicle: { ...sim.state.encounter } } : null,
       customization: {
         paint: selected("paint"),
         wheels: selected("wheels"),
@@ -294,7 +298,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     // Round-trip whichever body is loaded, not just "is it the coupe".
     const loaded = view.car.userData.model;
     const authored = Object.entries(BLENDER_CARS).find(([, car]) => car.model === loaded);
-    if (authored && authored[0] !== "blender") url.searchParams.set("car", authored[0]);
+    if (authored) url.searchParams.set("car", authored[0]);
     else if (!authored) url.searchParams.set("car", "classic");
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");

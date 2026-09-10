@@ -32,6 +32,18 @@ function pad(values: Record<number, number> = {}): Gamepad {
   return { axes: [0,0,0,0], buttons: Array.from({length:17}, (_, index) => ({value:values[index] ?? 0, pressed:(values[index] ?? 0) > .5, touched:false})), connected:true, mapping:"standard" } as Gamepad;
 }
 
+test("old control saves retain remaps and allocate an unused headlight control", () => {
+  const legacy = JSON.parse(JSON.stringify({ version: 1, ...copyBindings() }));
+  delete legacy.keyboard.flash; delete legacy.gamepad.flash;
+  legacy.keyboard.reset = "KeyF"; legacy.gamepad.reset = 2;
+  const migrated = decodeBindings(JSON.stringify(legacy));
+  assert.equal(migrated.keyboard.reset, "KeyF");
+  assert.equal(migrated.gamepad.reset, 2);
+  assert.notEqual(migrated.keyboard.flash, "KeyF");
+  assert.notEqual(migrated.gamepad.flash, 2);
+  assert.deepEqual(decodeBindings(JSON.stringify({ version: 1, ...migrated })), migrated);
+});
+
 test("remapped triggers keep analog pressure and the original button stops driving", () => {
   const bindings = rebind(copyBindings(), "gamepad", "throttle", 5);
   assert.equal(mapGamepad(pad({5:.73,7:1}), bindings.gamepad).throttle, .73);
@@ -48,6 +60,10 @@ test("capture consumes input, waits for controller release, and keeps menu confi
   const key = (code:string) => listeners.get("keydown")!({code,repeat:false,preventDefault(){},stopImmediatePropagation(){}} as KeyboardEvent);
   try {
     const input = createInputController();
+    key("KeyF"); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
+    current = pad({2:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
+    input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held headlights must not retrigger");
+    current = pad(); input.update();
     let captured: string | number | null = null;
     input.beginCapture("keyboard", value => { captured = value; });
     key("KeyR");

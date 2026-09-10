@@ -29,6 +29,7 @@ export interface View extends CarView {
   cameraTarget: THREE.Vector3;
   cameraOrbit: CameraOrbitState;
   mode: ViewMode;
+  rivalCar: CarView | null;
   /** The district's sky dome, which follows the camera. Null off the district. */
   sky: THREE.Object3D | null;
   /** Traffic instances, or null in a world with none. */
@@ -60,6 +61,12 @@ export function setPlayerCar(view: View, parts: CarView): void {
   Object.assign(view, parts);
   view.car.rotation.order = "YXZ";
   parent.add(view.car);
+}
+
+export function setRivalCar(view: View, parts: CarView | null): void {
+  if (view.rivalCar) view.rivalCar.car.removeFromParent();
+  view.rivalCar = parts;
+  if (parts) { parts.car.rotation.order = "YXZ"; view.scene.add(parts.car); }
 }
 
 /** Night is the district's real presentation; blockout is the flat work light
@@ -137,6 +144,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
+    rivalCar: null,
     sky: null,
     traffic: traffic ? addTraffic(scene, traffic) : null,
     race: addRaceBeacon(scene, gateRadius),
@@ -249,6 +257,8 @@ export function render(
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
   updateRaceBeacon(view.race, state.race, view.surface);
   placeCar(view, car);
+  const opponent = state.rival?.vehicle ?? state.encounter;
+  if (view.rivalCar && opponent) placeCar(view.rivalCar, opponent);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);
   const speedRatio = Math.min(1, car.speed / HANDLING.topSpeed);

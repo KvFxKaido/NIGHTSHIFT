@@ -35,3 +35,46 @@ The game and editor no longer bundle the old district/course renderers. A build 
 Automated checks cover connected route choices, reachable gates, building setbacks, mesh height error below 2 cm, northbound spawn clearance, same-runtime replay, and two minutes of traffic with body-overlap checks. Browser checks cover free roam, race entry, legacy-link migration, garage entry/exit and turntable, camera startup, and both lighting modes. The editor browser check saves and restores a real placement, verifies its physics collider, round-trips Three.js JSON, and rejects road overlap.
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
+
+
+## First racing rival
+
+Sound to Sky now starts with one AI opponent in the other garage car: NS-01
+faces Bulwark, and Bulwark faces NS-01. Both use the existing four-wheel forces
+and share one Rapier world; the rival uses FWD independently of the player's
+handling comparison setting. In free roam, the opponent waits on First Avenue S
+just north of Wharf Garage. Its red minimap dot follows its physical position;
+it remains a solid car and can be pushed.
+
+Within 32 metres, below 12 m/s and at the same elevation, **F / X–Square** flashes
+the headlights and accepts a challenge. Both bindings are remappable; older
+saved controls keep their mappings and receive an unused flash binding. The
+nearby prompt also works by click. A double flash precedes the page transition
+to Sound to Sky's grid/countdown, preserving the selected player/opponent bodies.
+Pause freezes the transition. **Return to free roam** in the main/pause menus
+reopens Seattle at Wharf Garage with the waiting opponent restored. This first
+encounter starts the authored race; it does not generate routes or cruise the city.
+
+`src/sim/seattle-rival.ts` defines a continuous preferred line through all four
+gates. The player remains free to choose any route. `src/sim/rival.ts` controls
+throttle, brake and steering with corner-speed previews, local traffic offsets,
+and reversing/rejoining after a stall. After 12 seconds without gaining another
+4 metres of forward route progress, the sim can reset it at rest on nearby clear
+road. It keeps its race clock and checkpoints, stays behind the next gate, and
+retries once per second if local placements are occupied. This recovery follows
+its own route position, with no catch-up speed boost or grip change.
+Start/reset reconstructs
+both cars and AI state; Pause and Controls pause both racers.
+
+The HUD shows position, a red minimap dot and opponent finish status. Position
+uses checkpoint progress, then distance to the next gate; it is an approximation
+between gates, not a predicted finishing order. A finished rival brakes to a stop.
+
+Validation covers a complete race in normal traffic, a parked player and forced
+spin, escaping a small unexpected barrier, physical player/rival contact,
+timed fallback recovery, blocked placements, checkpoint preservation, and
+identical reset state/world snapshots. Browser checks cover both car pairings,
+garage changes, countdown, pause/restart, full-race completion and free-roam
+isolation. This is the first driver, not general city navigation: aggressive
+player blocking, repeated pileups and unusual off-route recoveries need driving
+feedback. Generated races, moving encounters and rival personalities remain future work.

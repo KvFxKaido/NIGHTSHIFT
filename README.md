@@ -61,7 +61,17 @@ The demo now opens in **Seattle**, a fictionalized, compressed city slice with
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
 The existing arcade handling, reset, and keyboard/gamepad controls are
-retained. In-game replay and the recorded-input ghost have been removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
+retained. **Sound to Sky now has one AI rival**, driving the garage car you did
+not select: NS-01 versus Bulwark. It follows a preferred route, brakes for corners
+and traffic, and can reverse/rejoin after getting stuck. After 12 seconds without
+progress, it can reset onto nearby clear road while keeping its race clock and
+checkpoints. Both racers collide in
+the same physics world. Position and rival finish status appear in the race HUD.
+A rival waits on First Avenue S just north of Wharf Garage, marked red on the
+minimap. Approach at cruising speed and flash headlights with **F / X–Square**
+(remappable in Controls), or click the nearby prompt, to line up for Sound to Sky.
+The pause and main menus offer **Return to free roam** during a race.
+In-game replay and the recorded-input ghost remain removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
 
 **Seattle map** opens `/seattle.html`. Its **Edit Seattle** link opens the
 building workshop at `/editor.html`; validated placements are shared by the
