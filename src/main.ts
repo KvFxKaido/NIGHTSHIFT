@@ -13,9 +13,10 @@ import { createView, render, resetViewCamera, setRival, setViewMode,
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Drivetrain, type Input, type Sim } from "./sim/sim.ts";
 import { COURSE_POINTS, courseGap } from "./sim/track.ts";
-import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, DISTRICT_STREETS, getDistrictRoute,
+import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, DISTRICT_GARAGE, DISTRICT_STREETS, getDistrictRoute,
   pathLength, routePoints, type DistrictRoute } from "./sim/district.ts";
 import { BLACKGLASS_WORLD } from "./sim/road-world.ts";
+import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { createRaceWorld, getRace, type DistrictRace } from "./sim/events.ts";
@@ -120,7 +121,8 @@ const hudPolylines: HudPolyline[] = district
   ? [...DISTRICT_STREETS.map(street => ({ points: street.points })),
     ...(districtRoute ? [{ points: routePoints(districtRoute), color: districtRoute.color }] : [])]
   : [{ points: [...COURSE_POINTS, COURSE_POINTS[0]!], color: "#59d8ff" }];
-const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed });
+const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed,
+  garage: district ? DISTRICT_GARAGE.entrance : undefined });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
 
@@ -291,6 +293,12 @@ for (const event of ["pointerdown", "keydown"] as const) {
   window.addEventListener(event, () => void startAudio(), { once: true });
 }
 
+const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
+const garageAvailable = () => district && !replay && canEnterGarage(DISTRICT_GARAGE, sim.state.vehicle, sim.state.race !== null);
+garagePrompt.addEventListener("click", () => {
+  if (menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
+});
+
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) menu.pause();
 });
@@ -332,9 +340,14 @@ function frame(now: number): void {
   last = now;
 
   input.update();
-  menu.handleCommands(input.consumeMenuCommands());
+  const commands = input.consumeMenuCommands();
+  if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
+    menu.enterGarage();
+  } else menu.handleCommands(commands);
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
+  garagePrompt.hidden = !gameplayActive || !garageAvailable();
+  garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : "E / Enter · Enter Wharf Garage";
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
   const replayRequested = input.consumeReplay();

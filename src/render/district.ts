@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { DISTRICT_APRONS, DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth,
+import { DISTRICT_APRONS, DISTRICT_BLOCKS, DISTRICT_GARAGE, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth,
   laneMarkings, groundHeight, groundHeightNear, GROUND_CORRIDOR, nearStructure, outerTerrain, pathPointAt, pathSamples,
   projectOntoDistrict, districtSurfaceAt, RAIL, RAIL_HALF_WIDTH, RIBBON_COLUMNS, RIVER, RIVER_HALF_WIDTH,
   routePoints,
@@ -8,6 +8,7 @@ import { DISTRICT_APRONS, DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS,
 import type { CoursePoint } from "../sim/track.ts";
 import { streetSurfaceSamples, type RibbonSample } from "../sim/street-surface.ts";
 import { addNightBuildings, glowTexture, tint, type BuildingSite } from "./night.ts";
+import { addGarageExterior } from "./garage.ts";
 
 function mesh(name: string, geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const result = new THREE.Mesh(geometry, material);
@@ -347,7 +348,7 @@ function addStreetLighting(scene: THREE.Scene): void {
 
 /** Massing blocks, measured against the streets that can see each face. */
 function buildingSites(): BuildingSite[] {
-  return DISTRICT_BLOCKS.map(block => {
+  return DISTRICT_BLOCKS.filter(block => block !== DISTRICT_GARAGE.building).map(block => {
     // Face midpoints in the building's own frame, so a rotated block still
     // reports which of ITS walls the street can see.
     const cos = Math.cos(block.rotation), sin = Math.sin(block.rotation);
@@ -357,7 +358,7 @@ function buildingSites(): BuildingSite[] {
       at(0, block.depth / 2), at(0, -block.depth / 2),
       at(block.width / 2, 0), at(-block.width / 2, 0),
     ];
-    return { ...block, faceDistances: faces };
+    return { ...block, faceDistances: faces, decorationIndex: DISTRICT_BLOCKS.indexOf(block) };
   });
 }
 
@@ -506,6 +507,7 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
   } else {
     const blockMaterial = new THREE.MeshStandardMaterial({ color: 0x4d5962, roughness: 1 });
     DISTRICT_BLOCKS.forEach((block, i) => {
+      if (block === DISTRICT_GARAGE.building) return;
       const body = mesh(`district-massing-${i}`,
         new THREE.BoxGeometry(block.width, block.height, block.depth), blockMaterial);
       body.position.set(block.x, block.base + block.height / 2, block.z);
@@ -513,6 +515,7 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
       body.castShadow = true; scene.add(body);
     });
   }
+  addGarageExterior(scene, DISTRICT_GARAGE.building);
   if (authored) {
     // The tunnel and the bridge, not the horizon. The Rivergate backdrop was
     // composed "beyond the bridge" of the closed circuit, and those coordinates

@@ -27,6 +27,7 @@ export interface View extends CarView {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   garageScene: THREE.Scene;
+  garageYaw: number;
   camera: THREE.PerspectiveCamera;
   moon: THREE.DirectionalLight;
   cameraPosition: THREE.Vector3;
@@ -145,6 +146,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     rival: null,
     scene,
     garageScene,
+    garageYaw: 0,
     camera,
     moon,
     ...carParts,
@@ -178,15 +180,17 @@ const CAMERA_SLIP_FOLLOW = 0.7;
 
 export function resetViewCamera(view: View): void {
   resetCameraOrbit(view.cameraOrbit);
+  view.garageYaw = 0;
 }
 
 export function setViewMode(view: View, mode: ViewMode): void {
   if (view.mode === mode) return;
   view.mode = mode;
   resetCameraOrbit(view.cameraOrbit);
+  view.garageYaw = 0;
 
   if (mode === "garage") {
-    view.garageScene.add(view.car);
+    view.garageScene.getObjectByName("garage-turntable")!.add(view.car);
     view.car.position.set(0, 0.2, 0);
     view.car.rotation.set(0, 0, 0);
     view.cameraPosition.set(5.4, 2.75, -5.4);
@@ -209,13 +213,15 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   view.carVisual.rotation.set(0, 0, 0);
   view.frontWheels.forEach((wheel) => { wheel.rotation.y = 0; });
 
-  updateCameraOrbit(view.cameraOrbit, cameraLook, 0, frameDelta);
+  view.garageYaw = Math.atan2(Math.sin(view.garageYaw + cameraLook.x * 1.4 * frameDelta),
+    Math.cos(view.garageYaw + cameraLook.x * 1.4 * frameDelta));
+  view.garageScene.getObjectByName("garage-turntable")!.rotation.y = view.garageYaw;
   const distance = 7.7;
-  const orbitHeading = Math.PI * 0.75 + view.cameraOrbit.yawOffset;
-  const horizontalDistance = distance * Math.cos(view.cameraOrbit.pitchOffset);
+  const orbitHeading = Math.PI * 0.75;
+  const horizontalDistance = distance;
   const targetPosition = new THREE.Vector3(
     Math.sin(orbitHeading) * horizontalDistance,
-    2.75 + Math.sin(view.cameraOrbit.pitchOffset) * distance,
+    2.75,
     Math.cos(orbitHeading) * horizontalDistance,
   );
   const targetLook = new THREE.Vector3(0, 0.82, 0);

@@ -143,6 +143,8 @@ function facadePanel(width: number, height: number, phase: number): THREE.PlaneG
 const SIGN_COLORS = ["#ff2d6f", "#39f0c2", "#ffb03a", "#5ac8ff", "#c46bff", "#ff5f3c"] as const;
 
 export interface BuildingSite extends RoadSolid {
+  /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
+  readonly decorationIndex?: number;
   /** How far the nearest street is from each face centre, outward order +Z, -Z, +X, -X. */
   readonly faceDistances: readonly [number, number, number, number];
 }
@@ -175,7 +177,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
   // front of its own shopfront" is a claim a test can actually make.
   const spills: THREE.BufferGeometry[] = [];
 
-  sites.forEach((site, index) => {
+  sites.forEach((site, ordinal) => {
+    const index = site.decorationIndex ?? ordinal;
     // Everything on this building is measured from its base, which is on the
     // ground it stands on — not from datum, which on the hill is underground.
     const base = site.base ?? 0;

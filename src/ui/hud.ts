@@ -40,6 +40,7 @@ export interface Hud {
 const MINIMAP_RANGE = 235;
 
 export interface HudOptions {
+  readonly garage?: { readonly x: number; readonly z: number };
   readonly polylines: readonly HudPolyline[];
   readonly topSpeed: number;
   readonly document?: Document;
@@ -120,6 +121,23 @@ export function createHud(options: HudOptions): Hud {
         context.lineTo(b.x, b.y);
       }
       context.stroke();
+    }
+
+    if (options.garage) {
+      const pixel = minimapPixel(camera, options.garage.x, options.garage.z);
+      const distance = Math.hypot(pixel.x, pixel.y);
+      const scale = distance > radius - 12 ? (radius - 12) / distance : 1;
+      const x = pixel.x * scale, y = pixel.y * scale;
+      context.fillStyle = "#081820";
+      context.strokeStyle = "#75dfff";
+      context.lineWidth = 1.5;
+      context.fillRect(x - 6, y - 6, 12, 12);
+      context.strokeRect(x - 6, y - 6, 12, 12);
+      context.fillStyle = "#75dfff";
+      context.font = "bold 9px monospace";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("G", x, y);
     }
 
     if (rival && withinMinimap(camera, rival.x, rival.z, 1)) {

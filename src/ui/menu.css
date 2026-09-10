@@ -6,6 +6,20 @@
   --menu-panel: rgba(5, 8, 15, 0.86);
 }
 
+#garage-entry {
+  position: fixed;
+  left: 50%; bottom: 32px;
+  transform: translateX(-50%);
+  z-index: 8;
+  padding: 14px 20px;
+  border: 1px solid #75dfff;
+  background: rgba(5, 15, 22, .94);
+  color: #d4f6ff;
+  font: 600 13px/1.4 ui-monospace, monospace;
+  cursor: pointer;
+}
+#garage-entry[hidden], body:not([data-game-screen="playing"]) #garage-entry { display: none; }
+
 #hud {
   opacity: 1;
   transition: opacity 180ms ease;

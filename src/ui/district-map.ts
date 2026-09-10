@@ -1,4 +1,4 @@
-import { RIVER, RIVER_HALF_WIDTH, RAIL, RAIL_HALF_WIDTH, DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS,
+import { RIVER, RIVER_HALF_WIDTH, RAIL, RAIL_HALF_WIDTH, DISTRICT_BLOCKS, DISTRICT_GARAGE, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS,
   getDistrictRoute, pathLength, routePoints, type DistrictRoute } from "../sim/district.ts";
 import { createInputController } from "../input/input.ts";
 
@@ -63,6 +63,13 @@ svg.append(element("text", { x: scaleX + 78, y: scaleY + 22, class: "map-label" 
 const start = element("circle", { r: 7, fill: "#63d6df", stroke: "#142833", "stroke-width": 2 });
 const finish = element("rect", { width: 12, height: 12, fill: "#efb968", stroke: "#142833", "stroke-width": 2 });
 svg.append(start, finish);
+const garage = DISTRICT_GARAGE.entrance;
+const garageMarker = element("g", { id: "garage-map-marker", "aria-label": DISTRICT_GARAGE.name });
+garageMarker.append(element("rect", { x: garage.x - 9, y: garage.z - 9, width: 18, height: 18,
+  fill: "#102834", stroke: "#75dfff", "stroke-width": 2 }));
+garageMarker.append(element("text", { x: garage.x, y: garage.z + 4, fill: "#75dfff", "text-anchor": "middle", "font-size": 13 }, "G"));
+garageMarker.append(element("text", { x: garage.x + 14, y: garage.z + 5, class: "map-label" }, DISTRICT_GARAGE.name));
+svg.append(garageMarker);
 
 function select(route: DistrictRoute): void {
   const points = routePoints(route);

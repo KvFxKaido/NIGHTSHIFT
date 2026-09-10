@@ -13,8 +13,8 @@ export * from "./lanes.ts";
 
 // Fixed, authored metres. This is an offline blockout, not runtime-random roads.
 // The existing perimeter is referenced verbatim; never restamp the Blender asset.
-/** v3 changes the driven junction and bend surface, invalidating old replays. */
-export const DISTRICT_VERSION = "blackglass-district-blockout-v3";
+/** v4 places the free-roam start outside the district garage. */
+export const DISTRICT_VERSION = "blackglass-district-blockout-v4";
 export interface Street {
   id: string;
   name: string;
@@ -1149,14 +1149,14 @@ export function districtSurface(x: number, z: number): CourseProjection {
   return { ...road, height: road.height + (ground - road.height) * blend, pitch: road.pitch * (1 - blend) };
 }
 
-function worldFrom(id: string, points: readonly CoursePoint[]): RoadWorld {
+function worldFrom(id: string, points: readonly CoursePoint[], start?: RoadWorld["start"]): RoadWorld {
   const a = points[0]!, b = points[1]!;
   // Boundaries and projection are the whole network in both modes: a route is a
   // guide drawn over the district, never a subset of the road you may drive on.
   return { id: `${DISTRICT_VERSION}/${id}`, walls: DISTRICT_WALLS, solids: DISTRICT_BLOCKS,
     // A getter, so the network is built only if something asks for traffic.
     get traffic() { return districtTraffic(); }, project: projectOntoDistrict, surface: districtSurface,
-    start: { x: a.x, y: a.y, z: a.z, heading: Math.atan2(a.x - b.x, a.z - b.z),
+    start: start ?? { x: a.x, y: a.y, z: a.z, heading: Math.atan2(a.x - b.x, a.z - b.z),
       pitch: Math.atan2(b.y - a.y, Math.hypot(b.x - a.x, b.z - a.z)) } };
 }
 
@@ -1164,12 +1164,11 @@ export function createDistrictWorld(route: DistrictRoute): RoadWorld {
   return worldFrom(route.id, routePoints(route));
 }
 
-/** The district with no route guide: same streets, same boundaries, no line to
- *  follow. Reset returns to the boulevard rather than to a route's start gate. */
+/** Free roam begins outside the garage; routes and races keep their grids. */
 export function createFreeRoamWorld(): RoadWorld {
   const street = DISTRICT_STREETS.find(candidate => candidate.id === "ring-boulevard");
   if (!street) throw new RangeError("Free roam needs the boulevard to start from");
-  return worldFrom("free-roam", street.points);
+  return worldFrom("free-roam", street.points, DISTRICT_GARAGE.entrance);
 }
 
 /**
@@ -1546,6 +1545,22 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
   }
   return placed;
 });
+
+/** An authored location in an existing industrial footprint. Refuse a missing
+ * plot rather than moving the player's home when the massing changes. */
+export const DISTRICT_GARAGE = (() => {
+  const building = DISTRICT_BLOCKS.find(block => Math.abs(block.x - 269.3221008053601) < 0.01 &&
+    Math.abs(block.z + 339.25142242330605) < 0.01);
+  if (!building) throw new Error("Wharf Garage needs its authored warehouse plot");
+  const reach = building.depth / 2 + 5;
+  const x = building.x + Math.sin(building.rotation) * reach;
+  const z = building.z - Math.cos(building.rotation) * reach;
+  const surface = districtSurface(x, z);
+  return { id: "wharf-garage", name: "Wharf Garage", building,
+    // Park along the near-side lane outside the shutter. Facing straight out
+    // would put the chase camera eight metres behind the car, inside the bay.
+    entrance: { x, y: surface.height, z, heading: Math.atan2(surface.ux, surface.uz), pitch: -surface.pitch } };
+})();
 
 /** A lane of a named district street. Traffic and rivals address lanes by id
  *  rather than by object, because a street is data and an id survives a reload

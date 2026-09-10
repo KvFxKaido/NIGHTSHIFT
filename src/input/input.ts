@@ -5,7 +5,7 @@ export interface CameraLook {
   y: number;
 }
 
-export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause";
+export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause" | "interact";
 
 export interface InputController {
   update(): void;
@@ -117,6 +117,7 @@ export function createInputController(): InputController {
     held.add(event.code);
     if (event.repeat) return;
     if (event.code === "Escape") menuCommands.push("pause");
+    if (event.code === "KeyE") menuCommands.push("interact");
     if (event.code === "Enter" || event.code === "NumpadEnter") menuCommands.push("confirm");
     if (event.code === "ArrowUp") menuCommands.push("up");
     if (event.code === "ArrowDown") menuCommands.push("down");

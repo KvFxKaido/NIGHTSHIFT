@@ -77,6 +77,7 @@
     <div id="asset-status" role="status">Loading NS-01…</div>
     <canvas id="view" tabindex="-1" aria-label="NIGHTSHIFT handling course"></canvas>
     <div id="vignette"></div>
+    <button id="garage-entry" hidden>E / Enter · Enter Wharf Garage</button>
     <div id="hud">
       <div id="brand">
         <span>NIGHTSHIFT / BLACKGLASS</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
@@ -123,7 +124,7 @@
         </section>
 
         <section class="menu-screen garage-menu" data-menu-screen="garage" aria-labelledby="garage-menu-title" hidden>
-          <p class="menu-kicker">Garage / Bay 01</p>
+          <p class="menu-kicker">Wharf Garage / Bay 01</p>
           <h2 id="garage-menu-title" class="menu-heading">Street build</h2>
           <p class="menu-meta garage-car-label">Project car / Visual setup</p>
 
@@ -159,9 +160,10 @@
           </div>
 
           <nav class="menu-actions garage-actions" aria-label="Garage actions">
+            <button class="menu-button" data-menu-action="start">Drive out</button>
             <button class="menu-button primary" data-menu-action="back">Back</button>
           </nav>
-          <p class="menu-footer">Right stick inspects · R3 / C recenters · changes carry to the street</p>
+          <p class="menu-footer">Right stick turns the platform · R3 / C resets · changes carry to the street</p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
 

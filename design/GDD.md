@@ -611,6 +611,7 @@ Camera behavior should include:
 - Landing response
 - Right-stick orbit with automatic driving recenter
 - Persistent stopped-car inspection angle and explicit camera reset
+- Garage inspection turns the car on a platform beneath a fixed camera
 - Look-back control
 - Optional hood or bumper view
 

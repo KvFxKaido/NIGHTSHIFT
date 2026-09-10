@@ -44,6 +44,7 @@ export interface MenuController {
   isGameplayActive(): boolean;
   isGarageActive(): boolean;
   pause(): void;
+  enterGarage(): void;
 }
 
 const actionEvents: Record<string, MenuEvent> = {
@@ -133,6 +134,8 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     root.hidden = state.screen === "playing";
     root.setAttribute("aria-hidden", String(state.screen === "playing"));
     root.dataset.screen = state.screen;
+    const garageBack = root.querySelector('[data-menu-screen="garage"] [data-menu-action="back"]');
+    if (garageBack) garageBack.textContent = state.returnTo === "playing" ? "Return to street" : "Back";
     screens.forEach((element, screen) => {
       element.hidden = screen !== state.screen;
     });
@@ -146,6 +149,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   }
 
   function dispatch(event: MenuEvent): void {
+    if (event === "start-track" && state.screen === "garage" && state.returnTo === "playing") event = "resume";
     const previous = state;
     const next = transitionMenu(state, event);
     if (next.screen === previous.screen && next.returnTo === previous.returnTo) return;
@@ -252,6 +256,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   return {
     handleCommands,
     refreshAudio: renderAudio,
+    enterGarage: () => { if (state.screen === "playing") dispatch("open-garage"); },
     isGameplayActive: () => state.screen === "playing",
     isGarageActive: () => state.screen === "garage",
     pause: () => {

@@ -2,7 +2,7 @@ export type MenuScreen = "main" | "garage" | "pause" | "playing";
 
 export interface MenuState {
   screen: MenuScreen;
-  returnTo: "main" | "pause";
+  returnTo: "main" | "pause" | "playing";
 }
 
 export type MenuEvent =
@@ -21,7 +21,7 @@ export function createInitialMenuState(): MenuState {
 export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
   switch (event) {
     case "open-garage":
-      return { screen: "garage", returnTo: state.screen === "pause" ? "pause" : "main" };
+      return { screen: "garage", returnTo: state.screen === "playing" ? "playing" : state.screen === "pause" ? "pause" : "main" };
     case "start-track":
     case "resume":
     case "restart":

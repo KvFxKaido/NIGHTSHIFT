@@ -844,3 +844,26 @@ Whole-scene triangle counts are 342,457 and 556,929 respectively. The final
 full suite passes 230/230 tests, and the production build passes. The browser
 harness reports no page exceptions in its four staged views; the existing
 favicon 404 and Rapier initialization warning are unrelated.
+
+## Wharf Garage
+
+Free roam now starts beside the central shutter of an authored warehouse on
+Wharf Road. The exterior replaces that plot's generated massing in both
+blockout and night views and retains its exact solid collision footprint.
+The district map and minimap mark the entrance with G. Existing race and
+route grids retain their starts; the free-roam world version is v4.
+
+Within four metres of the entrance, below 1 m/s, on the entrance's level,
+and outside a race or replay, E/Enter or Cross/A opens the garage. The
+customization view pauses the run; Drive out or Back returns to the same
+vehicle state and tick. The title-screen garage remains available as a
+preview, with Drive out starting a run. The interior is still a separate
+presentation scene, entered through the prompt rather than an open shutter.
+
+Right-stick horizontal input rotates the car and platform together. The
+camera stays fixed, so inspecting the rear cannot orbit through the room's
+walls; vertical stick input leaves the camera alone. R3/C resets rotation.
+Driving camera orbit remains unchanged. Tests exercise the actual garage
+render path, physical clearance when driving away, and entry restrictions.
+`scripts/check-garage-browser.js` covers keyboard/pad entry, fixed-camera
+rotation, reset, preserved simulation state on exit, and map placement.

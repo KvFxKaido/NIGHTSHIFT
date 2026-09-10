@@ -58,8 +58,13 @@ four-wheel tire forces with independent combined grip limits, front/rear and
 left/right load transfer, and Rapier-integrated yaw/contact
 response, keyboard and standard gamepad input, speed-sensitive
 chase camera with right-stick orbit, reset/replay, toggleable telemetry, and a
-light DOM menu shell for title, track selection, garage, and pause. The garage
-uses a dedicated presentation scene and the same car mesh as the track; paint,
+light DOM menu shell for title, track selection, garage, and pause. Wharf Garage
+occupies an existing warehouse plot beside Wharf Road, with a G marker on the
+district map and minimap. Free roam starts at its entrance. Stop there outside
+a race and press E/Enter or Cross/A to enter; leaving resumes the same run.
+The garage uses a dedicated presentation scene and the same car mesh as the
+track. Right-stick horizontal input turns the car and platform under a fixed
+camera; R3/C resets the platform. Paint,
 wheel finish, and visual ride height carry across views and save locally alongside
 the selected drivetrain. FWD is the default; drivetrain tuning itself is unchanged.
 They do not alter simulation handling or represent purchased performance parts.
