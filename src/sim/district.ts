@@ -939,6 +939,46 @@ export function blockClearsWalls(block: DistrictBlock): boolean {
   return true;
 }
 
+/**
+ * The authored structures — the tunnel bore and the bridge deck — as corridors
+ * along the original loop. Placement clears the road ribbon and its pavement;
+ * to it the tunnel section was just a road, and 14 buildings stood inside the
+ * bore 12-15 m off the centreline: five on the tunnel floor beside the road,
+ * nine rising 24-40 m up through its walls and roof from the low ground
+ * beside it. The wall cladding sits at half the road width plus 1.9 m and the
+ * vault spreads beyond that, so the corridor is half the width plus six.
+ * Measured against the asset itself, casting horizontal rays outward from the
+ * tunnel's centreline: walls at 10.7-11.8 m, median 10.9. The buildings the
+ * corridor now leaves stand at 15.2 m or more — outside the tunnel, not in it.
+ */
+const STRUCTURE_CLEARANCE = 6;
+const STRUCTURE_SPANS: readonly (readonly CoursePoint[])[] = (() => {
+  const spans: CoursePoint[][] = [];
+  const structural = (point: CoursePoint) => point.zone === "tunnel" || point.zone === "bridge";
+  // Contiguous runs of structural points, one point of grace either end so the
+  // corridor reaches the portal faces; the loop is a circuit, so runs may wrap.
+  const n = COURSE_POINTS.length;
+  let start = COURSE_POINTS.findIndex(point => !structural(point));
+  if (start < 0) return [COURSE_POINTS];
+  for (let step = 0, i = (start + 1) % n; step < n; step++, i = (i + 1) % n) {
+    if (!structural(COURSE_POINTS[i]!)) continue;
+    const run = [COURSE_POINTS[(i - 1 + n) % n]!];
+    while (structural(COURSE_POINTS[i]!)) { run.push(COURSE_POINTS[i]!); i = (i + 1) % n; step++; }
+    run.push(COURSE_POINTS[i]!);
+    spans.push(run);
+  }
+  return spans;
+})();
+
+/** Rule: a building cannot stand in the tunnel or on the bridge. */
+export function blockClearsStructures(block: DistrictBlock): boolean {
+  return [...blockCorners(block), { x: block.x, z: block.z }].every(point =>
+    STRUCTURE_SPANS.every(span => {
+      const on = projectOntoPath(span, point.x, point.z);
+      return on.distance > on.width / 2 + STRUCTURE_CLEARANCE;
+    }));
+}
+
 /** Rule: a building stays out of the water and off the line. The fence is
  *  where those corridors end, and a footprint inside one has its back in the
  *  river whether or not a rail piece happens to fall inside it. */
@@ -1080,7 +1120,7 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
           if (placed.some(other => Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block)
             && blockPenetration(other, block) > -BLOCK_GAP)) continue;
           if (!blockClearsStreets(block, pavement)) continue;
-          if (!blockClearsCorridors(block) || !blockClearsWalls(block)) continue;
+          if (!blockClearsCorridors(block) || !blockClearsWalls(block) || !blockClearsStructures(block)) continue;
           placed.push(block);
           done = true;
         }

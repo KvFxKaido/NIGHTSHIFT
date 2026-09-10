@@ -619,6 +619,39 @@ corridor half of that is load-bearing and mutation-checked; the wall half is
 not, on today's map, because with the corridors enforced no street rail lands
 in a footprint. It stays as the remedy the test would demand if one did.
 
+### The barrier nobody told placement about
+
+A fourth screenshot: a lit building standing inside the Blackglass tunnel. Not
+the height bug of the day before — that was buildings against the road
+*surface* — but buildings against an **authored structure**. Placement clears
+the road ribbon and its pavement, and to it the tunnel section of the loop is
+a road; it has no idea there is a bore around it. Measured: **14 buildings
+stood 12-15 m off the tunnel's centreline**, five on the tunnel floor beside
+the road and nine rising 24-40 m up through its walls and roof from the low
+ground beside it. None at the bridge.
+
+The rule is a corridor of road half-width plus 6 m along the tunnel and bridge
+spans, refused at placement and asserted after. The first version of the
+corridor was a guess from the generator's profile, and it barely bit: the
+push-back search set the buildings down at 15.2-16.2 m, the first spot that
+cleared. So the bore was measured against the asset itself — horizontal rays
+cast outward from the centreline hit the walls at **10.7-11.8 m, median
+10.9**, exactly the profile's half-width plus 1.9 — and the buildings the
+corridor now leaves stand three to five metres *outside* the tunnel's walls.
+274 buildings became 272. One thing the test had to learn: on this loop the
+tunnel runs straight onto the bridge, so the structural points are one
+contiguous span, not two.
+
+### The frontage test was measuring the wrong kerb
+
+Adding the corridor rules tripped an older test: "only 162 of 272 buildings
+stand on a frontage". It measured each building's gap to the street's
+*narrowest* width — the width lanes are laid to, deliberately — which on every
+junction flare puts the kerb metres inboard of the real one. Against the kerb
+that is actually there, **242 of 272 stand within 5 m, median gap 3.5 m**,
+which is a pavement. The same mistake `blockClearsStreets` made two days ago,
+in the test that checks frontage. Fixed in the test; the map was right.
+
 The fourth rule the screenshots are really asking for is *road cannot clip
 above road*: the ridge inside 18 junction aprons where two ribbons overlap at
 different heights. That is not ground, and it is the apron work.

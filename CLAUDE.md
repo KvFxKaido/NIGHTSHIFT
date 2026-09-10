@@ -151,9 +151,20 @@ walls, 320 buildings became 274, and the wall half of that helper is not
 load-bearing on today's map — the test is what enforces it), and **ground
 cannot clip above road textures** (terrain, verges, river and rail ribbons
 against the carriageway, 10 cm tolerance because the rail ribbon stands 5 cm
-proud at a level crossing on purpose — already held). The fourth rule the
-screenshots want is road-over-road inside junction aprons, which is the apron
-work below.
+proud at a level crossing on purpose — already held). Barriers include the
+authored structures: placement refuses a footprint inside a corridor of road
+half-width plus 6 m along the tunnel and bridge spans (`blockClearsStructures`),
+because to it the tunnel section was just a road and 14 buildings stood inside
+the bore 12-15 m off its centreline, five on the floor and nine rising up
+through its walls. The bore was measured against the asset, not the profile
+that authored it: horizontal rays from the centreline hit the walls at
+10.7-11.8 m. On this loop the tunnel runs straight onto the bridge, so the
+structural span is one contiguous run, not two. 274 buildings became 272. The
+frontage test measures against the kerb that is actually there, never the
+narrowest width lanes are laid to — on a flare that put the kerb metres
+inboard and read 162 of 272 buildings as off their frontage when 242 stand
+within 5 m of the real one. The fourth rule the screenshots want is
+road-over-road inside junction aprons, which is the apron work below.
 Measured and not yet acted on: of 10,808 rail pieces, 70% guard open ground and
 20% stand in front of a solid building; only 9% guard the river, the rail
 cutting, the boundary or a real drop. And inside 18 of 35 junction aprons two

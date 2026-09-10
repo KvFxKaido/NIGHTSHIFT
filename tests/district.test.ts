@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, DISTRICT_WALLS, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, DISTRICT_WALLS, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
-import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse } from "../src/sim/track.ts";
+import { COURSE_POINTS, COURSE_WALLS, COURSE, projectOntoCourse, type CoursePoint } from "../src/sim/track.ts";
 import { createSim, resetSim, step } from "../src/sim/sim.ts";
 import { streetGeometry, addDistrict } from "../src/render/district.ts";
 import { driveDistrictRoute } from "./helpers/district-driver.ts";
@@ -66,10 +66,17 @@ test("connector elevations remain driveable and building envelopes clear all str
   }
   // And they have to actually reach it, or "filled to the street edge" is a
   // claim rather than a property.
+  // Against the kerb that is actually there, not the street's NARROWEST width.
+  // The narrowest width is what lanes are laid to, and on every junction flare
+  // it puts the kerb metres inboard of the real one — the same mistake
+  // blockClearsStreets made, in the test that checks frontage. Measured against
+  // it, 162 of 272 buildings read as off their frontage; against the real kerb,
+  // 242 stand within 5 m and the median gap is 3.5 m, a pavement.
   const kerbGap = (block: typeof DISTRICT_BLOCKS[number]) => Math.min(...blockCorners(block).map(corner =>
-    Math.min(...DISTRICT_STREETS.map(street =>
-      projectOntoPath(street.points, corner.x, corner.z).distance
-        - carriagewayWidth(street.points) / 2))));
+    Math.min(...DISTRICT_STREETS.map(street => {
+      const on = projectOntoPath(street.points, corner.x, corner.z);
+      return on.distance - on.width / 2;
+    }))));
   const fronting = DISTRICT_BLOCKS.filter(block => kerbGap(block) < 5).length;
   assert.ok(fronting > DISTRICT_BLOCKS.length * 0.6,
     `only ${fronting}/${DISTRICT_BLOCKS.length} buildings stand on a frontage`);
@@ -439,4 +446,31 @@ test("no ground-like surface rises above the road across the carriageway", () =>
     assert.ok(worst < 0.1, `${name} rises ${worst.toFixed(2)} m above the road at ${worstAt}`);
   }
   scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+});
+
+// Rule: buildings cannot clip barriers — and the tunnel's walls and the
+// bridge's deck are barriers the street data never mentioned. Placement
+// cleared the road ribbon and its pavement, and 14 buildings stood inside the
+// tunnel bore 12-15 m off its centreline: five on the floor beside the road,
+// nine rising 24-40 m through its walls and roof from the low ground beside it.
+// From the car it is a lit building standing in the tunnel.
+test("no building stands in the tunnel bore or on the bridge deck", () => {
+  const spans: CoursePoint[][] = [];
+  COURSE_POINTS.forEach((point, i) => {
+    if (point.zone !== "tunnel" && point.zone !== "bridge") return;
+    const last = spans.at(-1);
+    if (last && last.at(-1) === COURSE_POINTS[i - 1]) last.push(point); else spans.push([point]);
+  });
+  // One span, not two: on this loop the tunnel runs straight onto the bridge,
+  // so the structural points are contiguous. The first version demanded two.
+  assert.ok(spans.length >= 1, "the loop has a tunnel and a bridge");
+  for (const block of DISTRICT_BLOCKS) {
+    for (const corner of [...blockCorners(block), { x: block.x, z: block.z }]) {
+      for (const span of spans) {
+        const on = projectOntoPath(span, corner.x, corner.z);
+        assert.ok(on.distance > on.width / 2 + 4,
+          `a building at ${block.x.toFixed(0)},${block.z.toFixed(0)} stands ${on.distance.toFixed(0)} m from the ${span[0]!.zone} centreline`);
+      }
+    }
+  }
 });
