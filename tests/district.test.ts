@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { RIVER, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
+import { RIVER, RAIL, RIVER_HALF_WIDTH, RAIL_HALF_WIDTH, distanceToPath, DISTRICT_WALLS, outerTerrain, groundHeight, blockPenetration, DISTRICT_BLOCKS, blockClearsStreets, blockCorners, carriagewayWidth, DISTRICT_JUNCTIONS, DISTRICT_ROUTES, DISTRICT_STREETS, createDistrictWorld,
   districtRouteGap, getDistrictRoute, pathLength, projectOntoDistrict, projectOntoPath, routePoints } from "../src/sim/district.ts";
 import { pathSamples } from "../src/sim/lanes.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
@@ -384,4 +384,59 @@ test("every building stands on the ground it is on, and no corner floats", () =>
   // Placement refuses a plot whose ground drops more than 4 m across it, and
   // stores the base to 0.1 m; so 4 m is the limit and a tenth is rounding.
   assert.ok(worstBury <= 4.15, `a building at ${buryAt} is buried ${worstBury.toFixed(2)} m on its uphill side`);
+});
+
+// Rule: buildings cannot clip barriers or roads. Roads were already covered —
+// every footprint edge is sampled against the asphalt that is actually there.
+// Barriers were not: placement cleared the streets and nothing else, so 46
+// buildings put a corner in the river corridor, 7 in the lineside, and 27 rail
+// pieces stood inside 19 of them with the fence running through the building.
+test("no barrier stands inside a building, and no building stands in a corridor", () => {
+  const inside = (block: typeof DISTRICT_BLOCKS[number], x: number, z: number) => {
+    const cos = Math.cos(-block.rotation), sin = Math.sin(-block.rotation);
+    const dx = x - block.x, dz = z - block.z;
+    return Math.abs(dx * cos - dz * sin) <= block.width / 2 && Math.abs(dx * sin + dz * cos) <= block.depth / 2;
+  };
+  const offenders: string[] = [];
+  for (const wall of DISTRICT_WALLS) {
+    for (const block of DISTRICT_BLOCKS) {
+      if (Math.hypot(block.x - wall.x, block.z - wall.z) > 40) continue;
+      if (inside(block, wall.x, wall.z)) offenders.push(`rail at ${wall.x.toFixed(0)},${wall.z.toFixed(0)}`);
+    }
+  }
+  assert.deepEqual(offenders.slice(0, 5), [], `${offenders.length} rail pieces stand inside buildings`);
+  for (const block of DISTRICT_BLOCKS) {
+    for (const corner of [...blockCorners(block), { x: block.x, z: block.z }]) {
+      assert.ok(distanceToPath(RIVER, corner.x, corner.z) > RIVER_HALF_WIDTH,
+        `a building at ${block.x.toFixed(0)},${block.z.toFixed(0)} has its back in the river`);
+      assert.ok(distanceToPath(RAIL, corner.x, corner.z) > RAIL_HALF_WIDTH,
+        `a building at ${block.x.toFixed(0)},${block.z.toFixed(0)} stands on the line`);
+    }
+  }
+});
+
+// Rule: ground cannot clip above road textures. The terrain was already tested;
+// verges, the river and the rail are ground too. Their tolerance is 10 cm: the
+// rail ribbon stands 5 cm proud of the road at a level crossing on purpose, and
+// a verge's inner edge IS the kerb, at exactly road height.
+test("no ground-like surface rises above the road across the carriageway", () => {
+  const scene = new THREE.Scene();
+  addDistrict(scene, getDistrictRoute("market-loop"));
+  const vertex = new THREE.Vector3();
+  for (const name of ["district-ground", "district-verges", "district-river", "district-rail"]) {
+    const mesh = scene.getObjectByName(name) as THREE.Mesh | undefined;
+    assert.ok(mesh, `${name} is not in the scene`);
+    mesh.updateMatrixWorld(true);
+    const position = mesh.geometry.getAttribute("position");
+    let worst = -Infinity, worstAt = "";
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
+      const road = projectOntoDistrict(vertex.x, vertex.z);
+      if (road.distance > road.width / 2 - 0.3) continue;
+      const over = vertex.y - road.height;
+      if (over > worst) { worst = over; worstAt = `${vertex.x.toFixed(0)},${vertex.z.toFixed(0)}`; }
+    }
+    assert.ok(worst < 0.1, `${name} rises ${worst.toFixed(2)} m above the road at ${worstAt}`);
+  }
+  scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
 });

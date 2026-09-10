@@ -914,6 +914,40 @@ export function blockClearsStreets(block: DistrictBlock, pavement: number): bool
 /** Half the diagonal: the radius that certainly contains an oriented footprint. */
 const spanOf = (block: { width: number; depth: number }) => Math.hypot(block.width, block.depth) / 2;
 
+/** Is a point inside an oriented footprint, with `margin` metres of grace? */
+function footprintContains(block: DistrictBlock, x: number, z: number, margin = 0): boolean {
+  const cos = Math.cos(-block.rotation), sin = Math.sin(-block.rotation);
+  const dx = x - block.x, dz = z - block.z;
+  const localX = dx * cos - dz * sin, localZ = dx * sin + dz * cos;
+  return Math.abs(localX) <= block.width / 2 + margin && Math.abs(localZ) <= block.depth / 2 + margin;
+}
+
+/**
+ * Rule: a building cannot clip a barrier. Every rail piece that exists — street
+ * rails, the river and rail fences, the boundary — must stand outside the
+ * footprint. Placement used to clear the streets and nothing else, so 46
+ * buildings put a corner in the river corridor and 7 in the lineside, and 27
+ * rail pieces stood inside 19 of them with the fence running through the
+ * building.
+ */
+export function blockClearsWalls(block: DistrictBlock): boolean {
+  const reach = spanOf(block) + 2;
+  for (const wall of DISTRICT_WALLS) {
+    if (Math.abs(wall.x - block.x) > reach || Math.abs(wall.z - block.z) > reach) continue;
+    if (footprintContains(block, wall.x, wall.z, 0.6)) return false;
+  }
+  return true;
+}
+
+/** Rule: a building stays out of the water and off the line. The fence is
+ *  where those corridors end, and a footprint inside one has its back in the
+ *  river whether or not a rail piece happens to fall inside it. */
+export function blockClearsCorridors(block: DistrictBlock): boolean {
+  return [...blockCorners(block), { x: block.x, z: block.z }].every(point =>
+    distanceToPath(RIVER, point.x, point.z) > RIVER_HALF_WIDTH + 1 &&
+    distanceToPath(RAIL, point.x, point.z) > RAIL_HALF_WIDTH + 1);
+}
+
 /** Firewall gap between two buildings that do not share a wall. */
 const BLOCK_GAP = 1.2;
 /** How far, in metres, a building may retreat from the pavement line to clear
@@ -1046,6 +1080,7 @@ export const DISTRICT_BLOCKS: readonly DistrictBlock[] = DISTRICT_FACES.flatMap(
           if (placed.some(other => Math.hypot(other.x - x, other.z - z) < spanOf(other) + spanOf(block)
             && blockPenetration(other, block) > -BLOCK_GAP)) continue;
           if (!blockClearsStreets(block, pavement)) continue;
+          if (!blockClearsCorridors(block) || !blockClearsWalls(block)) continue;
           placed.push(block);
           done = true;
         }

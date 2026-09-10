@@ -141,6 +141,19 @@ deck (nearest road) nor steps 11 m beside the loop (drawn ground) nor pairs it
 with a building on the other level (nearest building). The race readout needs
 `#race[hidden] { display: none; }`: its own `display: flex` beat the attribute
 and it showed GATE 1/3 in free roam on every screen.
+Three rules Shawn asked for are tests in `tests/district.test.ts`, each
+mutation-checked: **buildings cannot clip roads** (every footprint edge sampled
+against the asphalt that is actually there — already held), **buildings cannot
+clip barriers** (no rail piece inside a footprint, no footprint in the river
+or rail corridor — the map broke this: 46 buildings in the water, 7 on the
+line, 27 rails through 19 of them; placement now clears the corridors and the
+walls, 320 buildings became 274, and the wall half of that helper is not
+load-bearing on today's map — the test is what enforces it), and **ground
+cannot clip above road textures** (terrain, verges, river and rail ribbons
+against the carriageway, 10 cm tolerance because the rail ribbon stands 5 cm
+proud at a level crossing on purpose — already held). The fourth rule the
+screenshots want is road-over-road inside junction aprons, which is the apron
+work below.
 Measured and not yet acted on: of 10,808 rail pieces, 70% guard open ground and
 20% stand in front of a solid building; only 9% guard the river, the rail
 cutting, the boundary or a real drop. And inside 18 of 35 junction aprons two

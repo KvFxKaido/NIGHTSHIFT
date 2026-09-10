@@ -592,3 +592,33 @@ Rail gaps: eight one-sided gaps of 4-5 m, all on the ring, 36 m in total; what
 reads as random elsewhere is junction clipping opening every side street across
 a 28 m apron. Under the rail rule most of it goes; what remains gets a
 continuity test.
+
+## Three rules, as tests
+
+Shawn asked whether the map could carry rules: buildings can't clip barriers or
+roads, and ground can't clip above road textures. That is how this codebase
+already works — an invariant is a test that fails when the map breaks it, and
+is mutation-checked so it cannot be vacuous — so the answer was to measure the
+map against each rule first and then write the ones that held and the ones
+that didn't.
+
+**Buildings cannot clip roads** already held: every footprint edge is sampled
+against the asphalt that is actually there, flares included. **Ground cannot
+clip above road textures** already held for the terrain and now covers the
+verges, the river and the rail ribbons too, sampled across the carriageway with
+a 10 cm tolerance: the rail ribbon stands 5 cm proud of the road at the West
+Level Crossing on purpose, and a verge's inner edge *is* the kerb.
+
+**Buildings cannot clip barriers** did not hold. Placement cleared the streets
+and nothing else, so **46 buildings had a corner in the river corridor, 7 in
+the lineside, and 27 rail pieces stood inside 19 of them** with the fence
+running through the building. Placement now refuses a footprint that enters
+either corridor or encloses any rail piece; 320 buildings became 274 on the
+same 18 faces at the same 88% extent — the 46 were standing in the water. The
+corridor half of that is load-bearing and mutation-checked; the wall half is
+not, on today's map, because with the corridors enforced no street rail lands
+in a footprint. It stays as the remedy the test would demand if one did.
+
+The fourth rule the screenshots are really asking for is *road cannot clip
+above road*: the ridge inside 18 junction aprons where two ribbons overlap at
+different heights. That is not ground, and it is the apron work.
