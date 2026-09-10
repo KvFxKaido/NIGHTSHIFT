@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NIGHTSHIFT — Seattle workshop</title>
+  <link rel="stylesheet" href="/src/editor/style.css" />
+</head>
+<body>
+  <header><div><span class="eyebrow">NIGHTSHIFT / WORLD TOOLS</span><h1>Seattle workshop</h1></div>
+    <nav><a href="/seattle.html">Route board</a><a id="drive" href="/?scene=track" target="_blank">Drive saved map ↗</a><button id="save" class="primary" disabled>Save to project</button></nav>
+  </header>
+  <main>
+    <section id="viewport" aria-label="Seattle 3D viewport"><canvas id="editor-view" tabindex="0" aria-label="Select buildings in the district"></canvas>
+      <div class="viewport-tools"><button id="overview">Whole district</button><button id="focus">Focus selection · F</button><button id="top">Top view</button></div>
+      <div class="legend"><i></i> Editable buildings <i class="gold"></i> Fixed garage <i class="red"></i> Placement needs attention</div>
+      <p class="navigation">Click to select · Drag to orbit · Right drag to pan · Scroll to zoom</p>
+    </section>
+    <aside>
+      <span class="eyebrow">BUILDING PLACEMENT</span>
+      <label class="picker">Selected building<select id="building" aria-label="Selected building"></select></label>
+      <p id="selection-note">Select a building to shape its footprint.</p>
+      <div class="tools" role="group" aria-label="Transform mode"><button data-mode="translate" aria-pressed="true">Move · W</button><button data-mode="rotate" aria-pressed="false">Rotate · E</button><button data-mode="scale" aria-pressed="false">Size · R</button></div>
+      <label class="snap"><input id="snap" type="checkbox" checked /> Snap: 1 m / 5°</label>
+      <fieldset id="fields"><legend>Footprint & height</legend>
+        <label>East / west <span>m</span><input id="x" type="number" step="any" min="-1500" max="1500" /></label>
+        <label>North / south <span>m</span><input id="z" type="number" step="any" min="-1500" max="1500" /></label>
+        <label>Width <span>m</span><input id="width" type="number" step="any" min="2" max="100" /></label>
+        <label>Depth <span>m</span><input id="depth" type="number" step="any" min="2" max="100" /></label>
+        <label>Height <span>m</span><input id="height" type="number" step="any" min="2" max="100" /></label>
+        <label>Rotation <span>°</span><input id="rotation" type="number" step="any" min="-360" max="360" /></label>
+      </fieldset>
+      <p class="muted">Bases follow the ground. Roads and the garage stay fixed.</p>
+      <div class="tools"><button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button><button id="reset-building">Reset building</button></div>
+      <div id="validation" role="status" aria-live="polite">Loading district…</div>
+      <p id="save-status" role="status" aria-live="polite"></p>
+      <details><summary>Files & Three.js editor</summary>
+        <p>Export a scene for the official editor. Move the named building boxes, then import its saved scene here. Only building transforms are read; bases are placed on the ground again.</p>
+        <a href="https://threejs.org/editor/" target="_blank" rel="noopener">Open Three.js editor ↗</a>
+        <button id="export-scene">Export Three.js scene</button><button id="export-layout">Export placement backup</button>
+        <button id="reload-saved">Reload saved placements</button>
+        <label class="file-button">Import scene / placement backup<input id="import-file" type="file" accept=".json,application/json" /></label>
+        <p>Materials, road edits, added or deleted buildings, and garage edits are outside this first version.</p>
+      </details>
+    </aside>
+  </main>
+  <script type="module" src="/src/editor/main.ts"></script>
+</body>
+</html>

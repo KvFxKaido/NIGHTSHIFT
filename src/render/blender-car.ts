@@ -1,4 +1,5 @@
 import * as THREE from "three";
+export { isPlayerCarId as isBlenderCarId } from "../customization/cars.ts";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CAR_GEOMETRY, type CarView } from "./car.ts";
 
@@ -8,19 +9,14 @@ export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
  * The Blender-authored bodies, keyed by their ?car= value. `model` is the id
  * the debug tools and deep links round-trip on, so it must stay stable.
  *
- * A second entry is not a car roster: the Bulwark is a rival body with no rival
- * system to drive it yet, reachable the same explicit way ?car=classic reaches
- * the old procedural coupe. GDD 21 still rules out a roster, and neither body
- * changes the simulation collider or HANDLING.
+ * Both bodies are selectable in the garage. Neither changes the simulation
+ * collider or HANDLING.
  */
 export const BLENDER_CARS = {
   blender: { path: BLENDER_CAR_PATH, root: "ns-coupe-01", model: "ns-01" },
   bulwark: { path: "assets/cars/ns-bulwark-01.glb", root: "ns-bulwark-01", model: "ns-bulwark" },
 } as const;
 export type BlenderCarId = keyof typeof BLENDER_CARS;
-export function isBlenderCarId(value: string): value is BlenderCarId {
-  return Object.hasOwn(BLENDER_CARS, value);
-}
 const CORNERS = ["front-left", "front-right", "rear-left", "rear-right"] as const;
 
 function required(root: THREE.Object3D, name: string): THREE.Object3D {
@@ -56,8 +52,7 @@ function takeGroup(object: THREE.Object3D): THREE.Group {
  * assets/cars/ns-bulwark-01.blend) needs only its root and model id, because
  * every other name this reads — body-shell, wheel-*, rolling-*, car-paint,
  * wheel-finish — is a shared authoring convention rather than one car's.
- * The thrown messages still say NS-01; they earn the model name once a rival
- * system drives these bodies and there is something to debug against. */
+ * Validation uses the shared NS-01 asset contract for both bodies. */
 export function createBlenderCar(asset: THREE.Group, rootName = "ns-coupe-01", model = "ns-01"): CarView {
   const root = required(asset, rootName);
   normalized(asset);

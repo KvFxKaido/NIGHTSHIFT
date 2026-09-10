@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import type { DistrictBlock } from "../sim/district.ts";
+import type { BuildingBlock } from "../sim/building-footprint.ts";
 
 /** The exterior occupies the same footprint and height as its solid collider. */
-export function addGarageExterior(scene: THREE.Scene, building: DistrictBlock): void {
+export function addGarageExterior(scene: THREE.Scene, building: BuildingBlock): void {
   const group = new THREE.Group();
   group.name = "district-garage";
   group.position.set(building.x, building.base, building.z);

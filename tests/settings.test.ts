@@ -11,14 +11,14 @@ function storage() {
   return { data, writes, getItem: (key: string) => data.get(key) ?? null,
     setItem: (key: string, value: string) => { writes.push(key); data.set(key, value); } };
 }
-const example = { drivetrain: "rwd" as const,
+const example = { car: "blender" as const, drivetrain: "rwd" as const,
   customization: { paint: "ice", wheels: "alloy", stance: "slammed" },
   audio: { ...DEFAULT_LEVELS } };
 
 test("a fresh settings store defaults to FWD without writing on startup", () => {
   const disk = storage();
   const store = createSettingsStore(() => disk);
-  assert.deepEqual(store.get(), { drivetrain: "fwd",
+  assert.deepEqual(store.get(), { car: "blender", drivetrain: "fwd",
     customization: { paint: "signal", wheels: "graphite", stance: "street" }, audio: DEFAULT_LEVELS });
   assert.equal(store.status(), "ready");
   assert.equal(disk.writes.length, 0);
@@ -58,7 +58,7 @@ test("invalid saved fields recover individually and unrelated saved fields survi
     customization: { paint: "ice", wheels: 3, stance: "slammed" }, vehicle: { speed: 100 } }));
   // Version 1 predates audio, so those levels default while the damaged
   // drivetrain and wheels still report as recovered.
-  assert.deepEqual(decoded.settings, { drivetrain: "fwd",
+  assert.deepEqual(decoded.settings, { car: "blender", drivetrain: "fwd",
     customization: { paint: "ice", wheels: "graphite", stance: "slammed" }, audio: DEFAULT_LEVELS });
   assert.equal(decoded.status, "recovered");
 });
@@ -111,7 +111,7 @@ test("two open tabs merge deliberate field changes instead of clobbering each ot
   first.update({ drivetrain: "rwd" });
   second.update({ customization: { paint: "ice" } });
   first.update({ customization: { stance: "low" } });
-  assert.deepEqual(createSettingsStore(() => disk).get(), { drivetrain: "rwd",
+  assert.deepEqual(createSettingsStore(() => disk).get(), { car: "blender", drivetrain: "rwd",
     customization: { paint: "ice", wheels: "graphite", stance: "low" }, audio: DEFAULT_LEVELS });
 });
 
@@ -134,4 +134,31 @@ test("saving a choice removes only its URL override so refresh honors the saved 
   assert.equal(next.hash, "#car");
   assert.match(settingsStatusMessage("saved", "?paint=signal"), /Preview/);
   assert.equal(settingsStatusMessage("saved", "?scene=garage"), "Saved on this browser.");
+});
+
+
+test("version 2 saves retain appearance, drivetrain and audio when car selection is added", () => {
+  const { car, ...old } = example;
+  const audio = { master: .2, engine: .3, music: .4 };
+  const result = decodeSettings(JSON.stringify({ version: 2, ...old, audio }));
+  assert.equal(result.status, "saved");
+  assert.deepEqual(result.settings, { ...example, audio });
+});
+
+test("car choice persists, merges across tabs and rejects invalid models", () => {
+  const disk = storage();
+  const first = createSettingsStore(() => disk);
+  const second = createSettingsStore(() => disk);
+  first.update({ car: "bulwark" });
+  second.update({ customization: { paint: "ice" } });
+  const reloaded = createSettingsStore(() => disk);
+  assert.equal(reloaded.get().car, "bulwark");
+  assert.equal(reloaded.get().customization.paint, "ice");
+  assert.throws(() => first.update({ car: "unknown" as "bulwark" }), RangeError);
+  const recovered = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, ...example, car: "unknown" }));
+  assert.equal(recovered.settings.car, "blender");
+  assert.equal(recovered.settings.drivetrain, "rwd");
+  assert.equal(recovered.status, "recovered");
+  assert.match(settingsStatusMessage("saved", "?car=bulwark"), /Preview/);
+  assert.equal(new URL(withoutSettingsOverrides("http://localhost/?car=bulwark&scene=garage", ["car"])).search, "?scene=garage");
 });

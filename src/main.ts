@@ -1,3 +1,5 @@
+import { createControlsPanel } from "./ui/controls.ts";
+import { keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
   updateCustomization,
@@ -6,21 +8,16 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
-import { BLENDER_COURSE_PATH } from "./render/course-asset-contract.ts";
-import { loadBlenderCourse, type BlenderCourse } from "./render/blender-course.ts";
-import { createView, render, resetViewCamera, setRival, setViewMode,
+import { createView, render, resetViewCamera, setPlayerCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
-  type Drivetrain, type Input, type Sim } from "./sim/sim.ts";
-import { COURSE_POINTS, courseGap } from "./sim/track.ts";
-import { createDistrictWorld, createFreeRoamWorld, districtRouteGap, DISTRICT_GARAGE, DISTRICT_STREETS, getDistrictRoute,
-  pathLength, routePoints, type DistrictRoute } from "./sim/district.ts";
-import { BLACKGLASS_WORLD } from "./sim/road-world.ts";
+  type Input } from "./sim/sim.ts";
+import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE } from "./sim/seattle.ts";
+import { addSeattle } from "./render/seattle.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
-import { createRaceWorld, getRace, type DistrictRace } from "./sim/events.ts";
-import { formatRaceTime, racePosition } from "./sim/race.ts";
+import { formatRaceTime, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -32,97 +29,60 @@ const restored = settings.get();
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
-let course: BlenderCourse | null;
-let rivalParts: CarView;
-let districtRoute: DistrictRoute | null = null;
-// The district is the game now, and free roam is how you meet it: no route
-// picked, no line to follow, the whole network open. ?route= still overlays one
-// of the guides for a specific study, and ?world=blackglass returns to the
-// original closed course with its own geometry, physics and lighting.
-// ?race=<id> runs an open-checkpoint event on the district from its grid.
-// Like ?route=, it is a page-level choice: changing it reloads.
-let race: DistrictRace | null = null;
-let district = true;
+let selectedCar = "blender";
+let race: RaceDefinition | null = null;
 let lighting: DistrictLighting = "night";
 try {
-  const params = new URLSearchParams(location.search);
-  const world = params.get("world") ?? "district";
+  const url = new URL(location.href);
+  const params = url.searchParams;
+  // Old bookmarks now enter the Seattle demo; incompatible routes are retired.
+  if (params.has("world") && params.get("world") !== "seattle") params.delete("race");
+  if (params.get("race") === "crane-to-crest") params.delete("race");
+  params.set("world", "seattle");
+  params.delete("route"); params.delete("environment"); params.delete("rival");
+  history.replaceState(history.state, "", url);
   const raceId = params.get("race");
-  if (raceId) race = getRace(raceId);
-  if (world !== "blackglass" && world !== "district") throw new Error(`Unknown world '${world}'`);
-  district = world === "district";
-  const route = params.get("route");
-  if (district && route) districtRoute = getDistrictRoute(route);
-  // Night is the district's presentation. The flat work lighting the blockout
-  // was judged under is still one parameter away, because a surface error is
-  // easier to see under it than under neon.
+  if (raceId && raceId !== SEATTLE_RACE.id) throw new Error(`Unknown race '${raceId}'`);
+  if (raceId) race = SEATTLE_RACE;
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
   await RAPIER.init();
-  const model = new URLSearchParams(location.search).get("car") ?? "blender";
+  const model = new URLSearchParams(location.search).get("car") ?? restored.car;
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
-  const environment = new URLSearchParams(location.search).get("environment") ?? "blender";
-  if (environment !== "blender" && environment !== "classic") throw new Error(`Unknown environment '${environment}'`);
-  [carParts, course, rivalParts] = await Promise.all([
-    model === "classic" ? Promise.resolve(createCar())
-      : loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model),
-    environment === "classic" ? Promise.resolve(null)
-      : loadBlenderCourse(new URL(BLENDER_COURSE_PATH, document.baseURI).href),
-    // The rival always drives the Bulwark: it is that car's whole reason to
-    // exist, and a body you can tell apart at a glance is the point.
-    loadBlenderCar(new URL(BLENDER_CARS.bulwark.path, document.baseURI).href, "bulwark"),
-  ]);
+  selectedCar = model;
+  carParts = model === "classic" ? createCar()
+    : await loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model);
 } catch (error) {
   document.body.dataset.assetState = "error";
   assetStatus.setAttribute("role", "alert");
   assetStatus.textContent = `Asset loading failed: ${error instanceof Error ? error.message : String(error)}. ` +
-    "Refresh to retry. ?car=classic or ?environment=classic explicitly selects the original asset.";
+    "Refresh to retry. ?car=classic selects the primitive car.";
   // No invisible model or silent replacement when an authored asset breaks.
   throw error;
 }
 
 const input = createInputController();
-const roadWorld = !district ? BLACKGLASS_WORLD
-  : race ? createRaceWorld(race)
-  : districtRoute ? createDistrictWorld(districtRoute) : createFreeRoamWorld();
+const controls = createControlsPanel(input);
+const roadWorld = createSeattleWorld(!!race);
 const sim = createSim(restored.drivetrain, roadWorld, race ? { race } : {});
-const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts, course,
-  districtRoute, roadWorld, district, lighting, sim.state.traffic);
-if (district) {
-  // The view's name follows the lighting. Night is the district's default now,
-  // so a plain ?route= session is a night session and calling it a blockout in
-  // the title and the pause menu is simply wrong.
-  const view = lighting === "blockout" ? "Blockout" : "Night";
-  const label = districtRoute ? `${districtRoute.name} ${view.toLowerCase()}` : "Blackglass District";
-  document.body.dataset.world = "district";
-  document.title = `NIGHTSHIFT — ${label}`;
-  document.querySelector("#brand > span")!.textContent = `NIGHTSHIFT / ${districtRoute?.name ?? "FREE ROAM"}`;
-  document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent =
-    districtRoute ? `${districtRoute.name} / ${view}` : `Blackglass District / Free roam`;
-  document.querySelector(".menu-lede")!.textContent = districtRoute
-    ? `${(pathLength(routePoints(districtRoute)) / 1000).toFixed(2)} km guide over the district. Follow the coloured arrows, or ignore them.`
-    : "One district, open. No route, no timing, no finish line — drive it and find out what it wants to be.";
-}
+const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
+  roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
+document.body.dataset.world = "seattle";
+document.title = "NIGHTSHIFT — Seattle";
+document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / SEATTLE";
+document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Seattle / Sound to Sky" : "Seattle / Free roam";
+document.querySelector(".menu-lede")!.textContent = "From Wharf Garage to the waterfront and the hills. Find your own way through Seattle.";
 document.querySelectorAll<HTMLButtonElement>("[data-district-map]").forEach(button => {
-  button.addEventListener("click", () => {
-    location.href = districtRoute ? `./district.html?route=${districtRoute.id}` : "./district.html";
-  });
+  button.addEventListener("click", () => { location.href = "./seattle.html"; });
 });
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
-// The minimap draws the world the sim was given, not a second copy of it: free
-// roam shows every street, a route guide highlights its own legs in its colour,
-// and the closed circuit shows the lap.
-const hudPolylines: HudPolyline[] = district
-  ? [...DISTRICT_STREETS.map(street => ({ points: street.points })),
-    ...(districtRoute ? [{ points: routePoints(districtRoute), color: districtRoute.color }] : [])]
-  : [{ points: [...COURSE_POINTS, COURSE_POINTS[0]!], color: "#59d8ff" }];
-const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed,
-  garage: district ? DISTRICT_GARAGE.entrance : undefined });
+const hudPolylines: HudPolyline[] = SEATTLE_STREETS.map(street => ({ points: street.points }));
+const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: SEATTLE_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
 
@@ -151,43 +111,6 @@ async function startAudio(): Promise<void> {
   }
 }
 
-const inputLog: Input[] = [];
-let lastRun: { drivetrain: Drivetrain; inputs: Input[] } | null = null;
-let replay: Input[] | null = null;
-let replayTick = 0;
-
-// A recorded lap driven as an opponent, not a ghost of you: a second Sim fed
-// the archived input log, stepped in the same fixed-tick loop so the two runs
-// cannot drift apart. This is what law 2 was paid for — no AI is involved,
-// because a deterministic input log already IS a driver.
-//
-// It has its own Rapier world, so it cannot touch you. That is deliberate for
-// now: contact is the Bully's actual character and it needs one shared world
-// with two bodies, which is a real change to a Sim that currently owns exactly
-// one `body` and one `state.vehicle`. Worth doing once a car to chase has
-// proven it fixes anything.
-let rivalSim: Sim | null = null;
-let rivalInputs: readonly Input[] = [];
-let rivalTick = 0;
-let rivalEnabled = new URLSearchParams(location.search).get("rival") !== "0";
-const NEUTRAL_INPUT: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
-const rivalRunning = () => rivalSim !== null && rivalTick < rivalInputs.length;
-
-function startRival(run: { drivetrain: Drivetrain; inputs: readonly Input[] } | null): void {
-  if (!rivalEnabled || !run || run.inputs.length === 0) {
-    rivalSim = null;
-    rivalInputs = [];
-    rivalTick = 0;
-    setRival(view, null);
-    return;
-  }
-  // Reuse one world rather than leaking a Rapier world per restart.
-  rivalSim ??= createSim(run.drivetrain, roadWorld, race ? { race } : {});
-  resetSim(rivalSim, run.drivetrain);
-  rivalInputs = run.inputs;
-  rivalTick = 0;
-  setRival(view, rivalParts);
-}
 let debugVisible = false;
 // Set by __ns.freeze(): holds the fixed simulation still so a capture of a given
 // state is the same image every time.
@@ -208,29 +131,46 @@ function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
   renderSettingsStatus();
 }
 
-function reset(archive = true, drivetrain = sim.state.drivetrain): void {
-  // A comparison is a new run, never a mid-replay physics change.
-  if (drivetrain !== sim.state.drivetrain) lastRun = null;
-  else if (archive && inputLog.length > 0) {
-    lastRun = { drivetrain, inputs: inputLog.slice() };
-  }
-  inputLog.length = 0;
-  replay = null;
-  replayTick = 0;
+function reset(drivetrain = sim.state.drivetrain): void {
   resetSim(sim, drivetrain);
   resetViewCamera(view);
-  // Whatever was just archived becomes the car you are racing next time round.
-  startRival(lastRun);
 }
 
-function beginReplay(): void {
-  const source = inputLog.length > 0
-    ? { drivetrain: sim.state.drivetrain, inputs: inputLog.slice() } : lastRun;
-  if (!source) return;
-  reset(false, source.drivetrain);
-  lastRun = source;
-  replay = source.inputs;
+// Cache each loaded body once; only the active body belongs to a scene.
+const cars = new Map<string, CarView>([[selectedCar, carParts]]);
+let carLoading = false;
+const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
+function renderCarSelection(): void {
+  document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.car === selectedCar));
+    button.disabled = carLoading;
+  });
 }
+async function selectCar(id: string): Promise<void> {
+  if (carLoading || !isBlenderCarId(id)) return;
+  carLoading = true;
+  carNote.textContent = "Loading car…";
+  renderCarSelection();
+  try {
+    const parts = cars.get(id)
+      ?? await loadBlenderCar(new URL(BLENDER_CARS[id].path, document.baseURI).href, id);
+    cars.set(id, parts);
+    setPlayerCar(view, parts);
+    applyCarCustomization(view, customization);
+    selectedCar = id;
+    saveSettings({ car: id }, ["car"]);
+    carNote.textContent = "Both cars use your current handling and visual setup.";
+  } catch {
+    carNote.textContent = "Could not load that car. Your current car is still ready; select again to retry.";
+  } finally {
+    carLoading = false;
+    renderCarSelection();
+  }
+}
+renderCarSelection();
+document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
+  button.addEventListener("click", () => void selectCar(button.dataset.car!));
+});
 
 const menu = createMenuController({
   startTrack: () => {
@@ -247,7 +187,7 @@ const menu = createMenuController({
   getCustomization: () => customization,
   selectDrivetrain: (drivetrain) => {
     if (drivetrain !== sim.state.drivetrain) {
-      reset(false, drivetrain);
+      reset(drivetrain);
       input.armDrivingInputGate();
     }
     saveSettings({ drivetrain }, ["drivetrain"]);
@@ -257,7 +197,10 @@ const menu = createMenuController({
     applyCarCustomization(view, customization);
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
-  screenChanged: (screen) => setViewMode(view, screen === "garage" ? "garage" : "track"),
+  screenChanged: (screen) => {
+    controls.screenChanged(screen);
+    setViewMode(view, screen === "garage" ? "garage" : "track");
+  },
   getAudioLevels: () => audioLevels,
   setAudioLevel: (channel, value) => {
     audioLevels = { ...audioLevels, [channel]: value };
@@ -294,7 +237,7 @@ for (const event of ["pointerdown", "keydown"] as const) {
 }
 
 const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
-const garageAvailable = () => district && !replay && canEnterGarage(DISTRICT_GARAGE, sim.state.vehicle, sim.state.race !== null);
+const garageAvailable = () => canEnterGarage(SEATTLE_GARAGE, sim.state.vehicle, sim.state.race !== null);
 garagePrompt.addEventListener("click", () => {
   if (menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
 });
@@ -306,15 +249,12 @@ document.addEventListener("visibilitychange", () => {
 function updateHud(): void {
   const car = sim.state.vehicle;
   const raceState = sim.state.race;
-  hud.update(car, rivalSim?.state.vehicle ?? null, race && raceState ? {
+  hud.update(car, race && raceState ? {
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
-      : `${raceState.finished ? "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}` +
-        (rivalSim?.state.race ? ` P${racePosition(race, { race: raceState, x: car.x, z: car.z },
-          { race: rivalSim.state.race, x: rivalSim.state.vehicle.x, z: rivalSim.state.vehicle.z })}` : ""),
+      : `${raceState.finished ? "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}`,
   } : null);
-  modeElement.textContent = replay ? `REPLAY ${Math.round((replayTick / replay.length) * 100)}%`
-    : `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${rivalRunning() ? " / RIVAL" : ""}`;
+  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "No standard gamepad detected";
@@ -336,7 +276,9 @@ let last = performance.now();
 let accumulator = 0;
 
 function frame(now: number): void {
-  const frameDelta = Math.min(0.1, (now - last) / 1000);
+  // The first RAF timestamp can predate synchronous world construction.
+  // Negative time makes camera smoothing extrapolate away from the car.
+  const frameDelta = Math.max(0, Math.min(0.1, (now - last) / 1000));
   last = now;
 
   input.update();
@@ -347,41 +289,21 @@ function frame(now: number): void {
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
   garagePrompt.hidden = !gameplayActive || !garageAvailable();
-  garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : "E / Enter · Enter Wharf Garage";
+  garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
-  const replayRequested = input.consumeReplay();
   const debugToggleRequested = input.consumeDebugToggle();
   if (gameplayActive && resetRequested) reset();
   if ((gameplayActive || garageActive) && cameraResetRequested) resetViewCamera(view);
-  if (gameplayActive && replayRequested) beginReplay();
   if (gameplayActive && debugToggleRequested) debugVisible = !debugVisible;
 
   if (gameplayActive && !frozen) accumulator += frameDelta;
   else accumulator = 0;
 
   while (gameplayActive && accumulator >= DT) {
-    let tickInput: Input;
-    if (replay) {
-      tickInput = replay[replayTick] ?? { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
-      replayTick++;
-      if (replayTick >= replay.length) {
-        replay = null;
-        replayTick = 0;
-        inputLog.length = 0;
-      }
-    } else {
-      tickInput = input.sample();
-      inputLog.push(tickInput);
-    }
+    const tickInput = input.sample();
     lastInput = tickInput;
     step(sim, tickInput);
-    // Same tick, same DT, so a recorded lap stays in step with the live one.
-    // Past the end of the log it coasts on neutral rather than vanishing.
-    if (rivalSim) {
-      step(rivalSim, rivalInputs[rivalTick] ?? NEUTRAL_INPUT);
-      rivalTick++;
-    }
     accumulator -= DT;
   }
 
@@ -394,7 +316,6 @@ function frame(now: number): void {
     sim.state,
     frameDelta,
     gameplayActive || garageActive ? input.cameraLook() : { x: 0, y: 0 },
-    rivalSim?.state.vehicle ?? null,
   );
   requestAnimationFrame(frame);
 }
@@ -413,20 +334,9 @@ installDebugApi({
   view,
   sim,
   canvas: view.renderer.domElement,
-  // Ticks the same way the live loop does, so a scripted run stays a real run:
-  // the input still lands in the log and replay reproduces it.
+  // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {
-    for (let index = 0; index < ticks; index++) {
-      inputLog.push(tickInput);
-      step(sim, tickInput);
-      // The rival advances here too, or a scripted run would silently desync
-      // the two laps — the same reason the debug API clicks real menu buttons
-      // rather than faking a state change.
-      if (rivalSim) {
-        step(rivalSim, rivalInputs[rivalTick] ?? NEUTRAL_INPUT);
-        rivalTick++;
-      }
-    }
+    for (let index = 0; index < ticks; index++) step(sim, tickInput);
     // A scripted run should sound like a driven one as well.
     lastInput = tickInput;
   },
@@ -437,36 +347,13 @@ installDebugApi({
   isFrozen: () => frozen,
   setTelemetry: (visible) => { debugVisible = visible; },
   pause: () => menu.pause(),
-  rivalReport: (enabled?: boolean) => {
-    if (enabled !== undefined && enabled !== rivalEnabled) {
-      rivalEnabled = enabled;
-      startRival(enabled ? lastRun : null);
-    }
-    const rival = rivalSim?.state.vehicle ?? null;
-    const you = sim.state.vehicle;
-    return {
-      enabled: rivalEnabled,
-      running: rivalRunning(),
-      tick: rivalTick,
-      ticks: rivalInputs.length,
-      position: rival ? [Number(rival.x.toFixed(2)), Number(rival.y.toFixed(2)), Number(rival.z.toFixed(2))] as [number, number, number] : null,
-      speed: rival ? Number(rival.speed.toFixed(2)) : null,
-      // Distance ALONG the lap, not straight-line and emphatically not
-      // CourseProjection.distance, which is the lateral offset from the
-      // centreline and reads as a plausible sub-metre number for two cars a
-      // hundred metres apart.
-      gap: rival ? Number((districtRoute
-        ? districtRouteGap(districtRoute, you.x, you.z, rival.x, rival.z)
-        : courseGap(you.x, you.z, rival.x, rival.z)).toFixed(2)) : null,
-    };
-  },
   inputReport: () => {
     const pad = navigator.getGamepads().find(g => g?.connected && g.mapping === "standard") ?? null;
     return {
       gamepad: input.gamepadName(),
       axes: (pad?.axes ?? []).map(value => Number(value.toFixed(3))),
       pressedButtons: (pad?.buttons ?? []).flatMap((button, index) => button.pressed ? [index] : []),
-      mapped: mapGamepad(pad),
+      mapped: mapGamepad(pad, input.bindings().gamepad),
       drivingGated: input.isDrivingGated(),
       screen: document.body.dataset.gameScreen ?? "unknown",
       delivered: lastInput,

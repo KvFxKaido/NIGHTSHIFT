@@ -1,5 +1,10 @@
 # Four-wheel handling prototype
 
+**Current world: Seattle.** The map/garage migration did not change
+`HANDLING` or `four-wheel-v3`. Blackglass course mentions and reference-lap
+measurements below describe retained regression fixtures, not the demo's
+playable map. See [SEATTLE.md](SEATTLE.md) for current world behavior.
+
 Physics revision: `four-wheel-v3` (replaces `four-wheel-v2`). Rapier: **0.19.3**, pinned in the manifest and
 lockfile. Manual countersteering is quicker and less restricted; automatic
 countersteering remains off. Inputs, drivetrain comparisons, tyre/engine/brake
@@ -85,8 +90,7 @@ left/right load shares, plus confirmation that auto-countersteer is off.
 
 Start with the default FWD, or your saved layout. Then press Esc / Options,
 select AWD or RWD under **Handling comparison**, and Resume.
-Changing layout resets position, speed and physics history and clears the old
-input/replay log. Selecting the already-active layout does not restart.
+Changing layout resets position, speed and physics history. Selecting the already-active layout does not restart.
 Ordinary Reset/Restart retains the selected layout. The live HUD names it.
 Your explicit layout selection saves locally and is restored next launch. This
 is still a prototype comparison, not a garage purchase or upgrade. URL overrides
@@ -171,8 +175,9 @@ collision geometry. `frontAxle`/`rearAxle` telemetry is a derived summary of the
 four tires; only per-wheel forces drive the chassis. Load/slip/force telemetry
 describes the last force evaluation; wheel speeds use the resolved post-step body.
 
-Replay is currently an in-memory input log with its drivetrain identity. A
-layout change clears it; ordinary reset/replay preserve the chosen layout.
+The player-facing replay and recorded-input ghost have been removed.
+Deterministic scripted-input replay remains a developer regression test.
+Ordinary reset preserves the chosen layout.
 Reset recreates the same world and
 collider insertion order, including contact solver history. The tests establish
 same-version, same-runtime repeatability, **not universal cross-browser parity**;

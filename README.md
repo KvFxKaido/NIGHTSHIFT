@@ -1,6 +1,6 @@
 # NIGHTSHIFT
 
-**Status: Early Prototype — Phase 1 (handling lab).**
+**Status: Playable Seattle PC prototype — free roam, open checkpoints, garage and workshop.**
 Working title: *Project Nightshift.*
 
 A compact arcade street racer: illegal nighttime racing, one car worth
@@ -13,6 +13,22 @@ becomes a network of possibilities.
 
 The full design is in [`design/GDD.md`](design/GDD.md) — read that first.
 This README covers what exists and the two laws the codebase is built on.
+
+## Direction
+
+MC3 is the main inspiration: open racing, city knowledge and car ownership.
+“No unnecessary barriers, no wrong ways, just slower ways.” Seattle supplies
+the street structure, adapted into a fictionalized racing city. Grow it from
+play feedback; MC3 San Diego informs the eventual feel of scale rather than
+an exact size requirement.
+
+The graphics target is upscaled/emulated MC3. Keep the current Three.js/Rapier
+handling and develop the PC prototype first. The eventual target device is
+**RedMagic 10 Pro**; Android packaging and on-device testing can follow.
+Customization should focus on body parts, paint and a few understandable
+performance upgrades. Selected LA ideas, including police, can be considered
+later. The current demo does not implement body-part swaps, purchased upgrades,
+police, career progression, Live Cred or Surge.
 
 ## The two laws
 
@@ -40,25 +56,20 @@ pnpm test       # deterministic simulation smoke tests
 pnpm build      # typecheck + production build
 ```
 
-What's on screen today is the first Phase 1 environment prototype: a low-poly
-tuner on the 1.70 km Blackglass Circuit, with physical barriers, a long lit
-tunnel, a genuinely elevated steel-frame bridge, rolling district grades, an
-urban skyline, custom arcade vehicle forces resolved through Rapier, a
-grip-limited steering envelope, speed-sensitive chase camera,
-keyboard and standard gamepad controls, a controller-navigable title, track,
-garage, and pause flow, instant reset, replay, and optional handling
-telemetry. The handling values are deliberately exposed together in
-`src/sim/sim.ts`; this is a tuning surface, not a finished vehicle model. The
-course brief and current prototype boundaries live in `design/BLACKGLASS.md`.
+The demo now opens in **Seattle**, a fictionalized, compressed city slice with
+13.1 km of open streets, a waterfront bypass, softened hills, traffic, and the
+four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
+in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
+The existing arcade handling, reset, and keyboard/gamepad controls are
+retained. In-game replay and the recorded-input ghost have been removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
 
-The **Blackglass District** is the default world, and **Drive** goes straight
-into it as free roam: 11.31 km of street across 33 junctions in a 935 x 935 m
-block, with no route, no timing and no finish line. The top-down board at
-`/district.html` — or **District map** on the title screen and in Pause —
-previews six route guides over the same streets; `?route=<id>` overlays one
-and draws its arrows and gates. Junctions are open and races are not scored
-yet. `?world=blackglass` returns to the original closed course. See
-[`design/DISTRICT.md`](design/DISTRICT.md) for scope and playtest questions.
+**Seattle map** opens `/seattle.html`. Its **Edit Seattle** link opens the
+building workshop at `/editor.html`; validated placements are shared by the
+renderer and collision system. See [`design/EDITOR.md`](design/EDITOR.md).
+
+Seattle is the only playable demo map. Old Blackglass links redirect to it;
+Blackglass geometry and asset files remain offline regression fixtures and
+are excluded from the playable map/rendering bundle.
 
 The proposed core gameplay hook is documented in
 [`design/LIVE_CRED.md`](design/LIVE_CRED.md): stylish racing creates temporary
@@ -66,8 +77,9 @@ Cred that can be burned on Surge or carried across the finish line to buy
 parts. It is a design target, not functionality in the current build.
 
 The garage is a functional first visual-customization slice. It uses the same
-car mesh as the track and currently offers paint, wheel finish, and visual ride
-height. FWD is the default drivetrain. Your drivetrain, paint, wheel finish and
+car mesh as the track and offers **NS-01** and **Bulwark** car choices, paint,
+wheel finish, and visual ride height. Both cars currently share the same handling
+and visual setup. FWD is the default drivetrain. Your car, drivetrain, paint, wheel finish and
 stance automatically save on this browser and return after refresh/reopening.
 Pause and Garage show save status; blocked storage leaves the game usable with
 session-only choices. Performance parts, prices, race progress and saved replays
@@ -80,30 +92,38 @@ temporary previews and never overwrite the save on load. Selecting an option
 in a menu saves that field and removes its URL override so refresh honors it.
 Use a plain `?scene=garage` link to restore your entire saved setup.
 
-The default car is the original **NS-01 Blender coupe**. Its editable source,
+The default car is the original **NS-01 Blender coupe**, with the **Bulwark**
+available alongside it in the garage. Its editable source,
 export workflow and small hands-on guide are in
 [`assets/cars/README.md`](assets/cars/README.md). Paint, wheels and stance work on
 the imported GLB; the original procedural car is still available at
 `?scene=garage&car=classic` for comparison. This changes visuals, not handling.
 
-The tunnel-to-bridge stretch is now Blender-authored too: faceted tunnel
-cladding, service details, portals, deeper bridge trusses/piers and a small
-skyline backdrop. The rest of the circuit remains procedural. Open the source
-and follow [`the track workshop guide`](assets/tracks/blackglass/README.md), then
-use `pnpm track:export "C:\path\to\blender.exe"` and refresh. Normal export
-preserves hand edits; it does not regenerate the source. `?environment=classic`
-selects the old tunnel/bridge explicitly. Road geometry and physics are unchanged.
+The archived Blackglass Blender course and
+[`track workshop guide`](assets/tracks/blackglass/README.md) remain developer
+references. Its GLB is in `assets/tracks/blackglass-rivergate.glb` and is not
+shipped in `public/` or loaded by Seattle.
 
-Controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
+Open **Controls** from the main or pause menu for the driving guide and remapping.
+The guide is no longer overlaid while driving. Select a keyboard/controller binding,
+then press its replacement; Escape cancels, and **Restore defaults** resets all
+bindings. Conflicts are rejected. Menu navigation, arrow-key driving and stick axes
+stay fixed. Controller button remapping preserves analog trigger values.
+Bindings save separately in `nightshift.controls` on this browser; blocked storage
+keeps changes usable for the session.
+
+Default controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
 and Space/A applies the handbrake. The right stick orbits the camera; R3/C
-recenters it. R/Y resets, P/View replays the current run, and H/LB toggles
+recenters it. R/Y resets and H/LB toggles
 telemetry. Escape/Options pauses; arrows or the D-pad navigate menus, and
 Enter/Cross selects. The HUD confirms when a standard gamepad is ready.
-In the garage, the right stick orbits the inspection camera and R3/C recenters it.
+In the garage, the right stick rotates the car and its platform under a fixed
+inspection camera; R3/C resets the platform angle.
 Headless tests also measure road-surface clearance and exercise both a paced
 reference lap and a deliberately doomed throttle-pinned lap.
 The elevation profile is simulation-owned: the road, car, barriers, camera, and
-small uphill/downhill acceleration effect all use the same sampled course data.
+small uphill/downhill acceleration effect use the same Seattle height function.
+Blackglass reference-lap tests remain offline regression coverage.
 
 ## Structure
 
@@ -115,6 +135,7 @@ NIGHTSHIFT/
 │   ├── sim/          # the game: deterministic, renderless, testable
 │   ├── input/        # physical controls → simulation actions
 │   ├── render/       # the picture: three.js, knows nothing else
+│   ├── editor/       # Seattle building placement and scene exchange
 │   └── main.ts       # wiring: input → fixed tick → render + input log
 ├── tests/             # headless deterministic simulation checks
 └── index.html
@@ -136,16 +157,16 @@ these exclusions when preparing a public source release.
 
 ## Production order
 
-Per GDD §20: handling prototype → race prototype → district prototype →
-game loop → vertical slice polish. The out-of-scope list in GDD §21 is
-binding — features on it are reconsidered only after the core loop has
-proven itself.
+GDD §20 records the phases and current checkpoint. Seattle driving, the
+open-checkpoint event, garage and workshop are playable. Improve the city
+through driving feedback while preserving handling; career, upgrades and rival
+personalities remain future work. GDD §21 bounds the current slice and permits
+natural Seattle expansion. A later phone port is not a blocker for PC work.
 
 ## Lineage
 
 Same garage as [SENTINEL](https://github.com/KvFxKaido/SENTINEL),
 different car: this game shares that project's engineering doctrine
 (sim/renderer separation, determinism as a test, replay-as-data) but not
-its universe. Nightshift's district has working streetlights, civilian
-traffic, and a functioning gas station — none of which survived the
-collapse next door.
+its universe. NIGHTSHIFT's current Seattle slice has street lighting, civilian
+traffic and Wharf Garage; it does not simulate businesses.

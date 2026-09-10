@@ -1,6 +1,12 @@
 # Blackglass Circuit
 
-Status: Blender tunnel / bridge visual slice on the existing drivable geometry
+**Archived course reference — no longer a playable demo map (2026-09-10).**
+The active world and authoring workflow are [Seattle](SEATTLE.md) and its
+[workshop](EDITOR.md). The course geometry remains for developer regression
+tests. Its GLB is now `assets/tracks/blackglass-rivergate.glb`, outside the
+shipped demo. Descriptions below record the original course.
+
+Historical status: Blender tunnel / bridge visual slice on the reference geometry
 
 Blackglass is NIGHTSHIFT's first proper course: a clockwise metropolitan loop
 that uses believable road hierarchy and practical lighting to make simple,
@@ -40,7 +46,7 @@ stale scenery after a future route change.
 
 The 238 m tunnel and 330 m bridge now use an original Blender source at
 `assets/tracks/blackglass/blackglass-rivergate.blend`, exported to
-`public/assets/tracks/blackglass-rivergate.glb`. Faceted concrete, ceramic
+`assets/tracks/blackglass-rivergate.glb`. Faceted concrete, ceramic
 wainscoting, ochre safety bands, service doors/vents, recessed cool fixtures and
 named portals establish the tunnel. Rivergate uses deeper through-trusses,
 piers, warm overhead fixtures and three distant skyline masses.

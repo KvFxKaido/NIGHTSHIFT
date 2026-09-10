@@ -2,12 +2,9 @@ import * as THREE from "three";
 import type { CameraLook } from "../input/input.ts";
 import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
 import type { TrafficState } from "../sim/traffic.ts";
-import type { DistrictRoute } from "../sim/district.ts";
-import { addDistrict, SKY_NAME } from "./district.ts";
 import { addTraffic, updateTraffic, type TrafficView } from "./traffic.ts";
 import { addRaceBeacon, updateRaceBeacon, type RaceView } from "./race.ts";
-import { GATE_RADIUS } from "../sim/events.ts";
-import { BLACKGLASS_WORLD, type RoadWorld } from "../sim/road-world.ts";
+import type { RoadWorld } from "../sim/road-world.ts";
 import {
   createCameraOrbitState,
   resetCameraOrbit,
@@ -15,8 +12,6 @@ import {
   type CameraOrbitState,
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
-import { addCourse } from "./course.ts";
-import { updateCourseLighting, type BlenderCourse } from "./blender-course.ts";
 import { createGarageScene } from "./garage.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 
@@ -34,9 +29,6 @@ export interface View extends CarView {
   cameraTarget: THREE.Vector3;
   cameraOrbit: CameraOrbitState;
   mode: ViewMode;
-  course: BlenderCourse | null;
-  /** A second car driving a recorded lap, or null when nobody is out there. */
-  rival: CarView | null;
   /** The district's sky dome, which follows the camera. Null off the district. */
   sky: THREE.Object3D | null;
   /** Traffic instances, or null in a world with none. */
@@ -47,11 +39,7 @@ export interface View extends CarView {
   surface: (x: number, z: number) => number;
 }
 
-/**
- * Place any car from a vehicle state. The player and the rival share this so a
- * recorded lap cannot drift into looking different from a live one — the lean,
- * the pitch and the wheels all come from the same code.
- */
+/** Place the selected body from simulation state. */
 export function placeCar(car: CarView, vehicle: VehicleState): void {
   car.car.position.set(vehicle.x, vehicle.y, vehicle.z);
   car.car.rotation.x = vehicle.pitch;
@@ -62,12 +50,16 @@ export function placeCar(car: CarView, vehicle: VehicleState): void {
   updateWheelPresentation(car, vehicle);
 }
 
-/** Put a rival body in the world, or take it out again. */
-export function setRival(view: View, rival: CarView | null): void {
-  if (view.rival === rival) return;
-  if (view.rival) view.scene.remove(view.rival.car);
-  view.rival = rival;
-  if (rival) view.scene.add(rival.car);
+/** Replace the active presentation body without resetting the simulation or camera. */
+export function setPlayerCar(view: View, parts: CarView): void {
+  if (view.car === parts.car) return;
+  const parent = view.car.parent ?? view.scene;
+  parts.car.position.copy(view.car.position);
+  parts.car.rotation.copy(view.car.rotation);
+  view.car.removeFromParent();
+  Object.assign(view, parts);
+  view.car.rotation.order = "YXZ";
+  parent.add(view.car);
 }
 
 /** Night is the district's real presentation; blockout is the flat work light
@@ -75,10 +67,9 @@ export function setRival(view: View, rival: CarView | null): void {
  *  surface error. `?lighting=blockout` still reaches it. */
 export type DistrictLighting = "night" | "blockout";
 
-export function createView(canvas: HTMLCanvasElement, carParts: CarView, course: BlenderCourse | null,
-  districtRoute: DistrictRoute | null = null, roadWorld: RoadWorld = BLACKGLASS_WORLD,
-  district = districtRoute !== null, lighting: DistrictLighting = "night",
-  traffic: TrafficState | null = null): View {
+export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWorld: RoadWorld,
+  lighting: DistrictLighting, traffic: TrafficState | null,
+  drawWorld: (scene: THREE.Scene) => void, gateRadius: number): View {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -87,21 +78,20 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = district && lighting === "night" ? 1.05 : 0.92;
+  renderer.toneMappingExposure = lighting === "night" ? 1.05 : 0.92;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x10182a);
   scene.fog = new THREE.FogExp2(0x101522, 0.0019);
-  if (district) addDistrict(scene, districtRoute, course?.root, lighting);
-  else addCourse(scene, course?.root);
-  if (district && lighting === "blockout") {
+  drawWorld(scene);
+  if (lighting === "blockout") {
     // Work lighting for the blockout: judge junctions and grades, not darkness.
     scene.add(new THREE.AmbientLight(0xbad4e0, 1.5));
     scene.background = new THREE.Color(0x243546);
     scene.fog = new THREE.FogExp2(0x243546, 0.0014);
-  } else if (district) {
+  } else {
     // Night. Almost all of the district's light is emissive — lit windows, neon,
     // the additive pools under the lamps — so the ambient term only has to stop
     // unlit geometry from going pure black, and the sky has to stay out of the
@@ -111,7 +101,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     scene.fog = new THREE.FogExp2(0x070c16, 0.0026);
   }
 
-  const nightDistrict = district && lighting === "night";
+  const nightDistrict = lighting === "night";
   scene.add(new THREE.HemisphereLight(0x466488, 0x160e12, nightDistrict ? 0.46 : 1.08));
   const moon = new THREE.DirectionalLight(0xa9d2ff, nightDistrict ? 0.62 : 1.82);
   moon.position.set(-90, 140, 80);
@@ -121,12 +111,6 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   moon.shadow.camera.right = 90;
   moon.shadow.camera.top = 90;
   moon.shadow.camera.bottom = -90;
-  if (course) {
-    // The authored chamfers and grazing-angle retaining walls need separation
-    // from their own shadow texels at the existing 180 m shadow-map footprint.
-    moon.shadow.normalBias = 0.06;
-    moon.shadow.bias = -0.0001;
-  }
   scene.add(moon);
   scene.add(moon.target);
   const garageScene = createGarageScene();
@@ -143,7 +127,6 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
   const view: View = {
     roadStart: roadWorld.start,
     renderer,
-    rival: null,
     scene,
     garageScene,
     garageYaw: 0,
@@ -154,10 +137,9 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, course:
     cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
-    course,
-    sky: scene.getObjectByName(SKY_NAME) ?? null,
+    sky: null,
     traffic: traffic ? addTraffic(scene, traffic) : null,
-    race: addRaceBeacon(scene, GATE_RADIUS),
+    race: addRaceBeacon(scene, gateRadius),
     surface: (x, z) => roadWorld.project(x, z).height,
   };
 
@@ -254,7 +236,6 @@ export function render(
   state: SimState,
   frameDelta: number,
   cameraLook: CameraLook,
-  rival: VehicleState | null = null,
 ): void {
   if (view.mode === "garage") {
     renderGarage(view, frameDelta, cameraLook);
@@ -262,7 +243,6 @@ export function render(
   }
 
   const car = state.vehicle;
-  if (view.course) updateCourseLighting(view.course, car);
   if (view.sky) view.sky.position.set(car.x, 0, car.z);
   // Traffic is drawn from the state the tick left behind, never interpolated or
   // guessed at: the renderer still only draws what a tick decided.
@@ -271,10 +251,6 @@ export function render(
   placeCar(view, car);
   view.moon.position.set(car.x - 90, 140, car.z + 80);
   view.moon.target.position.set(car.x, car.y, car.z);
-  // The rival is drawn from its own simulation's state, never interpolated or
-  // guessed at here: the renderer still only draws what a tick decided.
-  if (view.rival && rival) placeCar(view.rival, rival);
-
   const speedRatio = Math.min(1, car.speed / HANDLING.topSpeed);
 
   const forwardX = -Math.sin(car.heading);

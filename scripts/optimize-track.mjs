@@ -9,7 +9,7 @@ import { createBlenderCourse } from '../src/render/blender-course.ts';
 import { courseFingerprint, COURSE_ASSET_VERSION, COURSE_ASSET_NAME } from '../src/render/course-asset-contract.ts';
 
 const source = new URL('../artifacts/blackglass-rivergate.raw.glb', import.meta.url);
-const target = new URL('../public/assets/tracks/blackglass-rivergate.glb', import.meta.url);
+const target = new URL('../assets/tracks/blackglass-rivergate.glb', import.meta.url);
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const doc = await io.read(fileURLToPath(source));
 const root = doc.getRoot().listNodes().find(node => node.getName() === 'shipping-track-root');

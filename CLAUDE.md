@@ -39,10 +39,11 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1.
   exact thing that would fail if the assertion were false. Inspecting
   code, narrating arithmetic, or grepping for the convenient form of a
   pattern is a claim wearing verification's clothes.
-- **The out-of-scope list is binding** (GDD §21). Police, pedestrians,
-  multiplayer, weather, more cities, big car rosters — reconsidered only
-  after the core loop has proven itself. Scope expansion is the named
-  risk; do not be the vector.
+- **Respect the current slice boundaries** (GDD §21). Seattle may grow
+  naturally from driving feedback. Police and other selective LA ideas are
+  deferred possibilities, not permanently prohibited or already authorized
+  implementation tasks. Do not restore a second playable map or expand the
+  current feature set without a user scope decision.
 - **Handling is the first quality gate** (GDD §22). Poor handling cannot
   be rescued by more content. Phase 1 work outranks everything until the
   car feels good.
@@ -50,14 +51,56 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1.
   `src/sim/sim.ts`. Tune from evidence gathered on the handling course; do not
   scatter feel constants through simulation or rendering code.
 
+## Product direction (2026-09-10)
+
+- MC3 spiritual successor, with selective LA ideas possible later.
+- Open racing: no unnecessary barriers, no wrong-way penalties, just slower
+  alternatives between ordered checkpoints. Real obstacles retain collision.
+- Seattle is the sole demo map; grow it organically. MC3 San Diego is a scale
+  reference, not a demand for another city or a fixed area.
+- Graphics resemble upscaled/emulated MC3 rather than photorealism.
+- Preserve the current handling in Three.js/Rapier. Build the PC prototype
+  first; RedMagic 10 Pro is the eventual device, with port/testing later.
+  Capacitor is an option, not a confirmed packaging decision.
+- Customization target: body parts, paint and a few simple performance
+  upgrades. Detailed mechanical tuning and DUB-depth customization are not
+  requirements. Only paint, wheel finish and visual ride height exist today.
+- The GDD contains future career/Live Cred/Surge proposals. Keep planned
+  systems distinct from implemented behavior.
+
 ## Current state
+
+Seattle is now the only playable demo map and the default at `/`. The user
+explicitly retired the Blackglass map on September 10, 2026. Old world links
+migrate to Seattle; `district.html` redirects to the Seattle map board.
+Read `design/SEATTLE.md` for source geometry, regeneration and scope.
+
+Free roam starts at Wharf Garage in SoDo. Stop at its mapped entrance to
+enter; the garage camera is fixed and right stick rotates the platform/car.
+Races keep their separate street start and cannot enter the garage. The
+handling model and tuning are unchanged.
+
+The visual building workshop at `editor.html` now edits Seattle. Read
+`design/EDITOR.md` before changing save behavior. Validated saves go to
+`src/sim/seattle-layout.json`; rendering and Rapier share the resolved solids.
+Roads, Wharf Garage and its forecourt are protected. Three.js scene export
+and import remain supported.
+
+Shared projection, footprints and lane-network construction live in
+`street-path.ts`, `building-footprint.ts`, and `street-traffic.ts`. Do not
+import the legacy district to reuse a helper: the production build rejects
+old district/course renderers and district simulation data. Blackglass
+source remains only as developer regression fixtures. Its GLB is archived
+at `assets/tracks/blackglass-rivergate.glb`, outside public/demo assets.
+
+## Historical Blackglass prototype notes (developer fixtures, not the demo)
 
 Phase 1 environment prototype: one low-poly car on the 1.70 km Blackglass
 Circuit, including a long tunnel, steel-frame bridge, primitive city massing,
 four-wheel tire forces with independent combined grip limits, front/rear and
 left/right load transfer, and Rapier-integrated yaw/contact
 response, keyboard and standard gamepad input, speed-sensitive
-chase camera with right-stick orbit, reset/replay, toggleable telemetry, and a
+chase camera with right-stick orbit, reset, toggleable telemetry, and a
 light DOM menu shell for title, track selection, garage, and pause. Wharf Garage
 occupies an existing warehouse plot beside Wharf Road, with a G marker on the
 district map and minimap. Free roam starts at its entrance. Stop there outside
@@ -263,7 +306,7 @@ so a point inside one long street's box was answered with that street even when
 a nearer street's box had missed it; the test compares against brute force
 over every street. That brought district construction to 0.9 s before the apron work
 (2.2 s before indexing); current construction timings are given above. `RoadWorld` supplies the sim's start,
-boundaries and projection; reset and session rivals must retain that world.
+boundaries and projection; reset must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.
 `src/sim/lanes.ts` owns the lane model: two lanes each way whose width breathes
@@ -313,10 +356,9 @@ stepped after `syncState` at the end of `step()`. `?race=<id>` is a page-level
 choice like `?route=` (the main-menu Race button reloads into it); the HUD
 shows gate, countdown/clock/finish and position at top centre and draws the
 next gate on the minimap (a ring, or a chevron on the rim); `src/render/race.ts`
-stands a column of light on the next gate from `state.race.next`. The rival
-needs nothing new: reset archives your last run and races it back through the
-same gates, so "Restart Run" after a finish is a race against yourself. An
-authored, bundled rival log is the follow-up and must carry physics identity.
+stands a column of light on the next gate from `state.race.next`. In-game
+replay, input recording and the recorded-input rival have been removed.
+Restart starts a fresh solo run. Actual navigating rival AI remains future work.
 Checkpoints are placed where route choice exists, measured per leg with the
 critique's arithmetic; `tests/race.test.ts` gates every race on most legs
 having a real alternative, and drives the reference line through every gate
@@ -333,7 +375,7 @@ no bloom pass and no reflections. Baseline Blackglass presentation is
 untouched. `src/ui/hud.ts` draws the speed dial and the heading-up minimap from
 `src/ui/hud-state.ts`; the map reads street data, never the renderer, and the
 cluster binds to ids that `tests/hud.test.ts` checks against `index.html`.
-Changing route reloads and loses session replay, not saved preferences.
+Changing map/race pages reloads the run and retains saved preferences.
 Never use the original `courseGap` for district guides; `districtRouteGap`
 wraps circuits and keeps sprint gaps linear. Debug links carry world/route
 identity, which future saved ghosts must validate as well as physics/build.
@@ -341,10 +383,13 @@ Automatic countersteering is off (`four-wheel-v3`). Manual catches get faster
 response and extra range only when the player requests countersteer; neutral
 input never steers itself. Ordinary turn-in keeps its speed envelope, while
 unwinding is quicker. Pause contains AWD/FWD/RWD comparison
-buttons. Changing layout resets the run and clears replay history; ordinary
-reset/replay retain the run's drivetrain. Full countersteer can catch longer
+buttons. Changing layout resets the run; ordinary reset retains the run's drivetrain. Full countersteer can catch longer
 30 m/s slides; weak/late corrections and prolonged highway-speed slides remain
 limitations. Tests distinguish manual recovery from automatic intervention.
+Garage offers NS-01 and Bulwark as selectable bodies with shared handling and
+appearance settings. Load the selected body at boot; selecting the other loads
+it on demand, preserves simulation/camera state, and saves the selection.
+Settings schema 3 adds car selection and migrates schema 1/2 preferences.
 `src/settings/settings.ts` owns versioned browser-local preferences, outside the
 simulation. Restore preferences before creating the sim/view; synchronize menu
 selections from that state. URL overrides are temporary: `settings.preview()`
@@ -382,3 +427,18 @@ import SENTINEL lore, factions, or aesthetics here; the decision and its
 reasoning live in the SENTINEL session history (2026-07-30). If a
 crossover ever happens, it is Shawn's call at naming time, not an
 assistant's flourish.
+
+
+### Controls menu and input remapping
+
+Main and Pause open the Controls screen. Returning from Controls restores its
+originating menu and never resumes a paused run. The driving HUD has no permanent
+control guide. `src/input/bindings.ts` defines validated keyboard and controller
+button mappings; `src/ui/controls.ts` renders the guide, captures through the input
+controller, and saves schema 1 in `nightshift.controls`. Keep navigation and stick
+axes fixed so players cannot lose access to menus. Capturing consumes input,
+waits for controller-button release, rejects duplicates/reserved controls, and
+cancels on Escape, Menu/Options, blur or screen exit. Preserve the driving release
+gate and analog trigger values. The garage prompt and recenter hint read bindings.
+Tests cover mappings, capture and pause return; `scripts/check-controls-browser.js`
+checks live keyboard/simulated-pad delivery, storage, navigation and viewport fit.

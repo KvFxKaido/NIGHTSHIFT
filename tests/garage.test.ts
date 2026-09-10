@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { DISTRICT_GARAGE, DISTRICT_BLOCKS, createFreeRoamWorld } from "../src/sim/district.ts";
+import { SEATTLE_GARAGE as DISTRICT_GARAGE, SEATTLE_BLOCKS as DISTRICT_BLOCKS, createSeattleWorld as createFreeRoamWorld } from "../src/sim/seattle.ts";
 import { canEnterGarage } from "../src/sim/garage.ts";
 import { createSim, step, type SimState } from "../src/sim/sim.ts";
 import { transitionMenu } from "../src/ui/menu-state.ts";

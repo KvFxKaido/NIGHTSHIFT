@@ -33,7 +33,7 @@ export interface HudRace {
 }
 
 export interface Hud {
-  update(vehicle: HudVehicle, rival: { x: number; z: number } | null, race?: HudRace | null): void;
+  update(vehicle: HudVehicle, race?: HudRace | null): void;
 }
 
 /** How much of the world the minimap disc covers, edge to centre. */
@@ -86,7 +86,7 @@ export function createHud(options: HudOptions): Hud {
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
   };
 
-  const drawMinimap = (vehicle: HudVehicle, rival: { x: number; z: number } | null, race: HudRace | null) => {
+  const drawMinimap = (vehicle: HudVehicle, race: HudRace | null) => {
     if (!canvas || !context) return;
     sizeCanvas();
     const size = mapSize / Math.min(devicePixelRatio || 1, 2);
@@ -140,14 +140,6 @@ export function createHud(options: HudOptions): Hud {
       context.fillText("G", x, y);
     }
 
-    if (rival && withinMinimap(camera, rival.x, rival.z, 1)) {
-      const pixel = minimapPixel(camera, rival.x, rival.z);
-      context.fillStyle = "#ff4d6d";
-      context.beginPath();
-      context.arc(pixel.x, pixel.y, 3.6, 0, Math.PI * 2);
-      context.fill();
-    }
-
     // The next gate: a ring where it is, or a chevron on the rim pointing at it
     // when it is off the disc. The Midnight Club arrow.
     if (race?.next) {
@@ -191,7 +183,7 @@ export function createHud(options: HudOptions): Hud {
   };
 
   return {
-    update(vehicle, rival, race = null) {
+    update(vehicle, race = null) {
       const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed);
       speedElement.textContent = reading.mph.toString().padStart(3, "0");
       gearElement.textContent = reading.gear;
@@ -207,7 +199,7 @@ export function createHud(options: HudOptions): Hud {
         sweep.style.strokeDasharray = `${arc * reading.ratio} ${GAUGE_CIRCUMFERENCE}`;
         sweep.classList.toggle("redline", reading.redline);
       }
-      drawMinimap(vehicle, rival, race);
+      drawMinimap(vehicle, race);
     },
   };
 }

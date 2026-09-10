@@ -26,7 +26,8 @@
 }
 
 body[data-game-screen="main"] #hud,
-body[data-game-screen="garage"] #hud {
+body[data-game-screen="garage"] #hud,
+body[data-game-screen="controls"] #hud {
   opacity: 0;
 }
 
@@ -491,4 +492,30 @@ body[data-game-screen="pause"] #hud {
 .audio-levels input[type="range"]:focus-visible {
   outline: 2px solid rgb(120 210 255);
   outline-offset: 3px;
+}
+
+/* Controls remain a scrollable menu, leaving the driving HUD clear. */
+.menu-root[data-screen="controls"] .menu-shell { width: min(740px, 100%); }
+.menu-root[data-screen="controls"] .menu-screen {
+  width: 100%; max-height: calc(100dvh - clamp(48px, 10vw, 144px)); overflow-y: auto;
+  padding: clamp(18px, 3vw, 30px); background: rgba(5, 10, 16, .94);
+  border-right: 2px solid var(--menu-cyan, #75dfff);
+}
+.controls-intro, .controls-fixed, .controls-status { font-size: 12px; line-height: 1.6; color: var(--menu-muted); }
+.controls-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+.controls-table th { text-align: left; font-size: 12px; font-weight: 500; }
+.controls-table thead th { color: var(--menu-muted); text-transform: uppercase; font-size: 10px; padding-bottom: 8px; }
+.controls-table td, .controls-table tbody th { padding: 5px 4px; border-top: 1px solid rgba(160, 195, 220, .1); }
+.controls-table td { width: 29%; font-size: 11px; color: var(--menu-muted); }
+.binding-button { width: 100%; min-height: 34px; }
+.controls-status { color: #75dfff; min-height: 38px; }
+.controls-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.controls-actions .menu-button { flex: 1; min-width: 130px; font-size: 11px; }
+.controls-menu button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 720px) {
+  .menu-root[data-screen="controls"] { padding: 12px; }
+  .menu-root[data-screen="controls"] .menu-screen { max-height: calc(100dvh - 24px); }
+  .controls-table th { font-size: 11px; }
+  .controls-table td { font-size: 10px; }
+  .binding-button { padding: 8px 4px; font-size: 10px; }
 }

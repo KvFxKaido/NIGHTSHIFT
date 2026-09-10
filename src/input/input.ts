@@ -1,3 +1,4 @@
+import { copyBindings, DEFAULT_BINDINGS, type Bindings, type BindingDevice } from "./bindings.ts";
 import type { Input } from "../sim/sim.ts";
 
 export interface CameraLook {
@@ -9,6 +10,10 @@ export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" 
 
 export interface InputController {
   update(): void;
+  bindings(): Bindings;
+  setBindings(bindings: Bindings): void;
+  beginCapture(device: BindingDevice, done: (value: string | number | null) => void): void;
+  cancelCapture(): void;
   sample(): Input;
   cameraLook(): CameraLook;
   consumeMenuCommands(): MenuCommand[];
@@ -17,7 +22,6 @@ export interface InputController {
   isDrivingGated(): boolean;
   consumeReset(): boolean;
   consumeCameraReset(): boolean;
-  consumeReplay(): boolean;
   consumeDebugToggle(): boolean;
   gamepadName(): string | null;
 }
@@ -61,17 +65,17 @@ function buttonPressed(gamepad: Gamepad | null, index: number): boolean {
   return gamepad?.buttons[index]?.pressed ?? false;
 }
 
-export function mapGamepad(gamepad: Gamepad | null): Input {
+export function mapGamepad(gamepad: Gamepad | null, bindings = DEFAULT_BINDINGS.gamepad): Input {
   const analogSteer = deadzone(gamepad?.axes[0] ?? 0, STEERING_DEADZONE);
   const dpadLeft = buttonPressed(gamepad, 14);
   const dpadRight = buttonPressed(gamepad, 15);
   const dpadSteer = (dpadLeft ? -1 : 0) + (dpadRight ? 1 : 0);
 
   return {
-    throttle: buttonValue(gamepad, 7),
-    brake: buttonValue(gamepad, 6),
+    throttle: buttonValue(gamepad, bindings.throttle),
+    brake: buttonValue(gamepad, bindings.brake),
     steer: dpadLeft || dpadRight ? dpadSteer : analogSteer,
-    handbrake: buttonValue(gamepad, 0),
+    handbrake: buttonValue(gamepad, bindings.handbrake),
   };
 }
 
@@ -96,11 +100,12 @@ export function mapMenuHorizontal(gamepad: Gamepad | null): -1 | 0 | 1 {
   return axis < -0.65 ? -1 : axis > 0.65 ? 1 : 0;
 }
 
-export function createInputController(): InputController {
+export function createInputController(initialBindings = DEFAULT_BINDINGS): InputController {
+  let bindings = copyBindings(initialBindings);
+  let capture: { device: BindingDevice; ready: boolean; done: (value: string | number | null) => void } | null = null;
   const held = new Set<string>();
   let resetRequested = false;
   let cameraResetRequested = false;
-  let replayRequested = false;
   let debugToggleRequested = false;
   let gamepad: Gamepad | null = null;
   let previousButtons: readonly boolean[] = [];
@@ -110,26 +115,44 @@ export function createInputController(): InputController {
   let drivingGateSamples = 0;
   const menuCommands: MenuCommand[] = [];
 
+  function finishCapture(value: string | number | null): void {
+    const done = capture?.done;
+    capture = null;
+    held.clear();
+    menuCommands.length = 0;
+    resetRequested = cameraResetRequested = debugToggleRequested = false;
+    drivingInputGated = true;
+    drivingGateSamples = 0;
+    done?.(value);
+  }
+
   addEventListener("keydown", (event) => {
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
+    if (capture) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.repeat) return;
+      if (event.code === "Escape") finishCapture(null);
+      else if (capture.device === "keyboard") finishCapture(event.code);
+      return;
+    }
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Enter", "NumpadEnter"].includes(event.code)) {
       event.preventDefault();
     }
     held.add(event.code);
     if (event.repeat) return;
     if (event.code === "Escape") menuCommands.push("pause");
-    if (event.code === "KeyE") menuCommands.push("interact");
+    if (event.code === bindings.keyboard.interact) menuCommands.push("interact");
     if (event.code === "Enter" || event.code === "NumpadEnter") menuCommands.push("confirm");
     if (event.code === "ArrowUp") menuCommands.push("up");
     if (event.code === "ArrowDown") menuCommands.push("down");
     if (event.code === "ArrowLeft") menuCommands.push("left");
     if (event.code === "ArrowRight") menuCommands.push("right");
-    if (event.code === "KeyR") resetRequested = true;
-    if (event.code === "KeyC") cameraResetRequested = true;
-    if (event.code === "KeyP") replayRequested = true;
-    if (event.code === "KeyH") debugToggleRequested = true;
+    if (event.code === bindings.keyboard.reset) resetRequested = true;
+    if (event.code === bindings.keyboard.camera) cameraResetRequested = true;
+    if (event.code === bindings.keyboard.telemetry) debugToggleRequested = true;
   });
   addEventListener("keyup", (event) => held.delete(event.code));
-  addEventListener("blur", () => held.clear());
+  addEventListener("blur", () => { held.clear(); if (capture) finishCapture(null); });
 
   function update(): void {
     gamepad = navigator.getGamepads().find(
@@ -138,10 +161,21 @@ export function createInputController(): InputController {
 
     const currentButtons = gamepad?.buttons.map((button) => button.pressed) ?? [];
     const justPressed = (index: number) => currentButtons[index] && !previousButtons[index];
-    if (justPressed(3)) resetRequested = true;       // Y / Triangle
-    if (justPressed(8)) replayRequested = true;      // View / Share
-    if (justPressed(4)) debugToggleRequested = true; // LB / L1
-    if (justPressed(11)) cameraResetRequested = true; // R3
+    if (capture) {
+      if (justPressed(9)) finishCapture(null);
+      else if (capture.device === "gamepad") {
+        if (gamepad && gamepad.buttons.every(button => button.value < .2)) capture.ready = true;
+        const pressed = gamepad?.buttons.findIndex((button, index) => button.value > .5 && justPressed(index)) ?? -1;
+        if (capture.ready && pressed >= 0) finishCapture(pressed);
+      }
+      previousButtons = currentButtons;
+      previousMenuVertical = mapMenuVertical(gamepad);
+      previousMenuHorizontal = mapMenuHorizontal(gamepad);
+      return;
+    }
+    if (justPressed(bindings.gamepad.reset)) resetRequested = true;
+    if (justPressed(bindings.gamepad.telemetry)) debugToggleRequested = true;
+    if (justPressed(bindings.gamepad.camera)) cameraResetRequested = true;
     if (justPressed(9)) menuCommands.push("pause");    // Menu / Options
     if (justPressed(0)) menuCommands.push("confirm"); // A / Cross
     if (justPressed(1)) menuCommands.push("back");    // B / Circle
@@ -161,23 +195,23 @@ export function createInputController(): InputController {
   }
 
   function sample(): Input {
-    const padInput = mapGamepad(gamepad);
+    const padInput = mapGamepad(gamepad, bindings.gamepad);
     const keyboardSteer =
-      (held.has("KeyA") || held.has("ArrowLeft") ? -1 : 0) +
-      (held.has("KeyD") || held.has("ArrowRight") ? 1 : 0);
+      (held.has(bindings.keyboard.left) || held.has("ArrowLeft") ? -1 : 0) +
+      (held.has(bindings.keyboard.right) || held.has("ArrowRight") ? 1 : 0);
 
     const nextInput = {
       throttle: Math.max(
-        held.has("KeyW") || held.has("ArrowUp") ? 1 : 0,
+        held.has(bindings.keyboard.throttle) || held.has("ArrowUp") ? 1 : 0,
         padInput.throttle,
       ),
       brake: Math.max(
-        held.has("KeyS") || held.has("ArrowDown") ? 1 : 0,
+        held.has(bindings.keyboard.brake) || held.has("ArrowDown") ? 1 : 0,
         padInput.brake,
       ),
       steer: padInput.steer !== 0 ? padInput.steer : keyboardSteer,
       handbrake: Math.max(
-        held.has("Space") ? 1 : 0,
+        held.has(bindings.keyboard.handbrake) ? 1 : 0,
         padInput.handbrake,
       ),
     };
@@ -196,22 +230,27 @@ export function createInputController(): InputController {
     return nextInput;
   }
 
-  function consume(flag: "reset" | "camera" | "replay" | "debug"): boolean {
+  function consume(flag: "reset" | "camera" | "debug"): boolean {
     const value = flag === "reset"
       ? resetRequested
       : flag === "camera"
         ? cameraResetRequested
-        : flag === "replay"
-          ? replayRequested
-          : debugToggleRequested;
+        : debugToggleRequested;
     if (flag === "reset") resetRequested = false;
     if (flag === "camera") cameraResetRequested = false;
-    if (flag === "replay") replayRequested = false;
     if (flag === "debug") debugToggleRequested = false;
     return value;
   }
 
   return {
+    bindings: () => copyBindings(bindings),
+    setBindings: next => { bindings = copyBindings(next); held.clear(); drivingInputGated = true; drivingGateSamples = 0; },
+    beginCapture: (device, done) => {
+      if (capture) finishCapture(null);
+      held.clear(); menuCommands.length = 0;
+      capture = { device, done, ready: false };
+    },
+    cancelCapture: () => { if (capture) finishCapture(null); },
     update,
     sample,
     cameraLook: () => mapCameraGamepad(gamepad),
@@ -220,7 +259,6 @@ export function createInputController(): InputController {
     isDrivingGated: () => drivingInputGated,
     consumeReset: () => consume("reset"),
     consumeCameraReset: () => consume("camera"),
-    consumeReplay: () => consume("replay"),
     consumeDebugToggle: () => consume("debug"),
     gamepadName: () => gamepad?.id ?? null,
   };

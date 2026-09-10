@@ -2,11 +2,13 @@
 
 Game Design Document
 
-Status: Early Concept
+Status: Playable PC browser prototype; career/progression remain design targets
+Direction updated: 2026-09-10
 Working Title: Project Nightshift
 Genre: Arcade street racer
-Primary Platform: PC web browser
-Secondary Platform: Android via Capacitor
+Prototype Platform: PC web browser
+Target Hardware: RedMagic 10 Pro (Android), after the PC prototype
+Android Packaging: Deferred; Capacitor remains an option
 Technology: TypeScript, Vite, Three.js, Rapier
 Target Session Length: 5 to 20 minutes
 
@@ -16,42 +18,40 @@ Target Session Length: 5 to 20 minutes
 
 Project Nightshift is a compact arcade street-racing game centered on illegal nighttime racing, car customization, rival progression, and mastery of a dense fictional city district.
 
-The game combines:
-
-- The focused career structure and presentation of Need for Speed: Underground
-- The route freedom and city knowledge of Midnight Club
-- A small amount of the street-level lifestyle fantasy from Need for Speed: Underground 2
+The primary reference is **Midnight Club 3: DUB Edition**: open racing,
+route discovery, city familiarity and ownership through customization.
+Midnight Club: Los Angeles can supply selected ideas when useful, including
+police as a possible later feature. Other racing references inform particular
+visual or driving choices without replacing that direction.
 
 Players build one car into a personal street-racing machine, challenge recognizable rivals, discover shortcuts, and climb through a local racing scene.
 
-The city is not intended to be a large open world. It is a carefully designed racing space where every alley, parking garage, overpass, and construction gap has a gameplay purpose.
+The world is a fictionalized, compressed Seattle built for racing. Start with a useful connected slice and expand naturally when driving and route choices justify it. MC3 San Diego is a reference for the eventual sense of scale, not a requirement to recreate San Diego or match an exact map area.
 
-### 1.1 The Reference Is Midnight Club 3, Not Los Angeles
+### 1.1 Current Direction
 
-Project Nightshift is a spiritual successor to Midnight Club 3: DUB Edition in
-its **format** — open-checkpoint racing through a city you learn, shortcuts as
-the skill, rivals you find cruising and flash to challenge, a garage that makes
-the car yours. It is not a successor to Midnight Club: Los Angeles in its
-**simulation trappings** — police, day/night, weather, damage, a licensed
-roster. Every one of those is on the out-of-scope list in §21, and that is not
-a coincidence: §21 is the LA feature list.
+- **Format:** MC3-inspired open-checkpoint racing. “No unnecessary barriers,
+  no wrong ways, just slower ways.” The required checkpoints define the event;
+  the player chooses the streets between them.
+- **World:** Seattle is the sole playable demo map. Blackglass is retired from
+  the demo and retained as offline regression/reference material.
+- **Look:** approximately MC3 played at higher resolution on an emulator:
+  readable silhouettes, simple geometry, strong lighting and authored detail.
+- **Hardware and sequence:** preserve the nearly-right handling in the PC
+  prototype first. RedMagic 10 Pro is the eventual hardware target; its port
+  and on-device testing can follow. There is no current engine migration.
+- **Customization:** body parts, paint and a few understandable performance
+  upgrades. The player should not need mechanical expertise.
+- **Scope:** grow one city from play feedback. Police and other LA-inspired
+  features are possible later additions, not commitments for the current slice.
 
-LA features are taken where they serve the format and refused where they
-change the verb. Reputation as gate and currency is Live Cred. The phone and
-challenge flow is the hub loop. Cruising rivals you flash to challenge are in
-the vertical slice. Police are refused even beyond §21: they turn *learn the
-city* into *flee the city*, which is a different game.
+The rest of this document includes unimplemented career, rival, Live Cred and
+Surge proposals. The current playable features are listed in §6.4 and
+[SEATTLE.md](SEATTLE.md); a design paragraph is not evidence that it exists.
 
-What the game holds against Midnight Club gravity: **one district**, not three
-cities — §2's whole thesis is that a small city feels enormous. **One car** with
-DUB-depth customization, not a DUB roster: take the garage, refuse the car
-list. **One Surge**, not Agro, Roar and Zone: three abilities is roster thinking
-in disguise.
-
-Shortcuts are the content, not a garnish. The rule is not *few*; it is **every
-shortcut has a cost** — it is narrower, or blind, or a jump you can miss, or it
-puts you in traffic. A shortcut with no cost is just a shorter road, and a
-district with few shortcuts is a district with nothing to learn.
+Shortcuts should have readable tradeoffs: a narrow gap, a difficult turn,
+traffic exposure, or a longer but faster road. A missed turn should create
+another decision rather than an artificial wrong-way failure.
 
 ---
 
@@ -100,7 +100,7 @@ The player should become attached to their car.
 
 Visual and performance upgrades should make the vehicle feel increasingly personal while preserving its underlying handling identity.
 
-The game should favor a small number of deeply customizable cars over a large catalog of disposable ones.
+Favor a small roster with meaningful visual choices. Body parts, paint and a few readable performance upgrades establish ownership without requiring deep mechanical tuning.
 
 ### 3.5 Style Is Part of Progression
 
@@ -193,9 +193,9 @@ plan live in [`LIVE_CRED.md`](LIVE_CRED.md). This system is not implemented yet.
 
 ### 6.1 The District
 
-The initial game takes place in one fictional nighttime district composed of several connected zones.
+The current game takes place in a fictionalized Seattle at night. Its connected zones borrow real street structure, with compressed distances, wider roads, softened grades and authored connections. Additional neighborhoods should follow useful driving routes rather than a predetermined whole-city build.
 
-Possible zones include:
+Possible zones beyond the first Seattle blockout include:
 
 - Neon commercial strip
 - Industrial shipping yard
@@ -238,29 +238,45 @@ The hub does not initially require:
 - Complex civilian traffic schedules
 - Enterable interiors outside key locations
 
-### 6.3 Race Boundaries
+### 6.3 Open Racing
 
-Events reuse parts of the explorable district but can apply temporary boundaries, barriers, traffic configurations, shortcuts, ramps, and visual dressing.
+Events reuse the freely drivable street network. Checkpoints, traffic and
+visual cues can change the race, but unnecessary temporary walls and
+wrong-way penalties must not force one route between gates. Existing
+buildings, seawalls and other believable obstacles can constrain movement;
+keep their visible and collision geometry consistent.
 
-This allows the same environment to support both open navigation and tightly authored races.
+An alternate road may be slower, awkward, or risky. It remains a valid choice
+if the player reaches the checkpoints in order. Circuit and sprint variants
+should preserve this principle.
 
-### 6.4 Current District Layout Study
+### 6.4 Current Seattle Demo
 
-The district retains Blackglass's perimeter and is laid out around a
-geography rather than a diagram: a river along the east with three crossings
-and a far bank reached only over them, a freight line cutting the north, and
-terrain rising 20 m to the old quarter in the north-west. It covers 933 x 867 m
-with 9.26 km of street across 53 edges and 35 junctions (24 of them real
-choice points), a road-width hierarchy from 24 m arterials to 8 m alleys, 321
-buildings standing on 18 of its 19 enclosed blocks, and about two dozen
-traffic vehicles. Fixed street data is separate from directed route
-definitions; six route guides reuse those streets. **Free roam is how the
-district is entered** — there is no track selection, and the guides are
-overlays for specific studies rather than a way to start. The interactive
-top-down board, the layout critique (`pnpm district:critique`) and the playable
-scope are described in [DISTRICT.md](DISTRICT.md). This is an authored layout,
-not runtime procedural roads. Preserve the original course as the handling
-reference while judging the new network.
+Seattle is the only playable map and opens at the base URL. The first slice
+contains about 13.1 km of streets, 63 street-graph edges, 160 generated building
+masses plus Wharf Garage, a fictional waterfront bypass, and softened hills.
+City of Seattle/SDOT centerlines supply the structure; buildings, elevation,
+widths and some connections are game adaptations. See [SEATTLE.md](SEATTLE.md)
+and the [source notes](../assets/maps/seattle/README.md).
+
+Free roam starts outside **Wharf Garage** in SoDo. Stop at its marked entrance
+and press E/Enter or Cross/A to enter. Customization uses the same car mesh;
+the camera stays fixed while right stick rotates the car/platform. Driving
+out returns to the forecourt. Races use a separate street start and disable
+garage entry. **Sound to Sky** is a four-checkpoint race with free route choice.
+Traffic, reset and browser-local car/customization settings exist. The garage
+offers NS-01 and Bulwark; both share the current handling and visual setup.
+In-game replay and the recorded-input ghost have been removed.
+Career progression, purchased upgrades, police and opponent personalities do not.
+
+The map board is `seattle.html`; `editor.html` edits Seattle building
+placements. Validated saves feed both rendering and Rapier. The garage,
+forecourt and roads are protected. See [EDITOR.md](EDITOR.md).
+
+Blackglass world links migrate to Seattle and `district.html` redirects to
+its map board. Blackglass's district/course renderers and its Rivergate GLB
+are excluded from the playable demo build. Legacy source and tests remain
+for regression coverage, not as an alternate playable map.
 
 ---
 
@@ -268,18 +284,15 @@ reference while judging the new network.
 
 Open checkpoint (§7.3) is the primary event and the one the district is tuned
 for. The others are variations on it — a circuit is an open checkpoint race
-whose checkpoints repeat, a sprint is one whose route between checkpoints is
-fixed — and none of them is built before open checkpoint works.
+whose checkpoints repeat, a sprint is a point-to-point checkpoint sequence — and none of them is built before open checkpoint works.
 
-A race is a sequence of checkpoints, and its route choice is measured **per
-leg**, not over the whole city: for each leg, close the single most important
-street on the best route and see what the detour costs. Under about 10% the
-two routes are near-equal and knowing the shortcut is barely rewarded; over
-about 25% there is one way and the leg is a sprint in disguise; between them
-is the Midnight Club sweet spot, where the main road is viable and the alley
-wins. Checkpoints are placed where that choice exists. `pnpm district:critique`
-measures the city; the same arithmetic applied to a checkpoint sequence
-measures a race, and the first event was chosen that way.
+A race is a sequence of checkpoints, and route choice should be judged per
+leg. Compare a direct route with plausible alternatives by driving them:
+distance alone misses corner speed, grades, traffic and difficult entries.
+The old Blackglass study used a 10–25% detour-cost heuristic; that is historical
+analysis, not a validated Seattle balance target. `pnpm district:critique`
+still analyzes the retired Blackglass data and must not be used to report
+Seattle measurements. Sound to Sky needs continued human route testing.
 
 ### 7.1 Circuit
 
@@ -371,10 +384,9 @@ Implemented in the browser prototype:
 - Authored road-height/pitch constraint and grade acceleration
 - Individual visual wheel angles and free-rolling distance drawn from simulation state
 
-Pause's handling comparison changes only the propulsion split, restarts the run
-and clears its old replay. It is prototype tuning, not a purchased drivetrain
+Pause's handling comparison changes only the propulsion split and restarts the run. It is prototype tuning, not a purchased drivetrain
 swap or garage upgrade. Physics revision and drivetrain identify the simulation
-setup; ordinary restart/replay retain that layout.
+setup; ordinary restart retains that layout.
 
 There are no suspension raycasts, wheel inertia/spin/lockup simulation, downforce
 or airborne tire contact detection yet. Ride height customization remains visual.
@@ -432,68 +444,30 @@ Upgrades should bend these identities rather than flattening every car into the 
 
 ### 9.1 Visual Customization
 
-Potential visual categories include:
-
-- Paint
-- Vinyls
-- Decals
-- Wheels
-- Ride height
-- Window tint
-- Headlights
-- Taillights
-- Front bumper
-- Rear bumper
-- Side skirts
-- Hood
-- Spoiler
-- Exhaust
-- License plate
-- Interior accent lighting
-
-The first release does not need every category. Paint, wheels, ride height, vinyls, spoiler, and lighting can establish the fantasy.
+The target is paint and modular body parts such as bumpers, side skirts,
+hoods and spoilers. Keep the set small enough to author coherent cars.
+Current implementation offers paint, wheel finish and visual ride height;
+body-part swapping is still planned. Vinyls, elaborate lighting and interior
+accessories are optional future scope, not a required launch checklist.
 
 ### 9.2 Performance Customization
 
-Performance upgrades may include:
+Plan a few upgrades with clear effects: acceleration, top speed, grip or
+braking. They should change how the car feels without asking the player to
+understand transmissions, differentials or detailed engine builds. Purchased
+performance upgrades are not implemented yet.
 
-- Engine
-- Transmission
-- Tires
-- Suspension
-- Brakes
-- Weight reduction
-- Nitrous
-- Forced induction
-- Differential tuning
-
-Each upgrade should change both numbers and perceived behavior.
-
-Performance parts are purchased with Banked Cred in the first vertical slice.
-Style should accelerate access to parts without becoming the only source of
-forward progress; base event payouts must keep weaker players moving.
-
-Examples:
-
-- Tire upgrades increase grip but may make drifting less forgiving.
-- Transmission upgrades improve acceleration but require more frequent shifting.
-- Suspension upgrades improve response but make collisions less stable.
-- Engine upgrades increase speed while exposing weaknesses in braking and handling.
+The proposed economy buys these parts with Banked Cred. Keep base event
+payouts sufficient for progress while style can accelerate access; this is
+an economy design target rather than current behavior.
 
 ### 9.3 Tuning
 
-Advanced tuning should be introduced gradually.
-
-Initial tuning options may include:
-
-- Steering response
-- Grip versus drift bias
-- Gear ratio bias
-- Suspension stiffness
-- Brake balance
-- Nitrous duration versus power
-
-Tuning should use understandable language and immediate visual feedback.
+Developer handling controls remain centralized in `HANDLING` for measured
+iteration. They are not a player-facing mechanical tuning requirement.
+If player tuning is introduced later, use a few understandable choices and
+immediate driving feedback. Preserve the current handling baseline while
+building the city and garage.
 
 ---
 
@@ -635,7 +609,7 @@ The camera should enhance speed without interfering with steering precision.
 
 ### 15.1 Visual Direction
 
-The visual style should favor a heightened interpretation of early-2000s street-racing culture rather than strict realism.
+The graphics target is approximately MC3 upscaled on an emulator: simple, readable geometry and materials presented cleanly at modern resolution. Use nighttime lighting, silhouettes and selected authored details to carry Seattle’s identity. This is not a photorealism or expensive-reflection target.
 
 Potential characteristics:
 
@@ -717,7 +691,10 @@ A combination of original tracks, independent artists, and procedural radio pres
 - Web Audio API
 - HTML and CSS interface layers
 - IndexedDB or local file-backed saves
-- Capacitor for Android packaging
+- Android packaging to be evaluated later; Capacitor is a candidate
+
+Three.js and Rapier remain the active stack. The separate Godot workshop is
+an editor-workflow experiment, not the chosen port or production engine.
 
 ### 17.2 Architectural Principle
 
@@ -765,9 +742,9 @@ Useful authoring data includes:
 - Surface types
 - Event boundaries
 
-Blender can serve as the primary environment authoring tool, with exported metadata or companion JSON files used by the runtime.
+Seattle street geometry is generated offline from a checked-in SDOT extract, then adapted for racing. The runtime needs no GIS service. The existing browser workshop edits shared building placements and supports Three.js scene export/import; it does not author roads or execute imported scripts. Blender remains available for cars and authored assets. See [EDITOR.md](EDITOR.md) and [SEATTLE.md](SEATTLE.md) for actual workflows.
 
-A custom browser editor should not be built until manual authoring becomes a demonstrated production bottleneck.
+Rendering and collision consume the same resolved geometry. General projection, footprint and traffic helpers must stay independent of retired map data; the build rejects reintroducing Blackglass district/course modules into the demo.
 
 ---
 
@@ -776,7 +753,7 @@ A custom browser editor should not be built until manual authoring becomes a dem
 Initial targets:
 
 - 60 frames per second on a midrange desktop
-- 30 to 60 frames per second on capable Android devices
+- A later RedMagic 10 Pro performance target, provisionally 30–60 fps until measured
 - Fast event restarts
 - Minimal loading between garage and district
 - Stable controller input
@@ -792,7 +769,7 @@ Scalable features may include:
 - Environmental prop density
 - Post-processing quality
 
-Performance should be tested on mobile hardware early rather than postponed until the city is complete.
+Build and judge the playable PC prototype first. On-device testing and Android packaging can follow; early phone testing is not a prerequisite for current work. Keep geometry, draw calls, lights and effects measurable so the eventual RedMagic 10 Pro pass has useful quality controls. Neither desktop nor phone frame-rate targets are certified by unit tests alone.
 
 ---
 
@@ -804,9 +781,7 @@ The first playable vertical slice should include:
 - One garage
 - One rival
 - One explorable district section
-- One circuit event
-- One sprint event
-- One open-checkpoint event
+- One open-checkpoint event; circuit/sprint variants can follow once it works
 - Basic traffic
 - Headlight challenge interaction
 - Basic performance upgrades
@@ -863,12 +838,12 @@ Phase 3: District Prototype
 - Lighting
 - Performance profiling
 
-*Note (2026-09-09): Phase 3 was built before Phase 2. The district, traffic,
-massing and lighting exist; no race does. Under the Midnight Club 3 reference
-the most important missing thing is not more map but one open-checkpoint
-event, so Phase 2's checkpoints, start, finish and timing are next, built on
-the district as it stands. Racing it is what will show where route choice is
-actually thin, rather than tuning the network in the abstract.*
+*Current checkpoint (2026-09-10): Seattle free roam, traffic, Sound to Sky,
+the mapped garage and building workshop exist. Blackglass has been retired
+from the demo. Preserve the handling, improve route choice and neighborhood
+readability through play, and grow the map when useful. Rival behavior,
+career rewards, purchased upgrades, Live Cred and Surge remain future work.
+Android testing follows the PC prototype.*
 
 Phase 4: Game Loop
 
@@ -892,10 +867,12 @@ Phase 5: Vertical Slice Polish
 
 ---
 
-## 21. Explicitly Out of Scope for the First Release
+## 21. Scope Boundaries
 
-- Large open world
-- Police chases
+The following are outside the current playable slice:
+
+- Recreating all of Seattle or expanding several cities at once
+- Police chases (a possible later LA-inspired feature)
 - Pedestrians
 - Motorcycles
 - Licensed vehicle roster
@@ -912,7 +889,7 @@ Phase 5: Vertical Slice Polish
 - User-generated tracks
 - Complex cinematic storytelling
 
-These features may be reconsidered after the core racing and progression loop has proven itself.
+These features may be reconsidered as the core racing loop matures. Expanding the Seattle map naturally is allowed; adding a second playable city or an unrelated system requires a new scope decision. Offline adaptation of real street data is allowed and is distinct from runtime procedural road generation.
 
 ---
 

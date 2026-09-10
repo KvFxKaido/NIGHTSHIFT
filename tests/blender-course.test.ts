@@ -11,7 +11,7 @@ import { addCourse } from "../src/render/course.ts";
 import { addDistrict } from "../src/render/district.ts";
 import { projectOntoDistrict } from "../src/sim/district.ts";
 
-const bytes = await readFile(new URL("../public/assets/tracks/blackglass-rivergate.glb", import.meta.url));
+const bytes = await readFile(new URL("../assets/tracks/blackglass-rivergate.glb", import.meta.url));
 async function asset() {
   return (await new GLTFLoader().parseAsync(
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), "")).scene;

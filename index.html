@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#070910" />
-    <title>NIGHTSHIFT — Blackglass Circuit</title>
+    <title>NIGHTSHIFT — Seattle</title>
     <link rel="stylesheet" href="/src/ui/menu.css" />
     <link rel="stylesheet" href="/src/ui/hud.css" />
     <style>
@@ -52,13 +52,7 @@
         padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .15);
         color: rgba(242, 238, 227, .52); font-size: 9px; letter-spacing: .14em;
       }
-      #controls {
-        position: fixed; left: 26px; bottom: 200px; pointer-events: none;
-        max-width: 430px; color: rgba(230, 229, 220, .62);
-        font: 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
-        letter-spacing: .06em; text-transform: uppercase;
-      }
-      #controls strong { color: rgba(255, 255, 255, .92); font-weight: 600; }
+
       #telemetry {
         position: fixed; top: 60px; left: 26px; padding: 11px 13px;
         border-left: 2px solid #59d8ff; background: rgba(5, 8, 15, .72);
@@ -69,7 +63,6 @@
       #telemetry.visible { opacity: 1; transform: translateX(0); }
       @media (max-width: 640px) {
         #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
-        #controls { left: 16px; bottom: 138px; max-width: calc(100vw - 32px); font-size: 9px; }
       }
     </style>
   </head>
@@ -80,16 +73,12 @@
     <button id="garage-entry" hidden>E / Enter · Enter Wharf Garage</button>
     <div id="hud">
       <div id="brand">
-        <span>NIGHTSHIFT / BLACKGLASS</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
+        <span>NIGHTSHIFT / SEATTLE</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
       </div>
       <div id="race" aria-live="polite" hidden>
         <span id="race-gate">GATE 1/3</span><span id="race-time">3</span>
       </div>
       <div id="telemetry"></div>
-      <div id="controls">
-        <strong>WASD</strong> drive &nbsp; <strong>space</strong> handbrake &nbsp; <strong>right stick</strong> camera<br />
-        <strong>esc</strong> pause &nbsp; <strong>R</strong> reset &nbsp; <strong>P</strong> replay &nbsp; <strong>H</strong> telemetry &nbsp; <strong>C</strong> recenter
-      </div>
       <div id="minimap-frame" aria-hidden="true">
         <canvas id="minimap" width="336" height="336"></canvas>
         <span id="minimap-heading"></span>
@@ -111,14 +100,15 @@
     <div id="menu-root" class="menu-root" data-screen="main" aria-label="Game menu">
       <main class="menu-shell">
         <section class="menu-screen" data-menu-screen="main" aria-labelledby="main-menu-title">
-          <p class="menu-kicker">Blackglass District / 01:13</p>
+          <p class="menu-kicker">Seattle / Wharf Garage</p>
           <h1 id="main-menu-title" class="menu-title">Night<br /><span>Shift</span></h1>
-          <p class="menu-lede">One car. One district. Every corner becomes currency when you drive it like you mean it.</p>
+          <p class="menu-lede">Your car. Your city. Every corner becomes currency when you drive it like you mean it.</p>
           <nav class="menu-actions" aria-label="Main menu">
             <button class="menu-button primary" data-menu-action="start">Drive</button>
             <button class="menu-button" data-menu-action="garage">Garage</button>
-            <button class="menu-button" data-race="crane-to-crest">Race: Crane to Crest</button>
-            <button class="menu-button" data-district-map>District map</button>
+            <button class="menu-button" data-menu-action="controls">Controls</button>
+            <button class="menu-button" data-race="sound-to-sky">Race: Sound to Sky</button>
+            <button class="menu-button" data-district-map>Seattle map</button>
           </nav>
           <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
         </section>
@@ -129,6 +119,14 @@
           <p class="menu-meta garage-car-label">Project car / Visual setup</p>
 
           <div class="garage-controls">
+            <fieldset class="garage-control">
+              <legend>Car</legend>
+              <div class="garage-options text-options">
+                <button class="garage-option" data-car="blender" aria-pressed="true">NS-01</button>
+                <button class="garage-option" data-car="bulwark" aria-pressed="false">Bulwark</button>
+              </div>
+              <p class="handling-note" data-car-status role="status" aria-live="polite">Both cars use your current handling and visual setup.</p>
+            </fieldset>
             <fieldset class="garage-control">
               <legend>Paint</legend>
               <div class="garage-options paint-options">
@@ -163,18 +161,37 @@
             <button class="menu-button" data-menu-action="start">Drive out</button>
             <button class="menu-button primary" data-menu-action="back">Back</button>
           </nav>
-          <p class="menu-footer">Right stick turns the platform · R3 / C resets · changes carry to the street</p>
+          <p class="menu-footer">Right stick turns the platform · <span data-camera-binding>R3 / C</span> resets · changes carry to the street</p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
 
+        <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
+          <p class="menu-kicker">Driver setup</p>
+          <h2 id="controls-title" class="menu-heading">Controls</h2>
+          <p class="controls-intro">Select a binding to remap it. Changes apply to both cars.</p>
+          <table class="controls-table">
+            <thead><tr><th>Action</th><th>Keyboard</th><th>Controller</th></tr></thead>
+            <tbody data-binding-rows></tbody>
+          </table>
+          <p class="controls-fixed">Right stick: camera orbit / garage platform. Arrow keys also drive.<br />
+            Menu controls stay fixed: Esc / Menu pauses or backs out; arrows, D-pad or left stick navigate;
+            Enter / A / Cross selects; B / Circle goes back. Enter also enters the garage.</p>
+          <p class="controls-status" data-controls-status role="status" aria-live="polite"></p>
+          <nav class="controls-actions" aria-label="Control settings">
+            <button class="menu-button" data-cancel-binding disabled>Cancel remap</button>
+            <button class="menu-button" data-default-bindings>Restore defaults</button>
+            <button class="menu-button primary" data-menu-action="back">Back</button>
+          </nav>
+        </section>
+
         <section class="menu-screen" data-menu-screen="pause" role="dialog" aria-modal="true" aria-labelledby="pause-menu-title" hidden>
-          <p class="menu-kicker">Blackglass Circuit</p>
+          <p class="menu-kicker">Seattle</p>
           <h2 id="pause-menu-title" class="menu-heading">Paused</h2>
           <nav class="menu-actions" aria-label="Pause menu">
             <button class="menu-button primary" data-menu-action="resume">Resume</button>
             <button class="menu-button" data-menu-action="restart">Restart Run</button>
-            <button class="menu-button" data-district-map>District map</button>
-            <button class="menu-button" data-district-map>District blockout / Map</button>
+            <button class="menu-button" data-menu-action="controls">Controls</button>
+            <button class="menu-button" data-district-map>Seattle map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
           <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
@@ -184,7 +201,7 @@
               <button class="garage-option" data-drivetrain="awd" aria-pressed="false" aria-label="AWD: 45% front, 55% rear">AWD</button>
               <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
             </div>
-            <p id="drivetrain-note" class="handling-note">Changing layout restarts the run and clears its replay. Auto-countersteer is off for every layout.</p>
+            <p id="drivetrain-note" class="handling-note">Changing layout restarts the run. Auto-countersteer is off for every layout.</p>
           </fieldset>
           <fieldset class="garage-control audio-control" aria-describedby="soundtrack-note">
             <legend>Audio</legend>

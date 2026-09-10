@@ -13,7 +13,9 @@ twin-blade lamps and a small ducktail.
 - Old car: `http://localhost:5173/?scene=garage&car=classic`
 
 This is a visual replacement only. Physics, tyre positions, collision body,
-drivetrain selection, replay and steering tuning are unchanged. Existing paint,
+drivetrain selection and steering tuning are unchanged. The garage offers both
+NS-01 and Bulwark, and saves the selected car. Both use the same handling and
+visual customization setup; in-game replay and the ghost have been removed. Existing paint,
 wheel-finish and stance controls work with the new model. Glass is deliberately
 opaque smoked glass; no cabin interior or opening doors are modeled in this pass.
 

@@ -1,6 +1,13 @@
 # Blackglass District — route blockout
 
-Status: playable layout study, 2026-09-07. Not a scored race mode or engine migration.
+**Archived layout study — retired from the playable demo on 2026-09-10.**
+Seattle is now the only demo map; see [SEATTLE.md](SEATTLE.md) and
+[EDITOR.md](EDITOR.md). The measurements, route names, old URLs and workflow
+instructions below describe historical Blackglass iterations, not current
+Seattle behavior. `district.html` now redirects to the Seattle map board.
+`pnpm district:critique` and the retained source/tests still analyze Blackglass.
+
+Historical status: playable layout study, 2026-09-07.
 
 ## Decision
 

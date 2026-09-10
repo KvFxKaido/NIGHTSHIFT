@@ -1,5 +1,11 @@
 # NIGHTSHIFT / Godot Workshop
 
+**Reference experiment, not the current production direction (2026-09-10).**
+NIGHTSHIFT continues with Three.js/Rapier and the sole Seattle demo map.
+The RedMagic 10 Pro port follows the PC prototype; this workshop is not an
+engine migration or a Seattle port. The trial instructions below remain for
+examining the separate experiment.
+
 A separate, playable editor-workflow trial. The browser game in the parent
 folder is unchanged and remains the reference. This is **not a complete port**.
 

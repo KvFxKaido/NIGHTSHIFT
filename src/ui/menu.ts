@@ -49,6 +49,7 @@ export interface MenuController {
 
 const actionEvents: Record<string, MenuEvent> = {
   garage: "open-garage",
+  controls: "open-controls",
   start: "start-track",
   resume: "resume",
   restart: "restart",

@@ -1,10 +1,16 @@
 # Blackglass / Rivergate Blender workshop
 
+**Offline asset workshop / regression fixture.** Blackglass was retired from
+the playable demo on 2026-09-10. Seattle uses its own geometry; see
+[Seattle authoring](../../../design/SEATTLE.md) and the
+[building workshop](../../../design/EDITOR.md). Editing this asset does not
+change Seattle.
+
 First authored environment slice: the existing tunnel and bridge, not a new
 route. Road position, elevation, width, barriers, tyre forces and replay remain
 simulation-owned. This environment does not supply physics colliders.
 
-## Edit and see it in the game
+## Edit the archived asset
 
 1. Open `assets/tracks/blackglass/blackglass-rivergate.blend`.
 2. The Outliner separates **Editable environment** from locked **Road and
@@ -12,7 +18,7 @@ simulation-owned. This environment does not supply physics colliders.
 3. `Tab` enters Edit Mode, `G` moves, `R` rotates, `S` scales; `Ctrl+Z` undoes.
    Metres, Z up in Blender. Keep the top-level root at identity.
 4. Save with `Ctrl+S`. Run `pnpm track:export "C:\path\to\blender.exe"`, or set
-   `BLENDER_EXE` and run `pnpm track:export`. Refresh the browser.
+   `BLENDER_EXE` and run `pnpm track:export`. Inspect the exported fixture.
 5. Alternatively, switch an area to Text Editor, select the embedded
    **Export track to NIGHTSHIFT.py**, and press `Alt+P`. This exports current
    unsaved edits too; `Ctrl+S` is still how you preserve them in the source.
@@ -22,9 +28,9 @@ temporary copy and batches by spatial section/material; your individual source
 parts stay editable. Keep the .blend in this directory so the button finds the
 project. Node and installed project dependencies are needed for optimization.
 
-The browser loads `public/assets/tracks/blackglass-rivergate.glb` by default.
-`?environment=classic` explicitly selects the old procedural tunnel and bridge
-for comparison/recovery. The rest of the course is still procedural.
+The optimizer writes `assets/tracks/blackglass-rivergate.glb`. The demo does
+not load it, and `?environment=classic` no longer selects another map.
+Inspect the source in Blender or validate the GLB with the retained tests.
 
 ## Boundaries that matter
 
@@ -55,8 +61,8 @@ compression decoder, downloaded assets or fonts. The lettering is original
 grid geometry. Source created with the installed Blender 5.3 Alpha.
 
 Run `pnpm test` and `pnpm build` after export. The asset tests inspect the
-actual shipped GLB, route stamp/anchors, budgets, guide exclusion, and road
-clearance. Browser checks must still inspect the driver's view and shadows.
+archived GLB, route stamp/anchors, budgets, guide exclusion, and road
+clearance. These tests protect the asset reference; they do not validate Seattle scenery.
 
 Lighting is hybrid: authored emissive lenses, runtime pooled point lights and
 the existing city/moon lighting. No final light bake, LOD set or new sky/water

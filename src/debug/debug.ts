@@ -36,25 +36,11 @@ export interface InputReport {
   delivered: Input;
 }
 
-export interface RivalReport {
-  /** Whether a recorded lap is allowed to run at all. */
-  enabled: boolean;
-  /** True while it still has logged input left to drive. */
-  running: boolean;
-  tick: number;
-  ticks: number;
-  /** Where the recorded car is, or null when nobody is out there. */
-  position: [number, number, number] | null;
-  speed: number | null;
-  /** How far ahead (+) or behind (-) the rival is along the course, in metres. */
-  gap: number | null;
-}
-
 export interface DebugBridge {
   view: View;
   sim: Sim;
   canvas: HTMLCanvasElement;
-  /** Steps the fixed simulation, logging input exactly as a live run does. */
+  /** Steps the same fixed simulation as live driving. */
   advance(ticks: number, input: Input): void;
   renderOnce(frames?: number): void;
   setFrozen(frozen: boolean): void;
@@ -65,8 +51,6 @@ export interface DebugBridge {
   audioReport(): AudioReport;
   /** Raw pad state plus the driving gate, so "controller does nothing" has an answer. */
   inputReport(): InputReport;
-  /** Inspect or toggle the recorded-lap rival. */
-  rivalReport(enabled?: boolean): RivalReport;
 }
 
 interface PickResult {
@@ -241,7 +225,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       screen: document.body.dataset.gameScreen ?? "unknown",
       mode: view.mode,
       carModel: view.car.userData.model ?? "classic",
-      environment: view.course?.root.userData.environment ?? "classic",
+      environment: "seattle",
       roadWorld: sim.roadWorld.id,
       // pick() takes these coordinates. A screenshot is often scaled from them.
       viewport: { width: Math.round(rect.width), height: Math.round(rect.height) },
@@ -299,17 +283,19 @@ export function installDebugApi(bridge: DebugBridge): void {
   function link(): string {
     const url = new URL(location.href);
     const world = url.searchParams.get("world"), route = url.searchParams.get("route");
+    const race = url.searchParams.get("race"), lighting = url.searchParams.get("lighting");
     url.search = "";
-    if (world === "district") {
+    if (world === "district" || world === "seattle" || world === "blackglass") {
       url.searchParams.set("world", world);
-      if (route) url.searchParams.set("route", route);
+      if (route && world === "district") url.searchParams.set("route", route);
     }
+    if (race) url.searchParams.set("race", race);
+    if (lighting) url.searchParams.set("lighting", lighting);
     // Round-trip whichever body is loaded, not just "is it the coupe".
     const loaded = view.car.userData.model;
     const authored = Object.entries(BLENDER_CARS).find(([, car]) => car.model === loaded);
     if (authored && authored[0] !== "blender") url.searchParams.set("car", authored[0]);
     else if (!authored) url.searchParams.set("car", "classic");
-    if (!view.course) url.searchParams.set("environment", "classic");
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");
     url.searchParams.set("drivetrain", sim.state.drivetrain);
@@ -360,15 +346,13 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.shot()            PNG data URL of the current frame",
       "__ns.audio()           audio context state, levels and live mixer output",
       "__ns.input()           pad axes/buttons, mapped input and the driving gate",
-      "__ns.rival()           recorded-lap opponent; __ns.rival(false) turns it off",
       "__ns.link()            a URL that reproduces the current state",
       "url: ?scene=garage&paint=blackglass&stance=slammed&telemetry=1",
       "url: ?scene=track&drivetrain=rwd&drive=W600,WD90&freeze=1",
-      "url: ?car=bulwark  the Bulwark rival body; ?car=classic the original procedural coupe",
+      "url: ?car=bulwark  preview the Bulwark garage car; ?car=classic the original procedural coupe",
     ].join("\n"),
     audio: (): AudioReport => bridge.audioReport(),
     input: (): InputReport => bridge.inputReport(),
-    rival: (enabled?: boolean): RivalReport => bridge.rivalReport(enabled),
   };
 
   (window as unknown as { __ns: typeof api }).__ns = api;
