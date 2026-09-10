@@ -211,11 +211,21 @@ detaches `rivergate-backdrop`; Blackglass keeps it. The general lesson: a
 thing drawn in the district that the district did not generate is outside
 every rule the district enforces, and `__ns.pick` on the offending pixel is
 how it was identified — geometry alone spent an hour on the wrong candidates.
-Measured and not yet acted on: inside 18 of 35 junction aprons two ribbons
-overlap at different heights (11 over 30 cm, worst 1.07 m at Lower Hill),
-physically as well as visually, because the sim follows the NEAREST street and
-the nearest flips at the bisector. That is the next map change: one surface
-per junction. `blockClearsStreets` samples every footprint edge against the
+Junctions now have one asphalt mesh each: ribbons stop at measured overlap
+cuts and share their seam vertices with 35 radial aprons. The driven height
+blends street coverage (8 m feather inside, 4 m spill outside the kerb), and
+all overlapping grading discs contribute instead of selecting the first.
+`src/sim/street-surface.ts` blends nearby segment heights continuously within
+each street; selecting the nearest segment at the graded ring-hotel inside
+kerb used to jump 0.409 m in 2 cm. The regression scan now measures 0.0041 m.
+Fine ribbon sampling interpolates original mitres; recomputing a mitre on
+shorter segments folded the inside kerb backwards. The road meshes ask only
+for height, avoiding unnecessary pitch projections. `tests/aprons.test.ts`
+checks 37,569 drawn-surface probes (one surface, no overlapping interiors,
+maximum mesh deviation below 5 cm) and 14,037 hairpin probes. The district
+world identity is v3 because its vertical physics changed; Blackglass stays
+unchanged. This costs more at load: approximately 1.8 s blockout / 3.2 s night,
+versus 0.8 / 1.2 s before aprons on the same machine. See design/DISTRICT.md. `blockClearsStreets` samples every footprint edge against the
 width the road ACTUALLY has there, never corners only and never the narrowest
 width: corners let a straight frontage cut the chord of a bend by 10 m, and the
 narrow width let a building stand on a junction flare a car can drive on.
@@ -235,8 +245,8 @@ loop, which left ground drawn over 39% of road samples; it cannot be fixed
 inside `outerTerrain` because street construction calls that for node heights
 and the dependency would be circular. A terrain vertex asks `groundHeightNear`
 for the lowest ground in its cell, because what is drawn between two vertices is
-a straight line a curving road passes under. A projection now costs 14.5 us,
-not 50: `projectOntoPath` indexes each polyline in runs of eight segments with a
+a straight line a curving road passes under. Before the apron surface work, projection cost fell to 14.5 us
+from 50: `projectOntoPath` indexes each polyline in runs of eight segments with a
 box each and skips runs that cannot be nearer (bit-identical to the plain
 scan, and tested against it), but that was only a quarter of the cost — the
 rest was the fallback `candidates.length ? candidates : DISTRICT_STREETS`,
@@ -246,7 +256,8 @@ found is provably nearer than anything the boxes excluded. That also corrected
 an old wrong answer: with a non-empty candidate set the old code never widened,
 so a point inside one long street's box was answered with that street even when
 a nearer street's box had missed it; the test compares against brute force
-over every street. District load is 0.9 s (2.2 s before). `RoadWorld` supplies the sim's start,
+over every street. That brought district construction to 0.9 s before the apron work
+(2.2 s before indexing); current construction timings are given above. `RoadWorld` supplies the sim's start,
 boundaries and projection; reset and session rivals must retain that world.
 Baseline Blackglass references and handling stay unchanged. District junction
 grading is shared by physics and road meshes; do not "fix" it only visually.

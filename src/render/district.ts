@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth, laneMarkings,
-  groundHeight, groundHeightNear, GROUND_CORRIDOR, nearStructure, outerTerrain, pathSamples, projectOntoDistrict,
-  RAIL, RAIL_HALF_WIDTH, RIVER, RIVER_HALF_WIDTH,
+import { DISTRICT_APRONS, DISTRICT_BLOCKS, DISTRICT_JUNCTIONS, DISTRICT_STREETS, DISTRICT_WALLS, carriagewayWidth,
+  laneMarkings, groundHeight, groundHeightNear, GROUND_CORRIDOR, nearStructure, outerTerrain, pathPointAt, pathSamples,
+  projectOntoDistrict, districtSurfaceAt, RAIL, RAIL_HALF_WIDTH, RIBBON_COLUMNS, RIVER, RIVER_HALF_WIDTH,
   routePoints,
-  type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
+  type DistrictApron, type DistrictRoute, type LaneMarkingKind, type PathSample } from "../sim/district.ts";
 import type { CoursePoint } from "../sim/track.ts";
+import { streetSurfaceSamples, type RibbonSample } from "../sim/street-surface.ts";
 import { addNightBuildings, glowTexture, tint, type BuildingSite } from "./night.ts";
 
 function mesh(name: string, geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
@@ -14,39 +15,97 @@ function mesh(name: string, geometry: THREE.BufferGeometry, material: THREE.Mate
   return result;
 }
 
-/** Continuous mitered ribbon: no gaps between boxes when a connector bends. */
-export function streetGeometry(points: readonly CoursePoint[]): THREE.BufferGeometry {
+/** Continuous mitered ribbon: no gaps between boxes when a connector bends.
+ *  `cut` trims it where a junction apron takes over — metres off the start and
+ *  off the end — with an exact cross-section at each cut, in the direction the
+ *  sim's `pathPointAt` gives there, so the apron's seam vertices are these. */
+export function streetGeometry(points: readonly CoursePoint[],
+  cut: { start: number; end: number } = { start: 0, end: 0 }): THREE.BufferGeometry {
+  const original = points;
   // Tessellate the long legacy spans enough to follow a graded junction apron.
-  points = points.flatMap((a, i) => {
-    const b = points[i + 1];
-    if (!b) return [a];
-    const count = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 4);
-    return Array.from({ length: count }, (_, j) => ({ ...a, x: a.x + (b.x - a.x) * j / count,
-      z: a.z + (b.z - a.z) * j / count, y: a.y + (b.y - a.y) * j / count,
-      width: a.width + (b.width - a.width) * j / count }));
-  });
+  let samples = streetSurfaceSamples(points);
+  if (cut.start > 0 || cut.end > 0) {
+    const along = [0];
+    for (let i = 1; i < samples.length; i++) {
+      along.push(along[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
+    }
+    const total = along[along.length - 1]!;
+    const from = cut.start, to = total - cut.end;
+    if (to - from < 1) return new THREE.BufferGeometry();
+    const at = (s: number): RibbonSample => {
+      let i = 0;
+      while (i < along.length - 2 && along[i + 1]! < s) i++;
+      const a = samples[i]!, b = samples[i + 1]!, t = (s - along[i]!) / (along[i + 1]! - along[i]!);
+      const direction = pathPointAt(original, s);
+      return { ...a, x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, y: a.y + (b.y - a.y) * t,
+        width: direction.width, offsetX: -direction.uz * direction.width / 2, offsetZ: direction.ux * direction.width / 2 };
+    };
+    const first = at(from), last = at(to), start = pathPointAt(original, from), end = pathPointAt(original, to);
+    samples = [first, ...samples.filter((sample, i) => {
+      if (along[i]! <= from + 0.05 || along[i]! >= to - 0.05) return false;
+      // A mitred kerb may extend behind its centreline sample. Keep the whole
+      // next section beyond the cut plane, or its first cell folds into the apron.
+      return [-1, 1].every(side => {
+        const x = sample.x + sample.offsetX * side, z = sample.z + sample.offsetZ * side;
+        return (along[i]! > from + start.width || (x - first.x) * start.ux + (z - first.z) * start.uz > 0.05) &&
+          (along[i]! < to - end.width || (x - last.x) * end.ux + (z - last.z) * end.uz < -0.05);
+      });
+    }), last];
+  }
   const vertices: number[] = [], indices: number[] = [];
-  const columns = 9;
-  for (let i = 0; i < points.length; i++) {
-    const a = points[Math.max(0, i - 1)]!, p = points[i]!, b = points[Math.min(points.length - 1, i + 1)]!;
-    const incoming = new THREE.Vector2(p.x - a.x, p.z - a.z).normalize();
-    const outgoing = new THREE.Vector2(b.x - p.x, b.z - p.z).normalize();
-    if (i === 0) incoming.copy(outgoing);
-    if (i === points.length - 1) outgoing.copy(incoming);
-    const normal = new THREE.Vector2(-incoming.y - outgoing.y, incoming.x + outgoing.x).normalize();
-    const length = p.width / 2 / Math.max(0.5, normal.dot(new THREE.Vector2(-outgoing.y, outgoing.x)));
+  const columns = RIBBON_COLUMNS;
+  for (let i = 0; i < samples.length; i++) {
+    const p = samples[i]!;
     for (let column = 0; column < columns; column++) {
       const side = 1 - column / (columns - 1) * 2;
-      const x = p.x + normal.x * length * side, z = p.z + normal.y * length * side;
+      const x = p.x + p.offsetX * side, z = p.z + p.offsetZ * side;
       // Sample across the width too: a junction apron is not a single tilted
       // quad. Its visible surface must agree with the sim underneath the tyres.
-      vertices.push(x, projectOntoDistrict(x, z).height + 0.04, z);
+      vertices.push(x, districtSurfaceAt(x, z) + 0.04, z);
     }
     if (i > 0) {
       for (let column = 0; column < columns - 1; column++) {
         const n = i * columns + column;
         indices.push(n - columns, n, n - columns + 1, n - columns + 1, n, n + 1);
       }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * One mesh per junction: a radial grid from the node to the apron's boundary,
+ * every vertex on the driven surface. The boundary carries each arm's cut
+ * section, so the apron meets each ribbon vertex for vertex; between the arms
+ * it follows the kerbs the ribbons no longer draw.
+ */
+function apronGeometry(apron: DistrictApron): THREE.BufferGeometry {
+  const rows = Math.max(2, Math.ceil(apron.radius / 2));
+  const vertices: number[] = [], indices: number[] = [];
+  for (const point of apron.boundary) {
+    for (let i = 0; i <= rows; i++) {
+      const t = i / rows;
+      const x = apron.x + (point.x - apron.x) * t, z = apron.z + (point.z - apron.z) * t;
+      vertices.push(x, districtSurfaceAt(x, z) + 0.04, z);
+    }
+  }
+  // Wound to face up whichever way round the boundary runs.
+  const up = (a: number, b: number, c: number) => {
+    const y = (vertices[b * 3 + 2]! - vertices[a * 3 + 2]!) * (vertices[c * 3]! - vertices[a * 3]!) -
+      (vertices[b * 3]! - vertices[a * 3]!) * (vertices[c * 3 + 2]! - vertices[a * 3 + 2]!);
+    if (y > 0) indices.push(a, b, c); else indices.push(a, c, b);
+  };
+  const count = apron.boundary.length;
+  for (let k = 0; k < count; k++) {
+    const next = (k + 1) % count;
+    for (let i = 0; i < rows; i++) {
+      const a = k * (rows + 1) + i, b = a + 1, c = next * (rows + 1) + i, d = c + 1;
+      if (i > 0) up(a, b, c); // Row zero's inner corners are both the node.
+      up(b, d, c);
     }
   }
   const geometry = new THREE.BufferGeometry();
@@ -251,12 +310,15 @@ function addStreetLighting(scene: THREE.Scene): void {
         // placed at its centre's height. The district reaches 5.1 m of fall
         // across half a 26 m pool, which buries one edge under the asphalt and
         // floats the other clear of it.
-        const pool = new THREE.PlaneGeometry(size, size, 4, 4);
+        const subdivisions = Math.ceil(size / 1.5);
+        const pool = new THREE.PlaneGeometry(size, size, subdivisions, subdivisions);
         pool.rotateX(-Math.PI / 2);
         pool.translate(px, 0, pz);
         const position = pool.getAttribute("position");
         for (let i = 0; i < position.count; i++) {
-          position.setY(i, projectOntoDistrict(position.getX(i), position.getZ(i)).height + 0.07);
+          // Clear the road's own interpolation error as well as the lamp
+          // patch's: a coarse patch dipped into blended aprons like a pothole.
+          position.setY(i, districtSurfaceAt(position.getX(i), position.getZ(i)) + 0.10);
         }
         pools.push(tint(pool, sodium.clone().multiplyScalar(strength)));
       }
@@ -411,8 +473,18 @@ export function addDistrict(scene: THREE.Scene, route: DistrictRoute | null, aut
   addVerges(scene, dressing);
 
   for (const street of DISTRICT_STREETS) {
-    const road = mesh(`district-road-${street.id}`, streetGeometry(street.points), asphalt);
+    // The ribbon stops where its junction's apron begins, at either end.
+    const cut = { start: 0, end: 0 };
+    for (const apron of DISTRICT_APRONS) for (const arm of apron.arms) {
+      if (arm.street !== street.id) continue;
+      if (arm.reversed) cut.end = arm.cut; else cut.start = arm.cut;
+    }
+    const road = mesh(`district-road-${street.id}`, streetGeometry(street.points, cut), asphalt);
     road.receiveShadow = true; scene.add(road);
+  }
+  for (const apron of DISTRICT_APRONS) {
+    const surface = mesh(`district-apron-${apron.id}`, apronGeometry(apron), asphalt);
+    surface.receiveShadow = true; scene.add(surface);
   }
 
   const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), concrete, DISTRICT_WALLS.length);

@@ -783,4 +783,64 @@ missed the point. The ground clamp and the off-road surface read that
 answer. A seeded brute-force comparison over every street is the test, and
 with the widening removed it fails on the first open-ground point.
 
-Still to do: one surface per junction, for the 18 aprons with a ridge.
+### One surface per junction and through graded bends
+
+The 35 junctions now have one radial apron mesh each. An arm stops beyond
+its measured overlap with the other incident streets, with a 1.5 m margin;
+its cut cross-section is also the apron boundary, so the seam is shared.
+The sim weights streets by carriageway coverage: an 8 m feather inside the
+kerb and a 4 m spill outside. The spill matters at kerb intersections, where
+normalizing disjoint, near-zero supports previously created a 1.17 m step.
+Overlapping 28 m grading discs now contribute together. Selecting the first
+disc caused a separate 12 cm discontinuity at a sampled dock-cross boundary.
+
+The ring-hotel inside kerb had another defect: nearest-centreline projection
+flips between segments whose arc lengths have different heights. A 2 cm
+scan measures a 0.409 m step with the old height calculation. Each street
+now blends nearby segment heights with a 4 m Gaussian, smoothly cut off
+beyond the kerb. This preserves continuous height even when the nearest
+segment changes. Junction grading still supplies node heights; path
+projections retain their routing geometry. The sampled maximum becomes
+0.0041 m over 2 cm. This smooths the district's authored vertical profile;
+it does not change the original Blackglass world or its handling settings.
+District world identity advances to v3 for replay compatibility.
+
+The renderer samples the same height function, with 17 columns across a
+ribbon and at most 2 m between longitudinal and apron radial samples.
+Subdivision interpolates the original mitred cross-sections: recomputing
+the mitres on shorter segments folds the inside of a tight bend backwards.
+Height-only mesh queries avoid calculating pitch; driving queries measure
+grade on the actual blended surface.
+
+Validation: `tests/aprons.test.ts` probes 37,569 carriageway positions for
+one drawn surface, no overlapping triangle interiors, and correspondence
+to the driven height. The measured p99 deviation is 0.0078 m and the maximum
+0.0384 m, under a 0.05 m ceiling. Another 14,037 probes scan the hairpin at
+2 cm spacing. Reverting segment-height blending, first-disc selection, or
+ribbon cuts makes its respective regression fail. The existing winding,
+road/ground clearance, collision-enabled reference drivers and replay tests
+remain acceptance gates. `scripts/check-aprons-browser.js` captures Lower
+Hill and the hairpin in blockout and night modes; these are staged visual
+checks, not evidence of a manually driven lap.
+
+There is a measured startup tradeoff. Three same-process builds before this
+patch took 0.75-0.81 s for blockout and 1.23-1.35 s for night; the apron build
+took 1.98-2.02 s and 2.40-2.85 s respectively. Before the final lamp-pool refinement, whole-scene triangle counts
+rose from about 122k/183k to 343k/403k. These are CPU construction timings,
+not browser load times or GPU frame-rate certification.
+
+The carriageway probes include every cut seam and offsets 5 cm to either
+side. A centreline sample beyond a cut can still have a mitred kerb behind
+it; trimming now skips these sections locally so no first ribbon cell folds
+back into the apron. Browser inspection also caught decorative lamp-pool facets dipping through
+the new surface like potholes. The pools now sample height at 1.5 m spacing
+and sit 10 cm above the analytic surface (the asphalt sits 4 cm above it).
+This removes the large cutouts in the inspected hairpin and Lower Hill views;
+small light-patch artifacts remain around Lower Hill and are cosmetic.
+
+Final isolated construction measurements, including finer lamp pools and the
+seam fix: blockout 1.81-1.86 s, night 3.15-3.21 s (two builds each).
+Whole-scene triangle counts are 342,457 and 556,929 respectively. The final
+full suite passes 230/230 tests, and the production build passes. The browser
+harness reports no page exceptions in its four staged views; the existing
+favicon 404 and Rapier initialization warning are unrelated.

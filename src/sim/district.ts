@@ -1,5 +1,6 @@
 import { projectOntoCourse, COURSE_POINTS, COURSE_WALLS, type CoursePoint, type CourseProjection, type CourseWall } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
+import { streetSurfaceHeight } from "./street-surface.ts";
 import { CARRIAGEWAY, laneLength, lanes, lanePose, lanesPerDirection, pathLength,
   type Lane, type LanePose, type StreetClass } from "./lanes.ts";
 import { createTraffic, TRAFFIC_KINDS, type TrafficLane, type TrafficMovement,
@@ -12,8 +13,8 @@ export * from "./lanes.ts";
 
 // Fixed, authored metres. This is an offline blockout, not runtime-random roads.
 // The existing perimeter is referenced verbatim; never restamp the Blender asset.
-/** v2 made the massing solid, which changes what a replay does. */
-export const DISTRICT_VERSION = "blackglass-district-blockout-v2";
+/** v3 changes the driven junction and bend surface, invalidating old replays. */
+export const DISTRICT_VERSION = "blackglass-district-blockout-v3";
 export interface Street {
   id: string;
   name: string;
@@ -206,10 +207,11 @@ function clampBelowRoad(shape: number, x: number, z: number): number {
   // costs two extra apron scans per call to answer a question about grade the
   // ground does not ask, and the terrain mesh runs this tens of thousands of
   // times at district load.
-  const road = nearestStreetProjection(x, z);
+  const { nearest, covering } = districtProjections(x, z);
+  const road = surfaceOwner(nearest, covering);
   const kerb = road.width / 2;
   if (road.distance > kerb + GROUND_CORRIDOR) return shape;
-  const ceiling = districtSurfaceHeight(x, z, road.height) - GROUND_CLEARANCE;
+  const ceiling = blendedSurfaceHeight(x, z, road, covering) - GROUND_CLEARANCE;
   // Already below: nothing to do, and this is the case under every bridge.
   if (shape <= ceiling) return shape;
   // Far below the road rather than just under it: a structure. Clamping here
@@ -667,38 +669,285 @@ const STREET_BOX_PAD = Math.min(...DISTRICT_STREETS.map(street =>
  * the 40 us a projection cost, and a point inside one long street's box was
  * answered with that street even when a nearer street's box had missed it.
  */
-function nearestStreetProjection(x: number, z: number): CourseProjection {
+function districtProjections(x: number, z: number): { nearest: CourseProjection; covering: CourseProjection[] } {
   let nearest: CourseProjection | undefined;
+  // Every street with a claim on the point (its carriageway, or the spill just
+  // outside its kerb) sits inside its own padded box, so the first round finds
+  // them all; later rounds only widen the nearest.
+  const covering: CourseProjection[] = [];
   for (let margin = 0; ; margin = margin ? margin * 2 : 32) {
     for (const street of streetsNear(x, z, margin)) {
       const projected = projectOntoPath(street.points, x, z);
+      if (projected.distance < projected.width / 2 + APRON_SPILL) {
+        projected.height = streetSurfaceHeight(street.points, x, z);
+      }
       if (!nearest || projected.distance < nearest.distance) nearest = projected;
+      if (margin === 0 && projected.distance < projected.width / 2 + APRON_SPILL) covering.push(projected);
     }
-    if (nearest && (nearest.distance <= margin + STREET_BOX_PAD || margin > 8192)) return nearest;
+    if (nearest && (nearest.distance <= margin + STREET_BOX_PAD || margin > 8192)) return { nearest, covering };
   }
 }
 
-export function projectOntoDistrict(x: number, z: number): CourseProjection {
-  const road = nearestStreetProjection(x, z);
-  // All incident streets meet the same flat junction apron, then blend back
-  // into their authored grade. Nearest-street changes cannot produce a curb.
-  const before = districtSurfaceHeight(x - road.ux, z - road.uz, road.height - Math.tan(road.pitch));
-  const after = districtSurfaceHeight(x + road.ux, z + road.uz, road.height + Math.tan(road.pitch));
-  return { ...road, height: districtSurfaceHeight(x, z, road.height), pitch: Math.atan2(after - before, 2) };
+/**
+ * One surface per junction. Where two carriageways overlap, each street's claim
+ * on the surface fades over the last APRON_FEATHER metres inside its own kerb,
+ * and the surface is the claims' weighted blend of the streets' graded heights.
+ * The car used to ride the NEAREST street's height, and the nearest flips at
+ * the bisector: inside 18 of 35 aprons that was a step, 1.07 m at Lower Hill,
+ * physically as well as visually. A blend by coverage is continuous — a
+ * street's weight fades to zero beyond its kerb — and every ribbon and apron
+ * vertex is dropped on the same function,
+ * so the meshes cannot disagree with the tyres or with each other.
+ */
+export const APRON_FEATHER = 8;
+/** A claim reaches this far OUTSIDE the kerb before it is nothing. Zero at the
+ *  kerb exactly was a 1.17 m step at the corner where two kerbs cross: on one
+ *  side only A covered, at a weight of 0.013, on the other only B, at 0.009,
+ *  and normalising made each a full claim. The two supports must overlap. */
+export const APRON_SPILL = 4;
+function coverage(projected: CourseProjection): number {
+  const inside = projected.width / 2 - projected.distance;
+  const t = Math.max(0, Math.min(1, (inside + APRON_SPILL) / (APRON_SPILL + APRON_FEATHER)));
+  return t * t * (3 - 2 * t);
 }
+
+/** The street that owns a point: the one it is deepest inside, or, off every
+ *  carriageway, the nearest. Not the nearest on the road: a point just outside
+ *  a narrow street's kerb and well inside a wide one belongs to the wide one,
+ *  and answering with the narrow one put the off-road chamfer on a carriageway. */
+function surfaceOwner(nearest: CourseProjection, covering: readonly CourseProjection[]): CourseProjection {
+  let owner = nearest, depth = 0;
+  for (const projected of covering) {
+    const inside = projected.width / 2 - projected.distance;
+    if (inside > depth) { owner = projected; depth = inside; }
+  }
+  return owner;
+}
+
+function blendedSurfaceHeight(x: number, z: number, owner: CourseProjection,
+  covering: readonly CourseProjection[]): number {
+  if (covering.length < 2) return districtSurfaceHeight(x, z, owner.height);
+  let weight = 0, sum = 0;
+  for (const projected of covering) {
+    const w = coverage(projected);
+    weight += w;
+    sum += w * districtSurfaceHeight(x, z, projected.height);
+  }
+  return weight > 0 ? sum / weight : districtSurfaceHeight(x, z, owner.height);
+}
+
+/** The driven surface's height alone, for the callers that ask nothing else. */
+export function districtSurfaceAt(x: number, z: number): number {
+  const { nearest, covering } = districtProjections(x, z);
+  return blendedSurfaceHeight(x, z, surfaceOwner(nearest, covering), covering);
+}
+
+export function projectOntoDistrict(x: number, z: number): CourseProjection {
+  const { nearest, covering } = districtProjections(x, z);
+  const road = surfaceOwner(nearest, covering);
+  if (covering.length === 0) {
+    // Beyond every street's support, retain the nearest-road projection.
+    const before = districtSurfaceHeight(x - road.ux, z - road.uz, road.height - Math.tan(road.pitch));
+    const after = districtSurfaceHeight(x + road.ux, z + road.uz, road.height + Math.tan(road.pitch));
+    return { ...road, height: districtSurfaceHeight(x, z, road.height), pitch: Math.atan2(after - before, 2) };
+  }
+  // Measure grade on the actual surface, including single-street bends where
+  // the nearest centreline segment's pitch is no longer the surface's pitch.
+  const before = districtSurfaceAt(x - road.ux, z - road.uz);
+  const after = districtSurfaceAt(x + road.ux, z + road.uz);
+  return { ...road, height: blendedSurfaceHeight(x, z, road, covering), pitch: Math.atan2(after - before, 2) };
+}
+
+// ---------------------------------------------------------------------------
+// Junction aprons: where a junction's ribbons stop and one mesh takes over.
+//
+// Two ribbons drawn through each other at different heights was the ridge in
+// 18 of 35 junctions. The surface blend above makes their heights agree, which
+// turns a ridge into two coplanar meshes fighting for the same pixels. So each
+// arm's ribbon is CUT where its overlap with the other arms ends, and the
+// junction is one radial mesh from the node out to the union's boundary. The
+// cut section is the seam the two meshes share, vertex for vertex.
+
+/** Columns across a ribbon, kerb to kerb: the renderer's and the seam's. */
+export const RIBBON_COLUMNS = 17;
+/** Ribbon kept past the last overlap, so the seam never sits on the overlap's own edge. */
+const APRON_MARGIN = 1.5;
+
+export interface ApronArm {
+  street: string;
+  /** The street's points run INTO the node; its cut is measured from its far end. */
+  reversed: boolean;
+  /** Metres along the street's own points at which its ribbon ends and the apron begins. */
+  cut: number;
+  /** The ribbon's cross-section at the cut, in the renderer's column order. */
+  section: readonly { x: number; z: number }[];
+}
+export interface DistrictApron {
+  id: string;
+  x: number;
+  z: number;
+  arms: readonly ApronArm[];
+  /** The union's outline, ordered by angle around the node, cut sections included. */
+  boundary: readonly { x: number; z: number }[];
+  /** The farthest boundary point from the node. */
+  radius: number;
+}
+
+interface PathPoint { x: number; z: number; ux: number; uz: number; width: number }
+
+/** The point `along` metres down a polyline, clamped to its ends. */
+export function pathPointAt(points: readonly CoursePoint[], along: number): PathPoint {
+  let acc = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i]!, b = points[i + 1]!;
+    const dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+    if (acc + length >= along || i === points.length - 2) {
+      const t = Math.max(0, Math.min(1, (along - acc) / length));
+      return { x: a.x + dx * t, z: a.z + dz * t, ux: dx / length, uz: dz / length,
+        width: a.width + (b.width - a.width) * t };
+    }
+    acc += length;
+  }
+  throw new RangeError("A road needs at least two distinct points");
+}
+
+function ribbonSection(at: PathPoint): { x: number; z: number }[] {
+  const nx = -at.uz, nz = at.ux;
+  return Array.from({ length: RIBBON_COLUMNS }, (_, column) => {
+    const side = 1 - column / (RIBBON_COLUMNS - 1) * 2;
+    return { x: at.x + nx * at.width / 2 * side, z: at.z + nz * at.width / 2 * side };
+  });
+}
+
+function buildAprons(): DistrictApron[] {
+  return DISTRICT_JUNCTIONS.map(junction => {
+    const arms = DISTRICT_STREETS.filter(street => street.from === junction.id || street.to === junction.id)
+      .map(street => ({ street, reversed: street.to === junction.id,
+        out: street.to === junction.id ? [...street.points].reverse() : street.points }));
+    const covered = (arm: typeof arms[number], x: number, z: number) => arms.some(other => {
+      if (other === arm) return false;
+      const on = projectOntoPath(other.street.points, x, z);
+      return on.distance <= on.width / 2;
+    });
+    const sectionCovered = (arm: typeof arms[number], along: number) => {
+      const at = pathPointAt(arm.out, along);
+      const nx = -at.uz, nz = at.ux;
+      return [-1, -0.5, 0, 0.5, 1].some(side => covered(arm, at.x + nx * at.width / 2 * side, at.z + nz * at.width / 2 * side));
+    };
+    const built: ApronArm[] = arms.map(arm => {
+      const length = pathLength(arm.out);
+      // Walk out until no other arm covers the ribbon, then find the edge.
+      let inside = 0, outside = Math.min(length, 200);
+      for (let along = 2; along <= outside; along += 2) {
+        if (sectionCovered(arm, along)) inside = along;
+        else { outside = along; break; }
+      }
+      for (let i = 0; i < 8; i++) {
+        const mid = (inside + outside) / 2;
+        if (sectionCovered(arm, mid)) inside = mid; else outside = mid;
+      }
+      const cut = Math.min(outside + APRON_MARGIN, length / 2 - 1);
+      return { street: arm.street.id, reversed: arm.reversed, cut, section: ribbonSection(pathPointAt(arm.out, cut)) };
+    });
+    // Each arm's piece as a closed outline: its ribbon from the node to the cut,
+    // plus the half-disc cap projectOntoPath counts as carriageway behind the
+    // node, which is what fills the outer corner of a bend.
+    const pieces = arms.map((arm, i) => {
+      const cut = built[i]!.cut, left: { x: number; z: number }[] = [], right: { x: number; z: number }[] = [];
+      for (let along = 0; along < cut; along += 2) {
+        const section = ribbonSection(pathPointAt(arm.out, along));
+        left.push(section[0]!); right.push(section[RIBBON_COLUMNS - 1]!);
+      }
+      const end = built[i]!.section;
+      left.push(end[0]!); right.push(end[RIBBON_COLUMNS - 1]!);
+      const start = pathPointAt(arm.out, 0);
+      // From the right kerb round behind the node to the left kerb.
+      const cap: { x: number; z: number }[] = [];
+      for (let k = 1; k < 8; k++) {
+        const theta = Math.PI - Math.PI * k / 8, nx = -start.uz, nz = start.ux;
+        cap.push({ x: start.x + (nx * Math.cos(theta) - start.ux * Math.sin(theta)) * start.width / 2,
+          z: start.z + (nz * Math.cos(theta) - start.uz * Math.sin(theta)) * start.width / 2 });
+      }
+      return [...left, ...right.reverse(), ...cap];
+    });
+    // The union's boundary, by rays from the node: the farthest exit from any
+    // piece. Every union is star-shaped from its node — measured before this
+    // was written, and asserted by the test that draws them.
+    const exit = (angle: number): number => {
+      const dx = Math.cos(angle), dz = Math.sin(angle);
+      let farthest = 0;
+      for (const piece of pieces) {
+        for (let i = 0; i < piece.length; i++) {
+          const a = piece[i]!, b = piece[(i + 1) % piece.length]!;
+          const ex = b.x - a.x, ez = b.z - a.z, den = dx * ez - dz * ex;
+          if (Math.abs(den) < 1e-12) continue;
+          const t = ((a.x - junction.point.x) * ez - (a.z - junction.point.z) * ex) / den;
+          const u = ((a.x - junction.point.x) * dz - (a.z - junction.point.z) * dx) / den;
+          if (t >= 0 && u >= -1e-9 && u <= 1 + 1e-9) farthest = Math.max(farthest, t);
+        }
+      }
+      return farthest;
+    };
+    const rays: { angle: number; r: number }[] = [];
+    const step = 4 * Math.PI / 180;
+    for (let angle = 0; angle < 2 * Math.PI - 1e-9; angle += step) rays.push({ angle, r: exit(angle) });
+    // Where the radius jumps between two rays there is a corner: find it.
+    const refined: { angle: number; r: number }[] = [];
+    for (let i = 0; i < rays.length; i++) {
+      const a = rays[i]!, b = rays[(i + 1) % rays.length]!;
+      refined.push(a);
+      if (Math.abs(a.r - b.r) < 0.75) continue;
+      let lo = a.angle, hi = a.angle + step, rlo = a.r, rhi = b.r;
+      for (let k = 0; k < 14; k++) {
+        const mid = (lo + hi) / 2, rm = exit(mid);
+        if (Math.abs(rm - rlo) < Math.abs(rm - rhi)) { lo = mid; rlo = rm; } else { hi = mid; rhi = rm; }
+      }
+      refined.push({ angle: lo, r: rlo }, { angle: hi, r: rhi });
+    }
+    // Ray samples on a cut edge are replaced by the cut section itself, so the
+    // apron and the ribbon share the seam's vertices exactly.
+    const onCut = (x: number, z: number) => built.some(arm => {
+      const a = arm.section[0]!, b = arm.section[RIBBON_COLUMNS - 1]!;
+      const ex = b.x - a.x, ez = b.z - a.z, len2 = ex * ex + ez * ez;
+      const u = ((x - a.x) * ex + (z - a.z) * ez) / len2;
+      if (u < -1e-6 || u > 1 + 1e-6) return false;
+      return Math.hypot(x - a.x - ex * u, z - a.z - ez * u) < 0.05;
+    });
+    const boundary: { x: number; z: number; angle: number }[] = [];
+    for (const ray of refined) {
+      const x = junction.point.x + Math.cos(ray.angle) * ray.r, z = junction.point.z + Math.sin(ray.angle) * ray.r;
+      if (ray.r > 0 && !onCut(x, z)) boundary.push({ x, z, angle: ray.angle });
+    }
+    for (const arm of built) for (const point of arm.section) {
+      const angle = (Math.atan2(point.z - junction.point.z, point.x - junction.point.x) + 2 * Math.PI) % (2 * Math.PI);
+      boundary.push({ x: point.x, z: point.z, angle });
+    }
+    boundary.sort((p, q) => p.angle - q.angle);
+    const radius = Math.max(...boundary.map(p => Math.hypot(p.x - junction.point.x, p.z - junction.point.z)));
+    return { id: junction.id, x: junction.point.x, z: junction.point.z, arms: built,
+      boundary: boundary.map(({ x, z }) => ({ x, z })), radius };
+  });
+}
+export const DISTRICT_APRONS: readonly DistrictApron[] = buildAprons();
 
 /** Shared junction grading for road meshes, barriers and the vertical constraint.
  * This changes only the blockout's junction aprons, never baseline Blackglass.
  */
 export function districtSurfaceHeight(x: number, z: number, height: number): number {
+  let remaining = 1, weight = 0, sum = 0;
   for (const junction of DISTRICT_JUNCTIONS) {
     const distance = Math.hypot(x - junction.point.x, z - junction.point.z);
     if (distance >= 28) continue;
     const t = Math.max(0, (distance - 9) / 19);
     const blend = t * t * (3 - 2 * t);
-    return junction.point.y + (height - junction.point.y) * blend;
+    const influence = 1 - blend;
+    remaining *= blend;
+    weight += influence;
+    sum += junction.point.y * influence;
   }
-  return height;
+  // All nearby discs contribute. Returning the first one snapped to another
+  // junction's grade at its 28 m edge when two grading discs overlapped.
+  return weight > 0 ? height * remaining + sum / weight * (1 - remaining) : height;
 }
 
 function connectorWalls(street: Street): CourseWall[] {
