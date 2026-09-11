@@ -27,6 +27,20 @@ test("garage is a main-menu branch", () => {
   assert.equal(transitionMenu(garage, "back").screen, "main");
 });
 
+test("city map closes to its origin without restarting a drive", () => {
+  for (const origin of ["main", "pause", "playing"] as const) {
+    const map=transitionMenu({screen:origin,returnTo:"main"},"map-toggle");
+    assert.deepEqual(map,{screen:"map",returnTo:origin});
+    for (const close of ["map-toggle","back","pause-toggle"] as const) {
+      assert.equal(transitionMenu(map,close).screen,origin);
+    }
+  }
+  const garage={screen:"garage",returnTo:"playing"} as const;
+  assert.deepEqual(transitionMenu(garage,"map-toggle"),garage);
+  const controls={screen:"controls",returnTo:"pause"} as const;
+  assert.deepEqual(transitionMenu(controls,"map-toggle"),controls);
+});
+
 // Regression: the audio sliders were added to the pause screen but not to the
 // menu's navigable set, so a pad or arrow-key player could never land on them.
 // Worse than unreachable — hunting for them cycled onto Track Select and threw

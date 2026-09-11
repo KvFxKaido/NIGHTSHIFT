@@ -1,4 +1,4 @@
-export type MenuScreen = "main" | "garage" | "pause" | "controls" | "playing";
+export type MenuScreen = "main" | "garage" | "pause" | "controls" | "map" | "playing";
 
 export interface MenuState {
   screen: MenuScreen;
@@ -6,6 +6,7 @@ export interface MenuState {
 }
 
 export type MenuEvent =
+  | "map-toggle"
   | "open-controls"
   | "open-garage"
   | "start-track"
@@ -21,6 +22,12 @@ export function createInitialMenuState(): MenuState {
 
 export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
   switch (event) {
+    case "map-toggle":
+      if (state.screen === "map") return { screen: state.returnTo, returnTo: state.returnTo };
+      if (state.screen === "playing" || state.screen === "pause" || state.screen === "main") {
+        return { screen: "map", returnTo: state.screen };
+      }
+      return state;
     case "open-controls":
       return { screen: "controls", returnTo: state.screen === "pause" ? "pause" : "main" };
     case "open-garage":
@@ -34,11 +41,11 @@ export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
     case "pause-toggle":
       if (state.screen === "playing") return { screen: "pause", returnTo: "pause" };
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (state.screen === "garage" || state.screen === "controls") return { screen: state.returnTo, returnTo: state.returnTo };
+      if (state.screen === "garage" || state.screen === "controls" || state.screen === "map") return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
     case "back":
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (state.screen === "garage" || state.screen === "controls") return { screen: state.returnTo, returnTo: state.returnTo };
+      if (state.screen === "garage" || state.screen === "controls" || state.screen === "map") return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
   }
 }

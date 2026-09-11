@@ -252,9 +252,11 @@ should preserve this principle.
 
 ### 6.4 Current Seattle Demo
 
-Seattle is the only playable map and opens at the base URL. The first slice
-contains about 13.1 km of streets, 63 street-graph edges, 160 generated building
-masses plus Wharf Garage, a fictional waterfront bypass, and softened hills.
+Seattle is the only playable map and opens at the base URL. The expanded slice
+contains about 18.6 km of streets, 108 street-graph edges, 195 generated building
+masses plus Wharf Garage and the Space Needle, a fictional waterfront bypass,
+and softened hills. Belltown connects downtown to the Seattle Center loop;
+the Queen Anne hill and surveyed terrain remain future work.
 City of Seattle/SDOT centerlines supply the structure; buildings, elevation,
 widths and some connections are game adaptations. See [SEATTLE.md](SEATTLE.md)
 and the [source notes](../assets/maps/seattle/README.md).

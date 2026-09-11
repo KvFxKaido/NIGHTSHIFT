@@ -1,3 +1,4 @@
+import landmarks from "./seattle-landmarks.json" with { type: "json" };
 import data from "./seattle-data.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
@@ -85,6 +86,7 @@ export function resolveSeattleLayout(value:unknown): {blocks:readonly BuildingBl
     if(!edits.has(id))return;
     if(SEATTLE_STREETS.some(street=>street.points.slice(1).some((b,i)=>
       segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
+    if(blockPenetration(block,landmarks.needle)>0)issues.push(`${id}: overlaps the Space Needle`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockCorners(block).some(p=>p.x<data.shore+2||p.x>data.bounds[2]!||p.z<data.bounds[1]!||p.z>data.bounds[3]!))issues.push(`${id}: outside the map's building area`);
     if(blocks.some((other,j)=>j!==index&&blockPenetration(block,other)>.01))issues.push(`${id}: overlaps another building`);
@@ -95,10 +97,10 @@ export function resolveSeattleLayout(value:unknown): {blocks:readonly BuildingBl
 const resolvedLayout=resolveSeattleLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Seattle layout:\n${resolvedLayout.issues.join("\n")}`);
 export const SEATTLE_BLOCKS=resolvedLayout.blocks;
-export const SEATTLE_VERSION="seattle-slice-v2"+(authoredLayout.buildings.length?`-layout-${layoutFingerprint(parseBuildingLayout(authoredLayout))}`:"");
+export const SEATTLE_VERSION=data.version+(authoredLayout.buildings.length?`-layout-${layoutFingerprint(parseBuildingLayout(authoredLayout))}`:"");
 let network: TrafficNetwork | undefined;
 export function createSeattleWorld(racing = false): RoadWorld {
-  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: SEATTLE_BLOCKS,
+  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: [...SEATTLE_BLOCKS, landmarks.needle],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],

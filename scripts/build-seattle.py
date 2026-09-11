@@ -6,70 +6,63 @@ from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union, linemerge, polygonize
 from shapely import constrained_delaunay_triangles
 
-source = json.loads(Path('assets/maps/seattle/source-streets.json').read_text())
-names = {'1ST AVE', '1ST AVE S', '2ND AVE', '2ND AVE S', '4TH AVE', '4TH AVE S',
-         '6TH AVE', '6TH AVE S', 'ALASKAN WAY', 'ALASKAN WAY S', 'WESTERN AVE',
-         'OCCIDENTAL AVE S', 'S LANDER ST', 'S HOLGATE ST', 'S ROYAL BROUGHAM WAY',
-         'S JACKSON ST', 'S MAIN ST', 'YESLER WAY', 'E YESLER WAY', 'JAMES ST',
-         'MADISON ST', 'E MADISON ST', 'PIKE ST', 'UNION ST', 'S DEARBORN ST'}
+# Preserve the original slice's street IDs/vertices and generated plots. Existing
+# authored rivals and editor plot IDs depend on these identities.
+base = json.loads(Path('assets/maps/seattle/base-slice.json').read_text(encoding='utf-8'))
+source = json.loads(Path('assets/maps/seattle/source-north-streets.json').read_text(encoding='utf-8'))
 def project(p):
     return (round((p[0] + 122.334) * 111320 * math.cos(math.radians(47.6)) * .58),
             round(-(p[1] - 47.598) * 111320 * .50))
-originals = []
-for feature in source['features']:
-    name = feature['attributes']['ONSTREET']
-    if name not in names: continue
-    for path in feature['geometry']['paths']:
-        coords = list(dict.fromkeys(project(p) for p in path))
-        if len(coords) >= 2:
-            line = LineString(coords).simplify(1.2)
-            if line.length > 5: originals.append((name, line, feature['attributes']['OBJECTID']))
-
-# A fictional waterfront express street connects three real approaches. Its
-# generous bends and access points are gameplay liberties, not GIS observations.
-west = min(line.bounds[0] for _,line,_ in originals) - 35
-harbor_z = [-610, 30, 730]
-originals.append(('HARBOR WAY', LineString([(west,z) for z in harbor_z]), None))
-for z in harbor_z:
-    points = [p for name,line,_ in originals if name in {'1ST AVE','1ST AVE S'} for p in line.coords]
-    point = min(points, key=lambda p: math.dist(p,(west+70,z)))
-    originals.append(('HARBOR ACCESS',LineString([(west,z),point]),None))
-
-# Node all actual at-grade crossings, prune cut-off dead ends, and keep the
-# largest connected component. Highway ramps/grade-separated roads were excluded.
-lines = list(linemerge(unary_union([line for _, line, _ in originals])).geoms)
 def key(point): return ','.join(str(round(n, 3)) for n in point)
-while True:
-    degree = {}
-    for line in lines:
-        for p in [line.coords[0], line.coords[-1]]: degree[key(p)] = degree.get(key(p), 0) + 1
-    kept = [line for line in lines if degree[key(line.coords[0])] > 1 and degree[key(line.coords[-1])] > 1]
-    if len(kept) == len(lines): break
-    lines = kept
-adj = {}
-for i, line in enumerate(lines):
-    for p in [line.coords[0], line.coords[-1]]: adj.setdefault(key(p), []).append(i)
-components, unseen = [], set(range(len(lines)))
-while unseen:
-    todo, group = [min(unseen)], set()
-    while todo:
-        i = todo.pop()
-        if i in group: continue
-        group.add(i); unseen.discard(i)
-        for p in [lines[i].coords[0], lines[i].coords[-1]]: todo += [j for j in adj[key(p)] if j not in group]
-    components.append(group)
-lines = [lines[i] for i in sorted(max(components, key=len))]
-merged = linemerge(unary_union(lines))
-lines = list(merged.geoms) if merged.geom_type == 'MultiLineString' else [merged]
+from shapely.ops import substring
+originals = []
+def street(name, start, end, width):
+    segments = [LineString(list(dict.fromkeys(project(p) for p in path)))
+        for f in source['features'] if f['attributes']['ONSTREET'] == name
+        for path in f['geometry']['paths']]
+    merged = linemerge(unary_union(segments))
+    candidates = list(merged.geoms) if merged.geom_type == 'MultiLineString' else [merged]
+    line = min(candidates, key=lambda line: line.distance(Point(start))+line.distance(Point(end)))
+    section = substring(line, line.project(Point(start)), line.project(Point(end)))
+    coords = list(section.coords)
+    coords[0], coords[-1] = start, end
+    line = LineString(coords)
+    source_id = next(f['attributes']['OBJECTID'] for f in source['features'] if f['attributes']['ONSTREET'] == name)
+    originals.append((name, line, width, source_id))
+def connector(name, points, width):
+    originals.append((name, LineString(points), width, None))
 
-roads = []
-for i, line in enumerate(lines):
+street('1ST AVE', (-545,-856), (-934,-1147), 20)
+street('2ND AVE', (-213,-628), (-820,-1146), 16)
+street('4TH AVE', (-117,-680), (-650,-1145), 20)
+street('ELLIOTT AVE', (-614,-778), (-1064,-1146), 24)
+street('BATTERY ST', (-676,-825), (-489,-1010), 16)
+street('WALL ST', (-717,-855), (-530,-1040), 16)
+street('CEDAR ST', (-798,-917), (-593,-1145), 16)
+street('BROAD ST', (-880,-979), (-592,-1275), 20)
+street('DENNY WAY', (-991,-1147), (-593,-1145), 24)
+street('QUEEN ANNE AVE N', (-991,-1147), (-989,-1480), 20)
+street('MERCER ST', (-989,-1480), (-591,-1475), 24)
+street('5TH AVE N', (-593,-1145), (-591,-1475), 20)
+connector('1ST AVENUE LINK', [(-524.683,-775.007),(-545,-856)], 20)
+connector('HARBOR NORTH LINK', [(-589.36,-708.02),(-614,-778)], 24)
+connector('W DENNY WAY', [(-1064,-1146),(-991,-1147)], 24)
+
+# Node only the addition: it meets the retained slice at existing junctions.
+# Group by street name/width so collinear intersections retain shared vertices.
+merged = unary_union([entry[1] for entry in originals])
+north_lines = list(merged.geoms)
+north_roads = []
+for i,line in enumerate(north_lines):
     midpoint = line.interpolate(.5, normalized=True)
-    name, _, source_id = min(originals, key=lambda entry: entry[1].distance(midpoint))
-    width = 24 if name.startswith(('ALASKAN','HARBOR WAY')) else 20 if name.startswith(('1ST', '4TH', 'S LANDER')) else 16
-    roads.append({'id': f'sea-{i}', 'name': name.title(), 'sourceId': source_id, 'width': width,
-                  'from': key(line.coords[0]), 'to': key(line.coords[-1]),
-                  'points': [[round(x, 3), round(z, 3)] for x, z in line.coords]})
+    name, _, width, source_name = min(originals, key=lambda entry: entry[1].distance(midpoint))
+    north_roads.append({'id':f'sea-north-{i}', 'name':name.title(),
+        'sourceId':source_name, 'width':width,
+        'from':key(line.coords[0]),'to':key(line.coords[-1]),
+        'points':[[round(x,3),round(z,3)] for x,z in line.coords]})
+roads = base['roads'] + north_roads
+# Use the serialized vertices for meshes too; physics never sees extra precision.
+lines = [LineString(road['points']) for road in roads]
 
 # One continuous, softened landform. Both asphalt and off-road terrain read it.
 def height(x, z):
@@ -96,6 +89,7 @@ def triangles(geometry):
                 m = ((a[0]+b[0])/2,(a[1]+b[1])/2)
                 todo += [[a,m,c],[m,b,c]]
             else:
+                points = [(round(x,3),round(z,3)) for x,z in points]
                 a,b,c = points
                 # Clockwise in X/Z gives an upward normal in Three.js X/Y/Z.
                 if (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]) > 0: points.reverse()
@@ -104,32 +98,39 @@ def triangles(geometry):
 
 # Use the real blocks as parcels, reserving a through passage in each larger
 # parcel. Buildings are fictional, fitted wholly within the paved street edges.
-buildings = []
+buildings = list(base['buildings'])
 reserved = asphalt.buffer(4)
 for face_index, face in enumerate(polygonize(unary_union(lines))):
+    if face.centroid.y > -700: continue
     lot = face.difference(reserved)
+    # Seattle Center stays an open campus with a landmark; no warehouse grid.
+    campus = json.loads(Path('src/sim/seattle-landmarks.json').read_text(encoding='utf-8'))['campus']
+    lot = lot.difference(box(campus['minX'],campus['minZ'],campus['maxX'],campus['maxZ']))
     if lot.is_empty: continue
     minx,minz,maxx,maxz = lot.bounds
     for row,z in enumerate(range(math.ceil(minz)+12, math.floor(maxz)-8, 32)):
         for col,x in enumerate(range(math.ceil(minx)+12, math.floor(maxx)-8, 34)):
             seed = face_index*31 + row*13 + col*7
             if maxx-minx > 85 and abs(x-(minx+maxx)/2) < 16: continue
-            industrial = z > 250 or x < -270
-            if x < -270 and seed % 3: continue
-            w,d = (27,24) if industrial else (24,23)
+            industrial = z > 250 or (x < -270 and z > -700)
+            if industrial and x < -270 and seed % 3: continue
+            w,d = (27,24) if industrial else (18,18)
             footprint = box(x-w/2,z-d/2,x+w/2,z+d/2)
             if not lot.covers(footprint): continue
+            if any(footprint.intersects(box(b['x']-b['width']/2-3,b['z']-b['depth']/2-3,
+                    b['x']+b['width']/2+3,b['z']+b['depth']/2+3)) for b in buildings): continue
             if asphalt.distance(footprint) > 32: continue
             grounds = [height(px,pz) for px,pz in footprint.exterior.coords]
             if max(grounds)-min(grounds)>3.5: continue
             h = (9+seed%3*4) if industrial else (14+seed%5*4) if z>20 else (26+seed%7*8)
+            if z < -700: h = 18 + seed%5*6
             buildings.append({'x':x,'z':z,'width':w,'depth':d,'height':h,'rotation':0,'base':round(min(grounds),3)})
 
-result = {'version':'seattle-slice-v1', 'source':source['source'], 'retrieved':source['retrieved'],
+result = {'version':'seattle-slice-v3', 'source':source['source'], 'retrieved':source['retrieved'],
           'bounds':list(land.bounds), 'shore':shore, 'roads':roads, 'buildings':buildings,
           'asphalt':triangles(asphalt), 'pavement':triangles(pavement),
           'ground':triangles(land.difference(asphalt.union(pavement)))}
-Path('src/sim/seattle-data.json').write_text(json.dumps(result, separators=(',',':'))+'\n')
+Path('src/sim/seattle-data.json').write_text(json.dumps(result, separators=(',',':'))+'\n', encoding='utf-8')
 print(json.dumps({'roads':len(roads),'buildings':len(buildings),'km':round(sum(l.length for l in lines)/1000,2),
                  'bounds':result['bounds'],'triangles':sum(len(result[k])//6 for k in ['asphalt','pavement','ground']),
                  'streets':sorted(set(r['name'] for r in roads))}))

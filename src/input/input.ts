@@ -6,7 +6,7 @@ export interface CameraLook {
   y: number;
 }
 
-export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause" | "interact" | "flash";
+export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause" | "interact" | "flash" | "map";
 
 export interface InputController {
   update(): void;
@@ -141,6 +141,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     held.add(event.code);
     if (event.repeat) return;
     if (event.code === "Escape") menuCommands.push("pause");
+    if (event.code === bindings.keyboard.map) menuCommands.push("map");
     if (event.code === bindings.keyboard.flash) menuCommands.push("flash");
     if (event.code === bindings.keyboard.interact) menuCommands.push("interact");
     if (event.code === "Enter" || event.code === "NumpadEnter") menuCommands.push("confirm");
@@ -177,6 +178,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     if (justPressed(bindings.gamepad.reset)) resetRequested = true;
     if (justPressed(bindings.gamepad.telemetry)) debugToggleRequested = true;
     if (justPressed(bindings.gamepad.camera)) cameraResetRequested = true;
+    if (justPressed(bindings.gamepad.map)) menuCommands.push("map");
     if (justPressed(bindings.gamepad.flash)) menuCommands.push("flash");
     if (justPressed(9)) menuCommands.push("pause");    // Menu / Options
     if (justPressed(0)) menuCommands.push("confirm"); // A / Cross

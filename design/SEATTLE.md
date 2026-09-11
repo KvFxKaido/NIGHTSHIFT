@@ -6,6 +6,16 @@ Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at 
 
 `editor.html` now edits Seattle. Its validated placements live in `src/sim/seattle-layout.json`; the garage and forecourt stay protected. Saved building footprints feed both rendering and Rapier.
 
+The in-game city map opens with **M / Select–View–Share** or the main/pause
+menu's Seattle map button. It uses the loaded sim and never navigates away:
+player, rival, traffic and race clocks pause together. Closing returns to the
+originating screen, with driving inputs gated normally on resume. Markers show
+the player, waiting/racing rival and the active race's gates (including generated
+races), plus the garage and Space Needle. Pan/zoom is available by pointer and
+the map's controller-accessible view buttons. Bindings are remappable and old
+saves retain their existing assignments. The standalone route board remains a
+separate authoring/navigation page.
+
 ## Direction
 
 This is the single-city MC3-inspired demo described in [GDD.md](GDD.md).
@@ -16,11 +26,11 @@ PC prototyping comes first; RedMagic 10 Pro is the eventual device, with
 Android packaging and testing later. Police and other selective LA features
 remain optional future work.
 
-## First slice
+## Current slice
 
-Approximately 13.1 km of selected streets in a 1.3 by 2.2 km land envelope: industrial south, old grid, downtown hill, and a fictional waterfront bypass. There are 63 graph edges and 160 generated building masses plus Wharf Garage. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
+Approximately 18.6 km of selected streets in a 1.7 by 2.9 km land envelope: industrial south, old grid, downtown hill, Belltown, Seattle Center, and a fictional waterfront bypass. There are 108 graph edges and 195 generated building masses plus Wharf Garage and the Space Needle. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
 
-Real Seattle centerlines provide the structure. Distances, widths, elevation, buildings and some connections are deliberately adapted. See `assets/maps/seattle/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished Seattle architecture. No surveyed terrain, Space Needle, bridges, tunnels, or police yet.
+Real Seattle centerlines provide the structure. Distances, widths, elevation, buildings and some connections are deliberately adapted. See `assets/maps/seattle/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished Seattle architecture. The Space Needle is a compressed primitive landmark with a shared solid footprint. No surveyed terrain, bridges, tunnels, or police yet.
 
 ## Shared surface
 
@@ -28,12 +38,14 @@ Real Seattle centerlines provide the structure. Distances, widths, elevation, bu
 
 Road data also feeds the minimap and existing lane/reservation traffic builder. Traffic remains deterministic. General road projection, building footprint and traffic helpers are separate modules, so importing Seattle does not initialize the retired district.
 
-The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v2`, with a layout fingerprint when edited.
+The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v3`, with a layout fingerprint when edited.
 
 ## Regeneration caveats
 
 `scripts/build-seattle.py` writes `src/sim/seattle-data.json` in full, including
-its 160 generated buildings. `src/sim/seattle-layout.json` does not hold
+its generated buildings. The northern builder now starts from
+`assets/maps/seattle/base-slice.json`, preserving the original 63 street
+identities/vertices and 160 plots, then adds the northern source extract. `src/sim/seattle-layout.json` does not hold
 independent buildings: it stores per-building edits from `editor.html`, each
 keyed to a generated plot id derived from that building's generated
 coordinates, and `resolveSeattleLayout` replaces the matching generated block
@@ -46,12 +58,34 @@ loud, not a silent reshuffle. The layout file is empty today, so nothing is at
 risk yet; once it holds edits, regenerating the map means re-exporting or
 rebasing those edits against the new baseline before the build passes again.
 
-The builder stamps its output `seattle-slice-v1`; the sim reports
-`seattle-slice-v2` from `src/sim/seattle.ts`, where the v2 bump was made for
-the vertical physics change. The two are not linked: regenerating the map
-changes the world without changing its identity. Any expansion (new streets,
-new bounds) must bump the version in `seattle.ts` deliberately, and a future
-saved ghost must not trust the data file's own stamp.
+The builder now stamps `seattle-slice-v3` and the sim derives its version from
+that stamp (plus the layout fingerprint). The old separate v1/v2 stamps are
+retired. Map expansions must bump the builder's stamp deliberately. Generated
+race seeds are reproducible within a world version; v2 seeds may draw different
+routes on the expanded graph.
+
+### Belltown–Seattle Center extension (2026-09-11)
+
+Adds 5.5 km and 45 graph edges, using the city's northern street extract.
+Downtown connects through 2nd/4th Avenue, a short adapted 1st Avenue link,
+and the extended waterfront approach into Elliott Avenue. Battery, Wall,
+Cedar and Broad provide cross-connections; Denny, Queen Anne Avenue N,
+Mercer and 5th Avenue N form the campus loop. The three short connector
+segments are authored adaptations. Every crossing remains at grade; no SR99
+ramps, tunnel or grade-separated geometry was imported.
+
+The campus is reserved from procedural building placement. The Space Needle
+has a simplified 120 m silhouette, open plaza and shared collision footprint;
+the map board labels it and Belltown. Original street geometry and building
+plots are retained, including the garage, encounter and Sound to Sky route.
+The existing height function is unchanged in both builder and sim. This reaches
+lower Queen Anne; the hill climb and Kerry Park overlook are the next slice.
+
+The same route-choice model now reports 2574 directed legs, 86% with an
+alternative within 40% (previously 77%), 326 priced legs, and 520 in the
+10–25% detour range. These are graph-model estimates, not lap-time promises;
+the larger graph changes the comparison pool. Broad / 5th and 2nd / Denny
+are new high-ranking gate candidates.
 
 ## Validation and remaining work
 
@@ -215,10 +249,11 @@ Within 32 metres, below 12 m/s and at the same elevation, **F / X–Square** fla
 the headlights and accepts a challenge. Both bindings are remappable; older
 saved controls keep their mappings and receive an unused flash binding. The
 nearby prompt also works by click. A double flash precedes the page transition
-to Sound to Sky's grid/countdown, preserving the selected player/opponent bodies.
+to a generated race's grid/countdown, preserving the selected player/opponent bodies.
 Pause freezes the transition. **Return to free roam** in the main/pause menus
 reopens Seattle at Wharf Garage with the waiting opponent restored. This first
-encounter starts the authored race; it does not generate routes or cruise the city.
+encounter draws a generated race; the waiting rival does not cruise the city.
+Sound to Sky remains available as the authored menu race.
 
 `src/sim/seattle-rival.ts` defines a continuous preferred line through all four
 gates. The player remains free to choose any route. `src/sim/rival.ts` controls
@@ -242,4 +277,4 @@ identical reset state/world snapshots. Browser checks cover both car pairings,
 garage changes, countdown, pause/restart, full-race completion and free-roam
 isolation. This is the first driver, not general city navigation: aggressive
 player blocking, repeated pileups and unusual off-route recoveries need driving
-feedback. Generated races, moving encounters and rival personalities remain future work.
+feedback. Moving encounters and rival personalities remain future work.

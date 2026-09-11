@@ -1,3 +1,4 @@
+import { addSpaceNeedle } from "./space-needle.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { SEATTLE_DATA as data, SEATTLE_STREETS, SEATTLE_BLOCKS, SEATTLE_GARAGE, seattleHeight } from "../sim/seattle.ts";
@@ -8,6 +9,7 @@ import type { DistrictLighting } from "./scene.ts";
 
 export function addSeattle(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
+  addSpaceNeedle(scene, night);
   if (night) scene.add(new THREE.HemisphereLight(0x9abbd0, 0x39444c, 1.0));
   function surface(name: string, points: number[], color: number): void {
     const positions = new Float32Array(points.length/2*3);

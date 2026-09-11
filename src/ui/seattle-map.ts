@@ -1,3 +1,4 @@
+import landmarks from "../sim/seattle-landmarks.json" with { type: "json" };
 import { SEATTLE_DATA, SEATTLE_BLOCKS, SEATTLE_GARAGE, SEATTLE_STREETS, SEATTLE_RACE, createSeattleWorld } from "../sim/seattle.ts";
 import { pathLength } from "../sim/lanes.ts";
 
@@ -26,3 +27,9 @@ const start = createSeattleWorld().start;
 shape("circle",{cx:start.x,cy:start.z,r:20,fill:"#69e5bd",stroke:"#173f37","stroke-width":4});
 shape("text",{x:start.x+34,y:start.z+10,"font-size":26,fill:"#b4ffe5"},SEATTLE_GARAGE.name);
 document.getElementById("map-stats")!.textContent = `${(SEATTLE_STREETS.reduce((n,s)=>n+pathLength(s.points),0)/1000).toFixed(1)} km of streets · Four open checkpoints`;
+
+const needle = landmarks.needle;
+shape("circle", {cx:needle.x,cy:needle.z,r:22,fill:"#b6c9ff",stroke:"#26374e","stroke-width":4});
+shape("text", {x:needle.x+35,y:needle.z+10,"font-size":25,fill:"#d4ddff"},"Space Needle");
+shape("text", {x:-780,y:-1400,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"SEATTLE CENTER");
+shape("text", {x:-305,y:-965,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"BELLTOWN");
