@@ -28,10 +28,9 @@ export default defineConfig({
     name: "seattle-layout-editor",
     configureServer(server) {
       server.middlewares.use(layoutMiddleware(layoutFile, async value => {
-        const { parseBuildingLayout } = await import(pathToFileURL(join(dirname(layoutFile), "building-layout.ts")).href);
         const { resolveSeattleLayout } = await import(pathToFileURL(join(dirname(layoutFile), "seattle.ts")).href + `?validator=${validatorRevision}`);
-        const layout = parseBuildingLayout(value);
-        const { issues } = resolveSeattleLayout(layout);
+        // Whichever schema arrives, the file is written as schema 2.
+        const { layout, issues } = resolveSeattleLayout(value);
         if (issues.length) throw new Error(issues.join("\n"));
         return layout;
       }, () => server.moduleGraph.invalidateAll()));

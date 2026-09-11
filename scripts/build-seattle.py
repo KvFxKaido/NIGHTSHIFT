@@ -100,6 +100,23 @@ def triangles(geometry):
 # parcel. Buildings are fictional, fitted wholly within the paved street edges.
 buildings = list(base['buildings'])
 reserved = asphalt.buffer(4)
+# Authored plots (editor.html, src/sim/seattle-layout.json) are placed by
+# hand in world coordinates and never regenerated: filler keeps three metres
+# clear of them, as it does of every plot already standing. Their corners use
+# the sim's own rotation (building-footprint.ts, blockCorners).
+layout_file = Path('src/sim/seattle-layout.json')
+layout = json.loads(layout_file.read_text(encoding='utf-8')) if layout_file.exists() else {}
+footprints = []
+for b in layout.get('authored', []):
+    c, s = math.cos(b['rotation']), math.sin(b['rotation'])
+    half = [(-b['width']/2,-b['depth']/2),(b['width']/2,-b['depth']/2),(b['width']/2,b['depth']/2),(-b['width']/2,b['depth']/2)]
+    footprints.append(Polygon([(b['x']+lx*c-lz*s, b['z']+lx*s+lz*c) for lx,lz in half]))
+authored = [footprint.buffer(3) for footprint in footprints]
+# A pinned plot an authored one stands on is dropped here too — the same
+# overlap the sim displaces on load — so the data file never carries a plot
+# that would only stand down. A pinned plot merely near one stays.
+buildings = [b for b in buildings if not any(footprint.intersects(box(b['x']-b['width']/2,b['z']-b['depth']/2,
+    b['x']+b['width']/2,b['z']+b['depth']/2)) for footprint in footprints)]
 for face_index, face in enumerate(polygonize(unary_union(lines))):
     if face.centroid.y > -700: continue
     lot = face.difference(reserved)
@@ -119,6 +136,7 @@ for face_index, face in enumerate(polygonize(unary_union(lines))):
             if not lot.covers(footprint): continue
             if any(footprint.intersects(box(b['x']-b['width']/2-3,b['z']-b['depth']/2-3,
                     b['x']+b['width']/2+3,b['z']+b['depth']/2+3)) for b in buildings): continue
+            if any(footprint.intersects(poly) for poly in authored): continue
             if asphalt.distance(footprint) > 32: continue
             grounds = [height(px,pz) for px,pz in footprint.exterior.coords]
             if max(grounds)-min(grounds)>3.5: continue

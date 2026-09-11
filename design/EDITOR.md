@@ -18,17 +18,26 @@ continues to dress those footprints with its existing night buildings.
    stays horizontal, rotation stays upright, and the base follows terrain.
 4. Check the placement message. Invalid buildings turn red and cannot be
    saved. Undo/redo works across edits and imports; Ctrl/Cmd+Z undoes and
-   Ctrl/Cmd+Shift+Z redoes. **Reset building** restores the generated plot.
-5. **Save to project** (Ctrl/Cmd+S) writes `src/sim/seattle-layout.json`.
-6. **Drive map** opens a fresh game using the saved layout. Reload an
+   Ctrl/Cmd+Shift+Z redoes. **Reset building** restores a generated plot.
+5. **Add building** places a new authored box where the camera is looking;
+   move and size it from there. **Delete building** (or the Delete key)
+   removes the selection: a generated plot is retired, an authored one is
+   dropped. Neither touches Wharf Garage.
+6. **Save to project** (Ctrl/Cmd+S) writes `src/sim/seattle-layout.json`.
+7. **Drive map** opens a fresh game using the saved layout. Reload an
    already-open game to pick up a save; saving does not reset a running race.
 
-Roads and Wharf Garage are fixed in this first version. The garage has a
-special entrance and spawn that require a dedicated placement workflow.
-Adding/deleting buildings, road authoring, materials, and decorative props
-are not supported yet. Height changes can alter the generated facade's floor
-count. Placement checks cover street/pavement distance, neighboring buildings, the
-garage forecourt, map boundaries and slope; a successful save still needs visual inspection and a drive.
+A generated plot you move or resize becomes an authored building of its own
+the moment it changes (the note under the picker says so, and it turns the
+authored colour), so a rebuild of the generated map cannot lose it. Roads and
+Wharf Garage are fixed. The garage has a special entrance and spawn that
+require a dedicated placement workflow. Road authoring, materials, and
+decorative props are not supported yet. Height changes can alter the
+generated facade's floor count. Placement checks cover street/pavement
+distance, the Space Needle, the garage and its forecourt, map boundaries,
+slope and other authored buildings; a generated plot an authored one stands
+on is not an error — it stands down. A successful save still needs visual
+inspection and a drive.
 
 Scene exports compact reference-mesh coordinates to millimetres while leaving
 building transforms at full precision. The measured Seattle export is about
@@ -45,9 +54,12 @@ Review the resulting draft and placement messages before saving.
 The importer reads tagged building transforms from scene JSON or an editor
 project's `scene` field. It does not execute scripts or load imported assets.
 Vertical placement is re-seated on district ground. Road, geometry and
-material edits are ignored. Missing/duplicated building IDs, garage changes,
-tilted or mirrored buildings, and incompatible district baselines are rejected.
-Keep the complete exported scene and its building tags intact.
+material edits are ignored. A generated plot's box that is missing from the
+scene is a deletion (the plot is retired); a box tagged with an authored id
+this project has never seen is a new authored building; an untagged box is
+not a building. Duplicated ids, unknown generated ids, garage changes, tilted
+or mirrored buildings, and incompatible district baselines are rejected.
+Keep the building tags intact.
 
 **Export placement backup** produces the much smaller placement JSON for
 sharing or safeguarding a draft. **Reload saved placements** reads the file
@@ -57,14 +69,29 @@ Export your draft, reload saved placements, and reconcile the edits.
 
 ## Runtime contract and validation
 
-Generated plots retain stable IDs based on their original X/Z position.
-Overrides are resolved before `SEATTLE_BLOCKS` is exposed to either renderer
-or Rapier. No Three.js objects enter simulation code. The baseline fingerprint
-uses millimetre precision to tolerate last-bit trigonometry differences between
-Node and browsers; edited layout content is included in the world/replay ID.
-An empty override file retains `seattle-slice-v3` and the generated Seattle
-geometry plus its fixed garage. Old Blackglass placement files have a different
-baseline and must not be imported as Seattle placements.
+**Authored plots are their own list (schema 2, 2026-09-11).** The layout
+file holds `authored`: first-class buildings in world coordinates with their
+own ids (`authored-<n>`, or `authored-from-<plot>` for a generated plot that
+was edited, so the editor can pair them again), and `retired`: generated plot
+ids that no longer stand, deleted or replaced. Nothing in it is keyed to the
+generator's output the way schema 1's per-plot edits were, which refused the
+whole file once a rebuild moved one plot. A rebuild now: the builder
+(`scripts/build-seattle.py`) reads the authored list, keeps filler three
+metres clear of every authored footprint and drops a pinned plot one stands
+on; the sim (`resolveSeattleLayout`) composes generated plots less retired
+and less any an authored plot overlaps — authored wins, so a build that
+predates the plot still loads — then the authored plots; a retired id the
+generator no longer produces is ignored, because that plot is gone anyway.
+`SEATTLE_LAYOUT.entries` says what stands and where each came from; the
+editor keys its boxes by id, never by index. Generated plots keep stable ids
+from their X/Z position, and the baseline fingerprint (millimetre precision,
+to tolerate last-bit trigonometry differences between Node and browsers)
+still identifies the generation a scene export or a schema-1 file was made
+against; schema-1 files are upgraded on read. Layout content is included in
+the world/replay ID. An empty file retains `seattle-slice-v3` and the
+generated Seattle geometry plus its fixed garage. Old Blackglass placement
+files have a different baseline and must not be imported as Seattle
+placements; the district fixture keeps the schema-1 parser.
 
 The write endpoint exists only in the Vite development server. Writes require
 same-origin localhost requests, validate the shared layout, compare the saved

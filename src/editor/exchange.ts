@@ -1,6 +1,8 @@
 import * as THREE from "three";
-import { buildingId, type BuildingLayout, type BuildingPlacement } from "../sim/building-layout.ts";
+import { buildingId, parseAuthoredLayout, authoredFromId, AUTHORED_ID_PREFIX, type AuthoredLayout,
+  type BuildingPlacement } from "../sim/building-layout.ts";
 import { SEATTLE_LAYOUT_BASELINE, GENERATED_SEATTLE_BLOCKS, GARAGE_PLOT_ID, groundBuilding } from "../sim/seattle.ts";
+import type { BuildingBlock } from "../sim/building-footprint.ts";
 
 /** Reference meshes need millimetres, not the JSON expansion of float32 noise.
  * Building transforms retain their full precision for placement round trips. */
@@ -30,26 +32,57 @@ export function placementFromMesh(mesh: THREE.Object3D, id: string): BuildingPla
     rotation: round(-Math.atan2(Math.sin(mesh.rotation.y), Math.cos(mesh.rotation.y))) };
 }
 
-export function layoutFromPlacements(placements: readonly BuildingPlacement[]): BuildingLayout {
-  const originals = new Map(GENERATED_SEATTLE_BLOCKS.map(block => [buildingId(block), block]));
-  return { schema: 1, baseline: SEATTLE_LAYOUT_BASELINE, buildings: placements.filter(placement => {
-    const original = originals.get(placement.id);
-    if (!original) throw new Error(`Unknown building: ${placement.id}`);
-    return (["x", "z", "width", "depth", "height", "rotation"] as const).some(key => Math.abs(original[key] - placement[key]) > 1e-5);
-  }).sort((a, b) => a.id.localeCompare(b.id, "en")) };
+/** What the editor knows about one building: a generated plot (with the plot
+ *  it was generated as, so an unchanged one writes nothing) or an authored one. */
+export interface EditorEntry {
+  id: string;
+  source: "generated" | "authored";
+  placement: BuildingPlacement;
+  original?: BuildingBlock;
+  deleted?: boolean;
 }
 
-/** Read only tagged transforms. Never load imported textures, scripts or geometry. */
-export function importEditorScene(value: unknown): BuildingLayout {
+const PLACEMENT_KEYS = ["x", "z", "width", "depth", "height", "rotation"] as const;
+export const placementDiffers = (a: Omit<BuildingPlacement, "id">, b: Omit<BuildingPlacement, "id">): boolean =>
+  PLACEMENT_KEYS.some(key => Math.abs(a[key] - b[key]) > 1e-5);
+
+/**
+ * The layout the editor's buildings describe. A generated plot that was moved
+ * or resized is retired and stands again as `authored-from-<plot>`, so the
+ * editor can pair them on reload; a deleted one is retired; an unchanged one
+ * writes nothing. Authored plots are written as they stand.
+ */
+export function layoutFromEditor(entries: readonly EditorEntry[]): AuthoredLayout {
+  const authored: BuildingPlacement[] = [], retired: string[] = [];
+  for (const entry of entries) {
+    if (entry.source === "generated") {
+      if (!entry.original) throw new Error(`Unknown building: ${entry.id}`);
+      if (entry.deleted) { retired.push(entry.id); continue; }
+      if (!placementDiffers(entry.original, entry.placement)) continue;
+      if (entry.id === GARAGE_PLOT_ID) throw new Error("Wharf Garage is fixed in this editor version");
+      retired.push(entry.id);
+      authored.push({ ...entry.placement, id: authoredFromId(entry.id) });
+    } else if (!entry.deleted) {
+      authored.push({ ...entry.placement, id: entry.id });
+    }
+  }
+  return parseAuthoredLayout({ schema: 2, authored, retired });
+}
+
+/**
+ * Read only tagged transforms. Never load imported textures, scripts or
+ * geometry. A generated plot's box that is missing from the scene was
+ * deleted; an authored box may be one this project has never seen.
+ */
+export function importEditorScene(value: unknown): AuthoredLayout {
   const root = (value as { scene?: unknown })?.scene ?? value;
   const object = (root as { object?: Record<string, unknown> })?.object;
   if (!object) throw new Error("Choose a NIGHTSHIFT scene exported by this editor");
   if ((object.userData as Record<string, unknown>)?.nightshiftBaseline !== SEATTLE_LAYOUT_BASELINE) {
     throw new Error("This scene belongs to a different district layout");
   }
-  const placements: BuildingPlacement[] = [];
-  const seen = new Set<string>();
-  const known = new Set(GENERATED_SEATTLE_BLOCKS.map(buildingId));
+  const originals = new Map(GENERATED_SEATTLE_BLOCKS.map(block => [buildingId(block), block]));
+  const seen = new Map<string, BuildingPlacement>();
   let count = 0;
   const walk = (node: Record<string, unknown>, parent: THREE.Matrix4, depth: number) => {
     if (++count > 15000 || depth > 64) throw new Error("Scene hierarchy is too large");
@@ -60,8 +93,7 @@ export function importEditorScene(value: unknown): BuildingLayout {
     const matrix = new THREE.Matrix4().multiplyMatrices(parent, new THREE.Matrix4().fromArray(numbers));
     const id = (node.userData as Record<string, unknown>)?.nightshiftBuildingId;
     if (typeof id === "string") {
-      if (!known.has(id) || seen.has(id)) throw new Error(`Unknown or duplicated building: ${id}`);
-      seen.add(id);
+      if ((!originals.has(id) && !id.startsWith(AUTHORED_ID_PREFIX)) || seen.has(id)) throw new Error(`Unknown or duplicated building: ${id}`);
       const position = new THREE.Vector3(), quaternion = new THREE.Quaternion(), scale = new THREE.Vector3();
       matrix.decompose(position, quaternion, scale);
       const recomposed = new THREE.Matrix4().compose(position, quaternion, scale);
@@ -73,17 +105,21 @@ export function importEditorScene(value: unknown): BuildingLayout {
       const yaw = Math.atan2(matrix.elements[8]! / scale.z, matrix.elements[10]! / scale.z);
       const mesh = new THREE.Object3D();
       mesh.position.copy(position); mesh.scale.copy(scale); mesh.rotation.y = yaw;
-      const placement = placementFromMesh(mesh, id);
       // Imported Y is re-seated on district ground. It is not an independent
       // physics elevation; X/Z, dimensions and yaw are the editable intent.
-      placements.push(placement);
+      seen.set(id, placementFromMesh(mesh, id));
     }
     if (node.children !== undefined && !Array.isArray(node.children)) throw new Error("Invalid scene children");
     for (const child of (node.children ?? []) as Record<string, unknown>[]) walk(child, matrix, depth + 1);
   };
   walk(object, new THREE.Matrix4(), 0);
-  if (seen.size !== known.size) throw new Error("Buildings are missing. Deletion is not supported; export the complete scene.");
-  const layout = layoutFromPlacements(placements);
-  if (layout.buildings.some(block => block.id === GARAGE_PLOT_ID)) throw new Error("Wharf Garage is fixed in this editor version");
-  return layout;
+  const garage = seen.get(GARAGE_PLOT_ID);
+  if (!garage || placementDiffers(garage, originals.get(GARAGE_PLOT_ID)!)) throw new Error("Wharf Garage is fixed in this editor version");
+  const entries: EditorEntry[] = [];
+  for (const [id, original] of originals) {
+    const placement = seen.get(id);
+    entries.push(placement ? { id, source: "generated", placement, original } : { id, source: "generated", placement: { ...original, id }, original, deleted: true });
+  }
+  for (const [id, placement] of seen) if (!originals.has(id)) entries.push({ id, source: "authored", placement });
+  return layoutFromEditor(entries);
 }

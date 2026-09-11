@@ -151,7 +151,15 @@ The visual building workshop at `editor.html` now edits Seattle. Read
 `design/EDITOR.md` before changing save behavior. Validated saves go to
 `src/sim/seattle-layout.json`; rendering and Rapier share the resolved solids.
 Roads, Wharf Garage and its forecourt are protected. Three.js scene export
-and import remain supported.
+and import remain supported. **Authored plots are their own list**
+(2026-09-11, schema 2): `authored` buildings in world coordinates with their
+own ids, and `retired` generated plot ids; nothing is keyed to the
+generator's output, so a rebuild cannot orphan a hand-placed building — the
+builder keeps filler clear of authored footprints and drops pinned plots
+under them, the sim lets an authored plot win where a stale build overlaps
+it, and a retired id the generator no longer produces is ignored. An edited
+generated plot becomes `authored-from-<plot>` with the plot retired; the
+editor can add and delete buildings. The district fixture keeps schema 1.
 
 Shared projection, footprints and lane-network construction live in
 `street-path.ts`, `building-footprint.ts`, and `street-traffic.ts`. Do not

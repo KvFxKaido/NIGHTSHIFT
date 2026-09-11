@@ -45,18 +45,25 @@ The game and editor no longer bundle the old district/course renderers. A build 
 `scripts/build-seattle.py` writes `src/sim/seattle-data.json` in full, including
 its generated buildings. The northern builder now starts from
 `assets/maps/seattle/base-slice.json`, preserving the original 63 street
-identities/vertices and 160 plots, then adds the northern source extract. `src/sim/seattle-layout.json` does not hold
-independent buildings: it stores per-building edits from `editor.html`, each
-keyed to a generated plot id derived from that building's generated
-coordinates, and `resolveSeattleLayout` replaces the matching generated block
-in place. The layout cannot add a net-new building, and an id it does not
-recognise is an error. Its `baseline` is a fingerprint of the generated
-massing, so a rebuild that moves any building changes the ids and the
-baseline together and the sim refuses to load the layout ("The district
-changed. Re-export its layout before importing these edits."). The failure is
-loud, not a silent reshuffle. The layout file is empty today, so nothing is at
-risk yet; once it holds edits, regenerating the map means re-exporting or
-rebasing those edits against the new baseline before the build passes again.
+identities/vertices and 160 plots, then adds the northern source extract.
+
+**Authored plots are their own list (2026-09-11).** `src/sim/seattle-layout.json`
+(schema 2) holds `authored`, buildings placed by hand in world coordinates
+with their own ids, and `retired`, generated plot ids that no longer stand.
+Schema 1 keyed every edit to a generated plot id derived from that plot's
+coordinates, so a rebuild that moved one plot invalidated the whole file;
+the cliff was documented here before the file held anything. Now the
+builder reads the authored list, keeps filler three metres clear of every
+authored footprint and drops a pinned plot one stands on; the sim composes
+generated plots less retired and less any an authored plot overlaps
+(authored wins, so a build that predates the plot still loads), then the
+authored plots; a retired id the generator no longer produces is ignored.
+Regenerating the map can therefore never orphan an authored building. What
+a rebuild can still do is move a generated plot out from under a retirement
+so that it stands again elsewhere, which is a re-review, not a loss. Measured:
+with the file empty the builder's output is byte-identical; with authored
+plots over a filler plot and a pinned plot it writes 193 buildings instead
+of 195. See `design/EDITOR.md` for the editor's side.
 
 The builder now stamps `seattle-slice-v3` and the sim derives its version from
 that stamp (plus the layout fingerprint). The old separate v1/v2 stamps are

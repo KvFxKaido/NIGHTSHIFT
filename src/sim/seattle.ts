@@ -2,7 +2,7 @@ import landmarks from "./seattle-landmarks.json" with { type: "json" };
 import data from "./seattle-data.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
-import { buildingId, layoutFingerprint, parseBuildingLayout, type BuildingPlacement } from "./building-layout.ts";
+import { buildingId, layoutFingerprint, layoutHasContent, parseAnyLayout, type AuthoredLayout, type BuildingPlacement } from "./building-layout.ts";
 import { blockCorners, blockPenetration, segmentFootprintDistance, type BuildingBlock } from "./building-footprint.ts";
 import authoredLayout from "./seattle-layout.json" with { type: "json" };
 import type { CourseProjection } from "./track.ts";
@@ -64,40 +64,58 @@ export function groundBuilding(placement: Omit<BuildingPlacement,"id">): Buildin
   const shape={...placement,base:0};
   return {...shape,base:Math.round(Math.min(seattleHeight(shape.x,shape.z),...blockCorners(shape).map(p=>seattleHeight(p.x,p.z)))*1000)/1000};
 }
-export function resolveSeattleLayout(value:unknown): {blocks:readonly BuildingBlock[];issues:string[]} {
-  const layout=parseBuildingLayout(value);
-  if(layout.buildings.length&&layout.baseline!==SEATTLE_LAYOUT_BASELINE)throw Error("The district changed. Re-export its layout before importing these edits.");
-  const edits=new Map(layout.buildings.map(item=>[item.id,item]));
-  const known=new Set(GENERATED_SEATTLE_BLOCKS.map(buildingId));
-  for(const id of edits.keys()){
-    if(!known.has(id))throw Error(`Unknown building: ${id}`);
-    if(id===GARAGE_PLOT_ID)throw Error("Wharf Garage is fixed in this editor version");
-  }
-  const blocks=GENERATED_SEATTLE_BLOCKS.map(block=>{
-    const edit=edits.get(buildingId(block));
-    if(!edit)return block;
-    const {id: _id,...placement}=edit;
-    return groundBuilding(placement);
-  });
+export interface ResolvedLayout {
+  /** The layout as schema 2, whichever schema was read. */
+  layout: AuthoredLayout;
+  blocks: readonly BuildingBlock[];
+  /** Every standing building, with its id and where it came from. */
+  entries: readonly { id: string; source: "generated" | "authored"; block: BuildingBlock }[];
+  /** Generated plots dropped because an authored plot stands on them: authored wins,
+   *  so a build that predates the authored plot still loads. */
+  displaced: readonly string[];
+  issues: string[];
+}
+/**
+ * Compose the map's buildings: the generated plots less those retired or
+ * displaced, then the authored plots. Placement rules are checked on the
+ * authored plots only; the generated ones were placed by the builder under
+ * the same rules. `generated` is a parameter so a test can regenerate the map
+ * under a layout and watch the authored plots stand.
+ */
+export function resolveSeattleLayout(value:unknown, generated:readonly BuildingBlock[]=GENERATED_SEATTLE_BLOCKS): ResolvedLayout {
+  const layout=parseAnyLayout(value,SEATTLE_LAYOUT_BASELINE);
+  const retired=new Set(layout.retired);
+  if(retired.has(GARAGE_PLOT_ID))throw Error("Wharf Garage is fixed in this editor version");
+  const authored=layout.authored.map(({id:_id,...placement})=>groundBuilding(placement));
   const forecourt:BuildingBlock={x:6.5,z:910,width:31,depth:40,height:1,base:2,rotation:0};
+  const entries:{id:string;source:"generated"|"authored";block:BuildingBlock}[]=[];
+  const displaced:string[]=[];
+  for(const block of generated){
+    const id=buildingId(block);
+    if(retired.has(id))continue;
+    if(id!==GARAGE_PLOT_ID&&authored.some(other=>blockPenetration(block,other)>.01)){displaced.push(id);continue;}
+    entries.push({id,source:"generated",block});
+  }
   const issues:string[]=[];
-  blocks.forEach((block,index)=>{
-    const id=buildingId(GENERATED_SEATTLE_BLOCKS[index]!);
-    if(!edits.has(id))return;
+  layout.authored.forEach((placement,index)=>{
+    const block=authored[index]!, id=placement.id;
     if(SEATTLE_STREETS.some(street=>street.points.slice(1).some((b,i)=>
       segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
     if(blockPenetration(block,landmarks.needle)>0)issues.push(`${id}: overlaps the Space Needle`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
+    if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
     if(blockCorners(block).some(p=>p.x<data.shore+2||p.x>data.bounds[2]!||p.z<data.bounds[1]!||p.z>data.bounds[3]!))issues.push(`${id}: outside the map's building area`);
-    if(blocks.some((other,j)=>j!==index&&blockPenetration(block,other)>.01))issues.push(`${id}: overlaps another building`);
+    if(authored.some((other,j)=>j!==index&&blockPenetration(block,other)>.01))issues.push(`${id}: overlaps another authored building`);
     if(Math.max(...blockCorners(block).map(p=>seattleHeight(p.x,p.z)))-block.base>4.1)issues.push(`${id}: ground changes by more than four metres across the footprint`);
+    entries.push({id,source:"authored",block});
   });
-  return {blocks,issues};
+  return {layout,blocks:entries.map(entry=>entry.block),entries,displaced,issues};
 }
 const resolvedLayout=resolveSeattleLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Seattle layout:\n${resolvedLayout.issues.join("\n")}`);
 export const SEATTLE_BLOCKS=resolvedLayout.blocks;
-export const SEATTLE_VERSION=data.version+(authoredLayout.buildings.length?`-layout-${layoutFingerprint(parseBuildingLayout(authoredLayout))}`:"");
+export const SEATTLE_LAYOUT=resolvedLayout;
+export const SEATTLE_VERSION=data.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
 export function createSeattleWorld(racing = false): RoadWorld {
   return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: [...SEATTLE_BLOCKS, landmarks.needle],
