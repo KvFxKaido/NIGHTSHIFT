@@ -262,3 +262,7 @@ different car: this game shares that project's engineering doctrine
 (sim/renderer separation, determinism as a test, replay-as-data) but not
 its universe. NIGHTSHIFT's current Port Alder slice has street lighting, civilian
 traffic and Wharf Garage; it does not simulate businesses.
+
+### Interface styling
+
+`src/ui/theme.css` owns the shared interface palette: cyan navigation, amber objectives, red rivals/warnings, and mint success. Menus and HUD use the same smoked panels and numeric typography; drag and drift share an instrument slot. Contextual prompts follow the last keyboard/controller input and saved bindings, with PlayStation labels for recognized Sony controllers.

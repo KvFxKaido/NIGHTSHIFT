@@ -1,3 +1,65 @@
+:root { color-scheme: dark; font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #070910; overflow: hidden; }
+body { color: var(--ui-ink); }
+#asset-status {
+  position: fixed; z-index: 20; inset: 40% 12% auto;
+  padding: 24px; text-align: center; line-height: 1.6;
+  background: #101520; border-left: 2px solid var(--ui-navigation);
+}
+body:not([data-asset-state="ready"]) #menu-root,
+body:not([data-asset-state="ready"]) #hud { visibility: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+#vignette {
+  position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at center, transparent 48%, rgba(2, 3, 8, .62) 125%);
+}
+#brand {
+  position: fixed; top: 22px; left: 26px; pointer-events: none;
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; max-width: calc(50vw - 210px);
+  color: rgba(242, 238, 227, .82); font-size: 12px; font-weight: 800;
+  letter-spacing: .26em; text-transform: uppercase;
+}
+#brand::before { content: ""; width: 30px; height: 2px; background: #ff2850; box-shadow: 0 0 14px #ff2850; }
+#mode { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-navigation); font-size: 10px; letter-spacing: .18em; }
+/* The race readout: which gate, and the clock — or the countdown, or the
+   finish and position. Top centre, where a driver's eyes already are. */
+#race {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: rgba(242, 238, 227, .9); text-transform: uppercase;
+}
+/* An author display beats the [hidden] attribute's display:none, so the
+   readout showed GATE 1/3 in free roam on every screen. Say it explicitly. */
+#race[hidden] { display: none; }
+#race-gate { font-size: 10px; font-weight: 800; letter-spacing: .26em; color: var(--ui-objective); }
+#race-time {
+  font: 800 26px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(255, 179, 71, .35);
+}
+#device {
+  padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .15);
+  color: rgba(242, 238, 227, .52); font-size: 9px; letter-spacing: .14em;
+}
+
+#telemetry {
+  position: fixed; top: 60px; left: 26px; padding: 11px 13px;
+  border-left: 2px solid var(--ui-navigation); background: rgba(5, 8, 15, .72);
+  color: rgba(215, 241, 248, .74); font: 10px/1.55 ui-monospace, monospace;
+  white-space: pre; pointer-events: none; opacity: 0; transform: translateX(-8px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+#telemetry.visible { opacity: 1; transform: translateX(0); }
+@media (max-width: 900px) {
+  #race { top: 88px; width: calc(100vw - 32px); }
+  #brand { max-width: calc(100vw - 52px); }
+}
+@media (max-width: 640px) {
+  #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
+}
+
 /* The driving cluster. Embedded in the scene rather than a dashboard bolted on
    top of it (GDD §15.2): a dark disc, one accent colour, and nothing that moves
    unless the car does. */
@@ -23,11 +85,11 @@
 }
 .gauge-track { stroke: rgba(140, 175, 200, .16); }
 .gauge-sweep {
-  stroke: #59d8ff;
+  stroke: var(--ui-navigation);
   filter: drop-shadow(0 0 6px rgba(89, 216, 255, .85));
   transition: stroke 160ms linear;
 }
-.gauge-sweep.redline { stroke: #ff3158; filter: drop-shadow(0 0 8px rgba(255, 49, 88, .9)); }
+.gauge-sweep.redline { stroke: var(--ui-danger); filter: drop-shadow(0 0 8px rgba(255, 49, 88, .9)); }
 .gauge-tick { stroke: rgba(190, 220, 235, .28); stroke-width: 2; }
 .gauge-tick.major { stroke: rgba(210, 235, 245, .55); stroke-width: 2.6; }
 
@@ -53,7 +115,7 @@
   top: 50%;
   transform: translateY(-50%);
   min-width: 20px;
-  color: #ff3158;
+  color: var(--ui-danger);
   font-size: 21px;
   font-weight: 900;
   text-align: center;
@@ -91,20 +153,34 @@
   #minimap-frame { width: 116px; height: 116px; left: 14px; bottom: 14px; }
 }
 
-#drag-instruments { position: absolute; bottom: 100%; right: 0; width: 260px; text-align: right; padding: 12px; background: rgba(4,8,14,.85); border-right: 2px solid #75dfff; font: 12px/1.7 monospace; }
-#drag-instruments[hidden] { display: none; }
-#drag-rpm { font-size: 22px; color: #fff; }
-#drag-shift { display: block; color: #afbac8; letter-spacing: .12em; }
-#drag-shift.ready { color: #86ffc0; }
-#drag-shift.limit { color: #ff3158; }
-#drag-controls { color: #b9cddd; font-size: 10px; margin-top: 6px; }
-@media (max-width: 600px) { #drag-instruments { width: 220px; padding: 8px; font-size: 10px; } #drag-rpm { font-size: 18px; } }
-
-#gear.manual { font-size: 28px; color: #fff; }
-
-#drift-instruments { position: absolute; bottom: 100%; right: 0; width: 310px; padding: 12px; border-right: 2px solid #7edfc6; background: rgba(4,8,14,.85); text-align: right; font: 11px/1.7 monospace; }
-#drift-instruments[hidden] { display: none; }
-#drift-chain { display: block; font-size: 30px; color: #7edfc6; }
-#drift-zone { color: #ffc268; }
-#drift-help { color: #b8c6d0; font-size: 10px; margin-top: 6px; }
-@media (max-width: 600px) { #drift-instruments { width: 220px; font-size: 10px; padding: 8px; } #drift-chain { font-size: 22px; } }
+/* Event types share one instrument slot above the speed dial. */
+.event-instruments {
+  position: absolute; bottom: calc(100% + 12px); right: 0;
+  width: 280px; padding: 12px 16px; text-align: right;
+  background: var(--ui-panel); border: 1px solid var(--ui-border);
+  border-right: 2px solid var(--ui-objective); box-shadow: var(--ui-shadow);
+  font: 11px/1.55 var(--ui-mono); color: var(--ui-ink);
+}
+.event-instruments[hidden] { display: none; }
+.instrument-label { display: block; margin-bottom: 8px; color: var(--ui-muted); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; }
+#drag-rpm, #drift-chain { display: block; font-size: 28px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+#drag-shift { display: block; color: var(--ui-muted); letter-spacing: .1em; }
+#drag-shift.ready, #drift-chain { color: var(--ui-success); }
+#drag-shift.limit { color: var(--ui-danger); }
+#drift-zone { color: var(--ui-objective); margin-top: 4px; }
+#drag-controls, #drift-help { border-top: 1px solid var(--ui-border); padding-top: 8px; margin-top: 8px; color: var(--ui-muted); font-size: 10px; }
+#gear.manual { font-size: 28px; color: var(--ui-ink); }
+#race { padding: 10px 16px; background: var(--ui-panel); border-top: 2px solid var(--ui-objective); box-shadow: var(--ui-shadow); max-width: calc(100vw - 32px); text-align: center; }
+#race-gate { color: var(--ui-objective); }
+#race-time { font-family: var(--ui-mono); text-shadow: none; }
+@media (max-width: 640px) {
+  .event-instruments { width: 220px; padding: 10px 12px; font-size: 10px; bottom: calc(100% + 8px); }
+  #drag-rpm, #drift-chain { font-size: 24px; }
+  #race { width: auto; top: 65px; min-width: 180px; }
+  #race-time { font-size: 22px; }
+  .instrument-label { font-size: 8px; }
+}
+@media (max-height: 500px) and (min-width: 641px) {
+  #race { top: 12px; }
+  .event-instruments { bottom: 0; right: calc(100% + 12px); width: 230px; }
+}

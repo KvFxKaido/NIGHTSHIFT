@@ -1,0 +1,23 @@
+:root {
+  --ui-ink: #f2eee3;
+  --ui-muted: #a9b8c3;
+  --ui-navigation: #59d8ff;
+  --ui-objective: #ffb347;
+  --ui-rival: #ff3158;
+  --ui-danger: #ff3158;
+  --ui-success: #7edfc6;
+  --ui-panel: rgba(5, 8, 15, .88);
+  --ui-border: rgba(175, 203, 220, .2);
+  --ui-map: #101e28;
+  --ui-shadow: 0 12px 32px rgba(0, 0, 0, .36);
+  --ui-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --menu-ink: var(--ui-ink);
+  --menu-muted: var(--ui-muted);
+  --menu-red: var(--ui-rival);
+  --menu-cyan: var(--ui-navigation);
+  --menu-panel: var(--ui-panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

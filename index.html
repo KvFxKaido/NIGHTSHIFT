@@ -5,71 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#070910" />
     <title>NIGHTSHIFT — Port Alder</title>
+    <link rel="stylesheet" href="/src/ui/theme.css" />
     <link rel="stylesheet" href="/src/ui/menu.css" />
     <link rel="stylesheet" href="/src/ui/hud.css" />
-    <style>
-      :root { color-scheme: dark; font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; height: 100%; background: #070910; overflow: hidden; }
-      body { color: #f2eee3; }
-      #asset-status {
-        position: fixed; z-index: 20; inset: 40% 12% auto;
-        padding: 24px; text-align: center; line-height: 1.6;
-        background: #101520; border-left: 2px solid #59d8ff;
-      }
-      body:not([data-asset-state="ready"]) #menu-root,
-      body:not([data-asset-state="ready"]) #hud { visibility: hidden; }
-      canvas { display: block; width: 100%; height: 100%; }
-      #vignette {
-        position: fixed; inset: 0; pointer-events: none;
-        background: radial-gradient(circle at center, transparent 48%, rgba(2, 3, 8, .62) 125%);
-      }
-      #brand {
-        position: fixed; top: 22px; left: 26px; pointer-events: none;
-        display: flex; align-items: center; gap: 12px;
-        flex-wrap: wrap; max-width: calc(50vw - 210px);
-        color: rgba(242, 238, 227, .82); font-size: 12px; font-weight: 800;
-        letter-spacing: .26em; text-transform: uppercase;
-      }
-      #brand::before { content: ""; width: 30px; height: 2px; background: #ff2850; box-shadow: 0 0 14px #ff2850; }
-      #mode { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #59d8ff; font-size: 10px; letter-spacing: .18em; }
-      /* The race readout: which gate, and the clock — or the countdown, or the
-         finish and position. Top centre, where a driver's eyes already are. */
-      #race {
-        position: fixed; top: 18px; left: 50%; transform: translateX(-50%); pointer-events: none;
-        display: flex; flex-direction: column; align-items: center; gap: 2px;
-        color: rgba(242, 238, 227, .9); text-transform: uppercase;
-      }
-      /* An author display beats the [hidden] attribute's display:none, so the
-         readout showed GATE 1/3 in free roam on every screen. Say it explicitly. */
-      #race[hidden] { display: none; }
-      #race-gate { font-size: 10px; font-weight: 800; letter-spacing: .26em; color: #ffb347; }
-      #race-time {
-        font: 800 26px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-        letter-spacing: -.02em; font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 18px rgba(255, 179, 71, .35);
-      }
-      #device {
-        padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .15);
-        color: rgba(242, 238, 227, .52); font-size: 9px; letter-spacing: .14em;
-      }
 
-      #telemetry {
-        position: fixed; top: 60px; left: 26px; padding: 11px 13px;
-        border-left: 2px solid #59d8ff; background: rgba(5, 8, 15, .72);
-        color: rgba(215, 241, 248, .74); font: 10px/1.55 ui-monospace, monospace;
-        white-space: pre; pointer-events: none; opacity: 0; transform: translateX(-8px);
-        transition: opacity 120ms ease, transform 120ms ease;
-      }
-      #telemetry.visible { opacity: 1; transform: translateX(0); }
-      @media (max-width: 900px) {
-        #race { top: 88px; width: calc(100vw - 32px); }
-        #brand { max-width: calc(100vw - 52px); }
-      }
-      @media (max-width: 640px) {
-        #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
-      }
-    </style>
   </head>
   <body data-game-screen="main" data-asset-state="loading">
     <div id="asset-status" role="status">Loading NS-01…</div>
@@ -101,12 +40,12 @@
           <span id="speed">000</span><span id="unit">MPH</span>
         </div>
         <span id="gear">N</span>
-        <div id="drift-instruments" hidden>
-          <strong id="drift-chain"></strong><div id="drift-feedback"></div>
+        <div id="drift-instruments" class="event-instruments" hidden>
+          <span class="instrument-label">Drift / Unbanked chain</span><strong id="drift-chain"></strong><div id="drift-feedback"></div>
           <div id="drift-zone"></div><div id="drift-help"></div>
         </div>
-        <div id="drag-instruments" hidden>
-          <div id="drag-rpm"></div><strong id="drag-shift"></strong>
+        <div id="drag-instruments" class="event-instruments" hidden>
+          <span class="instrument-label">Drag / Manual transmission</span><div id="drag-rpm"></div><strong id="drag-shift"></strong>
           <div id="drag-feedback"></div><div id="drag-reaction"></div>
           <div id="drag-controls"></div>
         </div>
@@ -127,7 +66,7 @@
             <button class="menu-button" data-menu-action="garage">Garage</button>
             <button class="menu-button" data-menu-action="options">Options</button>
           </nav>
-          <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
+          <p class="menu-footer"><span data-menu-hint>Arrows · Navigate / Enter · Select</span></p>
         </section>
 
         <section class="menu-screen garage-menu" data-menu-screen="garage" aria-labelledby="garage-menu-title" hidden>
@@ -196,7 +135,7 @@
             <button class="menu-button" data-menu-action="back">Close map</button></div>
           <p id="city-map-status"></p>
           <svg id="city-map" role="img" aria-label="Port Alder streets, your position, rival and active race checkpoints"></svg>
-          <div class="city-map-footer"><p><span style="color:#f4f7fa">▲ You</span> · <span style="color:#ff6679">● Rival</span> · <span style="color:#ffc56a">● Next gate</span> · <span style="color:#69e5bd">G Garage</span></p>
+          <div class="city-map-footer"><p><span class="map-player">▲ You</span> · <span class="map-rival">● Rival</span> · <span class="map-objective">● Next gate</span> · <span class="map-navigation">G Garage</span></p>
             <nav aria-label="Map view"><button class="garage-option" data-map-view="player">Find car</button><button class="garage-option" data-map-view="all">Whole city</button><button class="garage-option" data-map-view="in" aria-label="Zoom in">+</button><button class="garage-option" data-map-view="out" aria-label="Zoom out">−</button></nav></div>
           <p class="menu-footer" id="city-map-help"></p>
         </section>
@@ -263,7 +202,7 @@
         </section>
 
         <section class="menu-screen" data-menu-screen="results" role="dialog" aria-modal="true" aria-labelledby="race-result-title" hidden>
-          <p class="menu-kicker">Race complete / Port Alder</p>
+          <p class="menu-kicker">Event complete / Port Alder</p>
           <h2 id="race-result-title" class="menu-heading" data-result-title>Finished</h2>
           <p class="save-summary" data-result-detail></p>
           <nav class="menu-actions" aria-label="After the race">
@@ -284,7 +223,7 @@
             <button class="menu-button" data-district-map data-menu-action="map">Port Alder map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
-          <p class="menu-footer">Esc / Options to resume</p>
+          <p class="menu-footer"><span data-pause-hint>Esc · Resume</span></p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
       </main>

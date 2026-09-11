@@ -1,3 +1,4 @@
+import { padLabel, refreshControlHints } from "./ui/prompts.ts";
 import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
 import { SABLE_DRIFT } from "./sim/drift-event.ts";
 import { addDriftYard } from "./render/drift-yard.ts";
@@ -12,7 +13,7 @@ import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
 import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
-import { PAD_LABELS, keyLabel } from "./input/bindings.ts";
+import { keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
   updateCustomization,
@@ -308,7 +309,7 @@ const menu = createMenuController({
     performanceOverlay.reset();
     if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);
-    if (screen === "map") gameMap.open(input.bindings());
+    if (screen === "map") gameMap.open();
     setViewMode(view, screen === "garage" ? "garage" : "track");
   },
   getAudioLevels: () => audioLevels,
@@ -415,9 +416,9 @@ function updateHud(): void {
   const dragControls = document.getElementById("drag-controls");
   if (dragControls && race?.kind === "drag") {
     const bindings = input.bindings();
-    const up = input.gamepadName() ? PAD_LABELS[bindings.gamepad.shiftUp] : keyLabel(bindings.keyboard.shiftUp);
-    const down = input.gamepadName() ? PAD_LABELS[bindings.gamepad.shiftDown] : keyLabel(bindings.keyboard.shiftDown);
-    dragControls.textContent = `${up} UP / ${down} DOWN / ${input.gamepadName() ? "Stick or D-pad" : `${keyLabel(bindings.keyboard.left)} or ${keyLabel(bindings.keyboard.right)}`} lane`;
+    const up = input.activeGamepadName() ? padLabel(bindings.gamepad.shiftUp, input.activeGamepadName()) : keyLabel(bindings.keyboard.shiftUp);
+    const down = input.activeGamepadName() ? padLabel(bindings.gamepad.shiftDown, input.activeGamepadName()) : keyLabel(bindings.keyboard.shiftDown);
+    dragControls.textContent = `${up} UP / ${down} DOWN / ${input.activeGamepadName() ? "Stick or D-pad" : `${keyLabel(bindings.keyboard.left)} or ${keyLabel(bindings.keyboard.right)}`} lane`;
   }
   const rival = sim.state.rival;
   const position = race && raceState && rival ? racePosition(race,
@@ -438,12 +439,12 @@ function updateHud(): void {
     document.getElementById("drift-feedback")!.textContent = raceState.countdown > 0 ? "90s / BEAT SABLE / 3,000 PTS" : d.feedbackTicks ? d.feedback : d.drifting ? `${Math.round(d.angle)} DEG / LINK THE NEXT CORNER` : "BUILD SPEED / TAP HANDBRAKE";
     document.getElementById("drift-zone")!.textContent = `NEXT: ${race!.drift!.zones[d.nextZone]!.name.toUpperCase()}`;
     const bindings = input.bindings();
-    document.getElementById("drift-help")!.textContent = `${input.gamepadName() ? PAD_LABELS[bindings.gamepad.handbrake] : keyLabel(bindings.keyboard.handbrake)}: initiate / straighten to bank / contact loses chain`;
+    document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
   modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`;
-  const gamepadName = input.gamepadName();
+  const gamepadName = input.activeGamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
-  deviceElement.title = gamepadName ?? "No standard gamepad detected";
+  deviceElement.title = gamepadName ?? "Keyboard controls active";
   telemetryElement.textContent =
     `auto-countersteer OFF\n` +
     `forward ${car.forwardSpeed.toFixed(1)} m/s\n` +
@@ -468,6 +469,7 @@ function frame(now: number): void {
   last = now;
 
   input.update();
+  refreshControlHints(input.activeGamepadName(), input.bindings());
   const commands = input.consumeMenuCommands();
   if (commands.includes("flash")) flashHeadlights();
   if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
@@ -477,10 +479,10 @@ function frame(now: number): void {
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
   rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : "Challenge accepted · Drawing a race…")
-    : `${input.gamepadName() ? PAD_LABELS[input.bindings().gamepad.flash] : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
+    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
-  garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
+  garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
   const debugToggleRequested = input.consumeDebugToggle();

@@ -77,7 +77,8 @@ test("index.html carries every element the cluster binds to", async () => {
   // The race readout is display:flex, and an author display wins over the
   // [hidden] attribute's display:none — so without this rule it showed GATE 1/3
   // in free roam on every screen, including three of Shawn's screenshots.
-  assert.ok(html.includes("#race[hidden] { display: none; }"), "the race readout cannot hide");
+  const css = await readFile(new URL("../src/ui/hud.css", import.meta.url), "utf8");
+  assert.ok(css.includes("#race[hidden] { display: none; }"), "the race readout cannot hide");
   // The dial's static track has to match the arc the module sweeps along it.
   const arc = (GAUGE_CIRCUMFERENCE * GAUGE_SWEEP_DEGREES / 360).toFixed(1);
   assert.ok(html.includes(`stroke-dasharray="${arc} `), `the drawn track is not a ${arc} arc`);

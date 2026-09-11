@@ -24,6 +24,7 @@ export interface InputController {
   consumeCameraReset(): boolean;
   consumeDebugToggle(): boolean;
   gamepadName(): string | null;
+  activeGamepadName(): string | null;
 }
 
 // A small center buffer filters resting-stick noise without the original large
@@ -117,6 +118,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
   let drivingInputGated = true;
   let drivingGateSamples = 0;
   const menuCommands: MenuCommand[] = [];
+  let activeDevice: "keyboard" | "gamepad" = "keyboard";
 
   function finishCapture(value: string | number | null): void {
     const done = capture?.done;
@@ -130,6 +132,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
   }
 
   addEventListener("keydown", (event) => {
+    activeDevice = "keyboard";
     if (capture) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -174,6 +177,9 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
 
     const currentButtons = gamepad?.buttons.map((button) => button.pressed) ?? [];
     const justPressed = (index: number) => currentButtons[index] && !previousButtons[index];
+    if (currentButtons.some((pressed, index) => pressed && !previousButtons[index])
+      || gamepad?.buttons.some(button => button.value > .2)
+      || gamepad?.axes.some(axis => Math.abs(axis) > .35)) activeDevice = "gamepad";
     if (capture) {
       if (justPressed(9)) finishCapture(null);
       else if (capture.device === "gamepad") {
@@ -281,5 +287,6 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     consumeCameraReset: () => consume("camera"),
     consumeDebugToggle: () => consume("debug"),
     gamepadName: () => gamepad?.id ?? null,
+    activeGamepadName: () => activeDevice === "gamepad" ? gamepad?.id ?? null : null,
   };
 }

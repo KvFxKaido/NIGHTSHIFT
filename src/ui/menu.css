@@ -1,10 +1,4 @@
-:root {
-  --menu-ink: #f2eee3;
-  --menu-muted: rgba(226, 229, 225, 0.58);
-  --menu-red: #ff3158;
-  --menu-cyan: #59d8ff;
-  --menu-panel: rgba(5, 8, 15, 0.86);
-}
+
 
 #garage-entry, #rival-challenge {
   position: fixed;
@@ -12,7 +6,7 @@
   transform: translateX(-50%);
   z-index: 8;
   padding: 14px 20px;
-  border: 1px solid #75dfff;
+  border: 1px solid var(--ui-navigation);
   background: rgba(5, 15, 22, .94);
   color: #d4f6ff;
   font: 600 13px/1.4 ui-monospace, monospace;
@@ -233,8 +227,8 @@ body[data-game-screen="pause"] #hud {
   outline: none;
   color: var(--menu-ink);
   border-color: rgba(89, 216, 255, 0.46);
-  border-left-color: var(--menu-red);
-  background: linear-gradient(90deg, rgba(255, 49, 88, 0.15), rgba(7, 10, 18, 0.82));
+  border-left-color: var(--menu-cyan);
+  background: linear-gradient(90deg, rgba(89, 216, 255, 0.12), rgba(7, 10, 18, 0.82));
   transform: translateX(5px);
 }
 
@@ -247,7 +241,7 @@ body[data-game-screen="pause"] #hud {
 
 .menu-button.primary {
   color: var(--menu-ink);
-  border-left-color: var(--menu-red);
+  border-left-color: var(--menu-cyan);
 }
 
 .menu-footer {
@@ -502,7 +496,7 @@ body[data-game-screen="pause"] #hud {
 .menu-root[data-screen="controls"] .menu-screen {
   width: 100%; max-height: calc(100dvh - clamp(48px, 10vw, 144px)); overflow-y: auto;
   padding: clamp(18px, 3vw, 30px); background: rgba(5, 10, 16, .94);
-  border-right: 2px solid var(--menu-cyan, #75dfff);
+  border-right: 2px solid var(--menu-cyan, var(--ui-navigation));
 }
 .controls-intro, .controls-fixed, .controls-status { font-size: 12px; line-height: 1.6; color: var(--menu-muted); }
 .controls-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
@@ -511,7 +505,7 @@ body[data-game-screen="pause"] #hud {
 .controls-table td, .controls-table tbody th { padding: 5px 4px; border-top: 1px solid rgba(160, 195, 220, .1); }
 .controls-table td { width: 29%; font-size: 11px; color: var(--menu-muted); }
 .binding-button { width: 100%; min-height: 34px; }
-.controls-status { color: #75dfff; min-height: 38px; }
+.controls-status { color: var(--ui-navigation); min-height: 38px; }
 .controls-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .controls-actions .menu-button { flex: 1; min-width: 130px; font-size: 11px; }
 .controls-menu button:disabled { opacity: .4; cursor: default; }
@@ -550,8 +544,8 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
   letter-spacing: .09em;
 }
 .title-actions .menu-button:focus, .title-actions .menu-button:hover {
-  border-left-color: var(--menu-red);
-  background: linear-gradient(90deg, rgba(255, 49, 88, .26), transparent);
+  border-left-color: var(--menu-cyan);
+  background: linear-gradient(90deg, rgba(89, 216, 255, .18), transparent);
   transform: translateX(6px);
 }
 .save-summary { color: var(--menu-cyan); font-size: 12px; line-height: 1.6; max-width: 440px; margin: 0 0 20px; }
@@ -573,7 +567,7 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
 
 #performance-metrics {
   position: fixed; z-index: 21; top: 18px; right: 18px; margin: 0;
-  padding: 10px 12px; border-right: 2px solid #59d8ff;
+  padding: 10px 12px; border-right: 2px solid var(--ui-navigation);
   background: rgba(5, 8, 15, .86); color: #cce5ee;
   font: 11px/1.55 ui-monospace, Consolas, monospace;
   font-variant-numeric: tabular-nums; white-space: pre; pointer-events: none;
@@ -586,4 +580,31 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
   /* Let small-screen menus use the whole viewport; diagnostics return on resume. */
   body:not([data-game-screen="playing"]) #performance-metrics { display: none; }
   body[data-performance="on"] #telemetry { top: 250px; }
+}
+
+/* Shared surface and interaction treatment across every menu. */
+#garage-entry, #rival-challenge {
+  max-width: min(560px, calc(100vw - 32px)); width: max-content;
+  border: 1px solid var(--ui-border); border-left: 2px solid var(--ui-navigation);
+  background: var(--ui-panel); color: var(--ui-ink); box-shadow: var(--ui-shadow);
+  font: 600 12px/1.5 var(--ui-mono); padding: 12px 16px;
+}
+#rival-challenge { border-left-color: var(--ui-rival); }
+.menu-root[data-screen="garage"] .menu-screen,
+.menu-root[data-screen="pause"] .menu-screen,
+.menu-root[data-screen="results"] .menu-screen {
+  border: 1px solid var(--ui-border); border-right: 2px solid var(--ui-navigation);
+  background: var(--ui-panel); box-shadow: var(--ui-shadow);
+}
+.menu-root[data-screen="results"] .menu-screen { border-right-color: var(--ui-objective); }
+[data-result-detail] { padding: 16px 0; border-top: 1px solid var(--ui-border); border-bottom: 1px solid var(--ui-border); font: 13px/1.7 var(--ui-mono); color: var(--ui-ink); }
+#city-map { background: var(--ui-map); border-color: var(--ui-border); border-radius: 0; }
+#city-map-status, .city-map-footer, .menu-footer { color: var(--ui-muted); }
+.map-player { color: var(--ui-ink); }
+.map-rival { color: var(--ui-rival); }
+.map-objective { color: var(--ui-objective); }
+.map-navigation { color: var(--ui-navigation); }
+:is(button, input):focus-visible { outline: 2px solid var(--ui-navigation); outline-offset: 3px; }
+@media (max-width: 640px) {
+  #garage-entry, #rival-challenge { bottom: 150px; font-size: 11px; }
 }

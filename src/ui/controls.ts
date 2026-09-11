@@ -46,9 +46,6 @@ export function createControlsPanel(input: InputController) {
     });
     cancel.disabled = !listening;
     defaults.disabled = listening;
-    document.querySelectorAll<HTMLElement>("[data-camera-binding]").forEach(element => {
-      element.textContent = `${PAD_LABELS[bindings.gamepad.camera]} / ${keyLabel(bindings.keyboard.camera)}`;
-    });
   }
   function save(): void {
     try {

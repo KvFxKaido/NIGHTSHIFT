@@ -1,3 +1,4 @@
+import { uiColor } from "./theme.ts";
 import { TRANSMISSION, type TransmissionState } from "../sim/transmission.ts";
 import {
   gaugeReading, minimapPixel, segmentWithinMinimap, withinMinimap,
@@ -134,11 +135,11 @@ export function createHud(options: HudOptions): Hud {
       const scale = distance > radius - 12 ? (radius - 12) / distance : 1;
       const x = pixel.x * scale, y = pixel.y * scale;
       context.fillStyle = "#081820";
-      context.strokeStyle = "#75dfff";
+      context.strokeStyle = uiColor("navigation");
       context.lineWidth = 1.5;
       context.fillRect(x - 6, y - 6, 12, 12);
       context.strokeRect(x - 6, y - 6, 12, 12);
-      context.fillStyle = "#75dfff";
+      context.fillStyle = uiColor("navigation");
       context.font = "bold 9px monospace";
       context.textAlign = "center";
       context.textBaseline = "middle";
@@ -147,7 +148,7 @@ export function createHud(options: HudOptions): Hud {
 
     if (rival && withinMinimap(camera, rival.x, rival.z, 1)) {
       const pixel = minimapPixel(camera, rival.x, rival.z);
-      context.fillStyle = "#ff4d6d";
+      context.fillStyle = uiColor("rival");
       context.beginPath();
       context.arc(pixel.x, pixel.y, 4, 0, Math.PI * 2);
       context.fill();
@@ -156,7 +157,7 @@ export function createHud(options: HudOptions): Hud {
     // The next gate: a ring where it is, or a chevron on the rim pointing at it
     // when it is off the disc. The Midnight Club arrow.
     for (const gate of race?.targets ?? (race?.next ? [race.next] : [])) {
-      context.strokeStyle = "#ffb347";
+      context.strokeStyle = uiColor("objective");
       context.lineWidth = 2.2;
       if (withinMinimap(camera, gate.x, gate.z, 1)) {
         const pixel = minimapPixel(camera, gate.x, gate.z);
@@ -182,7 +183,7 @@ export function createHud(options: HudOptions): Hud {
         context.save();
         context.translate(Math.cos(angle) * rim, Math.sin(angle) * rim);
         context.rotate(angle);
-        context.fillStyle = "#ffb347";
+        context.fillStyle = uiColor("objective");
         context.beginPath();
         context.moveTo(6, 0);
         context.lineTo(-4, 5);
