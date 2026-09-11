@@ -28,24 +28,26 @@ remain optional future work.
 
 ## Current slice
 
-Approximately 18.6 km of selected streets in a 1.7 by 2.9 km land envelope: industrial south, old grid, downtown hill, Belltown, Seattle Center, and a fictional waterfront bypass. There are 108 graph edges and 195 generated building masses plus Wharf Garage and the Space Needle. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
+The map has **83.5 km of streets**, 318 graph edges and 1,730 generated building masses, plus Wharf Garage and the Space Needle. The connected street network now spans **12.6 km²**, measured as the convex hull of its street centerlines, with a 14.2 km² road bounding rectangle. Terrain padding and Elliott Bay are excluded from that headline area; it describes the developed footprint, not the area of asphalt. The original SoDo–Belltown–Seattle Center slice remains the southwest anchor. Queen Anne, Capitol Hill, the Central District and Madrona Ridge extend north and east with hill climbs, smaller passages, park edges and an outer scenic loop. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
 
-Real Seattle centerlines provide the structure. Distances, widths, elevation, buildings and some connections are deliberately adapted. See `assets/maps/seattle/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished Seattle architecture. The Space Needle is a compressed primitive landmark with a shared solid footprint. No surveyed terrain, bridges, tunnels, or police yet.
+Real Seattle centerlines provide the original southwest structure. The new hill districts are hand-authored Seattle-inspired layouts, not a new GIS import or a reconstruction of the actual neighborhoods. Distances, widths, elevation, buildings and connections are deliberately adapted. See `assets/maps/seattle/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished Seattle architecture. The Space Needle is a compressed primitive landmark with a shared solid footprint. No surveyed terrain, bridges, tunnels, or police yet.
 
 ## Shared surface
 
-`src/sim/seattle.ts` owns the road world and continuous analytic height function. `scripts/build-seattle.py` unions buffered road polygons before constrained triangulation; asphalt, pavement and land are disjoint. Graded triangles are refined to edges of at most 10 m. Renderer and simulation use the same height function; selecting a different nearest street cannot switch elevation profiles. The outskirts continue that surface beyond the developed blocks.
+`src/sim/seattle.ts` owns the road world and continuous analytic height function. `src/sim/seattle-terrain.json` adds compact, smooth hill profiles to the existing downtown grade; the builder and sim read the same parameters. `scripts/build-seattle.py` unions buffered road polygons before constrained triangulation; asphalt, pavement and land are disjoint. Triangles refine at more than 7 mm sampled interpolation error or 80 m edge length, and the surface test checks error below 2 cm. Renderer and simulation use the same height function; selecting a different nearest street cannot switch elevation profiles. The outskirts continue that surface beyond the developed blocks. Park grass is a lifted overlay clipped away from roads and pavement; tree trunks use shared rendered and solid footprints.
 
 Road data also feeds the minimap and existing lane/reservation traffic builder. Traffic remains deterministic. General road projection, building footprint and traffic helpers are separate modules, so importing Seattle does not initialize the retired district.
 
-The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v3`, with a layout fingerprint when edited.
+The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v4`, with a layout fingerprint when edited.
 
 ## Regeneration caveats
 
 `scripts/build-seattle.py` writes `src/sim/seattle-data.json` in full, including
-its generated buildings. The northern builder now starts from
-`assets/maps/seattle/base-slice.json`, preserving the original 63 street
-identities/vertices and 160 plots, then adds the northern source extract.
+its generated buildings. The builder now starts from
+`assets/maps/seattle/belltown-slice.json`, preserving the released 108 street
+identities/vertices and 195 plots, then adds `east-hills-layout.json`.
+The new polylines are split at intersections and sampled for lane/grade following.
+Do not refresh a historical GIS extract expecting it to rewrite the pinned city.
 
 **Authored plots are their own list (2026-09-11).** `src/sim/seattle-layout.json`
 (schema 2) holds `authored`, buildings placed by hand in world coordinates
@@ -65,10 +67,10 @@ with the file empty the builder's output is byte-identical; with authored
 plots over a filler plot and a pinned plot it writes 193 buildings instead
 of 195. See `design/EDITOR.md` for the editor's side.
 
-The builder now stamps `seattle-slice-v3` and the sim derives its version from
+The builder now stamps `seattle-slice-v4` and the sim derives its version from
 that stamp (plus the layout fingerprint). The old separate v1/v2 stamps are
 retired. Map expansions must bump the builder's stamp deliberately. Generated
-race seeds are reproducible within a world version; v2 seeds may draw different
+race seeds are reproducible within a world version; v3 seeds may draw different
 routes on the expanded graph.
 
 ### Belltown–Seattle Center extension (2026-09-11)
@@ -85,8 +87,8 @@ The campus is reserved from procedural building placement. The Space Needle
 has a simplified 120 m silhouette, open plaza and shared collision footprint;
 the map board labels it and Belltown. Original street geometry and building
 plots are retained, including the garage, encounter and Sound to Sky route.
-The existing height function is unchanged in both builder and sim. This reaches
-lower Queen Anne; the hill climb and Kerry Park overlook are the next slice.
+The v3 extension retained the existing height function. It reached lower
+Queen Anne; the v4 addition below provides the hill climb and overlook.
 
 The same route-choice model now reports 2574 directed legs, 86% with an
 alternative within 40% (previously 77%), 326 priced legs, and 520 in the
@@ -94,24 +96,61 @@ alternative within 40% (previously 77%), 326 priced legs, and 520 in the
 the larger graph changes the comparison pool. Broad / 5th and 2nd / Denny
 are new high-ranking gate candidates.
 
+#### Future expansion direction (2026-09-11)
+
+Shawn considers the current playable area the southwest (bottom-left) corner
+of the eventual map. Keep its long, straight roads as part of the driving mix;
+future expansion should be more compact where practical, growing principally
+north and east instead of extending the same grid in every direction.
+
+Favor smaller connected additions with shorter blocks, bends, irregular
+junctions and multiple useful connections to existing streets. Compress and
+adapt real geography when it improves racing. Judge additions by the route
+choices and driving variety they provide within their footprint, rather than
+road kilometres alone. Preserve open racing and usable street widths; tighter
+districts should gain their character from layout rather than extra barriers.
+
+The subsequent same-day request authorized at least 10 km² with creative
+freedom. The east/hills expansion implements that request without reshaping
+the released southwest streets.
+
+### East and hill districts — v4 (2026-09-11)
+
+- Queen Anne has a climb, crown loop, smaller residential masses and Kerry Overlook.
+- Capitol Hill has a connected hill grid, Broadway, market passages, Belmont Passage and cross terraces.
+- The Central District adds diagonal approaches, Fir Street, Spruce Lane and courtyard/service alternatives.
+- Madrona Ridge has a broad scenic loop and inner parallel routes, giving long fast runs a place beside the tighter streets.
+- Union Commons and Volunteer Green provide open park ground with collidable trees. They are fictional green spaces, not a recreation of Lake Union or surveyed park boundaries.
+
+The old garage, encounter and Sound to Sky course remain. Generated races
+use the expanded graph automatically. Their first draw measures only feasible
+gate candidates, sharing shortest-path results per origin and caching measured
+alternatives. Full all-pairs measurement remains an offline critique operation.
+Traffic reservation sampling includes both endpoints at lane transitions so
+long vehicles' first metres on an exit cannot be skipped. New 12–14 m streets
+have one lane each way; wider existing streets retain their previous lanes.
+
+The workshop's Overview frames the full new bounds. Map overlays label the
+districts and parks. This remains a PC blockout; denser geometry and many more
+building masses need a later rendering/streaming budget before the phone port.
+
 ## Validation and remaining work
 
 Automated checks cover connected route choices, reachable gates, building setbacks, mesh height error below 2 cm, northbound spawn clearance, same-runtime replay, and two minutes of traffic with body-overlap checks. Browser checks cover free roam, race entry, legacy-link migration, garage entry/exit and turntable, camera startup, and both lighting modes. The editor browser check saves and restores a real placement, verifies its physics collider, round-trips Three.js JSON, and rejects road overlap.
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
 
-**Surveyed terrain** is still open. `seattleHeight` is one analytic
-smoothstep bump, 34 m over 640 m east-west and 500 m north-south: a mean
-slope near 5% and a measured maximum gradient of 10%, on the north-south
-face; along the streets themselves the critique reports positive grades on
-41 of 63, steepest 8% on Yesler Way. Downtown Seattle's James St and
-Madison St run near 18%. The critique's grade risk term is a linear ramp
-that saturates at 12%, so today it is exercised but never reaches its cap;
-real terrain would. The height function exists twice: `seattleHeight` in
+**Surveyed terrain** is still open. The original southwest uses a 34 m
+smoothstep grade over 640 m east-west and 500 m north-south. Its historical
+63-street critique measured positive grades on 41 streets, steepest 8% on
+Yesler Way. V4 retains that grade and adds three compact hill profiles from
+the shared terrain JSON. Those old measurements do not describe the expanded
+city. The critique's grade risk term remains a ramp saturating at 12%.
+The height function exists twice: `seattleHeight` in
 the sim feeds physics, road meshes, traffic, routing and edited building
 bases, while `height` in `scripts/build-seattle.py` bakes the generated
 buildings' bases and the terrain triangles into `seattle-data.json`.
-Replacing the bump with a baked heightfield sampled by a C1-continuous
+Replacing the authored profiles with a baked heightfield sampled by a C1-continuous
 (bicubic, not bilinear) lookup carries every runtime consumer at once and
 stays deterministic, but the builder must sample the same field and the
 buildings must be regenerated, or their bases stay at the old elevations

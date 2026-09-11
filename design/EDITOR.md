@@ -40,8 +40,9 @@ on is not an error — it stands down. A successful save still needs visual
 inspection and a drive.
 
 Scene exports compact reference-mesh coordinates to millimetres while leaving
-building transforms at full precision. The measured Seattle export is about
-19.7 MB; imports are limited to 40 MB.
+building transforms at full precision. The measured v4 Seattle export is about
+74.9 MB; imports are limited to 128 MB so the workshop can read its own expanded
+scene export. Placement-only backups remain much smaller.
 
 ## Using the official Three.js editor
 
@@ -88,8 +89,10 @@ from their X/Z position, and the baseline fingerprint (millimetre precision,
 to tolerate last-bit trigonometry differences between Node and browsers)
 still identifies the generation a scene export or a schema-1 file was made
 against; schema-1 files are upgraded on read. Layout content is included in
-the world/replay ID. An empty file retains `seattle-slice-v3` and the
-generated Seattle geometry plus its fixed garage. Old Blackglass placement
+the world/replay ID. An empty file retains `seattle-slice-v4` and the
+generated Seattle geometry plus its fixed garage. Overview fits the expanded
+map bounds; tree trunks and the Space Needle remain protected shared solids.
+Old Blackglass placement
 files have a different baseline and must not be imported as Seattle
 placements; the district fixture keeps the schema-1 parser.
 

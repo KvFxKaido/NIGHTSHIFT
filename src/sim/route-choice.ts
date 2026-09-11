@@ -229,34 +229,66 @@ const turnCost = (arriving: { x: number; z: number }, leaving: { x: number; z: n
   return PACE.bend(degrees);
 };
 
+// Every route query on a city shares this immutable adjacency. Scanning every
+// drive at each junction made the larger city's first race stall at startup.
+const routingAdjacency = new WeakMap<RoutingGraph, Map<string, Drive[]>>();
+function outgoingDrives(graph: RoutingGraph): Map<string, Drive[]> {
+  let adjacency = routingAdjacency.get(graph);
+  if (!adjacency) {
+    adjacency = new Map();
+    for (const drive of graph.drives) {
+      const outgoing = adjacency.get(drive.from);
+      if (outgoing) outgoing.push(drive); else adjacency.set(drive.from, [drive]);
+    }
+    routingAdjacency.set(graph, adjacency);
+  }
+  return adjacency;
+}
+
 /** Least time from one node to another, optionally with one street closed. */
-export function route(graph: RoutingGraph, from: string, to: string, banned?: string): { time: number; via: Drive[] } {
+type Route = { time: number; via: Drive[] };
+const sourceRoutes = new WeakMap<RoutingGraph, Map<string, Map<string, Route>>>();
+export function route(graph: RoutingGraph, from: string, to: string, banned?: string): Route {
+  let sources = sourceRoutes.get(graph);
+  if (!sources) { sources = new Map(); sourceRoutes.set(graph, sources); }
+  const cached = banned === undefined ? sources.get(from) : undefined;
+  if (cached) return cached.get(to) ?? { time: Infinity, via: [] };
+  const adjacency = outgoingDrives(graph);
   const best = new Map<Drive, number>();
   const prev = new Map<Drive, Drive | null>();
   const open: Drive[] = [];
-  for (const d of graph.drives) {
+  for (const d of adjacency.get(from) ?? []) {
     if (d.from !== from || d.id === banned) continue;
     best.set(d, graph.measures.get(d.id)!.time); prev.set(d, null); open.push(d);
   }
   const done = new Set<Drive>();
   let arrival: Drive | null = null;
+  const arrivals = new Map<string, Drive>();
   while (open.length) {
     let i = 0;
     for (let k = 1; k < open.length; k++) if (best.get(open[k]!)! < best.get(open[i]!)!) i = k;
     const here = open.splice(i, 1)[0]!;
     if (done.has(here)) continue;
     done.add(here);
-    if (here.to === to) { arrival = here; break; }
-    for (const next of graph.drives) {
+    if (!arrivals.has(here.to)) arrivals.set(here.to, here);
+    if (here.to === to && banned !== undefined) { arrival = here; break; }
+    for (const next of adjacency.get(here.to) ?? []) {
       if (next.from !== here.to || next.id === here.id || next.id === banned) continue;
       const cost = best.get(here)! + turnCost(here.arriving, next.leaving) + graph.measures.get(next.id)!.time;
       if (cost < (best.get(next) ?? Infinity)) { best.set(next, cost); prev.set(next, here); open.push(next); }
     }
   }
-  if (!arrival) return { time: Infinity, via: [] };
-  const via: Drive[] = [];
-  for (let at: Drive | null = arrival; at; at = prev.get(at) ?? null) via.push(at);
-  return { time: best.get(arrival)!, via: via.reverse() };
+  const result = (end: Drive): Route => {
+    const via: Drive[] = [];
+    for (let at: Drive | null = end; at; at = prev.get(at) ?? null) via.push(at);
+    return { time: best.get(end)!, via: via.reverse() };
+  };
+  if (banned === undefined) {
+    const routes = new Map([...arrivals].map(([node, end]) => [node, result(end)]));
+    sources.set(from, routes);
+    return routes.get(to) ?? { time: Infinity, via: [] };
+  }
+  return arrival ? result(arrival) : { time: Infinity, via: [] };
 }
 
 /** Time-weighted risk along a route: each street's own risk, plus the
@@ -282,7 +314,12 @@ export const routeLength = (graph: RoutingGraph, via: readonly Drive[]) =>
  * not a defect. Within 40%: priced if the fast route is the riskier by 0.05,
  * free if it is the safer, even between.
  */
+const measuredLegs = new WeakMap<RoutingGraph, Map<string, Leg>>();
 export function measureLeg(graph: RoutingGraph, from: string, to: string): Leg {
+  let measured = measuredLegs.get(graph);
+  if (!measured) { measured = new Map(); measuredLegs.set(graph, measured); }
+  const key = `${from}|${to}`, cached = measured.get(key);
+  if (cached) return cached;
   const fast = route(graph, from, to);
   const length = routeLength(graph, fast.via);
   let alternative: { time: number; via: Drive[] } | null = null;
@@ -304,8 +341,10 @@ export function measureLeg(graph: RoutingGraph, from: string, to: string): Leg {
   else if (detour !== null && detour <= 0.4) {
     kind = riskFast > riskAlternative! + 0.05 ? "priced" : riskFast < riskAlternative! - 0.05 ? "free" : "even";
   }
-  return { from, to, length, time: fast.time, via: fast.via, detour, alternative: alternative?.via ?? [],
+  const leg: Leg = { from, to, length, time: fast.time, via: fast.via, detour, alternative: alternative?.via ?? [],
     riskFast, riskAlternative, kind };
+  measured.set(key, leg);
+  return leg;
 }
 
 /** Every directed leg between choice points, measured once per graph. */

@@ -53,11 +53,25 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1.
 
 ## Product direction (2026-09-10)
 
+Seattle v4 (September 11): the authorized at-least-10-km² expansion has a
+12.6 km² convex hull of street centerlines, excluding terrain padding and bay.
+The released SoDo/Belltown/Seattle Center roads and plots are pinned in
+`assets/maps/seattle/belltown-slice.json`; `east-hills-layout.json` authors
+Queen Anne, Capitol Hill, Central District and Madrona Ridge. These new areas
+are fictional adaptations, not surveyed Seattle. Shared smooth hill parameters
+live in `src/sim/seattle-terrain.json`. Preserve the southwest driving geometry.
+The runtime generator measures feasible legs lazily; `legTable` is for offline
+all-pairs critique. See `design/SEATTLE.md` for regeneration and area definitions.
+
 - MC3 spiritual successor, with selective LA ideas possible later.
 - Open racing: no unnecessary barriers, no wrong-way penalties, just slower
   alternatives between ordered checkpoints. Real obstacles retain collision.
 - Seattle is the sole demo map; grow it organically. MC3 San Diego is a scale
   reference, not a demand for another city or a fixed area.
+- Treat the current area as the southwest corner of the eventual map. Future
+  additions should be more compact where practical, favoring shorter blocks,
+  varied streets and connected routes to the north/east. Preserve the current
+  long-road area; see `design/SEATTLE.md` for the September 11 direction.
 - Graphics resemble upscaled/emulated MC3 rather than photorealism.
 - Preserve the current handling in Three.js/Rapier. Build the PC prototype
   first; RedMagic 10 Pro is the eventual device, with port/testing later.

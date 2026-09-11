@@ -133,7 +133,13 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
     for (let back = reach(movement.from); back >= 0; back -= CONFLICT_STEP) {
       path.push({ ...flatPose(movement.from, fromLength - back), along: -back, lane: movement.from });
     }
-    for (let forward = CONFLICT_STEP; forward <= reach(movement.to); forward += CONFLICT_STEP) {
+    // Include both lane endpoints. Joining the last approach sample straight
+    // to +3 m on the exit skips the exit's actual heading at the junction,
+    // missing the corner of a long vehicle during its first metres there.
+    if (path[path.length - 1]!.along !== 0) {
+      path.push({ ...flatPose(movement.from, fromLength), along: 0, lane: movement.from });
+    }
+    for (let forward = 0; forward <= reach(movement.to); forward += CONFLICT_STEP) {
       path.push({ ...flatPose(movement.to, forward), along: forward, lane: movement.to });
     }
     return path;
@@ -318,10 +324,14 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
     pose: (lane, distance) => {
       const pose = flatPose(lane, distance);
       const heights = profiles[lane]!;
-      const at = Math.max(0, Math.min(heights.length - 1, distance / TRAFFIC_HEIGHT_STEP));
-      const index = Math.floor(at);
-      const next = Math.min(index + 1, heights.length - 1);
-      pose.y = heights[index]! + (heights[next]! - heights[index]!) * (at - index);
+      const at = Math.max(0, Math.min(lengths[lane]!, distance));
+      const index = Math.min(Math.floor(at / TRAFFIC_HEIGHT_STEP), heights.length - 2);
+      const start = index * TRAFFIC_HEIGHT_STEP;
+      // The last interval ends at the lane endpoint, often short of a full
+      // sample step. Treating it as 4 m leaves traffic below a rising exit.
+      const end = Math.min(start + TRAFFIC_HEIGHT_STEP, lengths[lane]!);
+      const fraction = (at - start) / (end - start);
+      pose.y = heights[index]! + (heights[index + 1]! - heights[index]!) * fraction;
       return pose;
     },
   };

@@ -9,24 +9,24 @@
   <style>.drive + .drive { margin-top: 12px; background: #294753; color: #efb968; border: 1px solid #efb968; }</style>
 </head>
 <body>
-  <header><a href="./?world=seattle">Nightshift</a><a href="./editor.html">Edit Seattle ↗</a><span>Seattle / SoDo to Seattle Center</span></header>
+  <header><a href="./?world=seattle">Nightshift</a><a href="./editor.html">Edit Seattle ↗</a><span>Seattle / Sound to the hills</span></header>
   <main>
     <section class="map-sheet" aria-labelledby="district-title">
-      <div class="map-heading"><h1 id="district-title">Seattle</h1><p>The waterfront.<br />The grid. The Needle.</p></div>
+      <div class="map-heading"><h1 id="district-title">Seattle</h1><p>The waterfront.<br />The grid. The hills.</p></div>
       <svg id="district-map" role="img" aria-label="Seattle-inspired street network with start and race checkpoints"></svg>
       <div class="map-legend"><span><i class="existing"></i>City streets</span><span><i class="added"></i>Fictional connections</span><span><i class="selected"></i>Race checkpoints</span></div>
     </section>
     <aside aria-label="Seattle driving options">
       <h2>Sound to sky</h2>
-      <p class="intro">From the industrial south through Belltown to Seattle Center. Take Elliott Avenue along the waterfront or cut through the grid toward the Space Needle.</p>
+      <p class="intro">Climb Queen Anne, cut through Capitol Hill, or take the long sweep around Madrona Ridge. The waterfront and industrial south anchor a city of cross streets, park edges, and hillside detours.</p>
       <section class="route-brief"><h3>A city to learn</h3><p>Start at Wharf Garage in SoDo. Streets stay open, whichever way you choose.</p><p id="map-stats"></p></section>
       <a class="drive" href="./?world=seattle&amp;scene=track">Free roam Seattle</a>
       <a class="drive" href="./?world=seattle&amp;race=sound-to-sky&amp;scene=track">Race: Sound to Sky</a>
-      <p class="boundary-note">Four checkpoints. Your route. This first slice uses compressed streets, fictional buildings, and gentler hills.</p>
+      <p class="boundary-note">Four checkpoints. Your route. Seattle-inspired streets, fictional neighborhoods, and hills shaped for racing.</p>
       <a class="comparison" href="./editor.html">Open the Seattle workshop</a>
     </aside>
   </main>
-  <footer><span>Street source: City of Seattle / SDOT · Adapted for NIGHTSHIFT</span><a href="https://data.seattle.gov/stories/s/Terms-of-Use/6ukr-wvup/">Data terms</a></footer>
+  <footer><span>Original street source: City of Seattle / SDOT · New hill districts authored for NIGHTSHIFT</span><a href="https://data.seattle.gov/stories/s/Terms-of-Use/6ukr-wvup/">Data terms</a></footer>
   <script type="module" src="/src/ui/seattle-map.ts"></script>
 </body>
 </html>

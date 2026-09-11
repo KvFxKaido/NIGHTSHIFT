@@ -5,7 +5,7 @@ async page => {
   await page.addInitScript(()=>{navigator.getGamepads=()=>[];});
   await page.setViewportSize({width:1500,height:950});
   await page.goto('http://127.0.0.1:5173/?scene=track&freeze=1');
-  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v3');
+  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v4');
   await page.locator('#garage-entry').click();
   await page.waitForFunction(()=>document.body.dataset.gameScreen==='garage');
   const garage=await page.evaluate(async()=>{
@@ -39,7 +39,7 @@ async page => {
   await page.waitForFunction(()=>document.querySelectorAll('#city-map polyline').length>50);
   await page.screenshot({path:'artifacts/seattle-map.png'});
   await page.goto('http://127.0.0.1:5173/?world=seattle&race=sound-to-sky&scene=track&freeze=1');
-  await page.waitForFunction(()=>window.__ns?.sim.state.race!==null&&window.__ns?.sim.roadWorld.id==='seattle-slice-v3');
+  await page.waitForFunction(()=>window.__ns?.sim.state.race!==null&&window.__ns?.sim.roadWorld.id==='seattle-slice-v4');
   const race=await page.evaluate(()=>{
     __ns.freeze();__ns.tick(180);__ns.shot();
     if(__ns.sim.state.race.countdown!==0||!__ns.sim.state.race.next)throw Error('Race failed to start');
@@ -47,7 +47,7 @@ async page => {
   });
   await page.screenshot({path:'artifacts/seattle-race.png'});
   await page.goto('http://127.0.0.1:5173/?world=district&race=crane-to-crest&scene=track&freeze=1');
-  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v3');
+  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v4');
   if(await page.evaluate(()=>new URL(location.href).searchParams.has('race')))throw Error('Legacy bookmark retained incompatible race');
   const retired=await page.evaluate(()=>{
     if(document.querySelector('[data-world-switch]'))throw Error('Retired map remains in menu');
@@ -57,7 +57,7 @@ async page => {
     return {world:__ns.sim.roadWorld.id,retiredResources:old};
   });
   await page.goto('http://127.0.0.1:5173/?world=seattle&scene=track&lighting=blockout&freeze=1');
-  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v3');
+  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v4');
   const terrain=await page.evaluate(async()=>{
     // Inspect a downtown hill location; this is a renderer/height probe, not
     // evidence of driving a route there.

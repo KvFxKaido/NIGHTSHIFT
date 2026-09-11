@@ -6,11 +6,11 @@ async page => {
   const base='http://localhost:5174/';
   await page.setViewportSize({width:1500,height:950});
   await page.goto(base+'seattle.html');
-  await page.waitForFunction(()=>document.getElementById('map-stats').textContent.includes('18.6'));
+  await page.waitForFunction(()=>document.getElementById('map-stats').textContent.includes('83.5'));
   if(!await page.locator('#district-map').textContent().then(text=>text.includes('Space Needle')))throw Error('Landmark missing from map');
   await page.screenshot({path:'artifacts/north-map.png'});
   await page.goto(base+'?scene=track&freeze=1');
-  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v3');
+  await page.waitForFunction(()=>window.__ns?.sim.roadWorld.id==='seattle-slice-v4');
   const north=await page.evaluate(()=>{
     const ns=__ns;
     if(!ns.view.scene.getObjectByName('space-needle'))throw Error('Missing landmark mesh');

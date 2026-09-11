@@ -1,4 +1,5 @@
 import landmarks from "./seattle-landmarks.json" with { type: "json" };
+import terrain from "./seattle-terrain.json" with { type: "json" };
 import data from "./seattle-data.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
@@ -14,6 +15,7 @@ import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRace, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 
 export const SEATTLE_DATA = data;
+export const SEATTLE_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const SEATTLE_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
   entrance:{x:17,y:2,z:910,heading:0,pitch:0}};
@@ -23,11 +25,18 @@ export const SEATTLE_LAYOUT_BASELINE = layoutFingerprint(GENERATED_SEATTLE_BLOCK
   Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000]))));
 export function seattleHeight(x: number, z: number): number {
   const smooth = (t: number) => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
-  return 2 + 34 * smooth((x + 50) / 640) * smooth((330 - z) / 500);
+  let height = 2 + 34 * smooth((x + 50) / 640) * smooth((330 - z) / 500);
+  // Compact support keeps the released southwest's surface unchanged. Cubic
+  // falloff reaches zero with continuous slope/curvature at each hill's edge.
+  for (const hill of terrain.hills) {
+    const r2 = ((x-hill.x)/hill.rx)**2 + ((z-hill.z)/hill.rz)**2;
+    if (r2 < 1) height += hill.rise * (1-r2)**3;
+  }
+  return height;
 }
 export const SEATTLE_STREETS: readonly Street[] = data.roads.map(road => ({
   id: road.id, name: road.name, from: road.from, to: road.to,
-  added: road.sourceId === null, kind: road.width >= 20 ? "arterial" : "collector",
+  added: road.sourceId === null, kind: road.width >= 20 ? "arterial" : road.width <= 14 ? "local" : "collector",
   points: road.points.map(([x, z]) => ({ x: x!, z: z!, y: seattleHeight(x!, z!), width: road.width,
     zone: z! > 250 ? "freight" : x! < -270 ? "waterfront" : "old-quarter" })),
 }));
@@ -102,6 +111,7 @@ export function resolveSeattleLayout(value:unknown, generated:readonly BuildingB
     if(SEATTLE_STREETS.some(street=>street.points.slice(1).some((b,i)=>
       segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
     if(blockPenetration(block,landmarks.needle)>0)issues.push(`${id}: overlaps the Space Needle`);
+    if(SEATTLE_TREES.some(tree=>blockPenetration(block,tree)>0))issues.push(`${id}: overlaps a park tree`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
     if(blockCorners(block).some(p=>p.x<data.shore+2||p.x>data.bounds[2]!||p.z<data.bounds[1]!||p.z>data.bounds[3]!))issues.push(`${id}: outside the map's building area`);
@@ -118,7 +128,7 @@ export const SEATTLE_LAYOUT=resolvedLayout;
 export const SEATTLE_VERSION=data.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
 export function createSeattleWorld(racing = false): RoadWorld {
-  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: [...SEATTLE_BLOCKS, landmarks.needle],
+  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: [...SEATTLE_BLOCKS, landmarks.needle, ...SEATTLE_TREES],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],

@@ -57,8 +57,9 @@ pnpm build      # typecheck + production build
 ```
 
 The demo now opens in **Seattle**, a fictionalized, compressed city slice with
-18.6 km of open streets, Belltown, Seattle Center and its Space Needle landmark, a waterfront bypass,
-softened hills, traffic, and the
+83.5 km of open streets and 12.6 km² inside the connected street network's outer boundary, Belltown,
+Seattle Center and its Space Needle landmark, Queen Anne and Capitol Hill climbs,
+the Central District, Madrona Ridge, parks, traffic, and the
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
 The existing arcade handling, reset, and keyboard/gamepad controls are

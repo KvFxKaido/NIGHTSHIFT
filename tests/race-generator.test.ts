@@ -3,9 +3,10 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createSeattleWorld, seattleGeneratedRace, seattleRouting, projectOntoSeattle, SEATTLE_STREETS,
-  SEATTLE_RACE } from "../src/sim/seattle.ts";
+  SEATTLE_RACE, SEATTLE_GARAGE, seattleHeight } from "../src/sim/seattle.ts";
 import { GENERATOR, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition } from "../src/sim/race-generator.ts";
-import { legTable, routeLength } from "../src/sim/route-choice.ts";
+import { legTable, routeLength, buildRoutingGraph } from "../src/sim/route-choice.ts";
+import released from "../assets/maps/seattle/belltown-slice.json" with { type: "json" };
 import { sampleRivalPath, withExits, EXIT_LOOKAHEAD } from "../src/sim/rival.ts";
 import { SEATTLE_RIVAL } from "../src/sim/seattle-rival.ts";
 await RAPIER.init();
@@ -118,17 +119,19 @@ test("Sound to Sky's gates carry the authored line's exits: east through Jackson
   } finally { sim.world.free(); }
 });
 
-test("the flow rule: with the turn rule off, Broad & 5th N's hairpin takes seed 1 out at 170°; with it on, no seed leaves a gate in one", () => {
+test("the flow rule blocks the released seed-1 hairpin and hairpins on the expanded map", () => {
   // The map has two hairpin junctions — Yesler & James's Y (151°) and the
   // campus loop's Broad St & 5th Ave N (170°) — and 21 seeds in 600 reach one
   // once the bearing rule alone is on. The first is seed 1, at Broad & 5th.
-  const hairpins = (seeds: number) => {
+  const releasedGraph = buildRoutingGraph(SEATTLE_STREETS.slice(0,released.roads.length),seattleHeight,
+    [...released.buildings,SEATTLE_GARAGE.building]);
+  const hairpins = (seeds: number, testedGraph = graph) => {
     const found: string[] = [];
     for (let seed = 1; seed <= seeds; seed++) {
       let arrival = approach.arriving;
-      for (const leg of draw(seed).legs) {
+      for (const leg of generateRace(testedGraph,seed,approach.node,approach.arriving,[approach.street.id]).legs) {
         const turn = degreesBetween(arrival, leg.via[0]!.leaving);
-        if (turn > 135) found.push(`seed ${seed}: ${turn.toFixed(0)}° at ${graph.nodeName(leg.from)}`);
+        if (turn > 135) found.push(`seed ${seed}: ${turn.toFixed(0)}° at ${testedGraph.nodeName(leg.from)}`);
         arrival = leg.via[leg.via.length - 1]!.arriving;
       }
     }
@@ -137,11 +140,12 @@ test("the flow rule: with the turn rule off, Broad & 5th N's hairpin takes seed 
   const saved = GENERATOR.flow.turn;
   try {
     (GENERATOR.flow as { turn: number }).turn = 181;
-    const loose = hairpins(100);
+    const loose = hairpins(100,releasedGraph);
     assert.ok(loose.some(h => h.startsWith("seed 1:") && h.includes("Broad St & 5Th Ave N")), `the map's hairpin is not where it was: ${loose.join("; ") || "none"}`);
   } finally {
     (GENERATOR.flow as { turn: number }).turn = saved;
   }
+  assert.deepEqual(hairpins(100,releasedGraph), []);
   assert.deepEqual(hairpins(100), []);
 });
 

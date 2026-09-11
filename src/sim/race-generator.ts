@@ -11,7 +11,7 @@
  * and built from the streets' own points, exactly as the authored line was.
  */
 import { mix } from "./traffic.ts";
-import { legTable, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
+import { measureLeg, route, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
 import { projectOntoPath, type Street } from "./street-path.ts";
 import type { RaceDefinition } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
@@ -82,7 +82,6 @@ export function nodePosition(graph: RoutingGraph, id: string): { x: number; z: n
 export function generateRace(graph: RoutingGraph, seed: number, origin: string, arriving: Heading,
   avoid: readonly string[] = []): GeneratedRace {
   const next = stream(seed);
-  const legs = legTable(graph);
   for (let attempt = 0; attempt < 12; attempt++) {
     const gateCount = GENERATOR.gates.min + Math.floor(next() * (GENERATOR.gates.max - GENERATOR.gates.min + 1));
     const chosen: Leg[] = [];
@@ -94,15 +93,18 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
       const candidates: { leg: Leg; weight: number }[] = [];
       for (const to of graph.choicePoints) {
         if (visited.has(to)) continue;
-        const leg = legs.get(`${at}|${to}`);
-        if (!leg || !isFinite(leg.time) || leg.time < GENERATOR.leg.min || leg.time > GENERATOR.leg.max) continue;
-        if (leg.via.some(d => used.has(d.id))) continue;
-        if (total + leg.time > GENERATOR.total.max) continue;
+        // Reject impossible gates before measuring their alternate routes. A
+        // larger city has thousands of pairs that this draw will never use.
+        const fastest = route(graph, at, to);
+        if (!isFinite(fastest.time) || fastest.time < GENERATOR.leg.min || fastest.time > GENERATOR.leg.max) continue;
+        if (fastest.via.some(d => used.has(d.id))) continue;
+        if (total + fastest.time > GENERATOR.total.max) continue;
         const there = nodePosition(graph, to);
         const span = Math.hypot(there.x - here.x, there.z - here.z) || 1;
         const bearing = { x: (there.x - here.x) / span, z: (there.z - here.z) / span };
         if (degreesBetween(arrival, bearing) > GENERATOR.flow.bearing) continue;
-        if (degreesBetween(arrival, leg.via[0]!.leaving) > GENERATOR.flow.turn) continue;
+        if (degreesBetween(arrival, fastest.via[0]!.leaving) > GENERATOR.flow.turn) continue;
+        const leg = measureLeg(graph, at, to);
         let weight = GENERATOR.weight[leg.kind]!;
         if (leg.detour !== null && leg.detour >= 0.1 && leg.detour <= 0.25) weight += GENERATOR.weight.sweetSpot!;
         candidates.push({ leg, weight });

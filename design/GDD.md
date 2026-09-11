@@ -28,6 +28,14 @@ Players build one car into a personal street-racing machine, challenge recogniza
 
 The world is a fictionalized, compressed Seattle built for racing. Start with a useful connected slice and expand naturally when driving and route choices justify it. MC3 San Diego is a reference for the eventual sense of scale, not a requirement to recreate San Diego or match an exact map area.
 
+The original SoDo–Belltown area forms the southwest (bottom-left) corner of the
+map. The authorized 10 km² expansion now reaches a 12.6 km² street-network
+footprint with Queen Anne, Capitol Hill, the Central District and Madrona Ridge.
+Keep the original long, straight roads as part of the driving mix. Future
+additions should be more compact where practical, favoring shorter blocks,
+varied street geometry and useful connections to the north and east. See
+`SEATTLE.md` for the expansion direction agreed on September 11, 2026.
+
 ### 1.1 Current Direction
 
 - **Format:** MC3-inspired open-checkpoint racing. “No unnecessary barriers,
@@ -253,12 +261,14 @@ should preserve this principle.
 ### 6.4 Current Seattle Demo
 
 Seattle is the only playable map and opens at the base URL. The expanded slice
-contains about 18.6 km of streets, 108 street-graph edges, 195 generated building
+contains about 83.5 km of streets, 318 street-graph edges, 1,730 generated building
 masses plus Wharf Garage and the Space Needle, a fictional waterfront bypass,
-and softened hills. Belltown connects downtown to the Seattle Center loop;
-the Queen Anne hill and surveyed terrain remain future work.
-City of Seattle/SDOT centerlines supply the structure; buildings, elevation,
-widths and some connections are game adaptations. See [SEATTLE.md](SEATTLE.md)
+and softened hills across a 12.6 km² street-network footprint. Belltown connects
+downtown to Seattle Center; Queen Anne, Capitol Hill, Central District and
+Madrona Ridge extend north and east. Surveyed terrain remains future work.
+City of Seattle/SDOT centerlines supply the original southwest structure;
+the new hill districts, buildings and elevation are authored game adaptations.
+See [SEATTLE.md](SEATTLE.md)
 and the [source notes](../assets/maps/seattle/README.md).
 
 Free roam starts outside **Wharf Garage** in SoDo. Stop at its marked entrance

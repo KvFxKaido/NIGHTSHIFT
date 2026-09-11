@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sightDistance, blindness, routeRisk, SIGHT_CLEAR } from "../src/sim/route-choice.ts";
-import { seattleRouting } from "../src/sim/seattle.ts";
+import { sightDistance, blindness, routeRisk, SIGHT_CLEAR, buildRoutingGraph, route } from "../src/sim/route-choice.ts";
+import { seattleRouting, SEATTLE_STREETS, SEATTLE_GARAGE, seattleHeight } from "../src/sim/seattle.ts";
+import released from "../assets/maps/seattle/belltown-slice.json" with { type: "json" };
 
 // Blind corners are sight distances: how far before a corner a driver first
 // sees down the other arm past what stands on the inside. Measured at bends
@@ -35,8 +36,10 @@ test("blindness is 1 − sight / clear, floored at nothing and capped at everyth
   assert.equal(blindness(0), 1);
 });
 
-test("on Seattle the term is live: the blindest approach is Yesler at 1st, in the mid twenties, and dozens are inside the clear distance", () => {
-  const graph = seattleRouting();
+test("on released southwest Seattle the blindest approach remains Yesler at 1st, and dozens are inside the clear distance", () => {
+  // This measured distribution describes v3, not every future city expansion.
+  const graph = buildRoutingGraph(SEATTLE_STREETS.slice(0,released.roads.length),seattleHeight,
+    [...released.buildings,SEATTLE_GARAGE.building]);
   const approaches = graph.drives;
   const nearest = Math.min(...approaches.map(d => d.sight));
   assert.ok(nearest > 20 && nearest < 30, `nearest sight ${nearest.toFixed(1)} m`);
@@ -48,6 +51,17 @@ test("on Seattle the term is live: the blindest approach is Yesler at 1st, in th
   // Bends inside a street measure the same way; 6th Ave S's right angle is under the clear distance.
   const sixth = [...graph.measures.values()].find(m => m.name === "6Th Ave S")!;
   assert.ok(sixth.sight < SIGHT_CLEAR && sixth.blind > 0, `6th Ave S bend sees ${sixth.sight.toFixed(0)} m`);
+});
+
+test("cached all-destination routing preserves target-stopped paths and turn costs", () => {
+  const graph = seattleRouting();
+  for (const from of [graph.nodes[0]!,graph.nodes[Math.floor(graph.nodes.length/2)]!,graph.nodes.at(-1)!]) {
+    for (const to of graph.nodes) {
+      // A nonexistent closure forces the uncached target-stopped search while
+      // leaving exactly the same streets available. Includes cycles to origin.
+      assert.deepEqual(route(graph,from,to),route(graph,from,to,"absent-street"),`${from} -> ${to}`);
+    }
+  }
 });
 
 test("a blind approach raises the risk of the route that takes it, and an open one does not", () => {

@@ -16,12 +16,11 @@ It is an offline build source, not a live runtime dependency.
 From the repository root:
 
 ```powershell
-node scripts/fetch-seattle.mjs
 python -m pip install --target artifacts/map-tools shapely==2.1.2
 python scripts/build-seattle.py
 ```
 
-Fetching refreshes the source snapshot; omit that first command to reproduce from the checked-in extract. The builder needs Python and Shapely only during regeneration. Normal `pnpm dev` and `pnpm build` use the checked-in `src/sim/seattle-data.json` and do not need Python or external GIS access.
+The current builder reproduces from the pinned released slice and authored hill layout below. `node scripts/fetch-seattle.mjs` refreshes the historical original GIS extract only; it does not rewrite the pinned slice. The builder needs Python and Shapely only during regeneration. Normal `pnpm dev` and `pnpm build` use the checked-in `src/sim/seattle-data.json` and do not need Python or external GIS access.
 
 The generator selects a connected subset, rounds coordinates, compresses east/west distances to 58% and north/south to 50%, widens streets, and adds fictional Harbor Way and three access connections. All crossings in this slice are treated as at-grade. Street names/source IDs on merged edges identify a representative source segment; they are not cadastral provenance for every vertex. Buildings, grades, pavement, port props, and racing checkpoints are authored game content.
 
@@ -34,10 +33,10 @@ refreshes only the original extract. Normal builds remain offline.
 
 `base-slice.json` pins the original roads and generated buildings from commit
 `eda73a9`, so the expansion does not renumber authored rival streets or move
-existing editor plots. `build-seattle.py` uses that baseline plus the northern
-extract, and rebuilds the unioned surfaces and new parcels. Original buildings
-are retained; no existing editor overrides were present when this extension
-was authored. Nonempty overrides still require an explicit baseline rebase.
+existing editor plots. The v3 builder used that baseline plus the northern
+extract and rebuilt the unioned surfaces and new parcels. V4 pins that result
+as `belltown-slice.json`. Schema-2 authored buildings are independent of
+generated plot IDs; the current builder reserves their footprints explicitly.
 
 The north selection follows Elliott, 1st, 2nd and 4th Avenues through Belltown,
 with Battery, Wall, Cedar and Broad connections and the Seattle Center perimeter.
@@ -47,3 +46,24 @@ provenance. SR99, ramps and other grade-separated routes are excluded.
 The campus reservation and landmark footprint live in
 `src/sim/seattle-landmarks.json`. Runtime and builder heights retain the same
 analytic surface; this extension does not implement the surveyed-terrain proposal.
+
+## Authored east/hills extension
+
+`belltown-slice.json` freezes the 108 roads and 195 generated plots released
+at `3903a80`. `east-hills-layout.json` adds game-coordinate polylines, street
+widths, park reservations and map labels. Those new neighborhoods are original
+Seattle-inspired authoring; their names do not claim real-world alignment.
+The original GIS attribution is retained in the generated output.
+
+`src/sim/seattle-terrain.json` supplies smooth hill parameters to both Python
+and TypeScript. New roads are split at their intersections, then sampled at
+30 m or less. Roads, pavement and land are unioned/triangulated using the same
+serialized points. New buildings reserve roads, parks, existing and authored
+footprints. Tree trunks are shared visible/physical solids. All crossings
+remain at grade; no real bridges, Lake Union geometry or tunnels are implied.
+
+The v4 street hull covers 12.6 km²; the road bounding rectangle covers
+14.2 km². The hull is the convex envelope of street centerlines, not drivable
+asphalt area. Terrain padding and water do not contribute to it. Expansion
+tests independently calculate the hull and check connectivity, pinned geometry,
+unchanged old heights and AI driving on the new hills.

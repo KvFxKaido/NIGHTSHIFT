@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls, type TransformControlsMode } from "three/addons/controls/TransformControls.js";
 import { addSeattle } from "../render/seattle.ts";
+import seattleData from "../sim/seattle-data.json";
 import { SEATTLE_LAYOUT, GENERATED_SEATTLE_BLOCKS, SEATTLE_LAYOUT_BASELINE, GARAGE_PLOT_ID,
   resolveSeattleLayout } from "../sim/seattle.ts";
 import { buildingId, parseAnyLayout, authoredFromId, authoredSourceId, AUTHORED_ID_PREFIX,
@@ -73,9 +74,9 @@ function nextAuthoredId(): string {
   return `authored-${highest + 1}`;
 }
 
-const camera = new THREE.PerspectiveCamera(48, 1, 0.5, 5000);
+const camera = new THREE.PerspectiveCamera(48, 1, 0.5, 16000);
 const orbit = new OrbitControls(camera, canvas);
-orbit.maxPolarAngle = Math.PI / 2 - 0.025; orbit.minDistance = 8; orbit.maxDistance = 2600;
+orbit.maxPolarAngle = Math.PI / 2 - 0.025; orbit.minDistance = 8; orbit.maxDistance = 10000;
 const transform = new TransformControls(camera, canvas);
 scene.add(transform.getHelper());
 const selectionBox = new THREE.BoxHelper(new THREE.Object3D(), 0xa0fff0);
@@ -252,7 +253,14 @@ deleteButton.onclick = deleteSelected;
 undoButton.onclick = () => { const previous = undo.pop(); if (previous) { redo.push(committed); applyLayout(JSON.parse(previous)); committed = previous; status.textContent = "Undone. Save to apply this draft."; buttons(); } };
 redoButton.onclick = () => { const next = redo.pop(); if (next) { undo.push(committed); applyLayout(JSON.parse(next)); committed = next; status.textContent = "Redone. Save to apply this draft."; buttons(); } };
 element("focus").onclick = () => focus(); element("top").onclick = () => focus(true);
-element("overview").onclick = () => { orbit.target.set(0, 0, 0); camera.position.set(1050, 1150, 1150); orbit.update(); };
+element("overview").onclick = () => {
+  const [minX, minZ, maxX, maxZ] = seattleData.bounds as [number, number, number, number];
+  const reach = Math.max(maxZ - minZ, (maxX - minX) / camera.aspect)
+    / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.15;
+  orbit.target.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+  camera.position.copy(orbit.target).add(new THREE.Vector3(0, reach, reach * 0.4));
+  orbit.update();
+};
 transform.addEventListener("dragging-changed", event => {
   dragging = !!event.value; orbit.enabled = !dragging; buttons();
 });
@@ -331,7 +339,7 @@ element<HTMLInputElement>("import-file").onchange = async event => {
   const input = event.target as HTMLInputElement, file = input.files?.[0];
   if (!file) return;
   try {
-    if (file.size > 40_000_000) throw new Error("Choose a scene smaller than 40 MB");
+    if (file.size > 128_000_000) throw new Error("Choose a scene smaller than 128 MB");
     const value = JSON.parse(await file.text());
     const layout = value.schema === 1 || value.schema === 2 ? parseAnyLayout(value, SEATTLE_LAYOUT_BASELINE) : importEditorScene(value);
     applyLayout(layout); checkpoint();
