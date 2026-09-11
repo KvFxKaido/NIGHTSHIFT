@@ -80,6 +80,11 @@ the drive. **M / Select–View–Share** toggles it during play (remappable in
 Controls). It pauses both racers and traffic, shows current positions and active
 race gates, and returns to the screen it was opened from. Drag/scroll to pan/zoom,
 or use the controller-accessible Find car, Whole city and zoom buttons.
+The **Market Row** art pilot dresses one Capitol Hill block with brick facades,
+independent storefronts, painted interiors, warm light spill and repaired asphalt.
+Open `/?scene=track&visit=market-row` to start on its street. The usual garage
+and race starts remain available; blockout mode keeps the plain workshop view.
+
 The standalone `/seattle.html` route board remains available. Its **Edit Seattle** link opens the
 building workshop at `/editor.html`; validated placements are shared by the
 renderer and collision system. See [`design/EDITOR.md`](design/EDITOR.md).

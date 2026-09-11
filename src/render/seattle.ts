@@ -6,6 +6,8 @@ import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
 import { addNightBuildings, glowTexture } from "./night.ts";
 import type { DistrictLighting } from "./scene.ts";
+import { addCapitolMarket, isMarketBuilding } from "./capitol-market.ts";
+import { chunkSeattleScenery } from "./city-chunks.ts";
 
 export function addSeattle(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
@@ -52,7 +54,11 @@ export function addSeattle(scene: THREE.Scene, lighting: DistrictLighting): void
   addGarageExterior(scene,SEATTLE_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(31,40),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(6.5,2.012,910);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
-  if(night) addNightBuildings(scene,buildings.map((b,index)=>({...b,decorationIndex:index,faceDistances:[0,0,0,0] as const})),seattleHeight);
+  if(night) {
+    addNightBuildings(scene,buildings.map((b,index)=>({...b,decorationIndex:index,faceDistances:[0,0,0,0] as const}))
+      .filter(b=>!isMarketBuilding(b)),seattleHeight);
+    addCapitolMarket(scene,buildings.filter(isMarketBuilding),seattleHeight,SEATTLE_STREETS);
+  }
   else {
     const blocks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x778991}),buildings.length);
     const pose=new THREE.Object3D();
@@ -121,4 +127,5 @@ export function addSeattle(scene: THREE.Scene, lighting: DistrictLighting): void
     const geometry=mergeGeometries([...parts]);if(geometry)scene.add(new THREE.Mesh(geometry,material));parts.forEach(g=>g.dispose());
   }
   if(pools.length){const geometry=mergeGeometries(pools);if(geometry)scene.add(new THREE.Mesh(geometry,poolMaterial));pools.forEach(g=>g.dispose());}
+  chunkSeattleScenery(scene);
 }

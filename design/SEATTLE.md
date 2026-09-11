@@ -136,6 +136,46 @@ building masses need a later rendering/streaming budget before the phone port.
 
 ## Validation and remaining work
 
+### Market Row rendering pilot
+
+One block around Market Lane and Market Arcade in Capitol Hill has a local
+material kit: warm brick, window reveals, eight fictional storefront designs,
+painted shelves/interiors, shallow cornices, pavement repairs and a crosswalk.
+Four color/emissive facade atlases and one pavement texture are generated once
+from deterministic Canvas drawing; the largest is 1024×768. Surface shading
+and ambient darkening are authored into those textures, not a new offline
+lightmap bake. Shop light spill reuses the existing inexpensive glow material;
+this does not add dynamic lights or a screen-space bloom pass.
+
+`src/render/capitol-market.ts` dresses the existing live building footprints,
+including workshop transforms. The block's storefront/road detail switches off
+past 320 m with LOD hysteresis; its building silhouettes remain. No collision,
+handling, road geometry or map version changes accompany this art pass.
+`?scene=track&visit=market-row` is a review entrance for free roam; race starts
+ignore it. The ordinary free-roam entrance remains Wharf Garage.
+
+The static city-wide surface/facade meshes are divided into 512 m geographic
+batches by `src/render/city-chunks.ts`. Every triangle retains its full vertex
+attributes, material and shadow flags. Complete triangles are assigned to cells
+by centroid, and actual bounds are computed; no triangle is clipped at a cell
+edge. This allows ordinary frustum culling to skip sections outside the camera
+or shadow view. It is not occlusion culling or world streaming. Physics and
+traffic remain loaded, and this does not reduce the map download size.
+
+At the same fixed Market Lane camera, a 1440×900 headless Chrome comparison
+at pixel ratio 1 submitted 312,909 triangles versus 857,984 before the pilot
+(63.5% fewer), while draw calls rose from 172 to 260. The median animation-frame
+interval stayed about 8.3 ms in both runs: this is a geometry-work reduction,
+not a demonstrated frame-rate improvement. A 256 m trial reduced triangles
+further (238,861) but required 308 draws, so this pilot uses 512 m batches.
+These are one-view desktop measurements, not a whole-city or phone benchmark.
+`scripts/check-market-row-browser.js` repeats the comparison pose and checks
+the preview entrance, nearby detail visibility and a 30 m drive through the block.
+
+The workshop keeps its ordinary editable boxes. The pilot is deliberately
+limited to one block; its art direction and performance should be assessed
+before applying the kit city-wide.
+
 Automated checks cover connected route choices, reachable gates, building setbacks, mesh height error below 2 cm, northbound spawn clearance, same-runtime replay, and two minutes of traffic with body-overlap checks. Browser checks cover free roam, race entry, legacy-link migration, garage entry/exit and turntable, camera startup, and both lighting modes. The editor browser check saves and restores a real placement, verifies its physics collider, round-trips Three.js JSON, and rejects road overlap.
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.

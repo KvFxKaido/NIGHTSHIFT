@@ -16,7 +16,7 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setView
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace } from "./sim/seattle.ts";
+import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace, seattleHeight } from "./sim/seattle.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import { addSeattle } from "./render/seattle.ts";
@@ -83,7 +83,11 @@ try {
 
 const input = createInputController();
 const controls = createControlsPanel(input);
-const roadWorld = createSeattleWorld(!!race);
+const baseWorld = createSeattleWorld(!!race);
+// Shareable art-review entrance. Normal free roam and all race starts retain
+// their own spawn; reset on this preview returns to the reviewed street.
+const roadWorld = !race && new URLSearchParams(location.search).get("visit") === "market-row"
+  ? { ...baseWorld, start: { x:698,z:-1560,y:seattleHeight(698,-1560),heading:Math.PI,pitch:0 } } : baseWorld;
 const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: SEATTLE_ENCOUNTER });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
