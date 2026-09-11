@@ -59,6 +59,43 @@ Automated checks cover connected route choices, reachable gates, building setbac
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
 
+**Surveyed terrain** is still open. `seattleHeight` is one analytic
+smoothstep bump, 34 m over 640 m east-west and 500 m north-south: a mean
+slope near 5% and a measured maximum gradient of 10%, on the north-south
+face; along the streets themselves the critique reports positive grades on
+41 of 63, steepest 8% on Yesler Way. Downtown Seattle's James St and
+Madison St run near 18%. The critique's grade risk term is a linear ramp
+that saturates at 12%, so today it is exercised but never reaches its cap;
+real terrain would. The height function exists twice: `seattleHeight` in
+the sim feeds physics, road meshes, traffic, routing and edited building
+bases, while `height` in `scripts/build-seattle.py` bakes the generated
+buildings' bases and the terrain triangles into `seattle-data.json`.
+Replacing the bump with a baked heightfield sampled by a C1-continuous
+(bicubic, not bilinear) lookup carries every runtime consumer at once and
+stays deterministic, but the builder must sample the same field and the
+buildings must be regenerated, or their bases stay at the old elevations
+and float or sink. Candidate sources, all reusable without Google-style
+extraction limits:
+
+- **USGS 3DEP lidar DEM**, 1 m, public domain, covers King County. The
+  reference source; needs smoothing to a few metres before sampling or the
+  roads pick up kerbs and walls as chatter.
+- **City of Seattle contours / DEM** on the same ArcGIS open-data platform
+  as `source-streets.json`, under the same terms and attribution already
+  cited in `assets/maps/seattle/README.md`; fits the existing fetch script
+  pattern.
+- **AWS Terrain Tiles** (Mapzen terrarium), about 10 m in the US, open;
+  coarser and simplest to sample if 1 m is more than the arcade surface
+  needs.
+
+Google Photorealistic 3D Tiles are not a source: extracting geodata from
+them is prohibited by their terms. Two decisions precede the pipeline work:
+vertical exaggeration (the 58% / 50% horizontal compression roughly doubles
+real grades if elevation is left unscaled, which must be a chosen number),
+and whether road surfaces are graded along the centreline and blended
+across, as the district's aprons were, rather than sampled raw. Expect the
+3.5 m footprint-spread rule to refuse hillside parcels once grades are real.
+
 ## Route choice, measured
 
 `pnpm seattle:critique` reports whether the slice has anything to learn. The
