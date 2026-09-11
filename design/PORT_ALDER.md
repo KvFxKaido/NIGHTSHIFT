@@ -10,7 +10,7 @@ The in-game city map opens with **M / Select–View–Share** or the pause
 menu's Port Alder map button. It uses the loaded sim and never navigates away:
 player, rival, traffic and race clocks pause together. Closing returns to the
 originating screen, with driving inputs gated normally on resume. Markers show
-the player, waiting/racing rival and the active race's gates (including generated
+the player, cruising/racing rival and the active race's gates (including generated
 races), plus the garage and Broadcast Tower. Pan/zoom is available by pointer and
 the map's controller-accessible view buttons. Bindings are remappable and old
 saves retain their existing assignments. The standalone route board remains a
@@ -404,9 +404,13 @@ rivals learning the player's line per street.
 Sound to Sky now starts with one AI opponent in the other garage car: NS-01
 faces Bulwark, and Bulwark faces NS-01. Both use the existing four-wheel forces
 and share one Rapier world; the rival uses FWD independently of the player's
-handling comparison setting. In free roam, the opponent waits on First Avenue S
-just north of Wharf Garage. Its red minimap dot follows its physical position;
-it remains a solid car and can be pushed.
+handling comparison setting. In free roam, the opponent starts on First Avenue S
+just north of Wharf Garage and repeats the local First/Holgate/Fourth freight-block
+loop defined in `src/sim/encounter.ts`. The line follows shared street geometry,
+offset into the right-hand lane, with a 10 m/s (22 mph) target ceiling. It uses the
+same physical driver, traffic avoidance, reversing and 12-second local reset as
+the racing rival. Its red minimap dot follows its physical position; it remains
+a solid car and can be pushed. This is one neighborhood route, not citywide wandering.
 
 Within 32 metres, below 12 m/s and at the same elevation, **F / X–Square** flashes
 the headlights and accepts a challenge. Both bindings are remappable; older
@@ -414,8 +418,8 @@ saved controls keep their mappings and receive an unused flash binding. The
 nearby prompt also works by click. A double flash precedes the page transition
 to a generated race's grid/countdown, preserving the selected player/opponent bodies.
 Pause freezes the transition. **Return to free roam** in the pause menu
-reopens Port Alder at Wharf Garage with the waiting opponent restored. This first
-encounter draws a generated race; the waiting rival does not cruise the city.
+reopens Port Alder at Wharf Garage with the cruising opponent restored. This
+encounter draws a generated race.
 Sound to Sky remains available as the authored menu race.
 
 `src/sim/alder-rival.ts` defines a continuous preferred line through all four
@@ -432,6 +436,12 @@ both cars and AI state; Pause and Controls pause both racers.
 The HUD shows position, a red minimap dot and opponent finish status. Position
 uses checkpoint progress, then distance to the next gate; it is an approximation
 between gates, not a predicted finishing order. A finished rival brakes to a stop.
+When the player finishes a rival race, the results menu pauses the simulation,
+shows position and elapsed time, and offers **Return to free roam** or **Go to
+garage**. Both destinations reload without race parameters and retain the selected
+car, drivetrain and customization. Free roam starts outside Wharf Garage; garage
+opens its customization view. Pause/back cannot accidentally resume the completed
+race. A rival finishing first does not interrupt the player's remaining gates.
 
 Validation covers a complete race in normal traffic, a parked player and forced
 spin, escaping a small unexpected barrier, physical player/rival contact,

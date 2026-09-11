@@ -72,6 +72,7 @@ export interface SimState {
   traffic: TrafficState | null;
   rival: RivalState | null;
   encounter?: VehicleState | null;
+  encounterDriver: RivalDriver | null;
   /** Null in free roam. Progress through an open-checkpoint race: rules about
    *  where the car has been, decided per tick, so a replay reproduces the
    *  splits. The definition itself is static and lives on `Sim.race`. */
@@ -99,6 +100,7 @@ export interface Sim {
   rivalBody: RAPIER.RigidBody | null;
   rivalDefinition: RivalDefinition | null;
   encounterStart: RoadWorld["start"] | null;
+  encounterRoute: RivalDefinition | null;
   encounterBody: RAPIER.RigidBody | null;
   /** One kinematic body per traffic vehicle, in `state.traffic.vehicles` order.
    *  Created once and never added to or removed from: a changing collider set
@@ -117,6 +119,7 @@ export interface SimOptions {
   readonly race?: RaceDefinition;
   readonly rival?: RivalDefinition;
   readonly encounter?: RoadWorld["start"];
+  readonly encounterRoute?: RivalDefinition;
 }
 
 // Feel stays centralized. No suspension or wheel inertia yet: the chassis
@@ -370,7 +373,7 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   roadWorld: RoadWorld = BLACKGLASS_WORLD, options: SimOptions = {}): Sim {
   if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
   if (options.rival && !options.race) throw new Error("A rival requires a race");
-  if (options.encounter && options.race) throw new Error("A waiting encounter belongs in free roam");
+  if ((options.encounter || options.encounterRoute) && options.race) throw new Error("A cruising encounter belongs in free roam");
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
   world.timestep = DT;
   for (const wall of roadWorld.walls) {
@@ -422,7 +425,8 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
     return trafficBody;
   });
 
-  const encounterStart = options.encounter ?? null;
+  const encounterRoute = options.encounterRoute ?? null;
+  const encounterStart = encounterRoute?.start ?? options.encounter ?? null;
   const encounterBody = encounterStart ? createVehicleBody(world, encounterStart) : null;
   const encounter = encounterStart ? initialVehicle({ ...roadWorld, start: encounterStart }) : null;
   const rivalDefinition = options.rival ?? null;
@@ -438,21 +442,23 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   return {
     roadWorld,
     state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
-      vehicle: initialVehicle(roadWorld), traffic, rival, encounter, race: raceDefinition ? createRace(raceDefinition) : null },
-    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, trafficBodies, race: raceDefinition,
+      vehicle: initialVehicle(roadWorld), traffic, rival, encounter, encounterDriver: encounterRoute ? createRivalDriver() : null,
+      race: raceDefinition ? createRace(raceDefinition) : null },
+    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, encounterRoute, trafficBodies, race: raceDefinition,
   };
 }
 
 export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined });
+  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
   sim.rivalBody = fresh.rivalBody;
   sim.encounterBody = fresh.encounterBody;
   sim.encounterStart = fresh.encounterStart;
+  sim.encounterRoute = fresh.encounterRoute;
   sim.rivalDefinition = fresh.rivalDefinition;
   sim.state = fresh.state;
   sim.trafficBodies = fresh.trafficBodies;
@@ -719,7 +725,14 @@ export function step(sim: Sim, rawInput: Input): void {
   const encounterRig: VehicleRig | null = sim.state.encounter && sim.encounterBody
     ? { roadWorld: sim.roadWorld, body: sim.encounterBody,
       state: { vehicle: sim.state.encounter, drivetrain: "fwd", race: null } } : null;
-  if (encounterRig) applyVehicleInput(encounterRig, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+  if (encounterRig) {
+    const driver = sim.state.encounterDriver;
+    const input = sim.encounterRoute && driver ? rivalInput(sim.encounterRoute,
+      { vehicle: encounterRig.state.vehicle, driver, race: null },
+      [sim.state.vehicle, ...(sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }))])
+      : { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
+    applyVehicleInput(encounterRig, input);
+  }
   const rival = sim.state.rival;
   const rig: VehicleRig | null = rival && sim.rivalBody ? { roadWorld: sim.roadWorld, body: sim.rivalBody, state: rival } : null;
   if (rival && sim.rivalDefinition) {
@@ -745,6 +758,10 @@ export function step(sim: Sim, rawInput: Input): void {
   if (rig) finishVehicle(rig);
   if (encounterRig) finishVehicle(encounterRig);
   resetStalledRival(sim);
+  if (sim.state.encounter && sim.state.encounterDriver && sim.encounterBody && sim.encounterRoute) {
+    resetStalledDriver(sim, sim.encounterBody, sim.encounterRoute, sim.state.encounterDriver, null,
+      (vehicle, driver) => { sim.state.encounter = vehicle; sim.state.encounterDriver = driver; });
+  }
   sim.state.tick++;
   // After syncState: the race reads the vehicle where this tick left it.
   if (sim.race && sim.state.race) stepRace(sim.race, sim.state.race, sim.state.vehicle);
@@ -756,12 +773,19 @@ export const RIVAL_RESET_TICKS = 12 * TICK_HZ;
 function resetStalledRival(sim: Sim): void {
   const rival = sim.state.rival, body = sim.rivalBody, route = sim.rivalDefinition;
   if (!rival || !body || !route || !sim.race || rival.race.countdown > 0 || rival.race.finished) return;
-  const driver = rival.driver;
+  resetStalledDriver(sim, body, route, rival.driver, rival.race, (vehicle, driver) => {
+    rival.vehicle = vehicle; rival.driver = driver;
+    rival.input = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
+  });
+}
+
+function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefinition, driver: RivalDriver,
+  race: RaceState | null, reset: (vehicle: VehicleState, driver: RivalDriver) => void): void {
   if (driver.noProgressTicks < RIVAL_RESET_TICKS || driver.resetCheckIn > 0) return;
   driver.resetCheckIn = TICK_HZ;
-  const gate = sim.race.checkpoints[rival.race.checkpoint]!;
-  const minimum = rival.race.checkpoint ? route.gates[rival.race.checkpoint - 1]! : 0;
-  const maximum = route.gates[rival.race.checkpoint]! - gate.radius - 5;
+  const gate = race ? sim.race!.checkpoints[race.checkpoint]! : null;
+  const minimum = race?.checkpoint ? route.gates[race.checkpoint - 1]! : 0;
+  const maximum = race && gate ? route.gates[race.checkpoint]! - gate.radius - 5 : route.along.at(-1)!;
   if (maximum < minimum) return;
   const center = Math.max(minimum, Math.min(maximum, driver.along));
   const shape = new RAPIER.Cuboid(1.4, .65, 2.7);
@@ -771,7 +795,7 @@ function resetStalledRival(sim: Sim): void {
     for (const side of [0, 3, -3]) {
       const x = point.x - point.uz * side, z = point.z + point.ux * side;
       // Never materialize inside the next gate or ahead of it along the route.
-      if (Math.hypot(x - gate.x, z - gate.z) < gate.radius + 4) continue;
+      if (gate && Math.hypot(x - gate.x, z - gate.z) < gate.radius + 4) continue;
       const road = sim.roadWorld.project(x, z);
       if (road.distance > road.width / 2 - 1.5) continue;
       const surface = drivenSurface(sim.roadWorld, x, z);
@@ -793,11 +817,9 @@ function resetStalledRival(sim: Sim): void {
       body.setAngvel({ x: 0, y: 0, z: 0 }, true);
       body.resetForces(true);
       body.resetTorques(true);
-      rival.vehicle = initialVehicle({ ...sim.roadWorld, start: { x, y: surface.height, z,
-        heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } });
-      rival.driver = { ...createRivalDriver(), along, progressMark: along,
-        recoveries: driver.recoveries, resets: driver.resets + 1 };
-      rival.input = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
+      reset(initialVehicle({ ...sim.roadWorld, start: { x, y: surface.height, z,
+        heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } }),
+        { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries, resets: driver.resets + 1 });
       return;
     }
   }

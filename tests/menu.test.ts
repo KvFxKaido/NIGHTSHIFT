@@ -27,6 +27,15 @@ test("garage is a main-menu branch", () => {
   assert.equal(transitionMenu(garage, "back").screen, "main");
 });
 
+test("race results pause driving and require a destination instead of resuming on back", () => {
+  const result = transitionMenu({ screen: "playing", returnTo: "main" }, "race-finished");
+  assert.equal(result.screen, "results");
+  for (const event of ["pause-toggle", "back", "resume", "map-toggle", "race-finished"] as const) {
+    assert.deepEqual(transitionMenu(result, event), result);
+  }
+  assert.equal(transitionMenu(createInitialMenuState(), "race-finished").screen, "main");
+});
+
 test("nested options and save screens return to their origin without resuming the sim", () => {
   for (const origin of ["main", "pause"] as const) {
     const initial = { screen: origin, returnTo: origin };

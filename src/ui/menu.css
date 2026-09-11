@@ -74,7 +74,7 @@ body[data-game-screen="pause"] #hud {
   mask-image: linear-gradient(90deg, black, transparent 72%);
 }
 
-.menu-root[data-screen="pause"] {
+.menu-root[data-screen="pause"], .menu-root[data-screen="results"] {
   justify-items: center;
   background: rgba(3, 5, 10, 0.66);
   backdrop-filter: blur(10px) saturate(0.65);
@@ -128,7 +128,7 @@ body[data-game-screen="pause"] #hud {
   animation: menu-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.menu-root[data-screen="pause"] .menu-screen {
+.menu-root[data-screen="pause"] .menu-screen, .menu-root[data-screen="results"] .menu-screen {
   width: min(390px, 100%);
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -538,6 +538,7 @@ body[data-game-screen="map"] #hud { opacity: 0; }
 @media (max-width: 620px) { .city-map-footer { flex-wrap: wrap; gap: 0; } #city-map { height: 55vh; } }
 
 body[data-game-screen="options"] #hud,
+body[data-game-screen="results"] #hud,
 body[data-game-screen="saves"] #hud { opacity: 0; }
 .menu-button[hidden], .save-editor[hidden] { display: none; }
 .menu-button:disabled { opacity: .38; cursor: default; transform: none; }

@@ -3,7 +3,7 @@ import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
-import { ALDER_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
+import { ALDER_CRUISE, canChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
 import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
@@ -107,7 +107,7 @@ const controls = createControlsPanel(input);
 const roadWorld = createAlderWorld(!!race);
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: ALDER_ENCOUNTER });
+const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounterRoute: ALDER_CRUISE });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 if (rivalParts) setRivalCar(view, rivalParts);
@@ -318,10 +318,10 @@ const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElem
 let flashRemaining = 0;
 let challengePending = false;
 const challengeAvailable = () => canChallenge(sim.state.vehicle, sim.state.encounter, !!sim.state.race);
-function loadDrive(raceId: string | null): void {
+function loadDrive(raceId: string | null, scene: "track" | "garage" = "track"): void {
   const url = new URL(location.href);
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
-  url.searchParams.set("scene", "track");
+  url.searchParams.set("scene", scene);
   url.searchParams.set("car", selectedCar);
   url.searchParams.delete("save");
   // Race transitions retain the loaded slot's build without changing other slots.
@@ -429,13 +429,22 @@ function frame(now: number): void {
     lastInput = tickInput;
     step(sim, tickInput);
     accumulator -= DT;
+    if (sim.state.race?.finished && sim.state.rival && race) {
+      const position = racePosition(race,
+        { race: sim.state.race, x: sim.state.vehicle.x, z: sim.state.vehicle.z },
+        { race: sim.state.rival.race, x: sim.state.rival.vehicle.x, z: sim.state.rival.vehicle.z });
+      menu.finishRace(position === 1 ? "You win" : "Second place",
+        `${race.name} · P${position}/2 · ${formatRaceTime(sim.state.race.ticks, TICK_HZ)}`);
+      accumulator = 0;
+      break;
+    }
   }
   const simMs = measuring ? performance.now() - simStart : 0;
 
   updateHud();
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
-  audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen);
+  audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,
@@ -507,6 +516,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button 
   button.hidden = !race;
   button.addEventListener("click", () => loadDrive(null));
 });
+document.querySelector<HTMLButtonElement>("[data-race-garage]")!.addEventListener("click", () => loadDrive(null, "garage"));
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
 settings.preview(() => applyDeepLink(debugApi, location.search));

@@ -46,6 +46,7 @@ export interface MenuController {
   isGarageActive(): boolean;
   pause(): void;
   enterGarage(): void;
+  finishRace(title: string, detail: string): void;
 }
 
 const actionEvents: Record<string, MenuEvent> = {
@@ -271,6 +272,11 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   return {
     handleCommands,
+    finishRace: (title, detail) => {
+      root.querySelector<HTMLElement>("[data-result-title]")!.textContent = title;
+      root.querySelector<HTMLElement>("[data-result-detail]")!.textContent = detail;
+      dispatch("race-finished");
+    },
     refreshAudio: renderAudio,
     enterGarage: () => { if (state.screen === "playing") dispatch("open-garage"); },
     isGameplayActive: () => state.screen === "playing",

@@ -1,4 +1,4 @@
-export type MenuScreen = "main" | "garage" | "pause" | "options" | "saves" | "controls" | "map" | "playing";
+export type MenuScreen = "main" | "garage" | "pause" | "results" | "options" | "saves" | "controls" | "map" | "playing";
 
 export interface MenuState {
   screen: MenuScreen;
@@ -7,6 +7,7 @@ export interface MenuState {
 }
 
 export type MenuEvent =
+  | "race-finished"
   | "map-toggle"
   | "open-controls"
   | "open-options"
@@ -24,7 +25,11 @@ export function createInitialMenuState(): MenuState {
 }
 
 export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
+  // Results require an explicit destination; pause/back must not resume a finished race.
+  if (state.screen === "results") return state;
   switch (event) {
+    case "race-finished":
+      return state.screen === "playing" || state.screen === "pause" ? { screen: "results", returnTo: "main" } : state;
     case "map-toggle":
       if (state.screen === "map") return { screen: state.returnTo, returnTo: state.returnTo };
       if (state.screen === "playing" || state.screen === "pause" || state.screen === "main") {

@@ -9,6 +9,8 @@ export interface RivalDefinition {
   readonly points: readonly CoursePoint[];
   readonly along: readonly number[];
   readonly gates: readonly number[];
+  readonly loop?: boolean;
+  readonly speedLimit?: number;
 }
 export interface RivalDriver {
   along: number;
@@ -65,10 +67,13 @@ export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDef
 }
 interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number }
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */
-export function rivalInput(route: RivalDefinition, state: RivalState, obstacles: readonly Obstacle[]): Input {
+export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[]): Input {
   const car = state.vehicle, driver = state.driver;
-  if (state.race.countdown > 0 || state.race.finished) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-  const gate = route.gates[state.race.checkpoint]!;
+  if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
+  const gate = state.race ? route.gates[state.race.checkpoint]! : route.along.at(-1)!;
+  if (route.loop && driver.along > gate - 12 && Math.hypot(car.x - route.points[0]!.x, car.z - route.points[0]!.z) < 8) {
+    Object.assign(driver, createRivalDriver(), { recoveries: driver.recoveries, resets: driver.resets });
+  }
   let nearest = Infinity, along = driver.along;
   // Local progress prevents jumping between the outward and return legs.
   for (let i = 0; i < route.points.length - 1; i++) {
@@ -89,7 +94,7 @@ export function rivalInput(route: RivalDefinition, state: RivalState, obstacles:
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
   const target = sampleRivalPath(route, Math.min(gate, driver.along + lookAhead));
-  let desiredSpeed = 34;
+  let desiredSpeed = route.speedLimit ?? 34;
   for (let d = 0; d <= 100; d += 4) {
     const at = driver.along + d;
     const a=sampleRivalPath(route,at-8), b=sampleRivalPath(route,at), c=sampleRivalPath(route,at+8);

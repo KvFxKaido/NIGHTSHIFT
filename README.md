@@ -71,10 +71,16 @@ and traffic, and can reverse/rejoin after getting stuck. After 12 seconds withou
 progress, it can reset onto nearby clear road while keeping its race clock and
 checkpoints. Both racers collide in
 the same physics world. Position and rival finish status appear in the race HUD.
-A rival waits on First Avenue S just north of Wharf Garage, marked red on the
-minimap. Approach at cruising speed and flash headlights with **F / X–Square**
-(remappable in Controls), or click the nearby prompt, to line up for Sound to Sky.
-The pause menu offers **Return to free roam** during a race.
+A rival cruises a repeatable freight-block loop from Wharf Garage along First
+Avenue S, Holgate and Fourth Avenue S, marked red on the minimap. It targets
+10 m/s (22 mph), avoids traffic and can reset locally after getting stuck.
+Approach at cruising speed and flash headlights with **F / X–Square**
+(remappable in Controls), or click the nearby prompt, to line up for a generated race.
+Crossing the finish in a rival race pauses the drive and shows your result/time,
+with **Return to free roam** or **Go to garage**. Both clear the race and retain
+your car/setup; free roam restarts outside Wharf Garage, while garage opens the
+customization screen. If the rival finishes first, you can still finish your run.
+The pause menu also offers **Return to free roam** during a race.
 In-game replay and the recorded-input ghost remain removed. See [`design/PORT_ALDER.md`](design/PORT_ALDER.md).
 
 **Port Alder map** in the pause menu opens a map overlay without unloading
