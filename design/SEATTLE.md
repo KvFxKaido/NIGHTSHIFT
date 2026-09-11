@@ -60,9 +60,11 @@ Automated checks cover connected route choices, reachable gates, building setbac
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
 
 **Surveyed terrain** is still open. `seattleHeight` is one analytic
-smoothstep bump, 34 m over 640 m east-west (about 5% at its steepest), while
-downtown Seattle's James St and Madison St run near 18% and the critique's
-grade risk term starts at 12%, so that term never fires today. Because one
+smoothstep bump, 34 m over 640 m east-west and 500 m north-south: a mean
+slope near 5% and a measured maximum gradient of 10%, on the north-south
+face. Downtown Seattle's James St and Madison St run near 18%. The
+critique's grade risk term is a linear ramp that saturates at 12%, so today
+it is exercised but never reaches its cap; real terrain would. Because one
 function already feeds physics, road meshes, building bases, traffic and
 routing, replacing the bump with a baked heightfield in `seattle-data.json`
 sampled by a C1-continuous (bicubic, not bilinear) lookup carries every
