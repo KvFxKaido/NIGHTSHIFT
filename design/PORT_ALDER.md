@@ -425,7 +425,11 @@ Sound to Sky remains available as the authored menu race.
 `src/sim/alder-rival.ts` defines a continuous preferred line through all four
 gates. The player remains free to choose any route. `src/sim/rival.ts` controls
 throttle, brake and steering with corner-speed previews, local traffic offsets,
-and reversing/rejoining after a stall. After 12 seconds without gaining another
+and reversing/rejoining after a stall. Racing uses the player's shared 62.6 m/s
+(140 mph) speed ceiling, with full throttle available on clear straights. The
+corner preview extends with stopping distance instead of ending at 100 metres;
+traffic, bends and recovery still lower the target speed. The 10 m/s local cruise
+limit is separate. After 12 seconds without gaining another
 4 metres of forward route progress, the sim can reset it at rest on nearby clear
 road. It keeps its race clock and checkpoints, stays behind the next gate, and
 retries once per second if local placements are occupied. This recovery follows

@@ -1,4 +1,4 @@
-import { maxCorneringSpeed, type Input, type RivalState } from "./sim.ts";
+import { HANDLING, maxCorneringSpeed, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import type { RaceDefinition } from "./race.ts";
@@ -94,15 +94,19 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
   const target = sampleRivalPath(route, Math.min(gate, driver.along + lookAhead));
-  let desiredSpeed = route.speedLimit ?? 34;
-  for (let d = 0; d <= 100; d += 4) {
+  let desiredSpeed = route.speedLimit ?? HANDLING.topSpeed;
+  // At highway speed, a 100 m preview cannot see a corner early enough to stop.
+  // Keep the existing conservative braking envelope, but look through its full distance.
+  const planningDeceleration = 5;
+  const previewDistance = Math.max(100, car.speed ** 2 / (2 * planningDeceleration) + 24);
+  for (let d = 0; d <= previewDistance; d += 4) {
     const at = driver.along + d;
     const a=sampleRivalPath(route,at-8), b=sampleRivalPath(route,at), c=sampleRivalPath(route,at+8);
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
     const cornerSpeed=Math.max(7, maxCorneringSpeed(radius)*.62);
-    desiredSpeed=Math.min(desiredSpeed,Math.sqrt(cornerSpeed**2+2*5*Math.max(0,d-12)));
+    desiredSpeed=Math.min(desiredSpeed,Math.sqrt(cornerSpeed**2+2*planningDeceleration*Math.max(0,d-12)));
   }
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
@@ -142,7 +146,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Heading feedback plus lateral-slip correction. The same steering envelope
   // and tyre forces that constrain the player constrain this request.
   const steer=clamp(-error*3.5 + car.lateralSpeed*.025,-1,1);
-  return {throttle:car.speed>desiredSpeed+.5?0:clamp((desiredSpeed-car.speed)/5+.16,0,1),
+  // A clear racing straight needs full engine demand to overcome high-speed drag.
+  // Feather only when the route, traffic or recovery asks for a lower speed.
+  const throttle = desiredSpeed >= HANDLING.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
+  return {throttle:car.speed>desiredSpeed+.5?0:throttle,
     brake:car.speed>desiredSpeed+.5?clamp((car.speed-desiredSpeed)/5,0,1):0,
     steer,handbrake:desiredSpeed<.5&&car.speed<.7?1:0};
 }
