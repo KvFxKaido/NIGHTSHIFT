@@ -114,7 +114,15 @@ resumed. A new drive does not erase any slots. Audio and remapped controls remai
 global preferences. Saved games use `nightshift.saves` in this browser, not cloud
 storage; clearing site data removes them.
 
-Audio and remapping live under **Options**. Drivetrain selection lives in the
+Audio and remapping live under **Options**.
+**Options → Performance metrics** toggles a persistent diagnostic
+overlay: FPS, mean/p95 frame interval over the last two seconds, simulation and
+render-submission CPU time, draw calls, triangles, renderer resource counts, and
+render-buffer size. CPU times exclude GPU execution; resource counts are not
+memory usage in bytes. Readouts refresh four times per second and reset after
+tab or menu changes. The map hides it; on small screens it appears during driving
+only. Its on/off setting is stored separately as `nightshift.performance`.
+Handling telemetry remains a separate toggle. Drivetrain selection lives in the
 **Garage**. Pause keeps Resume, Save game, Port Alder map, Options, Main menu, and
 **Return to garage** (or **Restart race** / **Return to free roam** during a race).
 

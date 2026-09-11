@@ -1,4 +1,5 @@
 import { createGameMap } from "./ui/game-map.ts";
+import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
@@ -121,6 +122,7 @@ assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
+const performanceOverlay = createPerformanceOverlay();
 const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
 const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
@@ -265,6 +267,7 @@ const menu = createMenuController({
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => {
+    performanceOverlay.reset();
     if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);
     if (screen === "map") gameMap.open(input.bindings());
@@ -419,23 +422,30 @@ function frame(now: number): void {
   if (gameplayActive && !frozen) accumulator += frameDelta;
   else accumulator = 0;
 
+  const measuring = performanceOverlay.enabled();
+  const simStart = measuring ? performance.now() : 0;
   while (gameplayActive && accumulator >= DT) {
     const tickInput = input.sample();
     lastInput = tickInput;
     step(sim, tickInput);
     accumulator -= DT;
   }
+  const simMs = measuring ? performance.now() - simStart : 0;
 
   updateHud();
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
   audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen);
+  const renderStart = measuring ? performance.now() : 0;
   render(
     view,
     sim.state,
     frameDelta,
     gameplayActive || garageActive ? input.cameraLook() : { x: 0, y: 0 },
   );
+  if (measuring) performanceOverlay.record(now, simMs, performance.now() - renderStart,
+    view.renderer.info, view.renderer.domElement.width, view.renderer.domElement.height,
+    frozen ? "frozen" : document.body.dataset.gameScreen ?? "playing");
   requestAnimationFrame(frame);
 }
 

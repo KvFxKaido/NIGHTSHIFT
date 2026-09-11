@@ -70,6 +70,7 @@
     <div id="asset-status" role="status">Loading NS-01…</div>
     <canvas id="view" tabindex="-1" aria-label="NIGHTSHIFT handling course"></canvas>
     <div id="vignette"></div>
+    <pre id="performance-metrics" aria-label="Performance metrics" hidden></pre>
     <button id="rival-challenge" hidden>F · Flash headlights — challenge rival</button>
     <button id="garage-entry" hidden>E / Enter · Enter Wharf Garage</button>
     <div id="hud">
@@ -191,7 +192,10 @@
           <h2 id="options-title" class="menu-heading">Options</h2>
           <nav class="menu-actions" aria-label="Options">
             <button class="menu-button" data-menu-action="controls">Controls &amp; remapping</button>
+            <button class="menu-button" data-performance-toggle aria-pressed="false" aria-describedby="performance-help">Performance metrics: Off</button>
           </nav>
+          <p id="performance-help" class="handling-note">Frame rate and rendering workload. CPU timings measure simulation and render submission, not GPU time.</p>
+          <p class="settings-status" data-performance-status role="status"></p>
           <fieldset class="garage-control audio-control" aria-describedby="soundtrack-note">
             <legend>Audio</legend>
             <div class="audio-levels">
