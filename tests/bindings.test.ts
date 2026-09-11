@@ -50,6 +50,18 @@ test("remapped triggers keep analog pressure and the original button stops drivi
   assert.equal(mapGamepad(pad({7:1}), bindings.gamepad).throttle, 0);
 });
 
+test("map rebinding and saved maps reject fixed menu buttons without restricting driving controls", () => {
+  const bindings = rebind(copyBindings(), "gamepad", "handbrake", 5);
+  for (const button of [0, 1, 9, 12, 13, 14, 15]) {
+    assert.throws(() => rebind(bindings, "gamepad", "map", button), /Menu/);
+    const saved = { version: 1, ...bindings, gamepad: { ...bindings.gamepad, map: button } };
+    assert.throws(() => decodeBindings(JSON.stringify(saved)), /Invalid/);
+  }
+  assert.equal(rebind(bindings, "gamepad", "handbrake", 0).gamepad.handbrake, 0);
+  assert.equal(rebind(bindings, "gamepad", "handbrake", 1).gamepad.handbrake, 1);
+  assert.equal(rebind(copyBindings(), "gamepad", "map", 5).gamepad.map, 5);
+});
+
 test("adding map controls preserves legacy bindings already using M or Select", () => {
   const legacy=JSON.parse(JSON.stringify({version:1,...copyBindings()}));
   delete legacy.keyboard.map;delete legacy.gamepad.map;
@@ -60,6 +72,7 @@ test("adding map controls preserves legacy bindings already using M or Select", 
   assert.equal(migrated.gamepad.camera,8);
   assert.notEqual(migrated.keyboard.map,"KeyM");
   assert.notEqual(migrated.gamepad.map,8);
+  assert.ok(![0, 1, 9, 12, 13, 14, 15].includes(migrated.gamepad.map), "migration must leave menu buttons fixed");
   assert.deepEqual(decodeBindings(JSON.stringify({version:1,...migrated})),migrated);
 });
 
@@ -73,6 +86,25 @@ test("capture consumes input, waits for controller release, and keeps menu confi
   const key = (code:string) => listeners.get("keydown")!({code,repeat:false,preventDefault(){},stopImmediatePropagation(){}} as KeyboardEvent);
   try {
     const input = createInputController();
+    // Exercise a pre-map save that already uses Select, including when A is free.
+    for (const handbrake of [0, 5]) {
+      const legacy = JSON.parse(JSON.stringify({ version: 1, ...copyBindings() }));
+      delete legacy.gamepad.map;
+      legacy.gamepad.camera = 8;
+      legacy.gamepad.handbrake = handbrake;
+      const migrated = decodeBindings(JSON.stringify(legacy));
+      input.setBindings(migrated);
+      current = pad({ [migrated.gamepad.map]: 1 }); input.update();
+      assert.deepEqual(input.consumeMenuCommands(), ["map"], "migrated map must not emit confirm or back");
+      input.update(); assert.deepEqual(input.consumeMenuCommands(), []);
+      current = pad(); input.update();
+      for (const [button, command] of [[0, "confirm"], [1, "back"], [9, "pause"]] as const) {
+        current = pad({ [button]: 1 }); input.update();
+        assert.deepEqual(input.consumeMenuCommands(), [command]);
+        current = pad(); input.update();
+      }
+    }
+    input.setBindings(copyBindings());
     key("KeyM"); assert.deepEqual(input.consumeMenuCommands(), ["map"]);
     current = pad({8:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["map"]);
     input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held Select must not repeatedly toggle the map");

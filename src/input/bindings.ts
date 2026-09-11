@@ -25,12 +25,19 @@ export function keyLabel(code: string): string {
 function validKey(value: unknown): value is string {
   return typeof value === "string" && /^(Key[A-Z]|Digit[0-9]|Space|Shift(Left|Right)|Control(Left|Right)|Numpad[0-9]|Comma|Period|Slash|Semicolon|Quote|BracketLeft|BracketRight|Backslash|Minus|Equal)$/.test(value);
 }
+function validPadButton(action: string, value: unknown): value is number {
+  // Driving actions can share A/B with menus because they run on separate screens.
+  // Map toggles run in both contexts, so sharing confirm/back would emit two commands.
+  return typeof value === "number" && Object.hasOwn(PAD_LABELS, value)
+    && (action !== "map" || (value !== 0 && value !== 1));
+}
 /** Reject collisions rather than silently removing another action's binding. */
 export function rebind(bindings: Bindings, device: BindingDevice, action: Action, value: string | number): Bindings {
   const map = bindings[device] as Record<string, string | number>;
   if (!Object.hasOwn(map, action)) throw new Error("That control uses a fixed stick or menu binding.");
-  if (device === "keyboard" ? !validKey(value) : typeof value !== "number" || !Object.hasOwn(PAD_LABELS, value)) {
+  if (device === "keyboard" ? !validKey(value) : !validPadButton(action, value)) {
     throw new Error(device === "keyboard" ? "Choose a letter, number, modifier, Space or punctuation. Menu keys stay fixed."
+      : action === "map" ? "Menu buttons (A / Cross, B / Circle, Menu / Options and D-pad) cannot open the map. Choose another button."
       : "Menu / Options and D-pad navigation stay fixed. Choose another button.");
   }
   const conflict = Object.entries(map).find(([other, binding]) => other !== action && binding === value);
@@ -56,9 +63,10 @@ export function decodeBindings(raw: string | null): Bindings {
         const used = [...Object.values(data[device] ?? {}), ...seen];
         const choices = device === "keyboard" ? [action === "map" ? "KeyM" : "KeyF", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(letter => `Key${letter}`)]
           : [action === "map" ? 8 : 2, ...Object.keys(PAD_LABELS).map(Number)];
-        value = choices.find(candidate => !used.includes(candidate));
+        value = choices.find(candidate => !used.includes(candidate)
+          && (device === "keyboard" ? validKey(candidate) : validPadButton(action, candidate)));
       }
-      if (seen.has(value) || (device === "keyboard" ? !validKey(value) : typeof value !== "number" || !Object.hasOwn(PAD_LABELS, value))) {
+      if (seen.has(value) || (device === "keyboard" ? !validKey(value) : !validPadButton(action, value))) {
         throw new Error("Invalid controls save");
       }
       seen.add(value);
