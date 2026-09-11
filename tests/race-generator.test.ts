@@ -118,9 +118,10 @@ test("Sound to Sky's gates carry the authored line's exits: east through Jackson
   } finally { sim.world.free(); }
 });
 
-test("the flow rule: with the turn rule off, Yesler & James's Y sends seed 84 out in a hairpin; with it on, no seed leaves a gate in one", () => {
-  // The map has one hairpin junction, and 11 seeds in 600 reach it once the
-  // bearing rule alone is on. The first is seed 84.
+test("the flow rule: with the turn rule off, Broad & 5th N's hairpin takes seed 1 out at 170°; with it on, no seed leaves a gate in one", () => {
+  // The map has two hairpin junctions — Yesler & James's Y (151°) and the
+  // campus loop's Broad St & 5th Ave N (170°) — and 21 seeds in 600 reach one
+  // once the bearing rule alone is on. The first is seed 1, at Broad & 5th.
   const hairpins = (seeds: number) => {
     const found: string[] = [];
     for (let seed = 1; seed <= seeds; seed++) {
@@ -137,7 +138,7 @@ test("the flow rule: with the turn rule off, Yesler & James's Y sends seed 84 ou
   try {
     (GENERATOR.flow as { turn: number }).turn = 181;
     const loose = hairpins(100);
-    assert.ok(loose.some(h => h.startsWith("seed 84:") && h.includes("Yesler Way & James St")), `the map's hairpin is not where it was: ${loose.join("; ") || "none"}`);
+    assert.ok(loose.some(h => h.startsWith("seed 1:") && h.includes("Broad St & 5Th Ave N")), `the map's hairpin is not where it was: ${loose.join("; ") || "none"}`);
   } finally {
     (GENERATOR.flow as { turn: number }).turn = saved;
   }

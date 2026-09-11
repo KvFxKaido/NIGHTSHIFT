@@ -138,9 +138,8 @@ the faster way should be the riskier way.
 
 - **Risk per street**, from the map data, each 0..1: narrowness (24 m is 0,
   16 m is 1), bends (turn per 100 m or the sharpest corner, over 90 degrees),
-  grade (steepest metre over 12%), blind corners (a bend over 25 degrees with a
-  building on its inside within half the width plus 10 m). Weights 0.35 /
-  0.25 / 0.2 / 0.2, a proposal.
+  grade (steepest metre over 12%), blind corners as sight distance (below).
+  Weights 0.35 / 0.25 / 0.2 / 0.2, a proposal.
 - **Reward per leg**, as time, not length: on a grid two ways round a block
   are the same length. A committed pace of 32 m/s, a 90 degree turn costing
   2.5 s, a climb 1 + 1.5 x grade, routed on the line graph so a turn at a
@@ -162,9 +161,34 @@ way. The slice's genuine priced shortcuts are Western Ave (risk 0.63) against
 1st Ave, 6th Ave S against 4th Ave S from S Jackson St, and the 2nd Ave /
 James St corridor against 1st Ave / Yesler Way — which is where a generator
 would put its gates: Harbor Access / Western / 1st, Western / Madison,
-Yesler / James. There are no blind corners: 16 bends over 25 degrees, and the
-nearest building to any of them is 24 m away. The no-choice legs are the
-waterfront: Harbor Way and 1st Ave S to Pike with nothing under +53%.
+Yesler / James. The first blind-corner metric found none: 16 bends over 25
+degrees, and the nearest building to any of them is 24 m away. The no-choice
+legs are the waterfront: Harbor Way and 1st Ave S to Pike with nothing under
++53%.
+
+**Blind corners as sight distance (2026-09-11).** The first metric counted
+building corners within half a width plus 10 m of a bend inside a street's
+own polyline. On a grid that is where no turn happens: it found 0 on 108
+streets and a fifth of the risk weight was dead. A blind corner is now a
+sight distance, at every junction approach as well as at bends: how far
+before the corner a driver first sees down the other arm past what stands
+on the inside. The sight triangle: at distance d back along the approach,
+the line to a point d down the other arm clears a corner whose projection
+on the wedge's bisector is p iff d ≤ p / cos(φ/2), φ the interior angle
+between the arms; straight on is always open. Blindness is 1 − sight / 60 m,
+60 m being the stopping distance from the 32 m/s top speed at about 0.85 g,
+a proposal like the other constants. It lives on the `Drive` for the
+junction it arrives at, since it belongs to a direction, and `routeRisk`
+adds it per drive; a street's own `blind` is now its worst bend's. Measured
+on the expanded map: 41 of 216 approaches see the cross street only inside
+60 m, the nearest 26.5 m (Yesler Way and 1st Ave S arriving at their
+junction, S Holgate St and 4th Ave S at theirs), two mid-street bends under
+it (6th Ave S's right angle sees 39 m). The classes moved by a handful of
+legs — priced 326 → 334, even 456 → 446 — because the setbacks are what keep
+the term small. It is live, and a corner building pulled in to the pavement
+is now something the report can see; `pnpm seattle:critique` lists the
+blindest approaches. `tests/route-choice.test.ts` holds the geometry and
+the map facts.
 
 What this says to authoring: the grid has route choice but not shortcuts.
 Cut-throughs — diagonals, passages through the larger parcels, an alley that
@@ -206,9 +230,12 @@ without looking at the arrival heading, and the class weights kept pulling
 the race back towards the few priced corridors. The rule: the next gate
 lies within 120° of the arrival heading and the leg's first street leaves
 within 135°. Its cost, measured: priced-or-even legs fall from 53% to 39%
-of the draw (uniform 26%, so the weighting still lifts it), 60 of 60 seeds
+of the draw (uniform 26%, so the weighting still lifts it; 35% once junction
+sight entered the risk and moved the classes near the grid), 60 of 60 seeds
 draw, at least 26 of 30 seeds are distinct, and every seed now draws a
-different race than before. A soft falloff kept three more points of
+different race than before. The expanded map has a second hairpin junction,
+Broad St & 5th Ave N on the campus loop at 170°, which the turn rule also
+refuses. A soft falloff kept three more points of
 choice but can only be asserted statistically; a hard rule is one a test
 can state. A leg's time is still the table's, routed with a free first
 exit, so the turn at the gate (under 5 s) is not in it.

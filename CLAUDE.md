@@ -87,8 +87,20 @@ the slice: 1056 directed legs between choice points, 77% with an alternative
 within 40% of the fastest time, median detour 11%; but only 66 are PRICED
 (fastest is riskier) against 254 FREE (fastest is also safest) and 250 twins.
 The grid's arterials win nearly everywhere; the real shortcuts are Western
-Ave, 6th Ave S and the 2nd Ave / James St corridor, and there are no blind
-corners in the slice at all (16 bends over 25 degrees, nearest building 24 m).
+Ave, 6th Ave S and the 2nd Ave / James St corridor. **Blind corners are sight
+distances** (2026-09-11): how far before a corner a driver first sees down
+the other arm past what stands on the inside, by the sight triangle (d ≤ p /
+cos(φ/2)), measured at bends inside a street AND at every junction approach
+a route arrives on, because on a grid the turns are at the junctions. The
+first version counted building corners within ten metres of a mid-street
+bend, found none on 108 streets, and a fifth of the risk weight was dead.
+Blindness is 1 − sight / 60 m (the stopping distance from top speed, a
+proposal); it lives on the `Drive` for junction arrivals and `routeRisk`
+adds it per drive. On the expanded map 41 of 216 approaches see the cross
+street only inside 60 m, the nearest 26.5 m (Yesler at 1st, Holgate at 4th),
+and two mid-street bends are under it; the classes moved by a handful of
+legs (priced 326 → 334). The term is live; the setbacks are what keep it
+small, and pulling corner buildings in is now something the report can see.
 Width belongs in risk, not pace — with width cutting pace, every narrow
 street was dominated by construction and the report said so about the model,
 not the map. The pace model and the risk weights are declared proposals; it
@@ -108,8 +120,10 @@ the last one is reached on, and the leg's first street leaves within 135°.
 Without it the class weights pulled the draw straight back to the few priced
 corridors — 23% of legs sent you to a gate more than 120° behind you, 9% to
 one more than 150° behind, and Yesler & James's Y sent 32 races in 300 out
-of a gate in a hairpin. The rule costs choice, measured: priced-or-even legs
-fall from 53% to 39% of the draw (uniform 26%); 60 of 60 seeds still draw,
+of a gate in a hairpin (the expanded map has a second, Broad St & 5th Ave N
+at 170°). The rule costs choice, measured: priced-or-even legs fall from 53%
+to 39% of the draw (uniform 26%; 35% once junction sight entered the risk
+and moved the classes near the grid); 60 of 60 seeds still draw,
 the rival still finishes with no recoveries and no resets, and every seed
 draws a different race than it did before the rule, which is why it landed
 before playlists. Each gate carries the direction the rival's line leaves it
