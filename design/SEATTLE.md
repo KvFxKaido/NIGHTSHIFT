@@ -62,14 +62,20 @@ Next authoring work should follow driving feedback: reshape repetitive blocks, a
 **Surveyed terrain** is still open. `seattleHeight` is one analytic
 smoothstep bump, 34 m over 640 m east-west and 500 m north-south: a mean
 slope near 5% and a measured maximum gradient of 10%, on the north-south
-face. Downtown Seattle's James St and Madison St run near 18%. The
-critique's grade risk term is a linear ramp that saturates at 12%, so today
-it is exercised but never reaches its cap; real terrain would. Because one
-function already feeds physics, road meshes, building bases, traffic and
-routing, replacing the bump with a baked heightfield in `seattle-data.json`
-sampled by a C1-continuous (bicubic, not bilinear) lookup carries every
-consumer at once and stays deterministic. Candidate sources, all reusable
-without Google-style extraction limits:
+face; along the streets themselves the critique reports positive grades on
+41 of 63, steepest 8% on Yesler Way. Downtown Seattle's James St and
+Madison St run near 18%. The critique's grade risk term is a linear ramp
+that saturates at 12%, so today it is exercised but never reaches its cap;
+real terrain would. The height function exists twice: `seattleHeight` in
+the sim feeds physics, road meshes, traffic, routing and edited building
+bases, while `height` in `scripts/build-seattle.py` bakes the generated
+buildings' bases and the terrain triangles into `seattle-data.json`.
+Replacing the bump with a baked heightfield sampled by a C1-continuous
+(bicubic, not bilinear) lookup carries every runtime consumer at once and
+stays deterministic, but the builder must sample the same field and the
+buildings must be regenerated, or their bases stay at the old elevations
+and float or sink. Candidate sources, all reusable without Google-style
+extraction limits:
 
 - **USGS 3DEP lidar DEM**, 1 m, public domain, covers King County. The
   reference source; needs smoothing to a few metres before sampling or the
