@@ -33,13 +33,18 @@ The game and editor no longer bundle the old district/course renderers. A build 
 ## Regeneration caveats
 
 `scripts/build-seattle.py` writes `src/sim/seattle-data.json` in full, including
-its 160 generated buildings. Hand-placed buildings from `editor.html` live in
-`src/sim/seattle-layout.json` and are layered on top; the layout file is empty
-today, so nothing is at risk yet, but once it holds placements a rebuild
-reshuffles the generated massing underneath them. Before regenerating an
-edited map, confirm authored placements survive against the new data (clear
-roads, no overlap with regenerated buildings), and expect the layout
-fingerprint to change if they do not.
+its 160 generated buildings. `src/sim/seattle-layout.json` does not hold
+independent buildings: it stores per-building edits from `editor.html`, each
+keyed to a generated plot id derived from that building's generated
+coordinates, and `resolveSeattleLayout` replaces the matching generated block
+in place. The layout cannot add a net-new building, and an id it does not
+recognise is an error. Its `baseline` is a fingerprint of the generated
+massing, so a rebuild that moves any building changes the ids and the
+baseline together and the sim refuses to load the layout ("The district
+changed. Re-export its layout before importing these edits."). The failure is
+loud, not a silent reshuffle. The layout file is empty today, so nothing is at
+risk yet; once it holds edits, regenerating the map means re-exporting or
+rebasing those edits against the new baseline before the build passes again.
 
 The builder stamps its output `seattle-slice-v1`; the sim reports
 `seattle-slice-v2` from `src/sim/seattle.ts`, where the v2 bump was made for
