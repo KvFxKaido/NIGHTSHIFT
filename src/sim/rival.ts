@@ -4,6 +4,7 @@ import type { CoursePoint } from "./track.ts";
 import type { RaceDefinition } from "./race.ts";
 
 export interface RivalDefinition {
+  readonly drivetrain?: "fwd" | "awd" | "rwd";
   readonly id: string;
   readonly start: RoadWorld["start"];
   readonly points: readonly CoursePoint[];

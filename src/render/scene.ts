@@ -30,6 +30,7 @@ export interface View extends CarView {
   cameraOrbit: CameraOrbitState;
   mode: ViewMode;
   rivalCar: CarView | null;
+  parkedRivalCars: Map<string, CarView>;
   /** The district's sky dome, which follows the camera. Null off the district. */
   sky: THREE.Object3D | null;
   /** Traffic instances, or null in a world with none. */
@@ -67,6 +68,13 @@ export function setRivalCar(view: View, parts: CarView | null): void {
   if (view.rivalCar) view.rivalCar.car.removeFromParent();
   view.rivalCar = parts;
   if (parts) { parts.car.rotation.order = "YXZ"; view.scene.add(parts.car); }
+}
+
+export function setParkedRivalCar(view: View, id: string, parts: CarView): void {
+  view.parkedRivalCars.get(id)?.car.removeFromParent();
+  view.parkedRivalCars.set(id, parts);
+  parts.car.rotation.order = "YXZ";
+  view.scene.add(parts.car);
 }
 
 /** Night is the district's real presentation; blockout is the flat work light
@@ -144,7 +152,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
     mode: "track",
-    rivalCar: null,
+    rivalCar: null, parkedRivalCars: new Map(),
     sky: null,
     traffic: traffic ? addTraffic(scene, traffic) : null,
     race: addRaceBeacon(scene, gateRadius),
@@ -256,6 +264,10 @@ export function render(
   // guessed at: the renderer still only draws what a tick decided.
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
   placeCar(view, car);
+  for (const rival of state.parkedRivals) {
+    const parts = view.parkedRivalCars.get(rival.id);
+    if (parts) placeCar(parts, rival.vehicle);
+  }
   const opponent = state.rival?.vehicle ?? state.encounter;
   if (view.rivalCar && opponent) placeCar(view.rivalCar, opponent);
   view.moon.position.set(car.x - 90, 140, car.z + 80);

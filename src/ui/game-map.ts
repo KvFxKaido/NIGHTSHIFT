@@ -76,11 +76,16 @@ export function createGameMap(sim: Sim) {
         stroke:next?"#fff1bf":"#172c35","stroke-width":5,"data-map-gate":i});
       shape(markers,"text",{x:gate.x,y:gate.z+9,"text-anchor":"middle","font-size":28,fill:"#10202b"},String(i % perLap + 1));
     });
+    for (const rival of sim.state.parkedRivals) {
+      const { x, z } = rival.vehicle;
+      shape(markers, "circle", { cx: x, cy: z, r: 24, fill: "#ffb347", stroke: "#491b2c", "stroke-width": 5, "data-map-parked-rival": rival.id });
+      shape(markers, "text", { x: x + 34, y: z + 10, fill: "#ffdb9c", "font-size": 28 }, `${rival.name} / Drag`);
+    }
     if(opponent)shape(markers,"circle",{cx:opponent.x,cy:opponent.z,r:20,fill:"#ff6679",stroke:"#491b2c","stroke-width":5,"data-map-rival":""});
     shape(markers,"path",{d:"M 0 -30 L 20 22 L 0 12 L -20 22 Z",fill:"#f4f7fa",stroke:"#162631","stroke-width":5,
       transform:`translate(${player.x} ${player.z}) rotate(${-player.heading*180/Math.PI})`,"data-map-player":""});
     status.textContent=sim.race&&progress?`${sim.race.name} · ${progress.finished?"Finished":raceProgressLabel(sim.race, progress)} · Paused`
-      :`Free roam · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² Port Alder · Paused`;
+      :`Free roam · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² Port Alder · Paused${sim.state.parkedRivals.length ? " · Rivet / Drag: southern Harbor Way" : ""}`;
     help.textContent=`${keyLabel(bindings.keyboard.map)} / ${PAD_LABELS[bindings.gamepad.map]} to close · Esc / B to go back · Drag to pan, scroll to zoom`;
   }};
 }

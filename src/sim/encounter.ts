@@ -41,3 +41,15 @@ export function canChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed
   return !inRace && !!opponent && player.speed < 12 &&
     Math.abs(player.y - opponent.y) < 3 && Math.hypot(player.x - opponent.x, player.z - opponent.z) <= 32;
 }
+
+/** Resolve the nearby rival when the flash begins, so driving past another
+ * opponent during the lamp animation cannot change the accepted challenge. */
+export function nearbyChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed">,
+  cruise: VehicleState | null | undefined,
+  parked: readonly { id: string; vehicle: VehicleState }[], inRace: boolean): string | null {
+  const candidates = [...(cruise ? [{ id: "cruiser", vehicle: cruise }] : []), ...parked]
+    .filter(rival => canChallenge(player, rival.vehicle, inRace))
+    .sort((a, b) => Math.hypot(player.x - a.vehicle.x, player.z - a.vehicle.z)
+      - Math.hypot(player.x - b.vehicle.x, player.z - b.vehicle.z));
+  return candidates[0]?.id ?? null;
+}

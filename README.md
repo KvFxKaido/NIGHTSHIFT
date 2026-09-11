@@ -84,6 +84,19 @@ gate on the map, minimap and in the world. Rivals follow a routed reference orde
 For repeatable test drives, use `?race=gen-3&scene=track`,
 `?race=gen-3-circuit&scene=track`, or `?race=gen-3-unordered&scene=track`.
 
+**Rivet / Harbor Quarter** is a dedicated standing-start drag, reached by flashing
+Rivet's cream-and-black **Hammer** on southern Harbor Way. The city map labels
+`Rivet / Drag`; the normal cruising rival still draws sprint, circuit and unordered
+events. Rivet stays parked at the meetup and drives the Hammer in the race.
+The quarter mile is 402.336 m, with equal grid positions, a three-light countdown,
+cleared traffic and marked lanes. Stay in your lane until crossing the finish;
+leaving it disqualifies you. Driving uses the existing automatic transmission
+and throttle/steering controls. Drag times display to milliseconds from fixed ticks.
+The Hammer is an original Blender-authored rival car with a hood scoop, deep-dish
+wheels and rear slicks; Rivet uses the existing RWD handling model.
+For inspection, `?scene=track&visit=rivet` starts near the meetup;
+`?scene=track&race=rivet-quarter-mile` starts directly on the grid.
+
 Crossing the finish in a rival race pauses the drive and shows your result/time,
 with **Return to free roam** or **Go to garage**. Both clear the race and retain
 your car/setup; free roam restarts outside Wharf Garage, while garage opens the

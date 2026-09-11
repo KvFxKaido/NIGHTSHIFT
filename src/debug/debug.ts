@@ -237,6 +237,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       drivetrain: sim.state.drivetrain,
       autoCountersteer: false,
       tick: sim.state.tick,
+      parkedRivals: sim.state.parkedRivals.map(rival => ({ ...rival, model: view.parkedRivalCars.get(rival.id)?.car.userData.model })),
       encounter: sim.state.encounter ? { model: view.rivalCar?.car.userData.model, vehicle: { ...sim.state.encounter } } : null,
       customization: {
         paint: selected("paint"),

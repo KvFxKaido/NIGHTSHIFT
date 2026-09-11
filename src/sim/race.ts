@@ -9,6 +9,7 @@
  * renderer draws the next checkpoint where this says it is; it never decides
  * whether one was passed.
  */
+import { stepDrag, type DragStrip } from "./drag-rules.ts";
 import type { VehicleState } from "./sim.ts";
 
 export interface Checkpoint {
@@ -27,10 +28,11 @@ export interface Checkpoint {
   readonly exit?: { readonly x: number; readonly z: number };
 }
 
-export type RaceKind = "sprint" | "circuit" | "unordered";
+export type RaceKind = "sprint" | "circuit" | "unordered" | "drag";
 
 export interface RaceDefinition {
   readonly kind?: RaceKind;
+  readonly drag?: DragStrip;
   /** Circuit gates are expanded per lap so rivals and replays share one sequence. */
   readonly laps?: number;
   readonly gatesPerLap?: number;
@@ -45,6 +47,9 @@ export interface RaceDefinition {
 export interface RaceState {
   /** Gates passed; also the next index for ordered events. */
   checkpoint: number;
+  dragLane?: number;
+  dragProgress?: number;
+  disqualified?: boolean;
   /** Gate indices already collected, in visit order. */
   collected: number[];
   /** First unvisited gate in the reference line, used by the rival. */
@@ -69,6 +74,9 @@ export function createRace(definition: RaceDefinition): RaceState {
     || definition.laps! * definition.gatesPerLap! !== definition.checkpoints.length)) {
     throw new RangeError(`Race '${definition.id}' has invalid circuit laps`);
   }
+  if (definition.kind === "drag" && (!definition.drag || definition.checkpoints.length !== 1)) {
+    throw new RangeError("A drag requires a strip and one finish line");
+  }
   if (!first) throw new RangeError(`Race '${definition.id}' has no checkpoints`);
   return {
     checkpoint: 0, collected: [], targetIndex: 0,
@@ -89,6 +97,7 @@ export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: 
   if (state.finished) return;
   if (state.countdown > 0) { state.countdown--; return; }
   state.ticks++;
+  if (definition.kind === "drag") { stepDrag(definition.drag!, state, vehicle); return; }
   const unordered = definition.kind === "unordered";
   const index = unordered
     ? definition.checkpoints.findIndex((_, i) => !state.collected.includes(i) && atCheckpoint(definition, i, vehicle))
@@ -113,6 +122,8 @@ export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: 
 }
 
 export function raceProgressLabel(definition: RaceDefinition, state: RaceState): string {
+  if (definition.kind === "drag") return state.disqualified ? "DQ · LEFT YOUR LANE"
+    : state.finished ? "DRAG · FINISH" : `DRAG · ${Math.max(0, Math.round(definition.drag!.length - (state.dragProgress ?? 0)))} M · STAY IN LANE`;
   if (definition.kind === "unordered") return `GATES ${state.checkpoint}/${definition.checkpoints.length} · ANY ORDER`;
   if (definition.kind === "circuit") {
     const gates = definition.gatesPerLap!;
@@ -136,8 +147,12 @@ export function raceHolding(state: RaceState | null): boolean {
 export function racePosition(definition: RaceDefinition,
   me: { race: RaceState; x: number; z: number },
   rival: { race: RaceState; x: number; z: number }): 1 | 2 {
+  if (!!me.race.disqualified !== !!rival.race.disqualified) return me.race.disqualified ? 2 : 1;
   if (me.race.finished && rival.race.finished) {
     return (me.race.splits.at(-1) ?? Infinity) <= (rival.race.splits.at(-1) ?? Infinity) ? 1 : 2;
+  }
+  if (definition.kind === "drag" && !me.race.finished && !rival.race.finished) {
+    return (me.race.dragProgress ?? 0) >= (rival.race.dragProgress ?? 0) ? 1 : 2;
   }
   if (me.race.checkpoint !== rival.race.checkpoint) return me.race.checkpoint > rival.race.checkpoint ? 1 : 2;
   if (definition.kind === "unordered") {
@@ -151,9 +166,9 @@ export function racePosition(definition: RaceDefinition,
 }
 
 /** m:ss.t from ticks, for a HUD. */
-export function formatRaceTime(ticks: number, tickHz: number): string {
+export function formatRaceTime(ticks: number, tickHz: number, decimals = 1): string {
   const total = ticks / tickHz;
   const minutes = Math.floor(total / 60);
   const seconds = total - minutes * 60;
-  return `${minutes}:${seconds.toFixed(1).padStart(4, "0")}`;
+  return `${minutes}:${seconds.toFixed(decimals).padStart(3 + decimals, "0")}`;
 }

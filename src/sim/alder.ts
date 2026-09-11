@@ -161,7 +161,7 @@ export function alderRouting(): RoutingGraph {
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
  *  the rival's line through its gates. (ALDER_VERSION, seed) reproduces it. */
-export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: RaceKind = "sprint"): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
+export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag"> = "sprint"): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);
   const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]), approach.node, kind);

@@ -139,7 +139,7 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
 /** Convert a seeded sprint into another event, keeping the same routed gates.
  * Circuits close at the approach junction and repeat the complete loop twice.
  */
-export function withRaceKind(graph: RoutingGraph, race: GeneratedRace, origin: string, kind: RaceKind): GeneratedRace {
+export function withRaceKind(graph: RoutingGraph, race: GeneratedRace, origin: string, kind: Exclude<RaceKind, "drag">): GeneratedRace {
   if (kind === "sprint") return race;
   if (kind === "unordered") return { ...race, definition: { ...race.definition,
     kind, id: `${race.definition.id}-unordered`, name: `${race.definition.name} / Unordered` } };

@@ -6,14 +6,15 @@ import { CAR_GEOMETRY, type CarView } from "./car.ts";
 export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
 
 /**
- * The Blender-authored bodies, keyed by their ?car= value. `model` is the id
+ * The Blender-authored bodies, keyed by asset id. `model` is the id
  * the debug tools and deep links round-trip on, so it must stay stable.
  *
- * Both bodies are selectable in the garage. Neither changes the simulation
- * collider or HANDLING.
+ * NS-01 and Bulwark are garage choices; Hammer belongs to Rivet.
+ * Bodies do not change the simulation collider or HANDLING.
  */
 export const BLENDER_CARS = {
   blender: { path: BLENDER_CAR_PATH, root: "ns-coupe-01", model: "ns-01" },
+  hammer: { path: "assets/cars/ns-hammer-01.glb", root: "ns-hammer-01", model: "ns-hammer" },
   bulwark: { path: "assets/cars/ns-bulwark-01.glb", root: "ns-bulwark-01", model: "ns-bulwark" },
 } as const;
 export type BlenderCarId = keyof typeof BLENDER_CARS;

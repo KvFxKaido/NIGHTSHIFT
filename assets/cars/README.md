@@ -118,3 +118,21 @@ Physics continues to use the existing simple chassis collider, not render triang
 
 Missing or invalid assets show a loading error rather than silently substituting
 the old car. `?car=classic` is an explicit comparison/recovery option.
+
+## Hammer / Rivet's drag coupe
+
+Rivet's cream-and-black notchback is an original Blender model, with a raised
+hood scoop, opaque glazing, chrome bumpers, a small rear spoiler and deep-dish
+wheels. Front tyres are 0.22 m wide; rear slicks are 0.36 m wide. It keeps the
+shared axle pivots, 0.36 m tyre radius and chassis collider. The model belongs
+to Rivet's parked encounter and drag race; Rivet uses the game's RWD model.
+
+- Source: `assets/cars/ns-hammer-01.blend`
+- Runtime: `public/assets/cars/ns-hammer-01.glb`
+- Explicit source generator: `scripts/build-hammer.py` (`-- --render` for previews)
+- Export saved edits: Blender with `--background assets/cars/ns-hammer-01.blend --python scripts/export-hammer.py`, then `node scripts/optimize-car.mjs --car=ns-hammer-01`
+
+The optimized asset is about 315 KB, with 59 meshes, eight materials and no
+textures or decoder dependencies. Studio cameras/lights and clearance cutters
+stay out of the GLB. `tests/hammer-car.test.ts` checks the shipped file, including
+the wider rear tyres and front steering clearance. No downloaded assets are used.
