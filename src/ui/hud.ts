@@ -26,6 +26,8 @@ export interface HudVehicle {
 /** What the cluster shows of a race: the gate you are on, a label for the
  *  readout (countdown, time, position), and where the next gate is. */
 export interface HudRace {
+  progressLabel?: string;
+  targets?: readonly { x: number; z: number; exit?: { x: number; z: number } | null }[];
   checkpoint: number;
   total: number;
   label: string;
@@ -151,8 +153,7 @@ export function createHud(options: HudOptions): Hud {
 
     // The next gate: a ring where it is, or a chevron on the rim pointing at it
     // when it is off the disc. The Midnight Club arrow.
-    if (race?.next) {
-      const gate = race.next;
+    for (const gate of race?.targets ?? (race?.next ? [race.next] : [])) {
       context.strokeStyle = "#ffb347";
       context.lineWidth = 2.2;
       if (withinMinimap(camera, gate.x, gate.z, 1)) {
@@ -160,7 +161,7 @@ export function createHud(options: HudOptions): Hud {
         context.beginPath();
         context.arc(pixel.x, pixel.y, 5.5, 0, Math.PI * 2);
         context.stroke();
-        if (gate.exit) {
+        if ("exit" in gate && gate.exit) {
           // A tick out of the ring the way the gate is left. A point a few
           // metres along the exit, projected like the gate, gives the
           // direction in the heading-up frame without repeating its maths.
@@ -211,7 +212,7 @@ export function createHud(options: HudOptions): Hud {
       if (raceElement) {
         raceElement.hidden = !race;
         if (race && raceGateElement && raceTimeElement) {
-          raceGateElement.textContent = `GATE ${Math.min(race.checkpoint + 1, race.total)}/${race.total}`;
+          raceGateElement.textContent = race.progressLabel ?? `GATE ${Math.min(race.checkpoint + 1, race.total)}/${race.total}`;
           raceTimeElement.textContent = race.label;
         }
       }

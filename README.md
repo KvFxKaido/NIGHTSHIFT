@@ -76,6 +76,14 @@ Avenue S, Holgate and Fourth Avenue S, marked red on the minimap. It targets
 10 m/s (22 mph), avoids traffic and can reset locally after getting stuck.
 Approach at cruising speed and flash headlights with **F / X–Square**
 (remappable in Controls), or click the nearby prompt, to line up for a generated race.
+Challenges draw from three event types: ordered **sprints**, two-lap **circuits**
+that return to the start junction each lap, and **unordered** races where all gates
+must be collected once in any order (the last collected gate finishes the race).
+The HUD shows lap or collection progress; unordered races show every remaining
+gate on the map, minimap and in the world. Rivals follow a routed reference order.
+For repeatable test drives, use `?race=gen-3&scene=track`,
+`?race=gen-3-circuit&scene=track`, or `?race=gen-3-unordered&scene=track`.
+
 Crossing the finish in a rival race pauses the drive and shows your result/time,
 with **Return to free roam** or **Go to garage**. Both clear the race and retain
 your car/setup; free roam restarts outside Wharf Garage, while garage opens the

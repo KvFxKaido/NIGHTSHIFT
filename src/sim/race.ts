@@ -27,7 +27,13 @@ export interface Checkpoint {
   readonly exit?: { readonly x: number; readonly z: number };
 }
 
+export type RaceKind = "sprint" | "circuit" | "unordered";
+
 export interface RaceDefinition {
+  readonly kind?: RaceKind;
+  /** Circuit gates are expanded per lap so rivals and replays share one sequence. */
+  readonly laps?: number;
+  readonly gatesPerLap?: number;
   readonly id: string;
   readonly name: string;
   readonly checkpoints: readonly Checkpoint[];
@@ -37,9 +43,13 @@ export interface RaceDefinition {
 }
 
 export interface RaceState {
-  /** Index of the next checkpoint to take; equals `checkpoints.length` once
-   *  the last one — the finish — has been passed. */
+  /** Gates passed; also the next index for ordered events. */
   checkpoint: number;
+  /** Gate indices already collected, in visit order. */
+  collected: number[];
+  /** First unvisited gate in the reference line, used by the rival. */
+  targetIndex: number;
+  targets?: { x: number; z: number; exit: null }[];
   /** Countdown ticks remaining. Zero once the race is live. */
   countdown: number;
   /** Ticks since the flag dropped; frozen at the finish. */
@@ -54,10 +64,16 @@ export interface RaceState {
 
 export function createRace(definition: RaceDefinition): RaceState {
   const first = definition.checkpoints[0];
+  if (definition.kind === "circuit" && (!Number.isInteger(definition.laps) || definition.laps! < 1
+    || !Number.isInteger(definition.gatesPerLap) || definition.gatesPerLap! < 2
+    || definition.laps! * definition.gatesPerLap! !== definition.checkpoints.length)) {
+    throw new RangeError(`Race '${definition.id}' has invalid circuit laps`);
+  }
   if (!first) throw new RangeError(`Race '${definition.id}' has no checkpoints`);
   return {
-    checkpoint: 0, countdown: definition.countdownTicks, ticks: 0, splits: [], finished: false,
-    next: { x: first.x, z: first.z, exit: first.exit ?? null },
+    checkpoint: 0, collected: [], targetIndex: 0,
+    ...(definition.kind === "unordered" ? { targets: definition.checkpoints.map(g => ({ x: g.x, z: g.z, exit: null })) } : {}), countdown: definition.countdownTicks, ticks: 0, splits: [], finished: false,
+    next: { x: first.x, z: first.z, exit: definition.kind === "unordered" ? null : first.exit ?? null },
   };
 }
 
@@ -68,25 +84,43 @@ export function atCheckpoint(definition: RaceDefinition, index: number, vehicle:
   return Math.hypot(vehicle.x - gate.x, vehicle.z - gate.z) <= gate.radius;
 }
 
-/**
- * Advance one fixed tick. Ordered: only the NEXT checkpoint counts. Driving
- * through a later one early does nothing, and driving through an earlier one
- * again does nothing — a race that let either count would be a different race.
- */
+/** Advance deterministic ordered gates, or collect any remaining unordered gate. */
 export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: VehicleState): void {
   if (state.finished) return;
   if (state.countdown > 0) { state.countdown--; return; }
   state.ticks++;
-  if (!atCheckpoint(definition, state.checkpoint, vehicle)) return;
-  state.splits.push(state.ticks);
-  state.checkpoint++;
-  const upcoming = definition.checkpoints[state.checkpoint];
-  if (upcoming) {
-    state.next = { x: upcoming.x, z: upcoming.z, exit: upcoming.exit ?? null };
-  } else {
-    state.finished = true;
-    state.next = null;
+  const unordered = definition.kind === "unordered";
+  const index = unordered
+    ? definition.checkpoints.findIndex((_, i) => !state.collected.includes(i) && atCheckpoint(definition, i, vehicle))
+    : state.checkpoint;
+  if (index >= 0 && atCheckpoint(definition, index, vehicle)) {
+    state.splits.push(state.ticks);
+    state.collected.push(index);
+    state.checkpoint++;
   }
+  state.targetIndex = unordered
+    ? definition.checkpoints.findIndex((_, i) => !state.collected.includes(i)) : state.checkpoint;
+  state.finished = state.checkpoint === definition.checkpoints.length;
+  if (unordered) {
+    state.targets = definition.checkpoints.filter((_, i) => !state.collected.includes(i))
+      .map(g => ({ x: g.x, z: g.z, exit: null }));
+    state.next = [...state.targets].sort((a, b) =>
+      Math.hypot(a.x - vehicle.x, a.z - vehicle.z) - Math.hypot(b.x - vehicle.x, b.z - vehicle.z))[0] ?? null;
+  } else {
+    const upcoming = definition.checkpoints[state.targetIndex];
+    state.next = upcoming ? { x: upcoming.x, z: upcoming.z, exit: upcoming.exit ?? null } : null;
+  }
+}
+
+export function raceProgressLabel(definition: RaceDefinition, state: RaceState): string {
+  if (definition.kind === "unordered") return `GATES ${state.checkpoint}/${definition.checkpoints.length} · ANY ORDER`;
+  if (definition.kind === "circuit") {
+    const gates = definition.gatesPerLap!;
+    const lap = Math.min(Math.floor(state.checkpoint / gates) + 1, definition.laps!);
+    const gate = state.finished ? gates : state.checkpoint % gates + 1;
+    return `LAP ${lap}/${definition.laps} · GATE ${gate}/${gates}`;
+  }
+  return `GATE ${Math.min(state.checkpoint + 1, definition.checkpoints.length)}/${definition.checkpoints.length}`;
 }
 
 /** True while the flag has not dropped: the sim ignores driving input. */
@@ -106,6 +140,11 @@ export function racePosition(definition: RaceDefinition,
     return (me.race.splits.at(-1) ?? Infinity) <= (rival.race.splits.at(-1) ?? Infinity) ? 1 : 2;
   }
   if (me.race.checkpoint !== rival.race.checkpoint) return me.race.checkpoint > rival.race.checkpoint ? 1 : 2;
+  if (definition.kind === "unordered") {
+    const distance = (car: typeof me) => Math.min(...definition.checkpoints
+      .filter((_, i) => !car.race.collected.includes(i)).map(g => Math.hypot(car.x - g.x, car.z - g.z)));
+    return distance(me) <= distance(rival) ? 1 : 2;
+  }
   const gate = definition.checkpoints[me.race.checkpoint];
   if (!gate) return 1;
   return Math.hypot(me.x - gate.x, me.z - gate.z) <= Math.hypot(rival.x - gate.x, rival.z - gate.z) ? 1 : 2;

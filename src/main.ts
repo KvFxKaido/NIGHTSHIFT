@@ -29,7 +29,7 @@ import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
-import { formatRaceTime, racePosition, type RaceDefinition } from "./sim/race.ts";
+import { formatRaceTime, racePosition, raceProgressLabel, type RaceKind, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -77,7 +77,7 @@ try {
   const raceId = params.get("race");
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
-  const generated = raceId ? /^gen-(\d{1,9})$/.exec(raceId) : null;
+  const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
   if (raceId && !generated && raceId !== ALDER_RACE.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
@@ -90,7 +90,7 @@ try {
     if (!raceStart) throw new Error(`No street to start on at ${startParam}`);
   } else if (startParam) { params.delete("start"); history.replaceState(history.state, "", url); }
   if (generated) {
-    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined);
+    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as RaceKind);
     race = drawn.race; rival = drawn.rival;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   const requested = params.get("lighting") ?? "night";
@@ -368,7 +368,9 @@ function updateFlash(dt: number, active: boolean): void {
     // so a replay of the cruise would draw the same one. It starts where you
     // are, snapped to your lane; off every street, it starts on the grid.
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
-    loadDrive(`gen-${seedFromTick(sim.state.tick)}`, "track", here ? encodeStart(here) : null);
+    const seed = seedFromTick(sim.state.tick);
+    const kind = (["sprint", "circuit", "unordered"] as const)[seed % 3]!;
+    loadDrive(`gen-${seed}${kind === "sprint" ? "" : `-${kind}`}`, "track", here ? encodeStart(here) : null);
   }
 }
 
@@ -384,6 +386,7 @@ function updateHud(): void {
     { race: raceState, x: car.x, z: car.z },
     { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) : null;
   hud.update(car, race && raceState ? {
+    progressLabel: raceProgressLabel(race, raceState), targets: raceState.targets,
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
       : `${raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? " · RIVAL FIN" : ""}`,

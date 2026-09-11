@@ -14,7 +14,7 @@ import { mix } from "./traffic.ts";
 import { forwardOf, rightOf } from "./race-start.ts";
 import { measureLeg, route, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
 import { projectOntoPath, type Street } from "./street-path.ts";
-import type { RaceDefinition } from "./race.ts";
+import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
@@ -136,6 +136,32 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
   throw new RangeError(`Seed ${seed} draws no race from ${origin}`);
 }
 
+/** Convert a seeded sprint into another event, keeping the same routed gates.
+ * Circuits close at the approach junction and repeat the complete loop twice.
+ */
+export function withRaceKind(graph: RoutingGraph, race: GeneratedRace, origin: string, kind: RaceKind): GeneratedRace {
+  if (kind === "sprint") return race;
+  if (kind === "unordered") return { ...race, definition: { ...race.definition,
+    kind, id: `${race.definition.id}-unordered`, name: `${race.definition.name} / Unordered` } };
+  const finish = race.legs.at(-1)!;
+  const arrival = finish.via.at(-1)!.arriving;
+  const departure = race.legs[0]!.via[0]!.leaving;
+  // Route the return with both boundary headings constrained. A shortest
+  // return otherwise often reverses down the street the rival just arrived on.
+  const closingGraph: RoutingGraph = { ...graph, legs: null, drives: graph.drives.filter(d =>
+    (d.from !== finish.to || degreesBetween(arrival, d.leaving) <= GENERATOR.flow.turn) &&
+    (d.to !== origin || degreesBetween(d.arriving, departure) <= GENERATOR.flow.turn)) };
+  const closing = measureLeg(closingGraph, finish.to, origin);
+  if (!Number.isFinite(closing.time) || !closing.via.length) throw new RangeError("Circuit cannot return to its start");
+  const point = nodePosition(graph, origin);
+  const gates = [...race.definition.checkpoints,
+    { id: origin, name: graph.nodeName(origin), ...point, radius: GENERATOR.gateRadius }];
+  const loop = [...race.legs, closing];
+  return { ...race, legs: [...loop, ...loop], definition: { ...race.definition,
+    kind, id: `${race.definition.id}-circuit`, name: `${shortStreetName(gates[0]!.name)} Circuit`,
+    laps: 2, gatesPerLap: gates.length, checkpoints: [...gates, ...gates] } };
+}
+
 /** Where a start pose's street leads: the street, the junction ahead, the
  *  street's points from the start onward in the direction of travel, and the
  *  heading the junction is reached on (the street's last segment). */
@@ -199,7 +225,7 @@ export function rivalLineFor(graph: RoutingGraph, race: GeneratedRace, streets: 
   }
   let previous = 0;
   const gates = race.definition.checkpoints.map(gate => {
-    const index = points.findIndex((point, i) => i >= previous && Math.hypot(point.x - gate.x, point.z - gate.z) < 0.1);
+    const index = points.findIndex((point, i) => i > previous && Math.hypot(point.x - gate.x, point.z - gate.z) < 0.1);
     if (index < 0) throw new Error(`Generated rival line misses ${gate.name}`);
     previous = index;
     return along[index]!;

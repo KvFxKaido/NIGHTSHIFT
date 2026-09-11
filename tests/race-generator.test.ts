@@ -198,3 +198,29 @@ test("the rival drives a generated race to the finish in normal traffic", () => 
     assert.ok(furthest < 16, `rival strayed ${furthest.toFixed(1)} m from a centreline`);
   } finally { sim.world.free(); }
 });
+
+for (const kind of ["circuit", "unordered"] as const) {
+  test(`${kind} generation is deterministic and its rival can finish`, () => {
+    const event = alderGeneratedRace(3, undefined, kind);
+    assert.deepEqual(event, alderGeneratedRace(3, undefined, kind));
+    const { race, rival } = event;
+    assert.equal(race.kind, kind);
+    assert.ok(rival.gates.every((gate, i) => i === 0 || gate > rival.gates[i - 1]!));
+    if (kind === "circuit") {
+      assert.equal(race.checkpoints.at(-1)!.id, approach.node);
+      assert.deepEqual(race.checkpoints.slice(0, race.gatesPerLap), race.checkpoints.slice(race.gatesPerLap));
+      const legs = event.generated.legs;
+      for (let i = 1; i < legs.length; i++) {
+        assert.ok(degreesBetween(legs[i - 1]!.via.at(-1)!.arriving, legs[i]!.via[0]!.leaving) <= GENERATOR.flow.turn);
+      }
+    }
+    const sim = createSim("fwd", world, { race, rival, traffic: false });
+    try {
+      for (let tick = 0; tick < 40000 && !sim.state.rival!.race.finished; tick++) {
+        step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+      }
+      assert.equal(sim.state.rival!.race.finished, true, JSON.stringify({ race: sim.state.rival!.race, driver: sim.state.rival!.driver }));
+      assert.equal(sim.state.rival!.race.splits.length, race.checkpoints.length);
+    } finally { sim.world.free(); }
+  });
+}

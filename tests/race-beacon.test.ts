@@ -9,7 +9,7 @@ import type { RaceState } from "../src/sim/race.ts";
 // so the tip must land on the world side that projection names.
 
 const live = (next: RaceState["next"]): RaceState =>
-  ({ checkpoint: 0, countdown: 0, ticks: 0, splits: [], finished: false, next });
+  ({ checkpoint: 0, collected: [], targetIndex: 0, countdown: 0, ticks: 0, splits: [], finished: false, next });
 const ROAD = 3;
 const height = (_x: number, _z: number) => ROAD;
 const GATE = { x: 100, z: -50 };
@@ -80,4 +80,18 @@ test("no exit, no sign: the finish is the gate without one, and a finished race 
   assert.equal(view.arrow.visible, false);
   updateRaceBeacon(view, live(null), height, camera);
   assert.equal(view.group.visible, false);
+});
+
+test("unordered beacons show every remaining gate and disappear after collection", () => {
+  const camera = cameraAt({ x: 100, z: 0 });
+  const scene = new THREE.Scene();
+  const view = addRaceBeacon(scene, 20);
+  const gates = [{ x: 100, z: 50, exit: null }, { x: 200, z: 150, exit: null }, { x: -80, z: 0, exit: null }];
+  updateRaceBeacon(view, { ...live(gates[0]!), targets: gates }, height, camera);
+  assert.equal(scene.children.filter(child => child.visible).length, 3);
+  assert.ok(view.extras!.every(extra => !extra.arrow.visible));
+  updateRaceBeacon(view, { ...live(gates[1]!), targets: gates.slice(1) }, height, camera);
+  assert.equal(scene.children.filter(child => child.visible).length, 2);
+  updateRaceBeacon(view, { ...live(null), targets: [] }, height, camera);
+  assert.equal(scene.children.filter(child => child.visible).length, 0);
 });

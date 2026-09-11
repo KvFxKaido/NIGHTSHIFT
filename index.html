@@ -27,11 +27,12 @@
       #brand {
         position: fixed; top: 22px; left: 26px; pointer-events: none;
         display: flex; align-items: center; gap: 12px;
+        flex-wrap: wrap; max-width: calc(50vw - 150px);
         color: rgba(242, 238, 227, .82); font-size: 12px; font-weight: 800;
         letter-spacing: .26em; text-transform: uppercase;
       }
       #brand::before { content: ""; width: 30px; height: 2px; background: #ff2850; box-shadow: 0 0 14px #ff2850; }
-      #mode { color: #59d8ff; font-size: 10px; letter-spacing: .18em; }
+      #mode { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #59d8ff; font-size: 10px; letter-spacing: .18em; }
       /* The race readout: which gate, and the clock — or the countdown, or the
          finish and position. Top centre, where a driver's eyes already are. */
       #race {
@@ -61,6 +62,10 @@
         transition: opacity 120ms ease, transform 120ms ease;
       }
       #telemetry.visible { opacity: 1; transform: translateX(0); }
+      @media (max-width: 900px) {
+        #race { top: 88px; width: calc(100vw - 32px); }
+        #brand { max-width: calc(100vw - 52px); }
+      }
       @media (max-width: 640px) {
         #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
       }

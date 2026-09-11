@@ -62,6 +62,7 @@ export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDef
   if (route.gates.length !== race.checkpoints.length) {
     throw new RangeError(`${route.id} has ${route.gates.length} gates for ${race.checkpoints.length} checkpoints`);
   }
+  if (race.kind === "unordered") return race;
   const exits = gateExits(route);
   return { ...race, checkpoints: race.checkpoints.map((gate, i) => exits[i] ? { ...gate, exit: exits[i]! } : gate) };
 }
@@ -70,7 +71,7 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
 export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[]): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-  const gate = state.race ? route.gates[state.race.checkpoint]! : route.along.at(-1)!;
+  const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
   if (route.loop && driver.along > gate - 12 && Math.hypot(car.x - route.points[0]!.x, car.z - route.points[0]!.z) < 8) {
     Object.assign(driver, createRivalDriver(), { recoveries: driver.recoveries, resets: driver.resets });
   }

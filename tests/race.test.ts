@@ -149,3 +149,35 @@ test("position is the higher gate, then the nearer car, then the earlier finish"
   assert.equal(racePosition(race, { race: late, x: 0, z: 0 }, { race: early, x: 0, z: 0 }), 2);
   assert.equal(formatRaceTime(TICK_HZ * 65.25, TICK_HZ), "1:05.3");
 });
+
+ test("unordered gates can be collected backwards, never twice, and countdown holds", () => {
+  const definition = { ...race, kind: "unordered" as const };
+  const state = createRace(definition);
+  stepRace(definition, state, at(2));
+  assert.equal(state.checkpoint, 0);
+  state.countdown = 0;
+  stepRace(definition, state, at(2));
+  stepRace(definition, state, at(2));
+  assert.deepEqual(state.collected, [2]);
+  assert.equal(state.targets!.length, 2);
+  stepRace(definition, state, at(0));
+  assert.equal(state.finished, false);
+  stepRace(definition, state, at(1));
+  assert.equal(state.finished, true);
+  assert.deepEqual(state.collected, [2, 0, 1]);
+  assert.equal(state.next, null);
+  assert.deepEqual(state.targets, []);
+});
+
+test("circuit requires every gate on both laps and cannot finish on the first return", () => {
+  const definition = { ...race, kind: "circuit" as const, laps: 2, gatesPerLap: 3,
+    checkpoints: [...race.checkpoints, ...race.checkpoints] };
+  const state = { ...createRace(definition), countdown: 0 };
+  for (const index of [0, 1, 2]) stepRace(definition, state, at(index));
+  assert.equal(state.finished, false);
+  stepRace(definition, state, at(2));
+  assert.equal(state.checkpoint, 3);
+  for (const index of [0, 1, 2]) stepRace(definition, state, at(index));
+  assert.equal(state.finished, true);
+  assert.equal(state.splits.length, 6);
+});

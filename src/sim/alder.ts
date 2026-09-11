@@ -9,10 +9,10 @@ import authoredLayout from "./alder-layout.json" with { type: "json" };
 import type { CourseProjection } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { TrafficNetwork } from "./traffic.ts";
-import type { RaceDefinition } from "./race.ts";
+import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
-import { generateRace, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
+import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
 
 export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1` };
@@ -161,10 +161,10 @@ export function alderRouting(): RoutingGraph {
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
  *  the rival's line through its gates. (ALDER_VERSION, seed) reproduces it. */
-export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
+export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: RaceKind = "sprint"): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);
-  const generated = generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]);
+  const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]), approach.node, kind);
   return { race: generated.definition, generated,
     rival: rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight) };
 }

@@ -17,6 +17,7 @@ import * as THREE from "three";
 import type { RaceState } from "../sim/race.ts";
 
 export interface RaceView {
+  extras?: RaceView[];
   readonly group: THREE.Group;
   readonly column: THREE.Mesh;
   readonly ring: THREE.Mesh;
@@ -90,6 +91,16 @@ export function addRaceBeacon(scene: THREE.Scene, radius: number): RaceView {
  *  beacon once there is no gate. Call after the camera is placed for the frame. */
 export function updateRaceBeacon(view: RaceView, race: RaceState | null,
   surfaceHeight: (x: number, z: number) => number, camera: THREE.Object3D): void {
+  for (const extra of view.extras ?? []) extra.group.visible = false;
+  if (race?.targets && view.group.parent) {
+    view.extras ??= [];
+    const others = race.targets.filter(g => g.x !== race.next?.x || g.z !== race.next?.z);
+    others.forEach((gate, i) => {
+      const extra = view.extras![i] ??= addRaceBeacon(view.group.parent as THREE.Scene,
+        (view.column.geometry as THREE.CylinderGeometry).parameters.radiusTop);
+      updateRaceBeacon(extra, { ...race, targets: undefined, next: gate }, surfaceHeight, camera);
+    });
+  }
   if (!race || !race.next) { view.group.visible = false; return; }
   view.group.visible = true;
   view.group.position.set(race.next.x, surfaceHeight(race.next.x, race.next.z), race.next.z);

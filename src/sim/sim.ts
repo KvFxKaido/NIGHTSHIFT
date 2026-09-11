@@ -783,9 +783,9 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
   race: RaceState | null, reset: (vehicle: VehicleState, driver: RivalDriver) => void): void {
   if (driver.noProgressTicks < RIVAL_RESET_TICKS || driver.resetCheckIn > 0) return;
   driver.resetCheckIn = TICK_HZ;
-  const gate = race ? sim.race!.checkpoints[race.checkpoint]! : null;
-  const minimum = race?.checkpoint ? route.gates[race.checkpoint - 1]! : 0;
-  const maximum = race && gate ? route.gates[race.checkpoint]! - gate.radius - 5 : route.along.at(-1)!;
+  const gate = race ? sim.race!.checkpoints[race.targetIndex]! : null;
+  const minimum = race && race.targetIndex > 0 ? route.gates[race.targetIndex - 1]! : 0;
+  const maximum = race && gate ? route.gates[race.targetIndex]! - gate.radius - 5 : route.along.at(-1)!;
   if (maximum < minimum) return;
   const center = Math.max(minimum, Math.min(maximum, driver.along));
   const shape = new RAPIER.Cuboid(1.4, .65, 2.7);
