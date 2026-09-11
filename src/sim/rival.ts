@@ -1,6 +1,7 @@
 import { maxCorneringSpeed, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
+import type { RaceDefinition } from "./race.ts";
 
 export interface RivalDefinition {
   readonly id: string;
@@ -37,6 +38,30 @@ export function sampleRivalPath(route: RivalDefinition, distance: number) {
   const t = length ? (distance - route.along[i]!) / length : 0;
   return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t,
     ux: (b.x - a.x) / length, uz: (b.z - a.z) / length, width: Math.min(a.width,b.width), index: i };
+}
+
+/** Metres past a gate the exit direction is read at: past any kerb mitre, well short of the next junction. */
+export const EXIT_LOOKAHEAD = 6;
+/** The direction the line leaves each gate in — the marker's arrow — read
+ *  from the line itself. The finish has none: no arrow is how you know it is
+ *  the finish. */
+export function gateExits(route: RivalDefinition): ({ x: number; z: number } | null)[] {
+  return route.gates.map((along, i) => {
+    if (i === route.gates.length - 1) return null;
+    const at = sampleRivalPath(route, along), ahead = sampleRivalPath(route, along + EXIT_LOOKAHEAD);
+    const run = Math.hypot(ahead.x - at.x, ahead.z - at.z);
+    if (run < 1e-6) throw new RangeError(`${route.id} has no road past gate ${i}`);
+    return { x: (ahead.x - at.x) / run, z: (ahead.z - at.z) / run };
+  });
+}
+/** The race with each gate's exit taken from its rival's line: the reference
+ *  route is the line, so the arrow is read from it rather than kept twice. */
+export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDefinition {
+  if (route.gates.length !== race.checkpoints.length) {
+    throw new RangeError(`${route.id} has ${route.gates.length} gates for ${race.checkpoints.length} checkpoints`);
+  }
+  const exits = gateExits(route);
+  return { ...race, checkpoints: race.checkpoints.map((gate, i) => exits[i] ? { ...gate, exit: exits[i]! } : gate) };
 }
 interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number }
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */

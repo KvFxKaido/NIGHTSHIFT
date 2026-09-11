@@ -159,9 +159,47 @@ the weighting takes the share of priced-or-even legs from 27% (uniform) to
 54%; six of six generated races driven by the rival in normal traffic
 finished with no recoveries and no resets, straying at most 14 m from a
 centreline. Sound to Sky remains the authored race and the fixture for the
-rival tests. Not yet: rivals biasing the draw towards their own streets, a
-race starting where the flash happened rather than at the grid, saved
-playlists, and rivals learning the player's line per street.
+rival tests.
+
+**The flow rule (2026-09-11).** Playtesting found races that sent you north
+to a gate and straight back south across the map to the next. Measured over
+300 seeds: 23% of legs led to a gate more than 120° behind the heading the
+last one was reached on, 9% more than 150° behind, 205 races in 300 had at
+least one such gate, and Yesler & James's Y — the slice's one hairpin
+junction — sent 32 races out of a gate at over 150°. The cause is the draw,
+not the map: legs are routed with a free first exit and chained at a gate
+without looking at the arrival heading, and the class weights kept pulling
+the race back towards the few priced corridors. The rule: the next gate
+lies within 120° of the arrival heading and the leg's first street leaves
+within 135°. Its cost, measured: priced-or-even legs fall from 53% to 39%
+of the draw (uniform 26%, so the weighting still lifts it), 60 of 60 seeds
+draw, at least 26 of 30 seeds are distinct, and every seed now draws a
+different race than before. A soft falloff kept three more points of
+choice but can only be asserted statistically; a hard rule is one a test
+can state. A leg's time is still the table's, routed with a free first
+exit, so the turn at the gate (under 5 s) is not in it.
+
+**Gate arrows.** A checkpoint carries the direction the reference route
+leaves it: `withExits` in `rival.ts` reads it from the rival's line 6 m
+past the gate when `createSim` pairs a race with its rival, so the authored
+race and the generated ones get it the same way and the fact is kept once.
+The finish has none, which is how it looks different. The direction is
+absolute, along the exit street, because the sim cannot know which way the
+player arrives, and it is a hint: open racing has no wrong way. The beacon
+draws it as a sign: a 9 m arrow floating 8 m up inside the column that
+faces the camera and turns in its own plane, up for straight on, left or
+right for a turn, the way the minimap chevron turns with the heading; the
+minimap ring grows a tick the same way. An arrow lying in the world was
+tried first, flat on the road and then as a floating slab, and from the
+chase camera an arrow pointing away from you is a sliver or a box.
+Projecting the sim's direction into the view is presentation, not a
+decision. One data quirk it found: 4th Ave begins with a 4 m stub 12° off
+its line, so the routing's first-segment direction is the noisier of the
+two and the 6 m chord is the better arrow.
+
+Not yet: rivals biasing the draw towards their own streets, a race starting
+where the flash happened rather than at the grid, saved playlists, and
+rivals learning the player's line per street.
 
 
 ## First racing rival

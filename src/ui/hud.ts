@@ -29,7 +29,8 @@ export interface HudRace {
   checkpoint: number;
   total: number;
   label: string;
-  next: { x: number; z: number } | null;
+  /** Where the next gate is, and which way the route leaves it (none at the finish). */
+  next: { x: number; z: number; exit?: { x: number; z: number } | null } | null;
 }
 
 export interface Hud {
@@ -159,6 +160,18 @@ export function createHud(options: HudOptions): Hud {
         context.beginPath();
         context.arc(pixel.x, pixel.y, 5.5, 0, Math.PI * 2);
         context.stroke();
+        if (gate.exit) {
+          // A tick out of the ring the way the gate is left. A point a few
+          // metres along the exit, projected like the gate, gives the
+          // direction in the heading-up frame without repeating its maths.
+          const ahead = minimapPixel(camera, gate.x + gate.exit.x * 10, gate.z + gate.exit.z * 10);
+          const run = Math.hypot(ahead.x - pixel.x, ahead.y - pixel.y) || 1;
+          const ux = (ahead.x - pixel.x) / run, uy = (ahead.y - pixel.y) / run;
+          context.beginPath();
+          context.moveTo(pixel.x + ux * 5.5, pixel.y + uy * 5.5);
+          context.lineTo(pixel.x + ux * 12.5, pixel.y + uy * 12.5);
+          context.stroke();
+        }
       } else {
         const pixel = minimapPixel(camera, gate.x, gate.z);
         const angle = Math.atan2(pixel.y, pixel.x);

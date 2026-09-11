@@ -255,7 +255,6 @@ export function render(
   // Traffic is drawn from the state the tick left behind, never interpolated or
   // guessed at: the renderer still only draws what a tick decided.
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
-  updateRaceBeacon(view.race, state.race, view.surface);
   placeCar(view, car);
   const opponent = state.rival?.vehicle ?? state.encounter;
   if (view.rivalCar && opponent) placeCar(view.rivalCar, opponent);
@@ -301,6 +300,8 @@ export function render(
   view.camera.lookAt(view.cameraTarget);
   view.camera.fov = 62 + speedRatio * 15;
   view.camera.updateProjectionMatrix();
+  // After the camera: the beacon's sign faces it and points the exit its way.
+  updateRaceBeacon(view.race, state.race, view.surface, view.camera);
 
   view.renderer.render(view.scene, view.camera);
 }

@@ -26,7 +26,7 @@ test("checkpoints count only in order, and only once", () => {
   assert.equal(state.checkpoint, 0);
   stepRace(race, state, at(0));
   assert.equal(state.checkpoint, 1);
-  assert.deepEqual(state.next, { x: race.checkpoints[1]!.x, z: race.checkpoints[1]!.z });
+  assert.deepEqual(state.next, { x: race.checkpoints[1]!.x, z: race.checkpoints[1]!.z, exit: race.checkpoints[1]!.exit ?? null });
   // Sitting in the gate you already took does not take it again.
   stepRace(race, state, at(0));
   assert.equal(state.checkpoint, 1);

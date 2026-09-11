@@ -19,6 +19,12 @@ export interface Checkpoint {
   /** Metres from the centre that count as through it. A junction is ~24 m
    *  across, so a gate you can miss by taking the wrong side of it. */
   readonly radius: number;
+  /** Unit direction the reference route leaves this gate in — the marker's
+   *  arrow. Absolute, along the exit street, because the sim cannot know which
+   *  way the player arrives; a hint in open racing, never a rule. Absent at
+   *  the finish, and until the race is paired with its rival's line
+   *  (`withExits` in rival.ts), which is where the reference route lives. */
+  readonly exit?: { readonly x: number; readonly z: number };
 }
 
 export interface RaceDefinition {
@@ -41,8 +47,9 @@ export interface RaceState {
   /** `ticks` at which each checkpoint was passed, in order. */
   splits: number[];
   finished: boolean;
-  /** Where the next gate is, for whoever draws it. Null once finished. */
-  next: { x: number; z: number } | null;
+  /** Where the next gate is and which way the route leaves it (null at the
+   *  finish, or unknown), for whoever draws it. Null once finished. */
+  next: { x: number; z: number; exit: { x: number; z: number } | null } | null;
 }
 
 export function createRace(definition: RaceDefinition): RaceState {
@@ -50,7 +57,7 @@ export function createRace(definition: RaceDefinition): RaceState {
   if (!first) throw new RangeError(`Race '${definition.id}' has no checkpoints`);
   return {
     checkpoint: 0, countdown: definition.countdownTicks, ticks: 0, splits: [], finished: false,
-    next: { x: first.x, z: first.z },
+    next: { x: first.x, z: first.z, exit: first.exit ?? null },
   };
 }
 
@@ -75,7 +82,7 @@ export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: 
   state.checkpoint++;
   const upcoming = definition.checkpoints[state.checkpoint];
   if (upcoming) {
-    state.next = { x: upcoming.x, z: upcoming.z };
+    state.next = { x: upcoming.x, z: upcoming.z, exit: upcoming.exit ?? null };
   } else {
     state.finished = true;
     state.next = null;

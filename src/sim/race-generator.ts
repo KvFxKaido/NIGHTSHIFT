@@ -25,6 +25,13 @@ export const GENERATOR = {
   total: { min: 45, max: 160 },
   /** How much a leg's class weighs when the next gate is drawn. */
   weight: { priced: 4, even: 1.5, free: 0.5, twin: 0.3, none: 0.4, sweetSpot: 1.5 } as Record<string, number>,
+  /** Flow, in degrees from the heading you arrive at a gate on: the next gate
+   *  lies within `bearing` of it, and the leg's first street leaves within
+   *  `turn` of it. Without this the class weights pull the race straight back
+   *  to the few priced corridors: 23% of legs sent you to a gate more than
+   *  120° behind you, 9% to one more than 150° behind, and Yesler & James's
+   *  Y sent 32 races in 300 out of the gate in a hairpin. */
+  flow: { bearing: 120, turn: 135 },
   countdownTicks: 180,
   gateRadius: 20,
 } as const;
@@ -48,13 +55,32 @@ export function shortStreetName(name: string): string {
     .replace(/\s+(S|N|E|W)$/, "");
 }
 
+type Heading = { readonly x: number; readonly z: number };
+/** Degrees between two unit directions. */
+export function degreesBetween(a: Heading, b: Heading): number {
+  return Math.acos(Math.max(-1, Math.min(1, a.x * b.x + a.z * b.z))) * 180 / Math.PI;
+}
+/** Where a junction is: the first point of any street driven out of it. */
+export function nodePosition(graph: RoutingGraph, id: string): { x: number; z: number } {
+  const drive = graph.drives.find(d => d.from === id);
+  if (!drive) throw new RangeError(`No street leaves ${id}`);
+  const street = graph.streets.get(drive.id)!;
+  const point = drive.reversed ? street.points[street.points.length - 1]! : street.points[0]!;
+  return { x: point.x, z: point.z };
+}
+
 /**
  * Draw a race from the graph. `origin` is the junction the start street leads
- * to; `avoid` streets are never routed (the start street, so the first leg
- * cannot begin with a U-turn). Streets are not reused between legs, so a race
- * never doubles back on itself.
+ * to and `arriving` the heading it is reached on; `avoid` streets are never
+ * routed (the start street, so the first leg cannot begin with a U-turn).
+ * Streets are not reused between legs, and the flow rule keeps every next
+ * gate ahead or abeam of the heading the last one is reached on, so a race
+ * never doubles back on itself. A leg's time is still the table's, which
+ * routes it with a free first exit: the turn at the gate (at most `turn`
+ * degrees, under 5 s) is not in it.
  */
-export function generateRace(graph: RoutingGraph, seed: number, origin: string, avoid: readonly string[] = []): GeneratedRace {
+export function generateRace(graph: RoutingGraph, seed: number, origin: string, arriving: Heading,
+  avoid: readonly string[] = []): GeneratedRace {
   const next = stream(seed);
   const legs = legTable(graph);
   for (let attempt = 0; attempt < 12; attempt++) {
@@ -62,8 +88,9 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
     const chosen: Leg[] = [];
     const used = new Set<string>(avoid);
     const visited = new Set<string>([origin]);
-    let at = origin, total = 0;
+    let at = origin, total = 0, arrival = arriving;
     for (let gate = 0; gate < gateCount; gate++) {
+      const here = nodePosition(graph, at);
       const candidates: { leg: Leg; weight: number }[] = [];
       for (const to of graph.choicePoints) {
         if (visited.has(to)) continue;
@@ -71,6 +98,11 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
         if (!leg || !isFinite(leg.time) || leg.time < GENERATOR.leg.min || leg.time > GENERATOR.leg.max) continue;
         if (leg.via.some(d => used.has(d.id))) continue;
         if (total + leg.time > GENERATOR.total.max) continue;
+        const there = nodePosition(graph, to);
+        const span = Math.hypot(there.x - here.x, there.z - here.z) || 1;
+        const bearing = { x: (there.x - here.x) / span, z: (there.z - here.z) / span };
+        if (degreesBetween(arrival, bearing) > GENERATOR.flow.bearing) continue;
+        if (degreesBetween(arrival, leg.via[0]!.leaving) > GENERATOR.flow.turn) continue;
         let weight = GENERATOR.weight[leg.kind]!;
         if (leg.detour !== null && leg.detour >= 0.1 && leg.detour <= 0.25) weight += GENERATOR.weight.sweetSpot!;
         candidates.push({ leg, weight });
@@ -87,12 +119,11 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
       visited.add(leg.to);
       at = leg.to;
       total += leg.time;
+      arrival = leg.via[leg.via.length - 1]!.arriving;
     }
     if (chosen.length < GENERATOR.gates.min || total < GENERATOR.total.min) continue;
     const checkpoints = chosen.map(leg => {
-      const node = graph.drives.find(d => d.from === leg.to)!;
-      const street = graph.streets.get(node.id)!;
-      const point = node.reversed ? street.points[street.points.length - 1]! : street.points[0]!;
+      const point = nodePosition(graph, leg.to);
       return { id: leg.to, name: graph.nodeName(leg.to), x: point.x, z: point.z, radius: GENERATOR.gateRadius };
     });
     const name = `${shortStreetName(checkpoints[0]!.name)} to ${shortStreetName(checkpoints[checkpoints.length - 1]!.name)}`;
@@ -102,10 +133,11 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
   throw new RangeError(`Seed ${seed} draws no race from ${origin}`);
 }
 
-/** Where a start pose's street leads: the street, the junction ahead, and the
- *  street's points from the start onward in the direction of travel. */
+/** Where a start pose's street leads: the street, the junction ahead, the
+ *  street's points from the start onward in the direction of travel, and the
+ *  heading the junction is reached on (the street's last segment). */
 export function startApproach(streets: readonly Street[], start: RoadWorld["start"]):
-  { street: Street; node: string; points: CoursePoint[] } {
+  { street: Street; node: string; points: CoursePoint[]; arriving: Heading } {
   let best: { street: Street; on: ReturnType<typeof projectOntoPath> } | null = null;
   for (const street of streets) {
     const on = projectOntoPath(street.points, start.x, start.z);
@@ -115,7 +147,10 @@ export function startApproach(streets: readonly Street[], start: RoadWorld["star
   const forwardX = -Math.sin(start.heading), forwardZ = -Math.cos(start.heading);
   const ahead = forwardX * on.ux + forwardZ * on.uz > 0;
   const points = ahead ? street.points.slice(on.segmentIndex + 1) : street.points.slice(0, on.segmentIndex + 1).reverse();
-  return { street, node: ahead ? street.to : street.from, points: points.map(p => ({ ...p })) };
+  const end = points[points.length - 1]!, before = points.length >= 2 ? points[points.length - 2]! : start;
+  const run = Math.hypot(end.x - before.x, end.z - before.z) || 1;
+  return { street, node: ahead ? street.to : street.from, points: points.map(p => ({ ...p })),
+    arriving: { x: (end.x - before.x) / run, z: (end.z - before.z) / run } };
 }
 
 /**

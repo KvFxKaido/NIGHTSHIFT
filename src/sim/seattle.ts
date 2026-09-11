@@ -127,7 +127,7 @@ export function seattleRouting(): RoutingGraph {
 export function seattleGeneratedRace(seed: number): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = seattleRouting();
   const approach = startApproach(SEATTLE_STREETS, start);
-  const generated = generateRace(graph, seed, approach.node, [approach.street.id]);
+  const generated = generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]);
   return { race: generated.definition, generated,
     rival: rivalLineFor(graph, generated, SEATTLE_STREETS, start, seattleHeight) };
 }

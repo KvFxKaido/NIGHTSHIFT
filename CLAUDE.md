@@ -102,10 +102,25 @@ reusing a street, 12–40 s a leg and 45–160 s a race, and routes the rival's
 line through the gates from the streets' own points exactly as the authored
 Sound to Sky line was built. `?race=gen-<seed>` is the race; the flash in
 free roam loads `gen-${seedFromTick(tick)}`, so a replay of the cruise draws
-the same race and every real flash draws a new one. Measured on the first
-slice: the weighting doubles the share of priced-or-even legs (54% against
-27% uniform), 60 of 60 seeds draw, and the rival finishes every generated
-race tried with no recoveries and no resets. Sound to Sky stays as the
+the same race and every real flash draws a new one. A flow rule (2026-09-11)
+keeps a race going somewhere: the next gate lies within 120° of the heading
+the last one is reached on, and the leg's first street leaves within 135°.
+Without it the class weights pulled the draw straight back to the few priced
+corridors — 23% of legs sent you to a gate more than 120° behind you, 9% to
+one more than 150° behind, and Yesler & James's Y sent 32 races in 300 out
+of a gate in a hairpin. The rule costs choice, measured: priced-or-even legs
+fall from 53% to 39% of the draw (uniform 26%); 60 of 60 seeds still draw,
+the rival still finishes with no recoveries and no resets, and every seed
+draws a different race than it did before the rule, which is why it landed
+before playlists. Each gate carries the direction the rival's line leaves it
+(`withExits` in `rival.ts`, read from the line when `createSim` pairs a race
+with its rival; the finish has none) — absolute, along the exit street,
+because the sim cannot know which way the player arrives, and a hint in open
+racing, never a rule. The beacon draws it as a sign that faces the camera
+and turns in its own plane (up for straight on, left or right for a turn),
+with a tick on the minimap ring; an arrow lying in the world reads as a
+sliver or a box from the chase camera, and projecting the sim's direction
+into the view is presentation, not a decision. Sound to Sky stays as the
 authored race and the rival tests' fixture. The seed uses `mix`, never
 `Math.random`; the leg table is measured once per graph, so a draw costs
 microseconds after the first. `design/PROCEDURAL_RACES.md` holds Shawn's

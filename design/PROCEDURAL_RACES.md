@@ -5,8 +5,10 @@ form of GDD §7.3's "Generated, not authored" paragraph.
 
 **Status.** The generator exists: `src/sim/race-generator.ts` draws a race
 from the city per seed, `?race=gen-<seed>` is the race, and the flash in
-free roam draws a new one every time (commit `c4a8b5b`). Everything under
-"Proposed" below is not implemented.
+free roam draws a new one every time (commit `c4a8b5b`). The flow rule
+(2026-09-11, `GENERATOR.flow`) keeps a draw from doubling back, and gates
+carry the direction the line leaves them for the marker's arrow; both are in
+`design/SEATTLE.md`. Everything under "Proposed" below is not implemented.
 
 ## Shawn's two ideas (2026-09-10)
 

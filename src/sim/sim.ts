@@ -1,4 +1,4 @@
-import { createRivalDriver, rivalInput, sampleRivalPath, type RivalDefinition, type RivalDriver } from "./rival.ts";
+import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
    Rapier integrates motion and contacts. Three.js only draws the result. */
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -403,17 +403,20 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   const encounterBody = encounterStart ? createVehicleBody(world, encounterStart) : null;
   const encounter = encounterStart ? initialVehicle({ ...roadWorld, start: encounterStart }) : null;
   const rivalDefinition = options.rival ?? null;
+  // Paired with its rival's line, a race learns which way each gate is left:
+  // the marker's arrow. A race without a rival has no reference route to read.
+  const raceDefinition = options.race ? rivalDefinition ? withExits(options.race, rivalDefinition) : options.race : null;
   const rivalBody = rivalDefinition ? createVehicleBody(world, rivalDefinition.start) : null;
-  const rival: RivalState | null = rivalDefinition && options.race ? {
+  const rival: RivalState | null = rivalDefinition && raceDefinition ? {
     drivetrain: "fwd", vehicle: initialVehicle({ ...roadWorld, start: rivalDefinition.start }),
-    race: createRace(options.race), driver: createRivalDriver(),
+    race: createRace(raceDefinition), driver: createRivalDriver(),
     input: { throttle: 0, brake: 0, steer: 0, handbrake: 0 },
   } : null;
   return {
     roadWorld,
     state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
-      vehicle: initialVehicle(roadWorld), traffic, rival, encounter, race: options.race ? createRace(options.race) : null },
-    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, trafficBodies, race: options.race ?? null,
+      vehicle: initialVehicle(roadWorld), traffic, rival, encounter, race: raceDefinition ? createRace(raceDefinition) : null },
+    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, trafficBodies, race: raceDefinition,
   };
 }
 
