@@ -30,6 +30,29 @@ Road data also feeds the minimap and existing lane/reservation traffic builder. 
 
 The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v2`, with a layout fingerprint when edited.
 
+## Regeneration caveats
+
+`scripts/build-seattle.py` writes `src/sim/seattle-data.json` in full, including
+its 160 generated buildings. `src/sim/seattle-layout.json` does not hold
+independent buildings: it stores per-building edits from `editor.html`, each
+keyed to a generated plot id derived from that building's generated
+coordinates, and `resolveSeattleLayout` replaces the matching generated block
+in place. The layout cannot add a net-new building, and an id it does not
+recognise is an error. Its `baseline` is a fingerprint of the generated
+massing, so a rebuild that moves any building changes the ids and the
+baseline together and the sim refuses to load the layout ("The district
+changed. Re-export its layout before importing these edits."). The failure is
+loud, not a silent reshuffle. The layout file is empty today, so nothing is at
+risk yet; once it holds edits, regenerating the map means re-exporting or
+rebasing those edits against the new baseline before the build passes again.
+
+The builder stamps its output `seattle-slice-v1`; the sim reports
+`seattle-slice-v2` from `src/sim/seattle.ts`, where the v2 bump was made for
+the vertical physics change. The two are not linked: regenerating the map
+changes the world without changing its identity. Any expansion (new streets,
+new bounds) must bump the version in `seattle.ts` deliberately, and a future
+saved ghost must not trust the data file's own stamp.
+
 ## Validation and remaining work
 
 Automated checks cover connected route choices, reachable gates, building setbacks, mesh height error below 2 cm, northbound spawn clearance, same-runtime replay, and two minutes of traffic with body-overlap checks. Browser checks cover free roam, race entry, legacy-link migration, garage entry/exit and turntable, camera startup, and both lighting modes. The editor browser check saves and restores a real placement, verifies its physics collider, round-trips Three.js JSON, and rejects road overlap.
