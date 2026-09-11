@@ -59,6 +59,35 @@ Automated checks cover connected route choices, reachable gates, building setbac
 
 Next authoring work should follow driving feedback: reshape repetitive blocks, add useful alleys and destinations, and make each neighborhood recognizable. Phone performance and gamepad playtesting are still separate validation steps; this implementation targets the current PC prototype.
 
+**Surveyed terrain** is still open. `seattleHeight` is one analytic
+smoothstep bump, 34 m over 640 m east-west (about 5% at its steepest), while
+downtown Seattle's James St and Madison St run near 18% and the critique's
+grade risk term starts at 12%, so that term never fires today. Because one
+function already feeds physics, road meshes, building bases, traffic and
+routing, replacing the bump with a baked heightfield in `seattle-data.json`
+sampled by a C1-continuous (bicubic, not bilinear) lookup carries every
+consumer at once and stays deterministic. Candidate sources, all reusable
+without Google-style extraction limits:
+
+- **USGS 3DEP lidar DEM**, 1 m, public domain, covers King County. The
+  reference source; needs smoothing to a few metres before sampling or the
+  roads pick up kerbs and walls as chatter.
+- **City of Seattle contours / DEM** on the same ArcGIS open-data platform
+  as `source-streets.json`, under the same terms and attribution already
+  cited in `assets/maps/seattle/README.md`; fits the existing fetch script
+  pattern.
+- **AWS Terrain Tiles** (Mapzen terrarium), about 10 m in the US, open;
+  coarser and simplest to sample if 1 m is more than the arcade surface
+  needs.
+
+Google Photorealistic 3D Tiles are not a source: extracting geodata from
+them is prohibited by their terms. Two decisions precede the pipeline work:
+vertical exaggeration (the 58% / 50% horizontal compression roughly doubles
+real grades if elevation is left unscaled, which must be a chosen number),
+and whether road surfaces are graded along the centreline and blended
+across, as the district's aprons were, rather than sampled raw. Expect the
+3.5 m footprint-spread rule to refuse hillside parcels once grades are real.
+
 ## Route choice, measured
 
 `pnpm seattle:critique` reports whether the slice has anything to learn. The
