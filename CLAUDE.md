@@ -119,6 +119,20 @@ Width belongs in risk, not pace — with width cutting pace, every narrow
 street was dominated by construction and the report said so about the model,
 not the map. The pace model and the risk weights are declared proposals; it
 asserts nothing; `--json` is for agents. Run it before and after authoring.
+**Alleys go where the draw runs out of priced legs** (2026-09-11): the
+generator's draw, measured per junction and arrival, said 382 of 1167 draws
+over 300 seeds were made where nothing priced or even lay ahead, 300 of them
+the first leg of every race (the run up 1st Ave S has no alternative). `pnpm
+seattle:critique --try=x1,z1,x2,z2[,width]` scores an alley between the two
+junctions nearest those points — arrivals at each end by class before and
+after, and the draw over 300 seeds. One alley, Freight Cut (255 m, 8 m,
+Harbor Way & 1st to Holgate & 4th, `assets/maps/seattle/alleys.json`), took
+dead draws to 59 and the priced-or-even share from 48% to 62%; the downtown
+and Pioneer Square candidates moved nothing globally and were not drawn.
+Alleys are noded only among themselves, join the grid at existing junctions,
+carry the `sea-alley-` prefix, displace the pinned plots they cut through,
+and are the lane model's alley class. Do not go crazy with them: score, draw
+one, measure again.
 That arithmetic lives in `src/sim/route-choice.ts` (risk per street, the line
 graph, `measureLeg`, `legTable`) and the critique only formats it, because
 **races are generated from it**: `src/sim/race-generator.ts` draws three to

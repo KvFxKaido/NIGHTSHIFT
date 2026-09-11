@@ -29,7 +29,26 @@ for i,line in enumerate(merged.geoms):
     new_roads.append({'id':f'sea-east-{i}', 'name':name, 'sourceId':None, 'width':width,
         'from':key(line.coords[0]), 'to':key(line.coords[-1]),
         'points':[[round(x,3),round(z,3)] for x,z in points]})
-roads = base['roads'] + new_roads
+# Authored alleys (assets/maps/seattle/alleys.json): narrow cut-throughs between
+# two existing junctions, noded only among themselves and never with the
+# streets they join, whose identities stay pinned. Their own id prefix keeps
+# the extension's ids stable when an alley is added.
+alleys = json.loads(Path('assets/maps/seattle/alleys.json').read_text(encoding='utf-8'))
+alley_sources = [(r['name'], LineString(r['points']), r['width']) for r in alleys['roads']]
+alley_merged = unary_union([line for _,line,_ in alley_sources]) if alley_sources else None
+alley_lines = [] if alley_merged is None else (list(alley_merged.geoms) if alley_merged.geom_type == 'MultiLineString' else [alley_merged])
+alley_roads = []
+for i,line in enumerate(alley_lines):
+    midpoint = line.interpolate(.5, normalized=True)
+    name, _, width = min(alley_sources, key=lambda entry: entry[1].distance(midpoint))
+    points = [line.coords[0]]
+    for a,b in zip(line.coords,list(line.coords)[1:]):
+        count = max(1,math.ceil(math.dist(a,b)/30))
+        points.extend([(a[0]+(b[0]-a[0])*j/count,a[1]+(b[1]-a[1])*j/count) for j in range(1,count+1)])
+    alley_roads.append({'id':f'sea-alley-{i}', 'name':name, 'sourceId':None, 'width':width,
+        'from':key(line.coords[0]), 'to':key(line.coords[-1]),
+        'points':[[round(x,3),round(z,3)] for x,z in points]})
+roads = base['roads'] + new_roads + alley_roads
 # Use the serialized vertices for meshes too; physics never sees extra precision.
 lines = [LineString(road['points']) for road in roads]
 
@@ -95,6 +114,11 @@ authored = [footprint.buffer(3) for footprint in footprints]
 # that would only stand down. A pinned plot merely near one stays.
 buildings = [b for b in buildings if not any(footprint.intersects(box(b['x']-b['width']/2,b['z']-b['depth']/2,
     b['x']+b['width']/2,b['z']+b['depth']/2)) for footprint in footprints)]
+# A pinned plot an alley cuts through goes the same way: the alley is the
+# authored thing, and the plots it displaces are the cost the critique counts.
+alley_corridors = [LineString(r['points']).buffer(r['width']/2+2.8) for r in alley_roads]
+buildings = [b for b in buildings if not any(corridor.intersects(box(b['x']-b['width']/2,b['z']-b['depth']/2,
+    b['x']+b['width']/2,b['z']+b['depth']/2)) for corridor in alley_corridors)]
 for face_index, face in enumerate(polygonize(unary_union(lines))):
     if face.boundary.intersection(merged).length < 1: continue
     lot = face.difference(reserved)

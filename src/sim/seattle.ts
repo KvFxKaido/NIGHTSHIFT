@@ -36,7 +36,8 @@ export function seattleHeight(x: number, z: number): number {
 }
 export const SEATTLE_STREETS: readonly Street[] = data.roads.map(road => ({
   id: road.id, name: road.name, from: road.from, to: road.to,
-  added: road.sourceId === null, kind: road.width >= 20 ? "arterial" : road.width <= 14 ? "local" : "collector",
+  // An 8 m alley is the lane model's alley class: one lane each way, no divider.
+  added: road.sourceId === null, kind: road.width >= 20 ? "arterial" : road.width <= 10 ? "alley" : road.width <= 14 ? "local" : "collector",
   points: road.points.map(([x, z]) => ({ x: x!, z: z!, y: seattleHeight(x!, z!), width: road.width,
     zone: z! > 250 ? "freight" : x! < -270 ? "waterfront" : "old-quarter" })),
 }));

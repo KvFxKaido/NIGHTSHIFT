@@ -40,7 +40,22 @@ test("expanded connected streets enclose at least ten square kilometres without 
 
 test("expansion preserves released southwest roads, plots and their grades", () => {
   assert.deepEqual(SEATTLE_DATA.roads.slice(0,released.roads.length),released.roads);
-  assert.deepEqual(SEATTLE_DATA.buildings.slice(0,released.buildings.length),released.buildings);
+  // Released plots keep their identities and order; the only ones allowed to
+  // go are those an authored alley cuts through (assets/maps/seattle/alleys.json).
+  const alleyCorridors=SEATTLE_DATA.roads.filter(r=>r.id.startsWith("sea-alley-")).map(r=>({points:r.points,reach:r.width/2+2.8}));
+  // The builder drops a pinned plot whose box meets the alley's carriageway
+  // plus pavement; the same test, with the centreline sampled every 0.25 m.
+  const nearAlley=(b:{x:number;z:number;width:number;depth:number})=>alleyCorridors.some(({points,reach})=>points.slice(1).some((q,i)=>{
+    const p=points[i]!,dx=q[0]!-p[0]!,dz=q[1]!-p[1]!,steps=Math.ceil(Math.hypot(dx,dz)/0.25);
+    for(let s=0;s<=steps;s++){
+      const px=p[0]!+dx*s/steps,pz=p[1]!+dz*s/steps;
+      if(Math.hypot(Math.max(0,Math.abs(px-b.x)-b.width/2),Math.max(0,Math.abs(pz-b.z)-b.depth/2))<reach)return true;
+    }
+    return false;
+  }));
+  const kept=released.buildings.filter(b=>!nearAlley(b));
+  assert.ok(released.buildings.length-kept.length<=4,`${released.buildings.length-kept.length} released plots displaced by alleys`);
+  assert.deepEqual(SEATTLE_DATA.buildings.slice(0,kept.length),kept);
   const smooth=(t:number)=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
   for(const road of released.roads)for(const [x,z] of road.points) {
     assert.equal(seattleHeight(x!,z!),2+34*smooth((x!+50)/640)*smooth((330-z!)/500));

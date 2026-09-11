@@ -242,6 +242,39 @@ saves time and costs width — are what turn free legs into priced ones, and
 the report will show the count move. Traffic is not scored yet; it is
 seeded uniformly per lane length.
 
+### Alleys, where the draw runs out of priced legs (2026-09-11)
+
+The generator's draw, not the leg table, says where a cut-through matters:
+for every junction and every way of arriving at it, what the generator
+could draw next (in range, ahead by the flow rule, not a hairpin) by class,
+weighted by how often 300 seeds actually arrive there. Measured on the
+318-edge map: 71 of 625 arrivals had nothing priced or even ahead, and 382
+of 1167 draws were made at one — 300 of them the first leg of every race,
+because from the grid the run up 1st Ave S has no alternative within 40% at
+all (Holgate to Harbor Access is 680 m without a cross street). The next
+were S Jackson St & 4th Ave S northbound (27) and Broad St & 5th Ave N (7).
+
+`pnpm seattle:critique --try=x1,z1,x2,z2[,width]` scores an alley between
+the two junctions nearest those points: the arrivals at either end by class
+before and after, and the draw over 300 seeds. Seven candidates were scored.
+The SoDo diagonal from Harbor Way & 1st Ave S to S Holgate St & 4th Ave S
+took draws at a dead spot from 382 to 59 of ~1180, the priced-or-even share
+of the draw from 48% to 62%, and first legs with a choice from 0 to 196 of
+300, displacing two warehouse plots. The downtown diagonal from 4th & Madison
+to Union & 2nd fixed its own corner (the northbound 4th Ave arrival from 1
+priced leg to 12) but moved nothing globally and created a dead spot at 1st &
+Union; a Pioneer Square cut and a second SoDo diagonal added nothing either.
+One alley was drawn: **Freight Cut**, 255 m, 8 m wide, one lane each way, in
+`assets/maps/seattle/alleys.json`. Alleys are noded only among themselves and
+join the grid at existing junctions, with their own id prefix (`sea-alley-`)
+so the extension's ids stay put; the builder drops the pinned plots an alley
+cuts through, and the released-plot pin allows exactly that. The lane model's
+alley class carries it (`kind` from width ≤ 10 m). `tests/alleys.test.ts`
+holds the geometry, the before-and-after at the grid, the draw over 60 seeds,
+and the rival driving a generated race through it in traffic. What remains:
+Harbor Access & 1st Ave S northbound (21 of the 59), which is the same SoDo
+funnel one junction on, and would need a released street split mid-block.
+
 ## Generated races
 
 The flash draws a new race every time. `src/sim/race-generator.ts` takes the

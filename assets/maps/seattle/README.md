@@ -20,7 +20,7 @@ python -m pip install --target artifacts/map-tools shapely==2.1.2
 python scripts/build-seattle.py
 ```
 
-The current builder reproduces from the pinned released slice and authored hill layout below. `node scripts/fetch-seattle.mjs` refreshes the historical original GIS extract only; it does not rewrite the pinned slice. The builder needs Python and Shapely only during regeneration. Normal `pnpm dev` and `pnpm build` use the checked-in `src/sim/seattle-data.json` and do not need Python or external GIS access.
+The current builder reproduces from the pinned released slice, the authored hill layout below, and `alleys.json` — authored cut-throughs between two existing junctions, placed where the race generator's draw runs out of priced legs (`pnpm seattle:critique --try=x1,z1,x2,z2` scores one; see `design/SEATTLE.md`). `node scripts/fetch-seattle.mjs` refreshes the historical original GIS extract only; it does not rewrite the pinned slice. The builder needs Python and Shapely only during regeneration. Normal `pnpm dev` and `pnpm build` use the checked-in `src/sim/seattle-data.json` and do not need Python or external GIS access.
 
 The generator selects a connected subset, rounds coordinates, compresses east/west distances to 58% and north/south to 50%, widens streets, and adds fictional Harbor Way and three access connections. All crossings in this slice are treated as at-grade. Street names/source IDs on merged edges identify a representative source segment; they are not cadastral provenance for every vertex. Buildings, grades, pavement, port props, and racing checkpoints are authored game content.
 
