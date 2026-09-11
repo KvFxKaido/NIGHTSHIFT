@@ -1,7 +1,7 @@
 import type { VehicleState } from "./sim.ts";
 
 /** Waiting in the inner northbound lane of 1st Avenue S, beside Wharf Garage. */
-export const SEATTLE_ENCOUNTER = { x: -6, y: 2, z: 875, heading: 0, pitch: 0 };
+export const ALDER_ENCOUNTER = { x: -6, y: 2, z: 875, heading: 0, pitch: 0 };
 
 /** Challenge from nearby at cruising speed; vertical separation prevents bridge triggers. */
 export function canChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed">,

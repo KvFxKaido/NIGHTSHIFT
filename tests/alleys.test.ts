@@ -2,22 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step } from "../src/sim/sim.ts";
-import { SEATTLE_STREETS, SEATTLE_BLOCKS, seattleRouting, seattleGeneratedRace, createSeattleWorld, projectOntoSeattle,
-  seattleHeight } from "../src/sim/seattle.ts";
+import { ALDER_STREETS, ALDER_BLOCKS, alderRouting, alderGeneratedRace, createAlderWorld, projectOntoAlder,
+  alderHeight } from "../src/sim/alder.ts";
 import { GENERATOR, generateRace, startApproach, nodePosition, degreesBetween } from "../src/sim/race-generator.ts";
 import { buildRoutingGraph, route, measureLeg, type RoutingGraph, type LegClass } from "../src/sim/route-choice.ts";
 import { segmentFootprintDistance } from "../src/sim/building-footprint.ts";
-import alleys from "../assets/maps/seattle/alleys.json" with { type: "json" };
+import alleys from "../assets/maps/alder/alleys.json" with { type: "json" };
 await RAPIER.init();
 
 // Authored alleys are placed where the generator's draw runs out of priced
 // legs ahead. The first, Freight Cut, exists because every generated race
 // began at a dead spot: from the grid the run up 1st Ave S had no alternative.
 
-const graph = seattleRouting();
-const authored = SEATTLE_STREETS.filter(s => s.id.startsWith("sea-alley-"));
-const world = createSeattleWorld(true);
-const approach = startApproach(SEATTLE_STREETS, world.start);
+const graph = alderRouting();
+const authored = ALDER_STREETS.filter(s => s.id.startsWith("sea-alley-"));
+const world = createAlderWorld(true);
+const approach = startApproach(ALDER_STREETS, world.start);
 const crosses = (p: { x: number; z: number }, q: { x: number; z: number }, r: { x: number; z: number }, s: { x: number; z: number }) => {
   const d = (q.x - p.x) * (s.z - r.z) - (q.z - p.z) * (s.x - r.x);
   if (Math.abs(d) < 1e-9) return false;
@@ -45,15 +45,15 @@ test("every authored alley is an 8 m alley between two existing junctions that c
     assert.equal(alley.kind, "alley");
     assert.equal(alley.points[0]!.width, 8);
     for (const end of [alley.from, alley.to]) {
-      assert.ok(SEATTLE_STREETS.some(s => s.id !== alley.id && (s.from === end || s.to === end)), `${alley.name} ends at ${end}, which joins no other street`);
+      assert.ok(ALDER_STREETS.some(s => s.id !== alley.id && (s.from === end || s.to === end)), `${alley.name} ends at ${end}, which joins no other street`);
       assert.ok((graph.degree.get(end) ?? 0) >= 3, `${alley.name}'s end at ${graph.nodeName(end)} is not a junction`);
     }
     const a = alley.points[0]!, b = alley.points[alley.points.length - 1]!;
-    for (const s of SEATTLE_STREETS) {
+    for (const s of ALDER_STREETS) {
       if (s.id === alley.id) continue;
       for (let i = 1; i < s.points.length; i++) assert.ok(!crosses(a, b, s.points[i - 1]!, s.points[i]!), `${alley.name} crosses ${s.name} mid-block`);
     }
-    for (const block of SEATTLE_BLOCKS) {
+    for (const block of ALDER_BLOCKS) {
       assert.ok(segmentFootprintDistance(block, a, b) >= 8 / 2 + 2.8 - 1e-6, `a building stands in ${alley.name} at (${block.x}, ${block.z})`);
     }
     const m = graph.measures.get(alley.id)!;
@@ -62,7 +62,7 @@ test("every authored alley is an 8 m alley between two existing junctions that c
 });
 
 test("Freight Cut gives the start a choice: priced or even legs ahead from the grid, where there were none", () => {
-  const without = buildRoutingGraph(SEATTLE_STREETS.filter(s => !s.id.startsWith("sea-alley-")), seattleHeight, SEATTLE_BLOCKS);
+  const without = buildRoutingGraph(ALDER_STREETS.filter(s => !s.id.startsWith("sea-alley-")), alderHeight, ALDER_BLOCKS);
   // Measured on the map before the alley: 0 priced, 0 even. Without the alley
   // but with its two displaced plots gone, one leg reads even; still no priced.
   const before = ahead(without, approach.node, approach.arriving), after = ahead(graph, approach.node, approach.arriving);
@@ -94,9 +94,9 @@ test("the draw over 60 seeds: most first legs have a choice, and few draws are m
 });
 
 test("the rival drives a generated race through Freight Cut to the finish in traffic", () => {
-  let chosen: ReturnType<typeof seattleGeneratedRace> | null = null, seed = 0;
+  let chosen: ReturnType<typeof alderGeneratedRace> | null = null, seed = 0;
   for (seed = 1; seed <= 30 && !chosen; seed++) {
-    const candidate = seattleGeneratedRace(seed);
+    const candidate = alderGeneratedRace(seed);
     if (candidate.generated.legs.some(leg => leg.via.some(d => d.id === "sea-alley-0"))) chosen = candidate;
   }
   assert.ok(chosen, "no seed in 30 uses Freight Cut");
@@ -109,7 +109,7 @@ test("the rival drives a generated race through Freight Cut to the finish in tra
     for (let tick = 0; tick < 18000 && !sim.state.rival!.race.finished; tick++) {
       step(sim, parked);
       const car = sim.state.rival!.vehicle;
-      furthest = Math.max(furthest, projectOntoSeattle(car.x, car.z).distance);
+      furthest = Math.max(furthest, projectOntoAlder(car.x, car.z).distance);
       nearestToAlley = Math.min(nearestToAlley, Math.hypot(car.x - mid.x, car.z - mid.z));
     }
     const state = sim.state.rival!;

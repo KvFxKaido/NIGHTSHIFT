@@ -44,7 +44,7 @@ export function createSavesPanel(store: ReturnType<typeof createSaveStore>, snap
         button.onclick = () => {
           if (mode === "load") { load(id); return; }
           selected = id; expectedTimestamp = save?.savedAt;
-          editor.hidden = false; name.value = save?.name ?? `Seattle nights ${i + 1}`;
+          editor.hidden = false; name.value = save?.name ?? `Port Alder nights ${i + 1}`;
           root.querySelector<HTMLElement>("[data-save-confirmation]")!.textContent = save
             ? `Replace “${save.name}” with your current car and location?` : "Create a saved game in this slot.";
           write.textContent = save ? "Replace save" : "Save game";

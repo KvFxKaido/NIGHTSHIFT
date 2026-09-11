@@ -1,10 +1,10 @@
 # Blackglass / Rivergate Blender workshop
 
 **Offline asset workshop / regression fixture.** Blackglass was retired from
-the playable demo on 2026-09-10. Seattle uses its own geometry; see
-[Seattle authoring](../../../design/SEATTLE.md) and the
+the playable demo on 2026-09-10. Port Alder uses its own geometry; see
+[Port Alder authoring](../../../design/PORT_ALDER.md) and the
 [building workshop](../../../design/EDITOR.md). Editing this asset does not
-change Seattle.
+change Port Alder.
 
 First authored environment slice: the existing tunnel and bridge, not a new
 route. Road position, elevation, width, barriers, tyre forces and replay remain
@@ -62,7 +62,7 @@ grid geometry. Source created with the installed Blender 5.3 Alpha.
 
 Run `pnpm test` and `pnpm build` after export. The asset tests inspect the
 archived GLB, route stamp/anchors, budgets, guide exclusion, and road
-clearance. These tests protect the asset reference; they do not validate Seattle scenery.
+clearance. These tests protect the asset reference; they do not validate Port Alder scenery.
 
 Lighting is hybrid: authored emissive lenses, runtime pooled point lights and
 the existing city/moon lighting. No final light bake, LOD set or new sky/water

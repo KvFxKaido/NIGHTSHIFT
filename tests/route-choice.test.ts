@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { sightDistance, blindness, routeRisk, SIGHT_CLEAR, buildRoutingGraph, route } from "../src/sim/route-choice.ts";
-import { seattleRouting, SEATTLE_STREETS, SEATTLE_GARAGE, seattleHeight } from "../src/sim/seattle.ts";
-import released from "../assets/maps/seattle/belltown-slice.json" with { type: "json" };
+import { alderRouting, ALDER_STREETS, ALDER_GARAGE, alderHeight } from "../src/sim/alder.ts";
+import released from "../assets/maps/alder/belltown-slice.json" with { type: "json" };
 
 // Blind corners are sight distances: how far before a corner a driver first
 // sees down the other arm past what stands on the inside. Measured at bends
@@ -36,10 +36,10 @@ test("blindness is 1 − sight / clear, floored at nothing and capped at everyth
   assert.equal(blindness(0), 1);
 });
 
-test("on released southwest Seattle the blindest approach remains Yesler at 1st, and dozens are inside the clear distance", () => {
+test("on released southwest Port Alder the blindest approach remains Yesler at 1st, and dozens are inside the clear distance", () => {
   // This measured distribution describes v3, not every future city expansion.
-  const graph = buildRoutingGraph(SEATTLE_STREETS.slice(0,released.roads.length),seattleHeight,
-    [...released.buildings,SEATTLE_GARAGE.building]);
+  const graph = buildRoutingGraph(ALDER_STREETS.slice(0,released.roads.length),alderHeight,
+    [...released.buildings,ALDER_GARAGE.building]);
   const approaches = graph.drives;
   const nearest = Math.min(...approaches.map(d => d.sight));
   assert.ok(nearest > 20 && nearest < 30, `nearest sight ${nearest.toFixed(1)} m`);
@@ -54,7 +54,7 @@ test("on released southwest Seattle the blindest approach remains Yesler at 1st,
 });
 
 test("cached all-destination routing preserves target-stopped paths and turn costs", () => {
-  const graph = seattleRouting();
+  const graph = alderRouting();
   for (const from of [graph.nodes[0]!,graph.nodes[Math.floor(graph.nodes.length/2)]!,graph.nodes.at(-1)!]) {
     for (const to of graph.nodes) {
       // A nonexistent closure forces the uncached target-stopped search while
@@ -65,7 +65,7 @@ test("cached all-destination routing preserves target-stopped paths and turn cos
 });
 
 test("a blind approach raises the risk of the route that takes it, and an open one does not", () => {
-  const graph = seattleRouting();
+  const graph = alderRouting();
   let raised = 0;
   for (const d of graph.drives) {
     const street = graph.measures.get(d.id)!.risk, route = routeRisk(graph, [d]);

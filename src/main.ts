@@ -2,9 +2,9 @@ import { createGameMap } from "./ui/game-map.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
-import { SEATTLE_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
+import { ALDER_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
-import { SEATTLE_RIVAL } from "./sim/seattle-rival.ts";
+import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
 import { PAD_LABELS, keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -19,10 +19,10 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setView
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createSeattleWorld, SEATTLE_DATA, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace } from "./sim/seattle.ts";
+import { createAlderWorld, ALDER_DATA, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, alderGeneratedRace } from "./sim/alder.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
-import { addSeattle } from "./render/seattle.ts";
+import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
@@ -62,21 +62,22 @@ try {
     for (const key of ["race", "car", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit"]) params.delete(key);
     if (!loadedSave) { params.delete("save"); params.delete("scene"); }
   }
-  // Old bookmarks now enter the Seattle demo; incompatible routes are retired.
-  if (params.has("world") && params.get("world") !== "seattle") params.delete("race");
+  // Old bookmarks now enter the Port Alder demo; incompatible routes are retired.
+  // "seattle" is this city's old name; links carrying it are ours, not another world's.
+  if (params.has("world") && !["alder", "seattle"].includes(params.get("world")!)) params.delete("race");
   if (params.get("race") === "crane-to-crest") params.delete("race");
-  params.set("world", "seattle");
+  params.set("world", "alder");
   params.delete("route"); params.delete("environment"); params.delete("rival");
   history.replaceState(history.state, "", url);
   const raceId = params.get("race");
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})$/.exec(raceId) : null;
-  if (raceId && !generated && raceId !== SEATTLE_RACE.id) throw new Error(`Unknown race '${raceId}'`);
+  if (raceId && !generated && raceId !== ALDER_RACE.id) throw new Error(`Unknown race '${raceId}'`);
   if (generated) {
-    const drawn = seattleGeneratedRace(Number(generated[1]));
+    const drawn = alderGeneratedRace(Number(generated[1]));
     race = drawn.race; rival = drawn.rival;
-  } else if (raceId) { race = SEATTLE_RACE; rival = SEATTLE_RIVAL; }
+  } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
@@ -102,17 +103,17 @@ try {
 const input = createInputController();
 if (loadedSave) settings.update(loadedSave.build);
 const controls = createControlsPanel(input);
-const roadWorld = createSeattleWorld(!!race);
-let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, SEATTLE_DATA.bounds) : null;
+const roadWorld = createAlderWorld(!!race);
+let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: SEATTLE_ENCOUNTER });
+const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: ALDER_ENCOUNTER });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
-  roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
+  roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 if (rivalParts) setRivalCar(view, rivalParts);
-document.body.dataset.world = "seattle";
-document.title = "NIGHTSHIFT — Seattle";
-document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / SEATTLE";
-document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Seattle / Sound to Sky" : "Seattle / Free roam";
+document.body.dataset.world = "alder";
+document.title = "NIGHTSHIFT — Port Alder";
+document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / PORT ALDER";
+document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Port Alder / Sound to Sky" : "Port Alder / Free roam";
 document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : "Return to garage";
 const gameMap = createGameMap(sim);
 document.body.dataset.assetState = "ready";
@@ -120,8 +121,8 @@ assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
-const hudPolylines: HudPolyline[] = SEATTLE_STREETS.map(street => ({ points: street.points }));
-const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: SEATTLE_GARAGE.entrance });
+const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
+const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
 
@@ -305,7 +306,7 @@ for (const event of ["pointerdown", "keydown"] as const) {
 }
 
 const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
-const garageAvailable = () => canEnterGarage(SEATTLE_GARAGE, sim.state.vehicle, sim.state.race !== null);
+const garageAvailable = () => canEnterGarage(ALDER_GARAGE, sim.state.vehicle, sim.state.race !== null);
 garagePrompt.addEventListener("click", () => {
   if (menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
 });

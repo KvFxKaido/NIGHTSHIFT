@@ -1,5 +1,5 @@
-import { SEATTLE_DATA, SEATTLE_STREETS, SEATTLE_BLOCKS, SEATTLE_GARAGE } from "../sim/seattle.ts";
-import landmarks from "../sim/seattle-landmarks.json" with { type: "json" };
+import { ALDER_DATA, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE } from "../sim/alder.ts";
+import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 import type { Sim } from "../sim/sim.ts";
 import { keyLabel, PAD_LABELS, type Bindings } from "../input/bindings.ts";
 
@@ -15,24 +15,24 @@ export function createGameMap(sim: Sim) {
     if (text) node.textContent=text;
     parent.append(node); return node;
   }
-  for (const park of SEATTLE_DATA.parks) {
+  for (const park of ALDER_DATA.parks) {
     const [x,z,right,bottom]=park.bounds as [number,number,number,number];
     shape(svg,"rect",{x,y:z,width:right-x,height:bottom-z,fill:"#365744",opacity:.7});
   }
-  for (const b of SEATTLE_BLOCKS) shape(svg,"rect",{x:b.x-b.width/2,y:b.z-b.depth/2,width:b.width,height:b.depth,
+  for (const b of ALDER_BLOCKS) shape(svg,"rect",{x:b.x-b.width/2,y:b.z-b.depth/2,width:b.width,height:b.depth,
     transform:`rotate(${b.rotation*180/Math.PI} ${b.x} ${b.z})`,fill:"#456068",opacity:.55});
-  for (const street of SEATTLE_STREETS) {
+  for (const street of ALDER_STREETS) {
     const path=shape(svg,"polyline",{points:street.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
       stroke:street.added?"#bca879":"#66858e","stroke-width":street.points[0]!.width,"stroke-linejoin":"round"});
     shape(path,"title",{},street.name);
   }
-  const garage=SEATTLE_GARAGE.entrance, needle=landmarks.needle;
-  for (const area of SEATTLE_DATA.neighborhoods) shape(svg,"text",{x:area.x,y:area.z,"font-size":30,fill:"#b9bda9","text-anchor":"middle"},area.name);
+  const garage=ALDER_GARAGE.entrance, needle=landmarks.needle;
+  for (const area of ALDER_DATA.neighborhoods) shape(svg,"text",{x:area.x,y:area.z,"font-size":30,fill:"#b9bda9","text-anchor":"middle"},area.name);
   shape(svg,"text",{x:garage.x,y:garage.z+10,fill:"#69e5bd","font-size":40,"text-anchor":"middle"},"G");
   shape(svg,"circle",{cx:needle.x,cy:needle.z,r:16,fill:"#b6c9ff"});
-  shape(svg,"text",{x:needle.x+25,y:needle.z+8,fill:"#c9d5ff","font-size":28},"Space Needle");
+  shape(svg,"text",{x:needle.x+25,y:needle.z+8,fill:"#c9d5ff","font-size":28},"Needle");
   const markers=shape(svg,"g",{"data-map-markers":""});
-  const [minX,minZ,maxX,maxZ]=SEATTLE_DATA.bounds as [number,number,number,number];
+  const [minX,minZ,maxX,maxZ]=ALDER_DATA.bounds as [number,number,number,number];
   let cx=(minX+maxX)/2, cz=(minZ+maxZ)/2, zoom=1;
   function view() {
     const w=(maxX-minX)/zoom, h=(maxZ-minZ)/zoom;
@@ -75,7 +75,7 @@ export function createGameMap(sim: Sim) {
     shape(markers,"path",{d:"M 0 -30 L 20 22 L 0 12 L -20 22 Z",fill:"#f4f7fa",stroke:"#162631","stroke-width":5,
       transform:`translate(${player.x} ${player.z}) rotate(${-player.heading*180/Math.PI})`,"data-map-player":""});
     status.textContent=sim.race&&progress?`${sim.race.name} · ${progress.finished?"Finished":`Gate ${Math.min(progress.checkpoint+1,sim.race.checkpoints.length)} / ${sim.race.checkpoints.length}`} · Paused`
-      :`Free roam · ${SEATTLE_DATA.roadHullKm2.toFixed(1)} km² Seattle · Paused`;
+      :`Free roam · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² Port Alder · Paused`;
     help.textContent=`${keyLabel(bindings.keyboard.map)} / ${PAD_LABELS[bindings.gamepad.map]} to close · Esc / B to go back · Drag to pan, scroll to zoom`;
   }};
 }

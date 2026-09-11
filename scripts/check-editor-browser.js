@@ -37,8 +37,8 @@ async page => {
       await game.goto('http://127.0.0.1:5173/?scene=track&freeze=1');
       await game.waitForFunction(()=>window.__ns&&document.body.dataset.assetState==='ready',null,{timeout:30000});
       const physics = await game.evaluate(async({id,height})=>{
-        const {SEATTLE_LAYOUT,SEATTLE_VERSION}=await import('/src/sim/seattle.ts');
-        const entry=SEATTLE_LAYOUT.entries.find(e=>e.id===id), block=entry?.block;
+        const {ALDER_LAYOUT,ALDER_VERSION}=await import('/src/sim/alder.ts');
+        const entry=ALDER_LAYOUT.entries.find(e=>e.id===id), block=entry?.block;
         if(!block)return {missing:true};
         __ns.sim.world.step();
         let hit=false;
@@ -46,7 +46,7 @@ async page => {
           if(Math.abs(c.translation().x-block.x)<1e-3&&Math.abs(c.translation().z-block.z)<1e-3)hit=true;
           return true;
         });
-        return {height:block.height,hit,version:SEATTLE_VERSION,source:entry.source};
+        return {height:block.height,hit,version:ALDER_VERSION,source:entry.source};
       },{id:authoredId,height:height+2});
       if(physics.height!==height+2||!physics.hit||physics.source!=='authored'||!physics.version.includes('-layout-'))throw Error('Saved editor state did not reach game physics: '+JSON.stringify(physics));
     } finally { await game.close(); }
@@ -72,7 +72,7 @@ async page => {
     if(!await page.locator('#save').isDisabled())throw Error('Scene round trip changed the saved layout');
 
     // Put a building in the road and confirm both UI and server refuse the save.
-    const point = await page.evaluate(async()=>{const{SEATTLE_STREETS}=await import('/src/sim/seattle.ts');return SEATTLE_STREETS[0].points[0];});
+    const point = await page.evaluate(async()=>{const{ALDER_STREETS}=await import('/src/sim/alder.ts');return ALDER_STREETS[0].points[0];});
     await page.locator('#x').fill(String(point.x)); await page.locator('#x').press('Tab');
     await page.locator('#z').fill(String(point.z)); await page.locator('#z').press('Tab');
     if(await page.locator('#validation').getAttribute('data-invalid')!=='true'||!await page.locator('#save').isDisabled())throw Error('Overlapping placement was accepted');

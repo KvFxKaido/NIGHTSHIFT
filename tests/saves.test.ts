@@ -50,7 +50,7 @@ test("malformed and unsupported slot payloads are rejected", () => {
 });
 test("loading a slot strips conflicting race, car and scripted-driving previews", () => {
   const url = new URL(loadSaveUrl("http://localhost:5173/?race=sound-to-sky&car=classic&drive=W600&freeze=1&drivetrain=awd", "slot-2"));
-  assert.equal(url.search, "?world=seattle&scene=track&save=slot-2");
+  assert.equal(url.search, "?world=alder&scene=track&save=slot-2");
 });
 test("safe saved locations retain heading; stale, out-of-bounds and blocked saves return to the garage", () => {
   const world = { ...BLACKGLASS_WORLD, id: "test-world", solids: [{ x: 200, z: 200, width: 30, depth: 10, height: 10, rotation: .5 }] };

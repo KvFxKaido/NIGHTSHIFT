@@ -1,6 +1,6 @@
 # NIGHTSHIFT
 
-**Status: Playable Seattle PC prototype — free roam, open checkpoints, garage and workshop.**
+**Status: Playable Port Alder PC prototype — free roam, open checkpoints, garage and workshop.**
 Working title: *Project Nightshift.*
 
 A compact arcade street racer: illegal nighttime racing, one car worth
@@ -17,7 +17,7 @@ This README covers what exists and the two laws the codebase is built on.
 ## Direction
 
 MC3 is the main inspiration: open racing, city knowledge and car ownership.
-“No unnecessary barriers, no wrong ways, just slower ways.” Seattle supplies
+“No unnecessary barriers, no wrong ways, just slower ways.” Port Alder supplies
 the street structure, adapted into a fictionalized racing city. Grow it from
 play feedback; MC3 San Diego informs the eventual feel of scale rather than
 an exact size requirement.
@@ -56,9 +56,9 @@ pnpm test       # deterministic simulation smoke tests
 pnpm build      # typecheck + production build
 ```
 
-The demo now opens in **Seattle**, a fictionalized, compressed city slice with
+The demo now opens in **Port Alder**, a fictionalized, compressed city slice with
 83.5 km of open streets and 12.6 km² inside the connected street network's outer boundary, Belltown,
-Seattle Center and its Space Needle landmark, Queen Anne and Capitol Hill climbs,
+Alder Center and its Needle landmark, Queen Anne and Capitol Hill climbs,
 the Central District, Madrona Ridge, parks, evergreen groves, traffic, and the
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
@@ -75,18 +75,18 @@ A rival waits on First Avenue S just north of Wharf Garage, marked red on the
 minimap. Approach at cruising speed and flash headlights with **F / X–Square**
 (remappable in Controls), or click the nearby prompt, to line up for Sound to Sky.
 The pause menu offers **Return to free roam** during a race.
-In-game replay and the recorded-input ghost remain removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
+In-game replay and the recorded-input ghost remain removed. See [`design/PORT_ALDER.md`](design/PORT_ALDER.md).
 
-**Seattle map** in the pause menu opens a map overlay without unloading
+**Port Alder map** in the pause menu opens a map overlay without unloading
 the drive. **M / Select–View–Share** toggles it during play (remappable in
 Controls). It pauses both racers and traffic, shows current positions and active
 race gates, and returns to the screen it was opened from. Drag/scroll to pan/zoom,
 or use the controller-accessible Find car, Whole city and zoom buttons.
-The standalone `/seattle.html` route board remains available. Its **Edit Seattle** link opens the
+The standalone `/alder.html` route board remains available. Its **Edit Port Alder** link opens the
 building workshop at `/editor.html`; validated placements are shared by the
 renderer and collision system. See [`design/EDITOR.md`](design/EDITOR.md).
 
-Seattle is the only playable demo map. Old Blackglass links redirect to it;
+Port Alder is the only playable demo map. Old Blackglass links redirect to it;
 Blackglass geometry and asset files remain offline regression fixtures and
 are excluded from the playable map/rendering bundle.
 
@@ -115,7 +115,7 @@ global preferences. Saved games use `nightshift.saves` in this browser, not clou
 storage; clearing site data removes them.
 
 Audio and remapping live under **Options**. Drivetrain selection lives in the
-**Garage**. Pause keeps Resume, Save game, Seattle map, Options, Main menu, and
+**Garage**. Pause keeps Resume, Save game, Port Alder map, Options, Main menu, and
 **Return to garage** (or **Restart race** / **Return to free roam** during a race).
 
 Settings use the versioned `nightshift.settings` localStorage entry. They are
@@ -135,7 +135,7 @@ the imported GLB; the original procedural car is still available at
 The archived Blackglass Blender course and
 [`track workshop guide`](assets/tracks/blackglass/README.md) remain developer
 references. Its GLB is in `assets/tracks/blackglass-rivergate.glb` and is not
-shipped in `public/` or loaded by Seattle.
+shipped in `public/` or loaded by Port Alder.
 
 Open **Options → Controls & remapping** from the main or pause menu for the driving guide and remapping.
 The guide is no longer overlaid while driving. Select a keyboard/controller binding,
@@ -155,7 +155,7 @@ inspection camera; R3/C resets the platform angle.
 Headless tests also measure road-surface clearance and exercise both a paced
 reference lap and a deliberately doomed throttle-pinned lap.
 The elevation profile is simulation-owned: the road, car, barriers, camera, and
-small uphill/downhill acceleration effect use the same Seattle height function.
+small uphill/downhill acceleration effect use the same Port Alder height function.
 Blackglass reference-lap tests remain offline regression coverage.
 
 ## Structure
@@ -168,7 +168,7 @@ NIGHTSHIFT/
 │   ├── sim/          # the game: deterministic, renderless, testable
 │   ├── input/        # physical controls → simulation actions
 │   ├── render/       # the picture: three.js, knows nothing else
-│   ├── editor/       # Seattle building placement and scene exchange
+│   ├── editor/       # Port Alder building placement and scene exchange
 │   └── main.ts       # wiring: input → fixed tick → render + input log
 ├── tests/             # headless deterministic simulation checks
 └── index.html
@@ -190,16 +190,16 @@ these exclusions when preparing a public source release.
 
 ## Production order
 
-GDD §20 records the phases and current checkpoint. Seattle driving, the
+GDD §20 records the phases and current checkpoint. Port Alder driving, the
 open-checkpoint event, garage and workshop are playable. Improve the city
 through driving feedback while preserving handling; career, upgrades and rival
 personalities remain future work. GDD §21 bounds the current slice and permits
-natural Seattle expansion. A later phone port is not a blocker for PC work.
+natural Port Alder expansion. A later phone port is not a blocker for PC work.
 
 ## Lineage
 
 Same garage as [SENTINEL](https://github.com/KvFxKaido/SENTINEL),
 different car: this game shares that project's engineering doctrine
 (sim/renderer separation, determinism as a test, replay-as-data) but not
-its universe. NIGHTSHIFT's current Seattle slice has street lighting, civilian
+its universe. NIGHTSHIFT's current Port Alder slice has street lighting, civilian
 traffic and Wharf Garage; it does not simulate businesses.

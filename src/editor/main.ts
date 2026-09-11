@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls, type TransformControlsMode } from "three/addons/controls/TransformControls.js";
-import { addSeattle } from "../render/seattle.ts";
-import seattleData from "../sim/seattle-data.json";
-import { SEATTLE_LAYOUT, GENERATED_SEATTLE_BLOCKS, SEATTLE_LAYOUT_BASELINE, GARAGE_PLOT_ID,
-  resolveSeattleLayout } from "../sim/seattle.ts";
+import { addAlder } from "../render/alder.ts";
+import alderData from "../sim/alder-data.json";
+import { ALDER_LAYOUT, GENERATED_ALDER_BLOCKS, ALDER_LAYOUT_BASELINE, GARAGE_PLOT_ID,
+  resolveAlderLayout } from "../sim/alder.ts";
 import { buildingId, parseAnyLayout, authoredFromId, authoredSourceId, AUTHORED_ID_PREFIX,
   type AuthoredLayout } from "../sim/building-layout.ts";
 import { placeBuilding, placementFromMesh, placementDiffers, layoutFromEditor, importEditorScene, exportEditorScene,
@@ -26,16 +26,16 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.6;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x25343d);
-scene.userData.nightshiftBaseline = SEATTLE_LAYOUT_BASELINE;
+scene.userData.nightshiftBaseline = ALDER_LAYOUT_BASELINE;
 scene.add(new THREE.HemisphereLight(0xe2f3ff, 0x81917f, 2.4));
 const sun = new THREE.DirectionalLight(0xfff1d9, 2.5);
 sun.position.set(180, 450, 100); scene.add(sun);
 
 const reference = new THREE.Scene();
-addSeattle(reference, "blockout");
+addAlder(reference, "blockout");
 // The editor draws one unit box per shared solid; environment meshes are reference only.
 for (const child of [...reference.children]) {
-  if (child.name === "seattle-buildings" || child.name === "district-garage") {
+  if (child.name === "alder-buildings" || child.name === "district-garage") {
     child.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
     reference.remove(child);
   }
@@ -51,7 +51,7 @@ type BuildingMesh = THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
 const buildings = new Map<string, BuildingMesh>();
 const hidden = new Set<string>();
 const box = new THREE.BoxGeometry(1, 1, 1);
-const originals = new Map(GENERATED_SEATTLE_BLOCKS.map(block => [buildingId(block), block]));
+const originals = new Map(GENERATED_ALDER_BLOCKS.map(block => [buildingId(block), block]));
 const isAuthored = (id: string) => id.startsWith(AUTHORED_ID_PREFIX);
 function addMesh(id: string, name: string): BuildingMesh {
   const mesh: BuildingMesh = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ color: COLOUR.generated, roughness: 0.9 }));
@@ -60,7 +60,7 @@ function addMesh(id: string, name: string): BuildingMesh {
   buildings.set(id, mesh); scene.add(mesh);
   return mesh;
 }
-GENERATED_SEATTLE_BLOCKS.forEach((block, index) => {
+GENERATED_ALDER_BLOCKS.forEach((block, index) => {
   const id = buildingId(block);
   placeBuilding(addMesh(id, id === GARAGE_PLOT_ID ? "Wharf Garage — fixed" : `Building ${String(index + 1).padStart(3, "0")}`), block);
 });
@@ -134,7 +134,7 @@ function validate(): void {
   let displaced = 0;
   const layout = documentValue();
   try {
-    const resolved = resolveSeattleLayout(layout);
+    const resolved = resolveAlderLayout(layout);
     issues = resolved.issues; displaced = resolved.displaced.length;
   } catch (error) { issues = [String((error as Error).message)]; }
   const flagged = new Set(issues.map(issue => meshIdFor(issue.slice(0, Math.max(0, issue.indexOf(": "))))));
@@ -254,7 +254,7 @@ undoButton.onclick = () => { const previous = undo.pop(); if (previous) { redo.p
 redoButton.onclick = () => { const next = redo.pop(); if (next) { undo.push(committed); applyLayout(JSON.parse(next)); committed = next; status.textContent = "Redone. Save to apply this draft."; buttons(); } };
 element("focus").onclick = () => focus(); element("top").onclick = () => focus(true);
 element("overview").onclick = () => {
-  const [minX, minZ, maxX, maxZ] = seattleData.bounds as [number, number, number, number];
+  const [minX, minZ, maxX, maxZ] = alderData.bounds as [number, number, number, number];
   const reach = Math.max(maxZ - minZ, (maxX - minX) / camera.aspect)
     / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.15;
   orbit.target.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
@@ -318,7 +318,7 @@ element("reload-saved").onclick = async () => {
     const response = await fetch("/__editor/layout");
     if (!response.ok) throw new Error("Saved placements are available through the local dev server");
     const result = await response.json();
-    applyLayout(parseAnyLayout(result.layout, SEATTLE_LAYOUT_BASELINE)); checkpoint();
+    applyLayout(parseAnyLayout(result.layout, ALDER_LAYOUT_BASELINE)); checkpoint();
     saved = serialized(); revision = result.revision; buttons();
     status.textContent = "Loaded saved placements. Undo restores your previous draft.";
   } catch (error) { status.textContent = String((error as Error).message); }
@@ -327,7 +327,7 @@ element("export-scene").onclick = () => {
   // Export only the world, with neither editor controls nor executable scripts,
   // and without deleted buildings: a box that is missing from a scene is deleted.
   const exported = new THREE.Scene(); exported.name = "NIGHTSHIFT district";
-  exported.background = scene.background; exported.userData.nightshiftBaseline = SEATTLE_LAYOUT_BASELINE;
+  exported.background = scene.background; exported.userData.nightshiftBaseline = ALDER_LAYOUT_BASELINE;
   for (const child of scene.children) {
     if (child === selectionBox || child === transform.getHelper()) continue;
     if (typeof child.userData.nightshiftBuildingId === "string" && hidden.has(child.userData.nightshiftBuildingId)) continue;
@@ -341,14 +341,14 @@ element<HTMLInputElement>("import-file").onchange = async event => {
   try {
     if (file.size > 128_000_000) throw new Error("Choose a scene smaller than 128 MB");
     const value = JSON.parse(await file.text());
-    const layout = value.schema === 1 || value.schema === 2 ? parseAnyLayout(value, SEATTLE_LAYOUT_BASELINE) : importEditorScene(value);
+    const layout = value.schema === 1 || value.schema === 2 ? parseAnyLayout(value, ALDER_LAYOUT_BASELINE) : importEditorScene(value);
     applyLayout(layout); checkpoint();
     status.textContent = `Imported as a draft: ${layout.authored.length} authored, ${layout.retired.length} retired. Review placement checks, then save to the project.`;
   } catch (error) { status.textContent = String((error as Error).message); }
   input.value = "";
 };
 
-applyLayout(SEATTLE_LAYOUT.layout);
+applyLayout(ALDER_LAYOUT.layout);
 const initial = visibleIds().filter(id => id !== GARAGE_PLOT_ID && originals.has(id)).sort((a, b) => {
   const garage = originals.get(GARAGE_PLOT_ID)!;
   const distance = (id: string) => Math.hypot(originals.get(id)!.x - garage.x, originals.get(id)!.z - garage.z);
@@ -359,7 +359,7 @@ try {
   const response = await fetch("/__editor/layout");
   if (!response.ok) throw new Error("no save endpoint");
   const result = await response.json();
-  applyLayout(parseAnyLayout(result.layout, SEATTLE_LAYOUT_BASELINE)); committed = saved = serialized(); revision = result.revision;
+  applyLayout(parseAnyLayout(result.layout, ALDER_LAYOUT_BASELINE)); committed = saved = serialized(); revision = result.revision;
   status.textContent = "Edits save into the project and are shared by rendering and collision.";
 } catch { status.textContent = "Preview mode. Export a backup, or use pnpm dev locally to save into the project."; }
 buttons();

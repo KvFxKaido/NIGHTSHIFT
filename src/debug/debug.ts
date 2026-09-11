@@ -228,7 +228,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       rival: sim.state.rival ? { model: view.rivalCar?.car.userData.model,
         vehicle: sim.state.rival.vehicle, race: sim.state.rival.race,
         driver: sim.state.rival.driver, input: sim.state.rival.input } : null,
-      environment: "seattle",
+      environment: "alder",
       roadWorld: sim.roadWorld.id,
       // pick() takes these coordinates. A screenshot is often scaled from them.
       viewport: { width: Math.round(rect.width), height: Math.round(rect.height) },
@@ -290,7 +290,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     const world = url.searchParams.get("world"), route = url.searchParams.get("route");
     const race = url.searchParams.get("race"), lighting = url.searchParams.get("lighting");
     url.search = "";
-    if (world === "district" || world === "seattle" || world === "blackglass") {
+    if (world === "district" || world === "alder" || world === "seattle" || world === "blackglass") {
       url.searchParams.set("world", world);
       if (route && world === "district") url.searchParams.set("route", route);
     }

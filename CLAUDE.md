@@ -39,7 +39,7 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1.
   exact thing that would fail if the assertion were false. Inspecting
   code, narrating arithmetic, or grepping for the convenient form of a
   pattern is a claim wearing verification's clothes.
-- **Respect the current slice boundaries** (GDD §21). Seattle may grow
+- **Respect the current slice boundaries** (GDD §21). Port Alder may grow
   naturally from driving feedback. Police and other selective LA ideas are
   deferred possibilities, not permanently prohibited or already authorized
   implementation tasks. Do not restore a second playable map or expand the
@@ -53,25 +53,29 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1.
 
 ## Product direction (2026-09-10)
 
-Seattle v4 (September 11): the authorized at-least-10-km² expansion has a
+Port Alder v4 (September 11): the authorized at-least-10-km² expansion has a
 12.6 km² convex hull of street centerlines, excluding terrain padding and bay.
-The released SoDo/Belltown/Seattle Center roads and plots are pinned in
-`assets/maps/seattle/belltown-slice.json`; `east-hills-layout.json` authors
+The released SoDo/Belltown/Alder Center roads and plots are pinned in
+`assets/maps/alder/belltown-slice.json`; `east-hills-layout.json` authors
 Queen Anne, Capitol Hill, Central District and Madrona Ridge. These new areas
 are fictional adaptations, not surveyed Seattle. Shared smooth hill parameters
-live in `src/sim/seattle-terrain.json`. Preserve the southwest driving geometry.
+live in `src/sim/alder-terrain.json`. Preserve the southwest driving geometry.
 The runtime generator measures feasible legs lazily; `legTable` is for offline
-all-pairs critique. See `design/SEATTLE.md` for regeneration and area definitions.
+all-pairs critique. See `design/PORT_ALDER.md` for regeneration and area definitions.
 
 - MC3 spiritual successor, with selective LA ideas possible later.
 - Open racing: no unnecessary barriers, no wrong-way penalties, just slower
   alternatives between ordered checkpoints. Real obstacles retain collision.
-- Seattle is the sole demo map; grow it organically. MC3 San Diego is a scale
-  reference, not a demand for another city or a fixed area.
+- Port Alder is the sole demo map; grow it organically. MC3 San Diego is a scale
+  reference, not a demand for another city or a fixed area. It was Seattle
+  until 2026-09-11: the map is adapted from Seattle centerlines and keeps the
+  borrowed street names, but the city is its own place now. Code handle
+  `alder`, display name Port Alder; `seattle.html` and `?world=seattle` still
+  resolve here. "Seattle" in the docs means the real city the data came from.
 - Treat the current area as the southwest corner of the eventual map. Future
   additions should be more compact where practical, favoring shorter blocks,
   varied streets and connected routes to the north/east. Preserve the current
-  long-road area; see `design/SEATTLE.md` for the September 11 direction.
+  long-road area; see `design/PORT_ALDER.md` for the September 11 direction.
 - Graphics resemble upscaled/emulated MC3 rather than photorealism.
 - Preserve the current handling in Three.js/Rapier. Build the PC prototype
   first; RedMagic 10 Pro is the eventual device, with port/testing later.
@@ -84,12 +88,12 @@ all-pairs critique. See `design/SEATTLE.md` for regeneration and area definition
 
 ## Current state
 
-Seattle is now the only playable demo map and the default at `/`. The user
+Port Alder is now the only playable demo map and the default at `/`. The user
 explicitly retired the Blackglass map on September 10, 2026. Old world links
-migrate to Seattle; `district.html` redirects to the Seattle map board.
-Read `design/SEATTLE.md` for source geometry, regeneration and scope.
+migrate to Port Alder; `district.html` redirects to the Port Alder map board.
+Read `design/PORT_ALDER.md` for source geometry, regeneration and scope.
 
-`pnpm seattle:critique` is the measuring stick for route choice, and the
+`pnpm alder:critique` is the measuring stick for route choice, and the
 material a race generator would draw from. The rule the map is held to is
 "every shortcut has a cost": between two gates the faster way should be the
 riskier way, or it is just a shorter road. The script scores risk per street
@@ -123,10 +127,10 @@ asserts nothing; `--json` is for agents. Run it before and after authoring.
 generator's draw, measured per junction and arrival, said 382 of 1167 draws
 over 300 seeds were made where nothing priced or even lay ahead, 300 of them
 the first leg of every race (the run up 1st Ave S has no alternative). `pnpm
-seattle:critique --try=x1,z1,x2,z2[,width]` scores an alley between the two
+alder:critique --try=x1,z1,x2,z2[,width]` scores an alley between the two
 junctions nearest those points — arrivals at each end by class before and
 after, and the draw over 300 seeds. One alley, Freight Cut (255 m, 8 m,
-Harbor Way & 1st to Holgate & 4th, `assets/maps/seattle/alleys.json`), took
+Harbor Way & 1st to Holgate & 4th, `assets/maps/alder/alleys.json`), took
 dead draws to 59 and the priced-or-even share from 48% to 62%; the downtown
 and Pioneer Square candidates moved nothing globally and were not drawn.
 Alleys are noded only among themselves, join the grid at existing junctions,
@@ -175,9 +179,9 @@ enter; the garage camera is fixed and right stick rotates the platform/car.
 Races keep their separate street start and cannot enter the garage. The
 handling model and tuning are unchanged.
 
-The visual building workshop at `editor.html` now edits Seattle. Read
+The visual building workshop at `editor.html` now edits Port Alder. Read
 `design/EDITOR.md` before changing save behavior. Validated saves go to
-`src/sim/seattle-layout.json`; rendering and Rapier share the resolved solids.
+`src/sim/alder-layout.json`; rendering and Rapier share the resolved solids.
 Roads, Wharf Garage and its forecourt are protected. Three.js scene export
 and import remain supported. **Authored plots are their own list**
 (2026-09-11, schema 2): `authored` buildings in world coordinates with their
@@ -461,7 +465,7 @@ shows gate, countdown/clock/finish and position at top centre and draws the
 next gate on the minimap (a ring, or a chevron on the rim); `src/render/race.ts`
 stands a column of light on the next gate from `state.race.next`. In-game
 replay, input recording and the recorded-input rival have been removed.
-Restart starts a fresh run. Seattle now has an authored-route AI opponent;
+Restart starts a fresh run. Port Alder now has an authored-route AI opponent;
 see the racing-rival notes below. Flexible city navigation remains future work.
 Checkpoints are placed where route choice exists, measured per leg with the
 critique's arithmetic; `tests/race.test.ts` gates every race on most legs
@@ -552,7 +556,7 @@ checks live keyboard/simulated-pad delivery, storage, navigation and viewport fi
 
 `SimOptions.rival` opts a race into the AI driver. Free roam uses
 `SimOptions.encounter` instead: a handbraked dynamic vehicle with no race state,
-spawned from `SEATTLE_ENCOUNTER`. Fixtures omit both by default. `canChallenge`
+spawned from `ALDER_ENCOUNTER`. Fixtures omit both by default. `canChallenge`
 owns proximity/speed/elevation eligibility. The input adapter supplies a remappable
 flash command; main presents the double flash and loads the existing race grid.
 Never add race clock/checkpoint progress to the waiting encounter. Keep the garage
@@ -563,7 +567,7 @@ forces before the single world step; sync both and evaluate their gates afterwar
 Do not give the rival a separate physics world or call `world.step()` per vehicle.
 Reset reconstructs both bodies, traffic and the driver. The player handling
 constants stay unchanged; AI speed plans use the shared cornering envelope.
-`seattle-rival.ts` owns Sound to Sky's preferred line and checkpoint distances;
+`alder-rival.ts` owns Sound to Sky's preferred line and checkpoint distances;
 `rival.ts` supplies actual inputs and reversing recovery. After 12 seconds without
 4 metres of net forward progress, `sim.ts` may reset it at rest near its own route
 position. Preserve its clock/checkpoints, stay behind the next gate, check physical
@@ -572,4 +576,4 @@ catch-up relocation or rubber-banding. The opponent always takes the other garag
 an in-page garage selection. `view.rivalCar` is presentation only; `__ns.state()`
 includes rival diagnostics. `tests/rival.test.ts` and the browser harness cover
 completion, contact, reset and integration. General routing and personalities
-remain future work. See design/SEATTLE.md for the first driver's limitations.
+remain future work. See design/PORT_ALDER.md for the first driver's limitations.

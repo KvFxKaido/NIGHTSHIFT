@@ -2,36 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step } from "../src/sim/sim.ts";
-import { createSeattleWorld, seattleGeneratedRace, seattleRouting, projectOntoSeattle, SEATTLE_STREETS,
-  SEATTLE_RACE, SEATTLE_GARAGE, seattleHeight } from "../src/sim/seattle.ts";
+import { createAlderWorld, alderGeneratedRace, alderRouting, projectOntoAlder, ALDER_STREETS,
+  ALDER_RACE, ALDER_GARAGE, alderHeight } from "../src/sim/alder.ts";
 import { GENERATOR, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition } from "../src/sim/race-generator.ts";
 import { legTable, routeLength, buildRoutingGraph } from "../src/sim/route-choice.ts";
-import released from "../assets/maps/seattle/belltown-slice.json" with { type: "json" };
+import released from "../assets/maps/alder/belltown-slice.json" with { type: "json" };
 import { sampleRivalPath, withExits, EXIT_LOOKAHEAD } from "../src/sim/rival.ts";
-import { SEATTLE_RIVAL } from "../src/sim/seattle-rival.ts";
+import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 await RAPIER.init();
 
 // Generated races: flash a rival and the race is drawn from the city. The seed
 // is the race's identity; the legs are chosen for the choice they offer; the
 // rival's line is routed through the gates on the same graph.
 
-const graph = seattleRouting();
-const world = createSeattleWorld(true);
-const approach = startApproach(SEATTLE_STREETS, world.start);
+const graph = alderRouting();
+const world = createAlderWorld(true);
+const approach = startApproach(ALDER_STREETS, world.start);
 const draw = (seed: number) => generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]);
 
 test("a seed draws the same race every time, and different seeds draw different races", () => {
   assert.deepEqual(draw(42), draw(42));
-  assert.deepEqual(seattleGeneratedRace(42).rival, seattleGeneratedRace(42).rival);
+  assert.deepEqual(alderGeneratedRace(42).rival, alderGeneratedRace(42).rival);
   const ids = new Set(Array.from({ length: 30 }, (_, i) => draw(i + 1).definition.checkpoints.map(c => c.id).join(">")));
   assert.ok(ids.size >= 24, `only ${ids.size} distinct races in 30 seeds`);
-  assert.notEqual(draw(7).definition.id, SEATTLE_RACE.id);
+  assert.notEqual(draw(7).definition.id, ALDER_RACE.id);
 });
 
 test("every drawn race is a legal race: gates at junctions, legs in range, no street twice, a line that fits", () => {
   const legs = legTable(graph);
   for (let seed = 1; seed <= 60; seed++) {
-    const { race, rival, generated } = seattleGeneratedRace(seed);
+    const { race, rival, generated } = alderGeneratedRace(seed);
     const label = `seed ${seed} (${race.name})`;
     assert.ok(race.checkpoints.length >= GENERATOR.gates.min && race.checkpoints.length <= GENERATOR.gates.max, label);
     assert.equal(race.id, `gen-${seed}`);
@@ -103,7 +103,7 @@ test("every drawn race is a legal race: gates at junctions, legs in range, no st
 });
 
 test("Sound to Sky's gates carry the authored line's exits: east through Jackson, north up Harbor Way, none at Pike", () => {
-  const paired = withExits(SEATTLE_RACE, SEATTLE_RIVAL);
+  const paired = withExits(ALDER_RACE, ALDER_RIVAL);
   assert.equal(paired.checkpoints.length, 4);
   const [jackson, harbor, madison, pike] = paired.checkpoints;
   assert.ok(jackson!.exit && jackson!.exit.x > 0.99, `Jackson's gate leaves ${JSON.stringify(jackson!.exit)}`);
@@ -111,9 +111,9 @@ test("Sound to Sky's gates carry the authored line's exits: east through Jackson
   assert.ok(madison!.exit && madison!.exit.x > 0.8 && madison!.exit.z < -0.4, `Madison's gate leaves ${JSON.stringify(madison!.exit)}`);
   assert.equal(pike!.exit, undefined, "the finish has no arrow");
   // The definition itself is untouched: pairing is where the exits are read.
-  assert.equal(SEATTLE_RACE.checkpoints[0]!.exit, undefined);
+  assert.equal(ALDER_RACE.checkpoints[0]!.exit, undefined);
   // And the sim pairs them on creation.
-  const sim = createSim("fwd", world, { race: SEATTLE_RACE, rival: SEATTLE_RIVAL, traffic: false });
+  const sim = createSim("fwd", world, { race: ALDER_RACE, rival: ALDER_RIVAL, traffic: false });
   try {
     assert.deepEqual(sim.state.race!.next, { x: jackson!.x, z: jackson!.z, exit: jackson!.exit });
   } finally { sim.world.free(); }
@@ -123,8 +123,8 @@ test("the flow rule blocks the released seed-1 hairpin and hairpins on the expan
   // The map has two hairpin junctions — Yesler & James's Y (151°) and the
   // campus loop's Broad St & 5th Ave N (170°) — and 21 seeds in 600 reach one
   // once the bearing rule alone is on. The first is seed 1, at Broad & 5th.
-  const releasedGraph = buildRoutingGraph(SEATTLE_STREETS.slice(0,released.roads.length),seattleHeight,
-    [...released.buildings,SEATTLE_GARAGE.building]);
+  const releasedGraph = buildRoutingGraph(ALDER_STREETS.slice(0,released.roads.length),alderHeight,
+    [...released.buildings,ALDER_GARAGE.building]);
   const hairpins = (seeds: number, testedGraph = graph) => {
     const found: string[] = [];
     for (let seed = 1; seed <= seeds; seed++) {
@@ -179,7 +179,7 @@ test("street names shorten to the word a driver would say", () => {
 });
 
 test("the rival drives a generated race to the finish in normal traffic", () => {
-  const { race, rival } = seattleGeneratedRace(3);
+  const { race, rival } = alderGeneratedRace(3);
   const sim = createSim("fwd", world, { race, rival, traffic: true });
   try {
     const parked = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
@@ -187,7 +187,7 @@ test("the rival drives a generated race to the finish in normal traffic", () => 
     for (let tick = 0; tick < 18000 && !sim.state.rival!.race.finished; tick++) {
       step(sim, parked);
       const car = sim.state.rival!.vehicle;
-      furthest = Math.max(furthest, projectOntoSeattle(car.x, car.z).distance);
+      furthest = Math.max(furthest, projectOntoAlder(car.x, car.z).distance);
       assert.ok(Number.isFinite(car.x + car.z + car.speed));
     }
     const state = sim.state.rival!;

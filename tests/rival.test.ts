@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, resetSim, step, RIVAL_RESET_TICKS, type Sim } from "../src/sim/sim.ts";
-import { createSeattleWorld, SEATTLE_RACE, projectOntoSeattle } from "../src/sim/seattle.ts";
-import { SEATTLE_RIVAL } from "../src/sim/seattle-rival.ts";
+import { createAlderWorld, ALDER_RACE, projectOntoAlder } from "../src/sim/alder.ts";
+import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 await RAPIER.init();
 const parked={throttle:0,brake:0,steer:0,handbrake:1};
-const create=(traffic=true)=>createSim("fwd",createSeattleWorld(true),{race:SEATTLE_RACE,rival:SEATTLE_RIVAL,traffic});
+const create=(traffic=true)=>createSim("fwd",createAlderWorld(true),{race:ALDER_RACE,rival:ALDER_RIVAL,traffic});
 function finish(sim:Sim, disturb?: (tick:number, sim:Sim)=>void) {
   let furthest=0;
   for(let tick=0;tick<18000&&!sim.state.rival!.race.finished;tick++) {
     disturb?.(tick,sim);
     step(sim,parked);
     const car=sim.state.rival!.vehicle;
-    const road=projectOntoSeattle(car.x,car.z);
+    const road=projectOntoAlder(car.x,car.z);
     furthest=Math.max(furthest,road.distance);
     assert.ok(Number.isFinite(car.x+car.z+car.speed));
   }
@@ -92,7 +92,7 @@ test("reset reproduces both vehicles, AI state, race clocks and the shared world
   } finally {sim.world.free();}
 });
 test("free roam and races without an opponent retain a single player body",()=>{
-  const sim=createSim("fwd",createSeattleWorld());
+  const sim=createSim("fwd",createAlderWorld());
   try {assert.equal(sim.rivalBody,null);assert.equal(sim.state.rival,null);}finally{sim.world.free();}
 });
 
@@ -147,9 +147,9 @@ test("reset waits when local placements are obstructed and retries when clear",(
 test("a reset cannot award an unpassed checkpoint or land on the player",()=>{
   const sim=create(false);
   try {
-    const rival=sim.state.rival!, gate=SEATTLE_RACE.checkpoints[0]!;
+    const rival=sim.state.rival!, gate=ALDER_RACE.checkpoints[0]!;
     rival.race.countdown=0;
-    rival.driver.along=SEATTLE_RIVAL.gates[0]!;
+    rival.driver.along=ALDER_RIVAL.gates[0]!;
     rival.driver.progressMark=rival.driver.along+100;
     rival.driver.noProgressTicks=RIVAL_RESET_TICKS;
     sim.rivalBody!.setTranslation({x:gate.x,y:2.5,z:gate.z},true);

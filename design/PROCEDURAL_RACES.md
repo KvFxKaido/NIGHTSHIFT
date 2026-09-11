@@ -8,7 +8,7 @@ from the city per seed, `?race=gen-<seed>` is the race, and the flash in
 free roam draws a new one every time (commit `c4a8b5b`). The flow rule
 (2026-09-11, `GENERATOR.flow`) keeps a draw from doubling back, and gates
 carry the direction the line leaves them for the marker's arrow; both are in
-`design/SEATTLE.md`. Everything under "Proposed" below is not implemented.
+`design/PORT_ALDER.md`. Everything under "Proposed" below is not implemented.
 
 ## Shawn's two ideas (2026-09-10)
 
@@ -45,7 +45,7 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   is the time the real alternative costs; the draw weights legs whose fast
   way is the risky way. A cost-free shortcut is not fixed by any of this — a
   learning rival makes it shared, not interesting — so the map still needs
-  authored cut-throughs, and `pnpm seattle:critique` says where.
+  authored cut-throughs, and `pnpm alder:critique` says where.
 
 ## Proposed, in order
 

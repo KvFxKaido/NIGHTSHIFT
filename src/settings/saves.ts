@@ -53,7 +53,7 @@ export function createSaveStore(storage: () => Disk) {
 export function loadSaveUrl(href: string, id: SaveId): string {
   const url = new URL(href);
   url.search = "";
-  url.searchParams.set("world", "seattle");
+  url.searchParams.set("world", "alder");
   url.searchParams.set("scene", "track");
   url.searchParams.set("save", id);
   return url.href;

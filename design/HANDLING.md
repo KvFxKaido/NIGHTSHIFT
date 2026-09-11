@@ -1,9 +1,9 @@
 # Four-wheel handling prototype
 
-**Current world: Seattle.** The map/garage migration did not change
+**Current world: Port Alder.** The map/garage migration did not change
 the handling tune. Blackglass course mentions and reference-lap
 measurements below describe retained regression fixtures, not the demo's
-playable map. See [SEATTLE.md](SEATTLE.md) for current world behavior.
+playable map. See [PORT_ALDER.md](PORT_ALDER.md) for current world behavior.
 
 Physics revision: `four-wheel-v5` (replaces `four-wheel-v4`). Rapier: **0.19.3**,
 pinned in the manifest and lockfile. RWD's throttle-induced rotation now tapers

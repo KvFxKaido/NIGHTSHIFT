@@ -3,7 +3,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { layoutMiddleware } from "./scripts/layout-server.mjs";
 
-const layoutFile = fileURLToPath(new URL("./src/sim/seattle-layout.json", import.meta.url));
+const layoutFile = fileURLToPath(new URL("./src/sim/alder-layout.json", import.meta.url));
 const validatorRevision = Date.now();
 
 // Vite does not read PORT by itself, and the dev script passes no --port flag,
@@ -16,7 +16,7 @@ const validatorRevision = Date.now();
 // than typechecked by `tsc`; that is why `process` needs no @types/node here.
 export default defineConfig({
   plugins: [{
-    name: "seattle-demo-boundary",
+    name: "alder-demo-boundary",
     generateBundle(_options, bundle) {
       for (const item of Object.values(bundle)) {
         if (item.type !== "chunk") continue;
@@ -25,12 +25,12 @@ export default defineConfig({
       }
     },
   }, {
-    name: "seattle-layout-editor",
+    name: "alder-layout-editor",
     configureServer(server) {
       server.middlewares.use(layoutMiddleware(layoutFile, async value => {
-        const { resolveSeattleLayout } = await import(pathToFileURL(join(dirname(layoutFile), "seattle.ts")).href + `?validator=${validatorRevision}`);
+        const { resolveAlderLayout } = await import(pathToFileURL(join(dirname(layoutFile), "alder.ts")).href + `?validator=${validatorRevision}`);
         // Whichever schema arrives, the file is written as schema 2.
-        const { layout, issues } = resolveSeattleLayout(value);
+        const { layout, issues } = resolveAlderLayout(value);
         if (issues.length) throw new Error(issues.join("\n"));
         return layout;
       }, () => server.moduleGraph.invalidateAll()));
@@ -44,7 +44,8 @@ export default defineConfig({
     },
   }],
   build: {
-    rollupOptions: { input: { game: "index.html", district: "district.html", editor: "editor.html", seattle: "seattle.html" } },
+    // seattle.html is the city's old name, kept as a redirect for old links.
+    rollupOptions: { input: { game: "index.html", district: "district.html", editor: "editor.html", alder: "alder.html", seattle: "seattle.html" } },
   },
   server: {
     port: Number(process.env.PORT) || 5173,

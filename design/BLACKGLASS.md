@@ -1,7 +1,7 @@
 # Blackglass Circuit
 
 **Archived course reference — no longer a playable demo map (2026-09-10).**
-The active world and authoring workflow are [Seattle](SEATTLE.md) and its
+The active world and authoring workflow are [Port Alder](PORT_ALDER.md) and its
 [workshop](EDITOR.md). The course geometry remains for developer regression
 tests. Its GLB is now `assets/tracks/blackglass-rivergate.glb`, outside the
 shipped demo. Descriptions below record the original course.

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import type { Evergreen } from "../sim/seattle-evergreens.ts";
+import type { Evergreen } from "../sim/alder-evergreens.ts";
 
 /** Two instanced draws per geographic batch; only the visible trunks collide. */
 export function addEvergreens(scene: THREE.Scene, trees: readonly Evergreen[], night: boolean): void {
@@ -19,7 +19,7 @@ export function addEvergreens(scene: THREE.Scene, trees: readonly Evergreen[], n
     const batch = batches.get(key) ?? []; batch.push(tree); batches.set(key, batch);
   }
   const pose = new THREE.Object3D(), color = new THREE.Color();
-  const group = new THREE.Group(); group.name = "seattle-evergreens";
+  const group = new THREE.Group(); group.name = "alder-evergreens";
   for (const [key, batch] of batches) {
     const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, batch.length);
     const crowns = new THREE.InstancedMesh(crownGeometry, crownMaterial, batch.length);

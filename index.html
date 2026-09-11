@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#070910" />
-    <title>NIGHTSHIFT — Seattle</title>
+    <title>NIGHTSHIFT — Port Alder</title>
     <link rel="stylesheet" href="/src/ui/menu.css" />
     <link rel="stylesheet" href="/src/ui/hud.css" />
     <style>
@@ -74,7 +74,7 @@
     <button id="garage-entry" hidden>E / Enter · Enter Wharf Garage</button>
     <div id="hud">
       <div id="brand">
-        <span>NIGHTSHIFT / SEATTLE</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
+        <span>NIGHTSHIFT / PORT ALDER</span><span id="mode">LIVE</span><span id="device">KEYBOARD</span>
       </div>
       <div id="race" aria-live="polite" hidden>
         <span id="race-gate">GATE 1/3</span><span id="race-time">3</span>
@@ -101,9 +101,9 @@
     <div id="menu-root" class="menu-root" data-screen="main" aria-label="Game menu">
       <main class="menu-shell">
         <section class="menu-screen" data-menu-screen="main" aria-labelledby="main-menu-title">
-          <p class="menu-kicker">Seattle / Wharf Garage</p>
+          <p class="menu-kicker">Port Alder / Wharf Garage</p>
           <h1 id="main-menu-title" class="menu-title">Night<br /><span>Shift</span></h1>
-          <p class="menu-lede">Seattle after dark. Pick up where you left off.</p>
+          <p class="menu-lede">Port Alder after dark. Pick up where you left off.</p>
           <p class="save-summary" data-save-summary role="status"></p>
           <nav class="menu-actions title-actions" aria-label="Main menu">
             <button class="menu-button primary" data-continue hidden>Continue</button>
@@ -177,10 +177,10 @@
         </section>
 
         <section class="menu-screen city-map-menu" data-menu-screen="map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
-          <div class="city-map-heading"><div><p class="menu-kicker">Seattle / City map</p><h2 id="city-map-title" class="menu-heading">Find your way</h2></div>
+          <div class="city-map-heading"><div><p class="menu-kicker">Port Alder / City map</p><h2 id="city-map-title" class="menu-heading">Find your way</h2></div>
             <button class="menu-button" data-menu-action="back">Close map</button></div>
           <p id="city-map-status"></p>
-          <svg id="city-map" role="img" aria-label="Seattle streets, your position, rival and active race checkpoints"></svg>
+          <svg id="city-map" role="img" aria-label="Port Alder streets, your position, rival and active race checkpoints"></svg>
           <div class="city-map-footer"><p><span style="color:#f4f7fa">▲ You</span> · <span style="color:#ff6679">● Rival</span> · <span style="color:#ffc56a">● Next gate</span> · <span style="color:#69e5bd">G Garage</span></p>
             <nav aria-label="Map view"><button class="garage-option" data-map-view="player">Find car</button><button class="garage-option" data-map-view="all">Whole city</button><button class="garage-option" data-map-view="in" aria-label="Zoom in">+</button><button class="garage-option" data-map-view="out" aria-label="Zoom out">−</button></nav></div>
           <p class="menu-footer" id="city-map-help"></p>
@@ -211,7 +211,7 @@
         </section>
 
         <section class="menu-screen saves-menu" data-menu-screen="saves" aria-labelledby="saves-title" hidden>
-          <p class="menu-kicker">Seattle / Saved games</p>
+          <p class="menu-kicker">Port Alder / Saved games</p>
           <h2 id="saves-title" class="menu-heading">Load game</h2>
           <p class="handling-note" data-save-help></p>
           <div class="save-slots" data-save-slots></div>
@@ -245,7 +245,7 @@
         </section>
 
         <section class="menu-screen" data-menu-screen="pause" role="dialog" aria-modal="true" aria-labelledby="pause-menu-title" hidden>
-          <p class="menu-kicker">Seattle</p>
+          <p class="menu-kicker">Port Alder</p>
           <h2 id="pause-menu-title" class="menu-heading">Paused</h2>
           <nav class="menu-actions" aria-label="Pause menu">
             <button class="menu-button primary" data-menu-action="resume">Resume</button>
@@ -253,7 +253,7 @@
             <button class="menu-button" data-menu-action="restart" data-restart-label>Return to garage</button>
             <button class="menu-button" data-menu-action="saves" data-save-mode="save">Save game</button>
             <button class="menu-button" data-menu-action="options">Options</button>
-            <button class="menu-button" data-district-map data-menu-action="map">Seattle map</button>
+            <button class="menu-button" data-district-map data-menu-action="map">Port Alder map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
           <p class="menu-footer">Esc / Options to resume</p>

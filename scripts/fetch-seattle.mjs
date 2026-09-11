@@ -12,8 +12,8 @@ const result = await fetch(`${endpoint}?${query}`).then(response => {
   return response.json();
 });
 if (result.error || result.exceededTransferLimit) throw Error(JSON.stringify(result.error ?? 'Incomplete GIS extract'));
-await mkdir('assets/maps/seattle', { recursive: true });
-await writeFile(`assets/maps/seattle/${north ? 'source-north-streets' : 'source-streets'}.json`, JSON.stringify({
+await mkdir('assets/maps/alder', { recursive: true });
+await writeFile(`assets/maps/alder/${north ? 'source-north-streets' : 'source-streets'}.json`, JSON.stringify({
   source: endpoint, attribution: 'City of Seattle, Seattle Department of Transportation',
   terms: 'https://data.seattle.gov/stories/s/Terms-of-Use/6ukr-wvup/',
   retrieved: new Date().toISOString().slice(0, 10), bounds, features: result.features,

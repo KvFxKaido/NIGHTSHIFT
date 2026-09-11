@@ -32,7 +32,7 @@ export function layoutFingerprint(value: unknown): string {
  * the generator no longer produces is simply ignored, because the plot is
  * gone anyway. Schema 1 keyed every edit to a generated plot id and refused
  * the whole file once one moved; it stays for the district fixture and is
- * upgraded on read for Seattle.
+ * upgraded on read for Port Alder.
  */
 export interface AuthoredLayout {
   schema: 2;

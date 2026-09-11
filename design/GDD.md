@@ -26,7 +26,7 @@ visual or driving choices without replacing that direction.
 
 Players build one car into a personal street-racing machine, challenge recognizable rivals, discover shortcuts, and climb through a local racing scene.
 
-The world is a fictionalized, compressed Seattle built for racing. Start with a useful connected slice and expand naturally when driving and route choices justify it. MC3 San Diego is a reference for the eventual sense of scale, not a requirement to recreate San Diego or match an exact map area.
+The world is a fictionalized, compressed Port Alder built for racing. Start with a useful connected slice and expand naturally when driving and route choices justify it. MC3 San Diego is a reference for the eventual sense of scale, not a requirement to recreate San Diego or match an exact map area.
 
 The original SoDo–Belltown area forms the southwest (bottom-left) corner of the
 map. The authorized 10 km² expansion now reaches a 12.6 km² street-network
@@ -34,14 +34,14 @@ footprint with Queen Anne, Capitol Hill, the Central District and Madrona Ridge.
 Keep the original long, straight roads as part of the driving mix. Future
 additions should be more compact where practical, favoring shorter blocks,
 varied street geometry and useful connections to the north and east. See
-`SEATTLE.md` for the expansion direction agreed on September 11, 2026.
+`PORT_ALDER.md` for the expansion direction agreed on September 11, 2026.
 
 ### 1.1 Current Direction
 
 - **Format:** MC3-inspired open-checkpoint racing. “No unnecessary barriers,
   no wrong ways, just slower ways.” The required checkpoints define the event;
   the player chooses the streets between them.
-- **World:** Seattle is the sole playable demo map. Blackglass is retired from
+- **World:** Port Alder is the sole playable demo map. Blackglass is retired from
   the demo and retained as offline regression/reference material.
 - **Look:** approximately MC3 played at higher resolution on an emulator:
   readable silhouettes, simple geometry, strong lighting and authored detail.
@@ -55,7 +55,7 @@ varied street geometry and useful connections to the north and east. See
 
 The rest of this document includes unimplemented career, rival, Live Cred and
 Surge proposals. The current playable features are listed in §6.4 and
-[SEATTLE.md](SEATTLE.md); a design paragraph is not evidence that it exists.
+[PORT_ALDER.md](PORT_ALDER.md); a design paragraph is not evidence that it exists.
 
 Shortcuts should have readable tradeoffs: a narrow gap, a difficult turn,
 traffic exposure, or a longer but faster road. A missed turn should create
@@ -201,9 +201,9 @@ plan live in [`LIVE_CRED.md`](LIVE_CRED.md). This system is not implemented yet.
 
 ### 6.1 The District
 
-The current game takes place in a fictionalized Seattle at night. Its connected zones borrow real street structure, with compressed distances, wider roads, softened grades and authored connections. Additional neighborhoods should follow useful driving routes rather than a predetermined whole-city build.
+The current game takes place in Port Alder at night: a fictional port city adapted from Seattle's street structure, named its own on September 11, 2026 once it was clear the map would never be made to feel like Seattle itself. Its connected zones borrow real street structure, with compressed distances, wider roads, softened grades and authored connections. Additional neighborhoods should follow useful driving routes rather than a predetermined whole-city build.
 
-Possible zones beyond the first Seattle blockout include:
+Possible zones beyond the first Port Alder blockout include:
 
 - Neon commercial strip
 - Industrial shipping yard
@@ -258,18 +258,18 @@ An alternate road may be slower, awkward, or risky. It remains a valid choice
 if the player reaches the checkpoints in order. Circuit and sprint variants
 should preserve this principle.
 
-### 6.4 Current Seattle Demo
+### 6.4 Current Port Alder Demo
 
-Seattle is the only playable map and opens at the base URL. The expanded slice
+Port Alder is the only playable map and opens at the base URL. The expanded slice
 contains about 83.5 km of streets, 318 street-graph edges, 1,730 generated building
-masses plus Wharf Garage and the Space Needle, a fictional waterfront bypass,
+masses plus Wharf Garage and the Needle, a fictional waterfront bypass,
 and softened hills across a 12.6 km² street-network footprint. Belltown connects
-downtown to Seattle Center; Queen Anne, Capitol Hill, Central District and
+downtown to Alder Center; Queen Anne, Capitol Hill, Central District and
 Madrona Ridge extend north and east. Surveyed terrain remains future work.
 City of Seattle/SDOT centerlines supply the original southwest structure;
 the new hill districts, buildings and elevation are authored game adaptations.
-See [SEATTLE.md](SEATTLE.md)
-and the [source notes](../assets/maps/seattle/README.md).
+See [PORT_ALDER.md](PORT_ALDER.md)
+and the [source notes](../assets/maps/alder/README.md).
 
 Free roam starts outside **Wharf Garage** in SoDo. Stop at its marked entrance
 and press E/Enter or Cross/A to enter. Customization uses the same car mesh;
@@ -284,14 +284,14 @@ corner/traffic braking, basic recovery and shared-world collisions. The player
 retains open route choice. In free roam the other car waits near Wharf Garage:
 approach and flash headlights to enter Sound to Sky. This is an authored encounter
 and race; generated routes and moving challenge encounters remain future work.
-See [SEATTLE.md](SEATTLE.md).
+See [PORT_ALDER.md](PORT_ALDER.md).
 Career progression, purchased upgrades, police and opponent personalities do not.
 
-The map board is `seattle.html`; `editor.html` edits Seattle building
+The map board is `alder.html`; `editor.html` edits Port Alder building
 placements. Validated saves feed both rendering and Rapier. The garage,
 forecourt and roads are protected. See [EDITOR.md](EDITOR.md).
 
-Blackglass world links migrate to Seattle and `district.html` redirects to
+Blackglass world links migrate to Port Alder and `district.html` redirects to
 its map board. Blackglass's district/course renderers and its Rivergate GLB
 are excluded from the playable demo build. Legacy source and tests remain
 for regression coverage, not as an alternate playable map.
@@ -308,9 +308,9 @@ A race is a sequence of checkpoints, and route choice should be judged per
 leg. Compare a direct route with plausible alternatives by driving them:
 distance alone misses corner speed, grades, traffic and difficult entries.
 The old Blackglass study used a 10–25% detour-cost heuristic; that is historical
-analysis, not a validated Seattle balance target. `pnpm district:critique`
+analysis, not a validated Port Alder balance target. `pnpm district:critique`
 still analyzes the retired Blackglass data and must not be used to report
-Seattle measurements. Sound to Sky needs continued human route testing.
+Port Alder measurements. Sound to Sky needs continued human route testing.
 
 ### 7.1 Circuit
 
@@ -342,7 +342,7 @@ Open checkpoint events reward:
 from the city every time: three to five gates at junctions, each leg chosen
 for the choice it offers. The rule "every shortcut has a cost" — between two
 gates, the faster way should be the riskier way — is measured per leg from
-the map data (`pnpm seattle:critique`) and is the constraint the generator
+the map data (`pnpm alder:critique`) and is the constraint the generator
 refuses to violate rather than a paragraph to remember. The seed is the
 race's identity: the same seed draws the same gates and the same rival line,
 which is all a saved playlist or a ghost needs to carry. A race repeats only
@@ -642,7 +642,7 @@ The camera should enhance speed without interfering with steering precision.
 
 ### 15.1 Visual Direction
 
-The graphics target is approximately MC3 upscaled on an emulator: simple, readable geometry and materials presented cleanly at modern resolution. Use nighttime lighting, silhouettes and selected authored details to carry Seattle’s identity. This is not a photorealism or expensive-reflection target.
+The graphics target is approximately MC3 upscaled on an emulator: simple, readable geometry and materials presented cleanly at modern resolution. Use nighttime lighting, silhouettes and selected authored details to carry Port Alder’s identity. This is not a photorealism or expensive-reflection target.
 
 Potential characteristics:
 
@@ -775,7 +775,7 @@ Useful authoring data includes:
 - Surface types
 - Event boundaries
 
-Seattle street geometry is generated offline from a checked-in SDOT extract, then adapted for racing. The runtime needs no GIS service. The existing browser workshop edits shared building placements and supports Three.js scene export/import; it does not author roads or execute imported scripts. Blender remains available for cars and authored assets. See [EDITOR.md](EDITOR.md) and [SEATTLE.md](SEATTLE.md) for actual workflows.
+Port Alder street geometry is generated offline from a checked-in SDOT extract, then adapted for racing. The runtime needs no GIS service. The existing browser workshop edits shared building placements and supports Three.js scene export/import; it does not author roads or execute imported scripts. Blender remains available for cars and authored assets. See [EDITOR.md](EDITOR.md) and [PORT_ALDER.md](PORT_ALDER.md) for actual workflows.
 
 Rendering and collision consume the same resolved geometry. General projection, footprint and traffic helpers must stay independent of retired map data; the build rejects reintroducing Blackglass district/course modules into the demo.
 
@@ -871,7 +871,7 @@ Phase 3: District Prototype
 - Lighting
 - Performance profiling
 
-*Current checkpoint (2026-09-10): Seattle free roam, traffic, Sound to Sky,
+*Current checkpoint (2026-09-10): Port Alder free roam, traffic, Sound to Sky,
 the mapped garage and building workshop exist. Blackglass has been retired
 from the demo. Preserve the handling, improve route choice and neighborhood
 readability through play, and grow the map when useful. Rival behavior,
@@ -904,7 +904,7 @@ Phase 5: Vertical Slice Polish
 
 The following are outside the current playable slice:
 
-- Recreating all of Seattle or expanding several cities at once
+- Recreating all of Port Alder or expanding several cities at once
 - Police chases (a possible later LA-inspired feature)
 - Pedestrians
 - Motorcycles
@@ -922,7 +922,7 @@ The following are outside the current playable slice:
 - User-generated tracks
 - Complex cinematic storytelling
 
-These features may be reconsidered as the core racing loop matures. Expanding the Seattle map naturally is allowed; adding a second playable city or an unrelated system requires a new scope decision. Offline adaptation of real street data is allowed and is distinct from runtime procedural road generation.
+These features may be reconsidered as the core racing loop matures. Expanding the Port Alder map naturally is allowed; adding a second playable city or an unrelated system requires a new scope decision. Offline adaptation of real street data is allowed and is distinct from runtime procedural road generation.
 
 ---
 
