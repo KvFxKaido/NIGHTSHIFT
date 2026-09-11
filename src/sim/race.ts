@@ -48,6 +48,7 @@ export interface RaceState {
   /** Gates passed; also the next index for ordered events. */
   checkpoint: number;
   dragLane?: number;
+  dragSteerHeld?: number;
   dragProgress?: number;
   disqualified?: boolean;
   /** Gate indices already collected, in visit order. */
@@ -122,8 +123,8 @@ export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: 
 }
 
 export function raceProgressLabel(definition: RaceDefinition, state: RaceState): string {
-  if (definition.kind === "drag") return state.disqualified ? "DQ · LEFT YOUR LANE"
-    : state.finished ? "DRAG · FINISH" : `DRAG · ${Math.max(0, Math.round(definition.drag!.length - (state.dragProgress ?? 0)))} M · STAY IN LANE`;
+  if (definition.kind === "drag") return state.disqualified ? "DQ · LEFT THE STRIP"
+    : state.finished ? "DRAG · FINISH" : `DRAG · ${Math.max(0, Math.round(definition.drag!.length - (state.dragProgress ?? 0)))} M · LANE ${state.dragLane === undefined || state.dragLane < 0 ? "1" : "2"}/2`;
   if (definition.kind === "unordered") return `GATES ${state.checkpoint}/${definition.checkpoints.length} · ANY ORDER`;
   if (definition.kind === "circuit") {
     const gates = definition.gatesPerLap!;

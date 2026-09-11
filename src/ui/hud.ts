@@ -1,3 +1,4 @@
+import { TRANSMISSION, type TransmissionState } from "../sim/transmission.ts";
 import {
   gaugeReading, minimapPixel, segmentWithinMinimap, withinMinimap,
   GAUGE_CIRCUMFERENCE, GAUGE_SWEEP_DEGREES, type MinimapCamera,
@@ -16,6 +17,7 @@ export interface HudPolyline {
 }
 
 export interface HudVehicle {
+  transmission?: TransmissionState;
   x: number;
   z: number;
   heading: number;
@@ -208,7 +210,27 @@ export function createHud(options: HudOptions): Hud {
     update(vehicle, race = null, rival = null) {
       const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed);
       speedElement.textContent = reading.mph.toString().padStart(3, "0");
-      gearElement.textContent = reading.gear;
+      const transmission = vehicle.transmission;
+      gearElement.textContent = transmission ? String(transmission.gear) : reading.gear;
+      gearElement.classList.toggle("manual", !!transmission);
+      const drag = root.getElementById("drag-instruments");
+      if (drag) drag.hidden = !transmission;
+      if (transmission) {
+        const rpm = root.getElementById("drag-rpm");
+        const light = root.getElementById("drag-shift");
+        const feedback = root.getElementById("drag-feedback");
+        const reaction = root.getElementById("drag-reaction");
+        if (rpm) rpm.textContent = `${Math.round(transmission.rpm / 10) * 10} RPM`;
+        const ready = !transmission.launched ? transmission.rpm >= TRANSMISSION.launchMin && transmission.rpm <= TRANSMISSION.launchMax
+          : transmission.rpm >= TRANSMISSION.shiftMin && transmission.rpm <= TRANSMISSION.shiftMax;
+        if (light) {
+          light.textContent = transmission.limiter ? "LIMITER" : !transmission.launched ? ready ? "LAUNCH READY" : "BUILD REVS" : transmission.shiftTicks ? "SHIFTING" : transmission.gear === 5 ? "TOP GEAR" : ready ? "SHIFT NOW" : "HOLD GEAR";
+          light.classList.toggle("ready", ready);
+          light.classList.toggle("limit", transmission.limiter);
+        }
+        if (feedback) feedback.textContent = transmission.feedbackTicks ? transmission.feedback : !transmission.launched ? "LAUNCH 3,800-5,500 RPM" : "SHIFT 7,400-7,900 RPM";
+        if (reaction) reaction.textContent = transmission.reactionTicks === null ? "RT -" : `RT ${(transmission.reactionTicks / 60).toFixed(3)} s`;
+      }
       if (raceElement) {
         raceElement.hidden = !race;
         if (race && raceGateElement && raceTimeElement) {
@@ -218,8 +240,8 @@ export function createHud(options: HudOptions): Hud {
       }
       if (sweep) {
         const arc = GAUGE_CIRCUMFERENCE * (GAUGE_SWEEP_DEGREES / 360);
-        sweep.style.strokeDasharray = `${arc * reading.ratio} ${GAUGE_CIRCUMFERENCE}`;
-        sweep.classList.toggle("redline", reading.redline);
+        sweep.style.strokeDasharray = `${arc * (transmission ? Math.min(1, transmission.rpm / TRANSMISSION.redline) : reading.ratio)} ${GAUGE_CIRCUMFERENCE}`;
+        sweep.classList.toggle("redline", transmission ? transmission.rpm >= TRANSMISSION.shiftMax : reading.redline);
       }
       drawMinimap(vehicle, race, rival);
     },

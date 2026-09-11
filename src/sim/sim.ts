@@ -1,3 +1,5 @@
+import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionState } from "./transmission.ts";
+import { dragLaneInput } from "./drag-rules.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
    Rapier integrates motion and contacts. Three.js only draws the result. */
@@ -11,6 +13,8 @@ export const DT = 1 / TICK_HZ;
 export const PHYSICS_VERSION = "four-wheel-v5";
 
 export interface Input {
+  shiftUp?: boolean;
+  shiftDown?: boolean;
   throttle: number;
   brake: number;
   steer: number;
@@ -39,6 +43,7 @@ export interface WheelState extends AxleState {
 }
 
 export interface VehicleState {
+  transmission?: TransmissionState;
   x: number;
   y: number;
   z: number;
@@ -453,10 +458,15 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
     race: createRace(raceDefinition), driver: createRivalDriver(),
     input: { throttle: 0, brake: 0, steer: 0, handbrake: 0 },
   } : null;
+  const vehicle = initialVehicle(roadWorld);
+  if (raceDefinition?.kind === "drag") {
+    vehicle.transmission = createTransmission();
+    if (rival) rival.vehicle.transmission = createTransmission();
+  }
   return {
     roadWorld,
     state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
-      vehicle: initialVehicle(roadWorld), traffic, rival, encounter, parkedRivals, encounterDriver: encounterRoute ? createRivalDriver() : null,
+      vehicle, traffic, rival, encounter, parkedRivals, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
     world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, encounterRoute, parkedRivalDefinitions, parkedRivalBodies, trafficBodies, race: raceDefinition,
   };
@@ -632,6 +642,9 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const velocity = body.linvel();
   const forwardSpeed = velocity.x * forwardX + velocity.z * forwardZ;
   const speed = Math.hypot(velocity.x, velocity.z);
+  const manualAcceleration = car.transmission ? sim.state.race?.finished ? 0
+    : stepTransmission(car.transmission, rawInput, Math.max(0, forwardSpeed), sim.state.race?.countdown ?? 0,
+      sim.state.race?.ticks ?? 0, HANDLING.mass, DT) : null;
   const effectiveThrottle = input.handbrake > 0.05 ? 0 : input.throttle * (1 - input.brake);
   // The player chooses the direction and amount. Slip only opens the manual
   // countersteering envelope; it never steers on the player's behalf.
@@ -663,13 +676,13 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   else if (input.brake > 0 && input.handbrake < 0.05 && speed < HANDLING.reverseEngageSpeed) {
     car.driveDirection = -1;
   }
-  const reversing = car.driveDirection === -1 && input.brake > 0 &&
+  const reversing = !car.transmission && car.driveDirection === -1 && input.brake > 0 &&
     effectiveThrottle === 0 && input.handbrake < 0.05;
   const gradeAcceleration = gradeAccelerationFor(road.pitch, forwardX * road.ux + forwardZ * road.uz);
   const dragAcceleration = -Math.sign(forwardSpeed) * HANDLING.aerodynamicDrag * forwardSpeed ** 2;
   let driveAcceleration = reversing
     ? -HANDLING.reverseAcceleration * input.brake
-    : engineAccelerationFor(Math.max(0, forwardSpeed)) * effectiveThrottle;
+    : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed)) * effectiveThrottle;
   // Govern propulsion instead of hard-clamping impact/downhill velocity.
   if (driveAcceleration > 0) {
     driveAcceleration = Math.min(driveAcceleration,
@@ -756,9 +769,21 @@ export function step(sim: Sim, rawInput: Input): void {
   }
   const rival = sim.state.rival;
   const rig: VehicleRig | null = rival && sim.rivalBody ? { roadWorld: sim.roadWorld, body: sim.rivalBody, state: rival } : null;
-  if (rival && sim.rivalDefinition) {
+  if (rival && sim.rivalDefinition && !sim.race?.drag) {
     rival.input = rivalInput(sim.rivalDefinition, rival, [sim.state.vehicle,
       ...(sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }))]);
+  }
+  if (sim.race?.drag && sim.state.race) {
+    rawInput = dragLaneInput(sim.race.drag, sim.state.race, sim.state.vehicle, rawInput);
+    if (rival) {
+      const transmission = rival.vehicle.transmission!;
+      const shiftUp = transmission.shiftTicks === 0 && transmission.rpm >= TRANSMISSION.shiftMin + 150;
+      // Rivet stages at 4700 RPM, reacts after 0.15 seconds, then shifts by RPM.
+      const throttle = rival.race.countdown > 0 ? (4700 - TRANSMISSION.idle) / (TRANSMISSION.redline - TRANSMISSION.idle)
+        : rival.race.ticks < 9 ? (4700 - TRANSMISSION.idle) / (TRANSMISSION.redline - TRANSMISSION.idle) : 1;
+      rival.input = dragLaneInput(sim.race.drag, rival.race, rival.vehicle,
+        { throttle, brake: 0, handbrake: rival.race.finished || (rival.race.countdown === 0 && rival.race.ticks < 9) ? 1 : 0, steer: 0, shiftUp });
+    }
   }
   applyVehicleInput(sim, rawInput);
   if (rig && rival) applyVehicleInput(rig, rival.input);
@@ -779,7 +804,7 @@ export function step(sim: Sim, rawInput: Input): void {
   if (rig) finishVehicle(rig);
   if (encounterRig) finishVehicle(encounterRig);
   for (const parked of parkedRigs) finishVehicle(parked);
-  resetStalledRival(sim);
+  if (!sim.race?.drag) resetStalledRival(sim);
   if (sim.state.encounter && sim.state.encounterDriver && sim.encounterBody && sim.encounterRoute) {
     resetStalledDriver(sim, sim.encounterBody, sim.encounterRoute, sim.state.encounterDriver, null,
       (vehicle, driver) => { sim.state.encounter = vehicle; sim.state.encounterDriver = driver; });

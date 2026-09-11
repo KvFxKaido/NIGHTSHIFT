@@ -89,9 +89,17 @@ Rivet's cream-and-black **Hammer** on southern Harbor Way. The city map labels
 `Rivet / Drag`; the normal cruising rival still draws sprint, circuit and unordered
 events. Rivet stays parked at the meetup and drives the Hammer in the race.
 The quarter mile is 402.336 m, with equal grid positions, a three-light countdown,
-cleared traffic and marked lanes. Stay in your lane until crossing the finish;
-leaving it disqualifies you. Driving uses the existing automatic transmission
-and throttle/steering controls. Drag times display to milliseconds from fixed ticks.
+cleared traffic and two marked lanes. Left/right requests an assisted lane change;
+car contact remains physical, and leaving the outer strip disqualifies you.
+Drag uses a five-speed manual gearbox: **Left Shift / Left Ctrl** shift up/down;
+new controller defaults are **RB / LB**. Saved controls retain their bindings and
+allocate unused buttons for shifting; the HUD shows your actual bindings.
+The dial becomes a tachometer, with numeric RPM, gear, shift light and reaction time.
+Stage at 3,800-5,500 RPM (feather the throttle), then accelerate on green. Shift at
+7,400-7,900 RPM; shifts interrupt power, early shifts lose torque, and the limiter
+cuts drive. Launching outside the window reduces initial drive. Rivet uses the
+same gearbox and reacts after 0.15 seconds. Other events retain their handling.
+Drag times display to milliseconds from fixed ticks (1/60 s resolution).
 The Hammer is an original Blender-authored rival car with a hood scoop, deep-dish
 wheels and rear slicks; Rivet uses the existing RWD handling model.
 For inspection, `?scene=track&visit=rivet` starts near the meetup;

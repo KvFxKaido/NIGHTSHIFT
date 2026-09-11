@@ -17,6 +17,39 @@ function gamepad(axes: number[] = [0], values: Record<number, number> = {}): Gam
   return { axes, buttons } as Gamepad;
 }
 
+test("shift taps survive between ticks, holds never repeat, and pause entry discards pending shifts", () => {
+  const oldNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const oldListener = Object.getOwnPropertyDescriptor(globalThis, "addEventListener");
+  const listeners = new Map<string, (event: KeyboardEvent) => void>();
+  let pad = gamepad();
+  Object.defineProperty(globalThis, "navigator", { configurable: true, value: { getGamepads: () => [{ ...pad, connected: true, mapping: "standard" }] } });
+  Object.defineProperty(globalThis, "addEventListener", { configurable: true, value: (name: string, fn: (event: KeyboardEvent) => void) => listeners.set(name, fn) });
+  const key = (type: string, code: string, repeat = false) => listeners.get(type)!({ code, repeat, preventDefault() {} } as KeyboardEvent);
+  try {
+    const controller = createInputController();
+    controller.update(); controller.sample();
+    key("keydown", "ShiftLeft"); key("keyup", "ShiftLeft");
+    assert.equal(controller.sample().shiftUp, true);
+    assert.equal(controller.sample().shiftUp, undefined);
+    key("keydown", "ShiftLeft", true);
+    assert.equal(controller.sample().shiftUp, undefined);
+    pad = gamepad([0], { 4: 1 }); controller.update();
+    assert.equal(controller.sample().shiftDown, true);
+    for (let i = 0; i < 30; i++) { controller.update(); assert.equal(controller.sample().shiftDown, undefined); }
+    pad = gamepad(); controller.update();
+    pad = gamepad([0], { 5: 1 }); controller.update();
+    controller.armDrivingInputGate();
+    controller.sample();
+    assert.equal(controller.sample().shiftUp, undefined);
+    key("keydown", "ControlLeft");
+    listeners.get("blur")!({} as KeyboardEvent);
+    assert.equal(controller.sample().shiftDown, undefined);
+  } finally {
+    if (oldNavigator) Object.defineProperty(globalThis, "navigator", oldNavigator); else Reflect.deleteProperty(globalThis, "navigator");
+    if (oldListener) Object.defineProperty(globalThis, "addEventListener", oldListener); else Reflect.deleteProperty(globalThis, "addEventListener");
+  }
+});
+
 test("standard triggers map to analog throttle and brake", () => {
   const input = mapGamepad(gamepad([0], { 6: 0.35, 7: 0.8 }));
   assert.equal(input.throttle, 0.8);

@@ -27,10 +27,12 @@ test("drag counts a forward finish crossing, never the near edge of its beacon",
   assert.equal(race.ticks, ticks);
 });
 
-test("drag lane is assigned at launch and crossing lanes disqualifies", () => {
+test("drag permits crossing lanes but leaving the strip disqualifies", () => {
   const race = live();
   stepRace(HARBOR_DRAG, race, at(0));
   stepRace(HARBOR_DRAG, race, at(10, 3));
+  assert.equal(race.disqualified, undefined);
+  stepRace(HARBOR_DRAG, race, at(20, 6));
   assert.equal(race.disqualified, true);
   assert.equal(race.checkpoint, 0);
   assert.equal(race.next, null);
@@ -81,7 +83,7 @@ test("player and Rivet complete a physical quarter mile from equal standing star
     const sim = createSim("fwd", createAlderWorld(true, DRAG_START), { race: HARBOR_DRAG, rival: RIVET_DRAG_DRIVER, traffic: false });
     try {
       for (let tick = 0; tick < 3600 && !(sim.state.race!.finished && sim.state.rival!.race.finished); tick++) {
-        step(sim, { throttle: 1, brake: 0, steer: 0, handbrake: 0 });
+        step(sim, { throttle: tick < 180 ? .52 : 1, brake: 0, steer: 0, handbrake: 0, shiftUp: sim.state.vehicle.transmission!.rpm >= 7550 && sim.state.vehicle.transmission!.shiftTicks === 0 });
         if (tick < 180) assert.ok(sim.state.vehicle.speed < .05);
       }
       for (const race of [sim.state.race!, sim.state.rival!.race]) {
@@ -99,9 +101,31 @@ test("player and Rivet complete a physical quarter mile from equal standing star
 
 test("drag readout distinguishes staged distance, precise time and disqualification", () => {
   const race = createRace(HARBOR_DRAG);
-  assert.equal(raceProgressLabel(HARBOR_DRAG, race), "DRAG · 402 M · STAY IN LANE");
+  assert.equal(raceProgressLabel(HARBOR_DRAG, race), "DRAG · 402 M · LANE 1/2");
   assert.equal(formatRaceTime(721, 60, 3), "0:12.017");
   assert.equal(formatRaceTime(721, 60), "0:12.0");
   race.disqualified = true;
-  assert.equal(raceProgressLabel(HARBOR_DRAG, race), "DQ · LEFT YOUR LANE");
+  assert.equal(raceProgressLabel(HARBOR_DRAG, race), "DQ · LEFT THE STRIP");
+});
+
+test("lane assistance crosses smoothly, settles in either lane, and cannot steer beyond the strip", () => {
+  for (const drivetrain of ["fwd", "rwd", "awd"] as const) {
+    const sim = createSim(drivetrain, createAlderWorld(true, DRAG_START), { race: HARBOR_DRAG, traffic: false });
+    try {
+      for (let tick = 0; tick < 1000 && !sim.state.race!.finished; tick++) {
+        const previousX = sim.state.vehicle.x;
+        const gearbox = sim.state.vehicle.transmission!;
+        step(sim, { throttle: tick < 180 ? .52 : 1, brake: 0, handbrake: 0,
+          steer: tick >= 340 && tick < 580 ? 1 : tick >= 580 ? -1 : 0,
+          shiftUp: gearbox.rpm >= 7550 && gearbox.shiftTicks === 0 });
+        assert.ok(Math.abs(sim.state.vehicle.x - previousX) < .5, "lane changes must move through physics");
+        assert.equal(sim.state.race!.disqualified, undefined, `${drivetrain} left strip at tick ${tick}`);
+        if (tick === 579) assert.ok(Math.abs(onDragStrip(strip, sim.state.vehicle).across - 3) < .5, `${drivetrain} failed to settle right`);
+        if (tick === 850) assert.ok(Math.abs(onDragStrip(strip, sim.state.vehicle).across + 3) < .5, `${drivetrain} failed to settle left`);
+      }
+      resetSim(sim);
+      assert.equal(sim.state.vehicle.transmission!.gear, 1);
+      assert.equal(sim.state.vehicle.transmission!.launched, false);
+    } finally { sim.world.free(); }
+  }
 });

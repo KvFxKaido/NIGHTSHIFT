@@ -398,6 +398,13 @@ function updateHud(): void {
   const car = sim.state.vehicle;
   const raceState = sim.state.race;
   if (dragStripView && raceState) dragStripView.update(raceState);
+  const dragControls = document.getElementById("drag-controls");
+  if (dragControls && race?.kind === "drag") {
+    const bindings = input.bindings();
+    const up = input.gamepadName() ? PAD_LABELS[bindings.gamepad.shiftUp] : keyLabel(bindings.keyboard.shiftUp);
+    const down = input.gamepadName() ? PAD_LABELS[bindings.gamepad.shiftDown] : keyLabel(bindings.keyboard.shiftDown);
+    dragControls.textContent = `${up} UP / ${down} DOWN / ${input.gamepadName() ? "Stick or D-pad" : `${keyLabel(bindings.keyboard.left)} or ${keyLabel(bindings.keyboard.right)}`} lane`;
+  }
   const rival = sim.state.rival;
   const position = race && raceState && rival ? racePosition(race,
     { race: raceState, x: car.x, z: car.z },
@@ -470,8 +477,11 @@ function frame(now: number): void {
       const position = racePosition(race,
         { race: sim.state.race, x: sim.state.vehicle.x, z: sim.state.vehicle.z },
         { race: sim.state.rival.race, x: sim.state.rival.vehicle.x, z: sim.state.rival.vehicle.z });
+      const reactionTicks = sim.state.vehicle.transmission?.reactionTicks;
+      const dragTiming = race.kind === "drag" && reactionTicks != null
+        ? ` / RT ${(reactionTicks / TICK_HZ).toFixed(3)} s / ET ${formatRaceTime(sim.state.race.ticks - reactionTicks, TICK_HZ, 3)}` : "";
       menu.finishRace(sim.state.race.disqualified ? "Disqualified" : position === 1 ? "You win" : "Second place",
-        `${race.name} · ${sim.state.race.disqualified ? "Left your lane" : `P${position}/2`} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}`);
+        `${race.name} · ${sim.state.race.disqualified ? "Left the strip" : `P${position}/2`} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${dragTiming}`);
       accumulator = 0;
       break;
     }

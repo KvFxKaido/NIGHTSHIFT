@@ -9,6 +9,7 @@ import { decodeManifest, shuffleOrder, MUSIC_MANIFEST_VERSION } from "../src/aud
 import { decodeSettings, defaultSettings, createSettingsStore, SETTINGS_VERSION } from "../src/settings/settings.ts";
 import { HANDLING, type Input, type VehicleState, type WheelId } from "../src/sim/sim.ts";
 import { flatSim, flatStep, NEUTRAL } from "./helpers/handling.ts";
+import { createTransmission } from "../src/sim/transmission.ts";
 
 await RAPIER.init();
 
@@ -24,6 +25,22 @@ function stateWithUtilisation(utilisation: number, speed: number): VehicleState 
   }]));
   return { speed, forwardSpeed: speed, wheels } as unknown as VehicleState;
 }
+
+test("drag sound follows simulated RPM, gear and limiter rather than speed bands", () => {
+  const vehicle = stateWithUtilisation(0, 30);
+  vehicle.transmission = { ...createTransmission(), rpm: 8100, gear: 2, limiter: true };
+  const tone = engineTone(vehicle, gas(1));
+  assert.equal(tone.rpm, 8100);
+  assert.equal(tone.gear, 2);
+  assert.equal(tone.limiter, true);
+  vehicle.transmission.rpm = 5500;
+  vehicle.transmission.gear = 3;
+  vehicle.transmission.limiter = false;
+  const shifted = engineTone(vehicle, gas(1));
+  assert.equal(shifted.gear, 3);
+  assert.ok(shifted.frequency < tone.frequency);
+  assert.equal(shifted.limiter, false);
+});
 
 test("the engine note climbs with speed and drops on each upshift", () => {
   // Above walking pace road speed owns the note; below it the standing blip

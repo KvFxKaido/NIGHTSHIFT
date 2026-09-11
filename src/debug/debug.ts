@@ -99,12 +99,14 @@ const KEY_TO_INPUT: Record<string, (input: Input) => void> = {
   A: (i) => { i.steer = -1; },
   D: (i) => { i.steer = 1; },
   B: (i) => { i.handbrake = 1; },
+  U: (i) => { i.shiftUp = true; },
+  J: (i) => { i.shiftDown = true; },
 };
 
 export function parseDriveScript(script: string): { input: Input; ticks: number }[] {
   const steps: { input: Input; ticks: number }[] = [];
   for (const chunk of script.split(",")) {
-    const match = /^([WASDB]*)(\d+)$/i.exec(chunk.trim());
+    const match = /^([WASDBUJ]*)(\d+)$/i.exec(chunk.trim());
     if (!match) continue;
     const input: Input = { ...NEUTRAL };
     for (const key of match[1]!.toUpperCase()) KEY_TO_INPUT[key]?.(input);
@@ -250,6 +252,7 @@ export function installDebugApi(bridge: DebugBridge): void {
         z: Number(car.z.toFixed(2)),
         heading: Number(car.heading.toFixed(3)),
         speed: Number(car.speed.toFixed(2)),
+        transmission: car.transmission ? { ...car.transmission } : null,
         slipAngle: Number(car.slipAngle.toFixed(3)),
         wheels: Object.fromEntries(Object.entries(car.wheels).map(([id, tyre]) => [id, {
           steeringAngle: Number(tyre.steeringAngle.toFixed(3)),
@@ -348,6 +351,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
       "__ns.tick(60)          advance 60 fixed ticks (works in a hidden tab)",
       "__ns.drive('W600,WD90') hold throttle 600 ticks, then throttle+right 90",
+      "Drag script: U shifts up, J shifts down; A/D request lanes",
       "__ns.freeze()          stop the loop advancing, for stable captures",
       "__ns.shot()            PNG data URL of the current frame",
       "__ns.audio()           audio context state, levels and live mixer output",

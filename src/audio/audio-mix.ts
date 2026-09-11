@@ -13,7 +13,7 @@ import { HANDLING, type Input, type VehicleState, type WheelId } from "../sim/si
 const WHEELS: readonly WheelId[] = ["front-left", "front-right", "rear-left", "rear-right"];
 
 /**
- * A presentation-only gearbox. The simulation has no gears — HANDLING carries a
+ * A presentation-only gearbox. Outside drag races the simulation has no gears — HANDLING carries a
  * single speed/acceleration curve and the HUD reads R/N/D — but a flat drone
  * tells a driver nothing. A note that climbs, breaks and climbs again is how
  * acceleration is heard, so the ratios exist purely to shape that.
@@ -85,8 +85,8 @@ export function engineTone(vehicle: VehicleState, input: Input): EngineTone {
   // not an addition to them — adding the two made the note fall as the car
   // pulled away, because the standing term decayed faster than road speed rose.
   const stationary = 1 - clamp(speed / 3);
-  const revved = clamp(Math.max(through, input.throttle * stationary * .75));
-  const rpm = IDLE_RPM + revved * (REDLINE_RPM - IDLE_RPM);
+  const revved = vehicle.transmission ? clamp((vehicle.transmission.rpm - IDLE_RPM) / (REDLINE_RPM - IDLE_RPM)) : clamp(Math.max(through, input.throttle * stationary * .75));
+  const rpm = vehicle.transmission?.rpm ?? IDLE_RPM + revved * (REDLINE_RPM - IDLE_RPM);
   const load = clamp(input.throttle * .8 + revved * .4);
 
   // High-revving N/A acoustics:
@@ -101,10 +101,10 @@ export function engineTone(vehicle: VehicleState, input: Input): EngineTone {
   // 5. Straight-cut transmission whine: tracks speed, clearest on overrun when engine roar drops.
   const whine = clamp(speed / reference) * (0.3 + 0.7 * (1 - input.throttle));
   // 6. Rev limiter: bouncing at the top of the rev range under throttle.
-  const limiter = revved >= 0.98 && input.throttle > 0.6;
+  const limiter = vehicle.transmission?.limiter ?? (revved >= 0.98 && input.throttle > 0.6);
 
   return {
-    gear: reversing ? 0 : gear,
+    gear: vehicle.transmission?.gear ?? (reversing ? 0 : gear),
     rpm,
     frequency: rpm / 60 * FIRINGS_PER_REV,
     brightness: clamp(.22 + load * .62 + revved * .2),

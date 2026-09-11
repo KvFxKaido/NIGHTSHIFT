@@ -90,3 +90,14 @@
   #gear { right: 8px; font-size: 15px; }
   #minimap-frame { width: 116px; height: 116px; left: 14px; bottom: 14px; }
 }
+
+#drag-instruments { position: absolute; bottom: 100%; right: 0; width: 260px; text-align: right; padding: 12px; background: rgba(4,8,14,.85); border-right: 2px solid #75dfff; font: 12px/1.7 monospace; }
+#drag-instruments[hidden] { display: none; }
+#drag-rpm { font-size: 22px; color: #fff; }
+#drag-shift { display: block; color: #afbac8; letter-spacing: .12em; }
+#drag-shift.ready { color: #86ffc0; }
+#drag-shift.limit { color: #ff3158; }
+#drag-controls { color: #b9cddd; font-size: 10px; margin-top: 6px; }
+@media (max-width: 600px) { #drag-instruments { width: 220px; padding: 8px; font-size: 10px; } #drag-rpm { font-size: 18px; } }
+
+#gear.manual { font-size: 28px; color: #fff; }

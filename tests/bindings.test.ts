@@ -16,11 +16,11 @@ test("controls returns to its originating menu without resuming a paused run", (
 test("bindings save and reload; duplicates, reserved controls and corrupt saves are rejected", () => {
   const defaults = copyBindings();
   let bindings = rebind(defaults, "keyboard", "throttle", "KeyI");
-  bindings = rebind(bindings, "gamepad", "handbrake", 5);
+  bindings = rebind(bindings, "gamepad", "handbrake", 1);
   assert.deepEqual(decodeBindings(JSON.stringify({ version: 1, ...bindings })), bindings);
   assert.equal(defaults.keyboard.throttle, "KeyW");
   assert.throws(() => rebind(bindings, "keyboard", "reset", "KeyI"), /Already assigned/);
-  assert.throws(() => rebind(bindings, "gamepad", "reset", 5), /Already assigned/);
+  assert.throws(() => rebind(bindings, "gamepad", "reset", 1), /Already assigned/);
   assert.throws(() => rebind(bindings, "keyboard", "throttle", "Escape"), /Menu keys/);
   assert.throws(() => rebind(bindings, "gamepad", "reset", 9), /Menu/);
   assert.throws(() => decodeBindings(JSON.stringify({ version: 1, ...bindings, keyboard: { ...bindings.keyboard, brake: "KeyI" } })), /Invalid/);
@@ -45,13 +45,13 @@ test("old control saves retain remaps and allocate an unused headlight control",
 });
 
 test("remapped triggers keep analog pressure and the original button stops driving", () => {
-  const bindings = rebind(copyBindings(), "gamepad", "throttle", 5);
-  assert.equal(mapGamepad(pad({5:.73,7:1}), bindings.gamepad).throttle, .73);
+  const bindings = rebind(copyBindings(), "gamepad", "throttle", 1);
+  assert.equal(mapGamepad(pad({1:.73,7:1}), bindings.gamepad).throttle, .73);
   assert.equal(mapGamepad(pad({7:1}), bindings.gamepad).throttle, 0);
 });
 
 test("map rebinding and saved maps reject fixed menu buttons without restricting driving controls", () => {
-  const bindings = rebind(copyBindings(), "gamepad", "handbrake", 5);
+  const bindings = rebind(copyBindings(), "gamepad", "handbrake", 1);
   for (const button of [0, 1, 9, 12, 13, 14, 15]) {
     assert.throws(() => rebind(bindings, "gamepad", "map", button), /Menu/);
     const saved = { version: 1, ...bindings, gamepad: { ...bindings.gamepad, map: button } };
@@ -59,7 +59,7 @@ test("map rebinding and saved maps reject fixed menu buttons without restricting
   }
   assert.equal(rebind(bindings, "gamepad", "handbrake", 0).gamepad.handbrake, 0);
   assert.equal(rebind(bindings, "gamepad", "handbrake", 1).gamepad.handbrake, 1);
-  assert.equal(rebind(copyBindings(), "gamepad", "map", 5).gamepad.map, 5);
+  assert.throws(() => rebind(copyBindings(), "gamepad", "map", 5), /Already assigned/);
 });
 
 test("adding map controls preserves legacy bindings already using M or Select", () => {
@@ -90,6 +90,8 @@ test("capture consumes input, waits for controller release, and keeps menu confi
     for (const handbrake of [0, 5]) {
       const legacy = JSON.parse(JSON.stringify({ version: 1, ...copyBindings() }));
       delete legacy.gamepad.map;
+      delete legacy.gamepad.shiftUp; delete legacy.gamepad.shiftDown;
+      delete legacy.keyboard.shiftUp; delete legacy.keyboard.shiftDown;
       legacy.gamepad.camera = 8;
       legacy.gamepad.handbrake = handbrake;
       const migrated = decodeBindings(JSON.stringify(legacy));
