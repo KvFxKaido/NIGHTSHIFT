@@ -135,6 +135,12 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
       else if (capture.device === "keyboard") finishCapture(event.code);
       return;
     }
+    const target = event.target as HTMLInputElement | null;
+    if (target?.tagName === "INPUT" && target.type === "text") {
+      if (event.code === "Escape") { event.preventDefault(); menuCommands.push("back"); }
+      if (event.code === "Enter" || event.code === "NumpadEnter") { event.preventDefault(); menuCommands.push("confirm"); }
+      return;
+    }
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Enter", "NumpadEnter"].includes(event.code)) {
       event.preventDefault();
     }

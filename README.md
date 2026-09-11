@@ -74,10 +74,10 @@ the same physics world. Position and rival finish status appear in the race HUD.
 A rival waits on First Avenue S just north of Wharf Garage, marked red on the
 minimap. Approach at cruising speed and flash headlights with **F / X–Square**
 (remappable in Controls), or click the nearby prompt, to line up for Sound to Sky.
-The pause and main menus offer **Return to free roam** during a race.
+The pause menu offers **Return to free roam** during a race.
 In-game replay and the recorded-input ghost remain removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
 
-**Seattle map** in the main/pause menus opens a map overlay without unloading
+**Seattle map** in the pause menu opens a map overlay without unloading
 the drive. **M / Select–View–Share** toggles it during play (remappable in
 Controls). It pauses both racers and traffic, shows current positions and active
 race gates, and returns to the screen it was opened from. Drag/scroll to pan/zoom,
@@ -100,9 +100,23 @@ car mesh as the track and offers **NS-01** and **Bulwark** car choices, paint,
 wheel finish, and visual ride height. Both cars currently share the same handling
 and visual setup. FWD is the default drivetrain. Your car, drivetrain, paint, wheel finish and
 stance automatically save on this browser and return after refresh/reopening.
-Pause and Garage show save status; blocked storage leaves the game usable with
+Options and Garage show settings status; blocked storage leaves the game usable with
 session-only choices. Performance parts, prices, race progress and saved replays
 are not implemented by this settings save.
+
+**Named saved games:** the title offers **Continue** (most recently saved slot),
+**Load game**, **New drive**, **Garage**, and **Options**. Pause → **Save game**
+writes one of three named slots, including your car, drivetrain, customization,
+and free-roam location. These are manual saves; choosing an occupied slot requires
+**Replace save**. Loading starts the car stationary. Race saves and locations
+blocked by new scenery return to Wharf Garage; race clocks and opponents are not
+resumed. A new drive does not erase any slots. Audio and remapped controls remain
+global preferences. Saved games use `nightshift.saves` in this browser, not cloud
+storage; clearing site data removes them.
+
+Audio and remapping live under **Options**. Drivetrain selection lives in the
+**Garage**. Pause keeps Resume, Save game, Seattle map, Options, Main menu, and
+**Return to garage** (or **Restart race** / **Return to free roam** during a race).
 
 Settings use the versioned `nightshift.settings` localStorage entry. They are
 local to this browser and origin: `localhost:5173` and `127.0.0.1:5173` have
@@ -123,7 +137,7 @@ The archived Blackglass Blender course and
 references. Its GLB is in `assets/tracks/blackglass-rivergate.glb` and is not
 shipped in `public/` or loaded by Seattle.
 
-Open **Controls** from the main or pause menu for the driving guide and remapping.
+Open **Options → Controls & remapping** from the main or pause menu for the driving guide and remapping.
 The guide is no longer overlaid while driving. Select a keyboard/controller binding,
 then press its replacement; Escape cancels, and **Restore defaults** resets all
 bindings. Conflicts are rejected. Menu navigation, arrow-key driving and stick axes

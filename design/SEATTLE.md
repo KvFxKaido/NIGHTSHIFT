@@ -6,7 +6,7 @@ Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at 
 
 `editor.html` now edits Seattle. Its validated placements live in `src/sim/seattle-layout.json`; the garage and forecourt stay protected. Saved building footprints feed both rendering and Rapier.
 
-The in-game city map opens with **M / Select–View–Share** or the main/pause
+The in-game city map opens with **M / Select–View–Share** or the pause
 menu's Seattle map button. It uses the loaded sim and never navigates away:
 player, rival, traffic and race clocks pause together. Closing returns to the
 originating screen, with driving inputs gated normally on resume. Markers show
@@ -15,6 +15,31 @@ races), plus the garage and Space Needle. Pan/zoom is available by pointer and
 the map's controller-accessible view buttons. Bindings are remappable and old
 saves retain their existing assignments. The standalone route board remains a
 separate authoring/navigation page.
+
+## Menus and named saves
+
+The title centers on Continue / Load game / New drive, with Garage and Options.
+Continue loads the most recently saved of three named slots. Empty slots cannot
+be loaded. Pause → Save game records the current build and free-roam position;
+a second, explicitly labeled Replace save action is required for an occupied slot.
+A new drive never erases slots. Saves are manual and local to this browser.
+
+Slot data lives in `nightshift.saves` (schema 1), separate from global audio,
+controls, and last-used garage preferences. Load restores the selected build and
+clears conflicting preview URL fields. It starts stationary; race saves, old map
+versions, and obstructed/out-of-bounds locations return to the garage. This does
+not yet save race progress, rival state, money or career unlocks. Invalid storage
+is reported without replacing existing data, and a slot changed by another tab
+must be selected again before replacement.
+
+Options groups audio and Controls & remapping. Drivetrain selection moves to the
+garage; Pause keeps driving, map, save and navigation actions. Controls returns
+through Options to its original menu without resuming the simulation. Names can
+be typed with the keyboard; default slot names also allow controller-only saves.
+The list-first layout and Continue/garage emphasis draw inspiration from
+[MC3's career menu](https://www.speedrun.com/midnight_club_3_dub_edition_remix/runs/zn2vd7vz),
+while retaining NIGHTSHIFT's typography and palette. There is no invented Career
+menu until the game has career progression.
 
 ## Direction
 
@@ -378,7 +403,7 @@ the headlights and accepts a challenge. Both bindings are remappable; older
 saved controls keep their mappings and receive an unused flash binding. The
 nearby prompt also works by click. A double flash precedes the page transition
 to a generated race's grid/countdown, preserving the selected player/opponent bodies.
-Pause freezes the transition. **Return to free roam** in the main/pause menus
+Pause freezes the transition. **Return to free roam** in the pause menu
 reopens Seattle at Wharf Garage with the waiting opponent restored. This first
 encounter draws a generated race; the waiting rival does not cruise the city.
 Sound to Sky remains available as the authored menu race.

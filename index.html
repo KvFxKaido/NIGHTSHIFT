@@ -103,14 +103,14 @@
         <section class="menu-screen" data-menu-screen="main" aria-labelledby="main-menu-title">
           <p class="menu-kicker">Seattle / Wharf Garage</p>
           <h1 id="main-menu-title" class="menu-title">Night<br /><span>Shift</span></h1>
-          <p class="menu-lede">Your car. Your city. Every corner becomes currency when you drive it like you mean it.</p>
-          <nav class="menu-actions" aria-label="Main menu">
-            <button class="menu-button primary" data-menu-action="start">Drive</button>
+          <p class="menu-lede">Seattle after dark. Pick up where you left off.</p>
+          <p class="save-summary" data-save-summary role="status"></p>
+          <nav class="menu-actions title-actions" aria-label="Main menu">
+            <button class="menu-button primary" data-continue hidden>Continue</button>
+            <button class="menu-button" data-menu-action="saves" data-save-mode="load">Load game</button>
+            <button class="menu-button" data-menu-action="new-drive">New drive</button>
             <button class="menu-button" data-menu-action="garage">Garage</button>
-            <button class="menu-button" data-menu-action="controls">Controls</button>
-            <button class="menu-button" data-free-roam hidden>Return to free roam</button>
-            <button class="menu-button" data-race="sound-to-sky">Race: Sound to Sky</button>
-            <button class="menu-button" data-district-map data-menu-action="map">Seattle map</button>
+            <button class="menu-button" data-menu-action="options">Options</button>
           </nav>
           <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
         </section>
@@ -159,6 +159,15 @@
             </fieldset>
           </div>
 
+          <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
+            <legend>Drivetrain</legend>
+            <div class="garage-options text-options">
+              <button class="garage-option" data-drivetrain="fwd" aria-pressed="true" aria-label="FWD: front-wheel drive (default)">FWD</button>
+              <button class="garage-option" data-drivetrain="awd" aria-pressed="false" aria-label="AWD: 45% front, 55% rear">AWD</button>
+              <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
+            </div>
+            <p id="drivetrain-note" class="handling-note">Choose your driving style. Changing drivetrain resets the current drive.</p>
+          </fieldset>
           <nav class="menu-actions garage-actions" aria-label="Garage actions">
             <button class="menu-button" data-menu-action="start">Drive out</button>
             <button class="menu-button primary" data-menu-action="back">Back</button>
@@ -175,6 +184,45 @@
           <div class="city-map-footer"><p><span style="color:#f4f7fa">▲ You</span> · <span style="color:#ff6679">● Rival</span> · <span style="color:#ffc56a">● Next gate</span> · <span style="color:#69e5bd">G Garage</span></p>
             <nav aria-label="Map view"><button class="garage-option" data-map-view="player">Find car</button><button class="garage-option" data-map-view="all">Whole city</button><button class="garage-option" data-map-view="in" aria-label="Zoom in">+</button><button class="garage-option" data-map-view="out" aria-label="Zoom out">−</button></nav></div>
           <p class="menu-footer" id="city-map-help"></p>
+        </section>
+
+        <section class="menu-screen options-menu" data-menu-screen="options" aria-labelledby="options-title" hidden>
+          <p class="menu-kicker">Driver setup</p>
+          <h2 id="options-title" class="menu-heading">Options</h2>
+          <nav class="menu-actions" aria-label="Options">
+            <button class="menu-button" data-menu-action="controls">Controls &amp; remapping</button>
+          </nav>
+          <fieldset class="garage-control audio-control" aria-describedby="soundtrack-note">
+            <legend>Audio</legend>
+            <div class="audio-levels">
+              <label>Master <input type="range" data-audio-level="master" min="0" max="1" step="0.05"></label>
+              <label>Car <input type="range" data-audio-level="engine" min="0" max="1" step="0.05"></label>
+              <label>Music <input type="range" data-audio-level="music" min="0" max="1" step="0.05"></label>
+            </div>
+            <div class="garage-options text-options">
+              <button class="garage-option" data-soundtrack="previous" aria-label="Previous track">&#8249;</button>
+              <button class="garage-option" data-soundtrack="toggle">Play</button>
+              <button class="garage-option" data-soundtrack="next" aria-label="Next track">&#8250;</button>
+            </div>
+            <p id="soundtrack-note" class="handling-note" data-soundtrack-note></p>
+          </fieldset>
+          <button class="menu-button" data-menu-action="back">Back</button>
+          <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="menu-screen saves-menu" data-menu-screen="saves" aria-labelledby="saves-title" hidden>
+          <p class="menu-kicker">Seattle / Saved games</p>
+          <h2 id="saves-title" class="menu-heading">Load game</h2>
+          <p class="handling-note" data-save-help></p>
+          <div class="save-slots" data-save-slots></div>
+          <div class="save-editor" data-save-editor hidden>
+            <label for="save-name">Save name</label>
+            <input id="save-name" type="text" maxlength="32" autocomplete="off" spellcheck="false" />
+            <p class="handling-note" data-save-confirmation></p>
+            <button class="menu-button primary" data-write-save>Save</button>
+          </div>
+          <p class="settings-status" data-save-status role="status" aria-live="polite"></p>
+          <button class="menu-button" data-menu-action="back">Back</button>
         </section>
 
         <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
@@ -202,34 +250,12 @@
           <nav class="menu-actions" aria-label="Pause menu">
             <button class="menu-button primary" data-menu-action="resume">Resume</button>
             <button class="menu-button" data-free-roam hidden>Return to free roam</button>
-            <button class="menu-button" data-menu-action="restart">Restart Run</button>
-            <button class="menu-button" data-menu-action="controls">Controls</button>
+            <button class="menu-button" data-menu-action="restart" data-restart-label>Return to garage</button>
+            <button class="menu-button" data-menu-action="saves" data-save-mode="save">Save game</button>
+            <button class="menu-button" data-menu-action="options">Options</button>
             <button class="menu-button" data-district-map data-menu-action="map">Seattle map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
-          <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
-            <legend>Handling comparison</legend>
-            <div class="garage-options text-options">
-              <button class="garage-option" data-drivetrain="fwd" aria-pressed="true" aria-label="FWD: front-wheel drive (default)">FWD</button>
-              <button class="garage-option" data-drivetrain="awd" aria-pressed="false" aria-label="AWD: 45% front, 55% rear">AWD</button>
-              <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
-            </div>
-            <p id="drivetrain-note" class="handling-note">Changing layout restarts the run. Auto-countersteer is off for every layout.</p>
-          </fieldset>
-          <fieldset class="garage-control audio-control" aria-describedby="soundtrack-note">
-            <legend>Audio</legend>
-            <div class="audio-levels">
-              <label>Master <input type="range" data-audio-level="master" min="0" max="1" step="0.05"></label>
-              <label>Car <input type="range" data-audio-level="engine" min="0" max="1" step="0.05"></label>
-              <label>Music <input type="range" data-audio-level="music" min="0" max="1" step="0.05"></label>
-            </div>
-            <div class="garage-options text-options">
-              <button class="garage-option" data-soundtrack="previous" aria-label="Previous track">&#8249;</button>
-              <button class="garage-option" data-soundtrack="toggle">Play</button>
-              <button class="garage-option" data-soundtrack="next" aria-label="Next track">&#8250;</button>
-            </div>
-            <p id="soundtrack-note" class="handling-note" data-soundtrack-note></p>
-          </fieldset>
           <p class="menu-footer">Esc / Options to resume</p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>

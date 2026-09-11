@@ -1,4 +1,7 @@
 import { createGameMap } from "./ui/game-map.ts";
+import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
+import { safeSavePosition } from "./settings/save-position.ts";
+import { createSavesPanel } from "./ui/saves.ts";
 import { SEATTLE_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
 import { SEATTLE_RIVAL } from "./sim/seattle-rival.ts";
@@ -16,7 +19,7 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setView
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createSeattleWorld, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace } from "./sim/seattle.ts";
+import { createSeattleWorld, SEATTLE_DATA, SEATTLE_STREETS, SEATTLE_GARAGE, SEATTLE_RACE, seattleGeneratedRace } from "./sim/seattle.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import { addSeattle } from "./render/seattle.ts";
@@ -31,7 +34,17 @@ import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
   type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
 
 const settings = createSettingsStore(() => window.localStorage);
-const restored = settings.get();
+const saves = createSaveStore(() => window.localStorage);
+let loadedSave: DriveSave | undefined;
+let loadNotice = "";
+const requestedSave = new URLSearchParams(location.search).get("save");
+if (requestedSave !== null) {
+  try {
+    loadedSave = saves.list().find(s => isSaveId(requestedSave) && s.id === requestedSave);
+    if (!loadedSave) loadNotice = "That save is unavailable. Choose another slot or start a new drive.";
+  } catch { loadNotice = "Saved games could not be loaded. Your existing data is unchanged."; }
+}
+const restored = { ...settings.get(), ...loadedSave?.build };
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
@@ -44,6 +57,11 @@ let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
   const params = url.searchParams;
+  if (requestedSave !== null) {
+    // A slot is authoritative over preview links and always resumes free roam.
+    for (const key of ["race", "car", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit"]) params.delete(key);
+    if (!loadedSave) { params.delete("save"); params.delete("scene"); }
+  }
   // Old bookmarks now enter the Seattle demo; incompatible routes are retired.
   if (params.has("world") && params.get("world") !== "seattle") params.delete("race");
   if (params.get("race") === "crane-to-crest") params.delete("race");
@@ -82,8 +100,11 @@ try {
 }
 
 const input = createInputController();
+if (loadedSave) settings.update(loadedSave.build);
 const controls = createControlsPanel(input);
 const roadWorld = createSeattleWorld(!!race);
+let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, SEATTLE_DATA.bounds) : null;
+if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounter: SEATTLE_ENCOUNTER });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addSeattle(scene, lighting), SEATTLE_RACE.checkpoints[0]!.radius);
@@ -92,7 +113,7 @@ document.body.dataset.world = "seattle";
 document.title = "NIGHTSHIFT — Seattle";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / SEATTLE";
 document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Seattle / Sound to Sky" : "Seattle / Free roam";
-document.querySelector(".menu-lede")!.textContent = "From Wharf Garage to the waterfront and the hills. Find your own way through Seattle.";
+document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : "Return to garage";
 const gameMap = createGameMap(sim);
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
@@ -199,16 +220,34 @@ document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
   button.addEventListener("click", () => void selectCar(button.dataset.car!));
 });
 
+const savePanel = createSavesPanel(saves, () => ({
+  world: roadWorld.id,
+  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "blender", drivetrain: sim.state.drivetrain, customization: { ...customization } },
+  position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
+}));
 const menu = createMenuController({
-  startTrack: () => {
+  startTrack: (fresh) => {
+    if (fresh) {
+      pendingSavePosition = null;
+      if (race) { loadDrive(null); return; }
+    }
     reset();
+    if (pendingSavePosition) {
+      const p = pendingSavePosition;
+      sim.body.setTranslation({ x: p.x, y: p.y + .5, z: p.z }, true);
+      sim.body.setRotation({ x: 0, y: Math.sin(p.heading / 2), z: 0, w: Math.cos(p.heading / 2) }, true);
+      step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 0 });
+      pendingSavePosition = null;
+      resetViewCamera(view);
+    }
     input.armDrivingInputGate();
   },
   restartRun: () => {
     reset();
     input.armDrivingInputGate();
   },
-  returnToMain: () => reset(),
+  returnToMain: () => {},
+  openSaves: mode => savePanel.open(mode),
   resumeRun: () => input.armDrivingInputGate(),
   getDrivetrain: () => sim.state.drivetrain,
   getCustomization: () => customization,
@@ -225,6 +264,7 @@ const menu = createMenuController({
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => {
+    if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);
     if (screen === "map") gameMap.open(input.bindings());
     setViewMode(view, screen === "garage" ? "garage" : "track");
@@ -240,7 +280,7 @@ const menu = createMenuController({
     const tracks = soundtrack?.tracks() ?? [];
     if (!tracks.length) {
       return {
-        note: "No music found. Drop files in public/assets/music and run pnpm music:scan.",
+        note: "No soundtrack tracks are installed.",
         playing: false,
         enabled: false,
       };
@@ -279,6 +319,10 @@ function loadDrive(raceId: string | null): void {
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
   url.searchParams.set("scene", "track");
   url.searchParams.set("car", selectedCar);
+  url.searchParams.delete("save");
+  // Race transitions retain the loaded slot's build without changing other slots.
+  url.searchParams.set("drivetrain", sim.state.drivetrain);
+  for (const [key, value] of Object.entries(customization)) url.searchParams.set(key, value);
   for (const key of ["drive", "freeze", "rival"]) url.searchParams.delete(key);
   location.href = url.href;
 }
@@ -447,10 +491,7 @@ installDebugApi({
   },
 });
 
-// Encounter and menu shortcuts use the same grid transition.
-document.querySelectorAll<HTMLButtonElement>("[data-race]").forEach(button => {
-  button.addEventListener("click", () => loadDrive(button.dataset.race!));
-});
+// Leaving a race returns to the same city in free roam.
 document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button => {
   button.hidden = !race;
   button.addEventListener("click", () => loadDrive(null));
@@ -458,6 +499,15 @@ document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button 
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
 settings.preview(() => applyDeepLink(debugApi, location.search));
+// The slot has been consumed; refreshing must not silently reload an older build.
+if (requestedSave !== null) {
+  const url = new URL(location.href); url.searchParams.delete("save");
+  history.replaceState(history.state, "", url);
+}
+if (loadNotice) {
+  document.querySelector<HTMLElement>("[data-save-summary]")!.textContent = loadNotice;
+  document.querySelector<HTMLElement>("[data-settings-status]")!.textContent = loadNotice;
+}
 renderSettingsStatus();
 
 modeElement.title = `${sim.state.physicsVersion} · Rapier ${RAPIER.version()} · ${TICK_HZ} Hz fixed simulation`;

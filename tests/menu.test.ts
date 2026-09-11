@@ -27,6 +27,20 @@ test("garage is a main-menu branch", () => {
   assert.equal(transitionMenu(garage, "back").screen, "main");
 });
 
+test("nested options and save screens return to their origin without resuming the sim", () => {
+  for (const origin of ["main", "pause"] as const) {
+    const initial = { screen: origin, returnTo: origin };
+    const options = transitionMenu(initial, "open-options");
+    const controls = transitionMenu(options, "open-controls");
+    for (const back of ["back", "pause-toggle"] as const) {
+      const returned = transitionMenu(controls, back);
+      assert.deepEqual(returned, options);
+      assert.equal(transitionMenu(returned, back).screen, origin);
+      assert.equal(transitionMenu(transitionMenu(initial, "open-saves"), back).screen, origin);
+    }
+  }
+});
+
 test("city map closes to its origin without restarting a drive", () => {
   for (const origin of ["main", "pause", "playing"] as const) {
     const map=transitionMenu({screen:origin,returnTo:"main"},"map-toggle");
@@ -75,5 +89,5 @@ test("sliders are navigable and confirming on one cannot activate a button", () 
   assert.match(MENU_ITEM_SELECTOR, /input\[type="range"\]/);
   assert.match(MENU_ITEM_SELECTOR, /button/);
   // Both halves must exclude disabled controls, or navigation lands on dead items.
-  assert.equal(MENU_ITEM_SELECTOR.match(/:not\(\[disabled\]\)/g)?.length, 2);
+  assert.equal(MENU_ITEM_SELECTOR.match(/:not\(\[disabled\]\)/g)?.length, 3);
 });

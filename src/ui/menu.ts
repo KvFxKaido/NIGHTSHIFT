@@ -18,12 +18,13 @@ type MenuItem = HTMLButtonElement | HTMLInputElement;
  * not merely unreachable, it makes navigation skip past onto something else.
  */
 export const MENU_ITEM_SELECTOR =
-  "button:not([disabled]):not([hidden]), input[type=\"range\"]:not([disabled]):not([hidden])";
+  "button:not([disabled]):not([hidden]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden])";
 
 interface MenuCallbacks {
-  startTrack(): void;
+  startTrack(fresh: boolean): void;
   restartRun(): void;
   returnToMain(): void;
+  openSaves(mode: "load" | "save"): void;
   resumeRun(): void;
   getDrivetrain(): Drivetrain;
   getCustomization(): CarCustomization;
@@ -50,8 +51,11 @@ export interface MenuController {
 const actionEvents: Record<string, MenuEvent> = {
   garage: "open-garage",
   controls: "open-controls",
+  options: "open-options",
+  saves: "open-saves",
   map: "map-toggle",
   start: "start-track",
+  "new-drive": "start-track",
   resume: "resume",
   restart: "restart",
   "main-menu": "main-menu",
@@ -97,7 +101,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   function visibleItems(): MenuItem[] {
     const screen = screens.get(state.screen);
     return screen
-      ? Array.from(screen.querySelectorAll<MenuItem>(MENU_ITEM_SELECTOR))
+      ? Array.from(screen.querySelectorAll<MenuItem>(MENU_ITEM_SELECTOR)).filter(item => !item.closest("[hidden]"))
       : [];
   }
 
@@ -150,13 +154,13 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     }
   }
 
-  function dispatch(event: MenuEvent): void {
+  function dispatch(event: MenuEvent, fresh = false): void {
     if (event === "start-track" && state.screen === "garage" && state.returnTo === "playing") event = "resume";
     const previous = state;
     const next = transitionMenu(state, event);
     if (next.screen === previous.screen && next.returnTo === previous.returnTo) return;
 
-    if (event === "start-track") callbacks.startTrack();
+    if (event === "start-track") callbacks.startTrack(fresh);
     if (event === "restart") callbacks.restartRun();
     if (event === "main-menu") callbacks.returnToMain();
     if (
@@ -191,6 +195,13 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   function handleCommands(commands: readonly MenuCommand[]): void {
     for (const command of commands) {
+      // Editing a slot name must not turn arrow keys into menu navigation.
+      if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === "text") {
+        if (command === "confirm" || command === "down") moveFocus(1);
+        else if (command === "up") moveFocus(-1);
+        else if (command === "back" || command === "pause") dispatch("back");
+        continue;
+      }
       if (command === "map") {
         dispatch("map-toggle");
       } else if (command === "pause") {
@@ -251,8 +262,9 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       return;
     }
     if (!button) return;
+    if (button.dataset.menuAction === "saves") callbacks.openSaves(button.dataset.saveMode === "save" ? "save" : "load");
     const menuEvent = actionEvents[button.dataset.menuAction ?? ""];
-    if (menuEvent) dispatch(menuEvent);
+    if (menuEvent) dispatch(menuEvent, button.dataset.menuAction === "new-drive");
   });
 
   renderState();
