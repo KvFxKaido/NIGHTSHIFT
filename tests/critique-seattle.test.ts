@@ -1,3 +1,4 @@
+import { SEATTLE_STREETS } from "../src/sim/seattle.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
@@ -14,7 +15,7 @@ test("the Seattle critique runs and reports legs, streets and gate candidates", 
     streets: { id: string; risk: number; time: number; length: number }[];
     legs: { kind: string; detour: number | null; riskFast: number; via: string[] }[];
   };
-  assert.equal(report.streets.length, 63);
+  assert.deepEqual(report.streets.map(s=>s.id).sort(),SEATTLE_STREETS.map(s=>s.id).sort());
   assert.ok(report.streets.every(s => s.risk >= 0 && s.risk <= 1 && s.time > 0 && s.length > 0));
   assert.ok((report.summary.legs ?? 0) > 500, `only ${report.summary.legs} legs`);
   const kinds = new Set(report.legs.map(l => l.kind));

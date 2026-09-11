@@ -1,3 +1,4 @@
+import { createGameMap } from "./ui/game-map.ts";
 import { SEATTLE_ENCOUNTER, canChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
 import { SEATTLE_RIVAL } from "./sim/seattle-rival.ts";
@@ -92,9 +93,7 @@ document.title = "NIGHTSHIFT — Seattle";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / SEATTLE";
 document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Seattle / Sound to Sky" : "Seattle / Free roam";
 document.querySelector(".menu-lede")!.textContent = "From Wharf Garage to the waterfront and the hills. Find your own way through Seattle.";
-document.querySelectorAll<HTMLButtonElement>("[data-district-map]").forEach(button => {
-  button.addEventListener("click", () => { location.href = "./seattle.html"; });
-});
+const gameMap = createGameMap(sim);
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
@@ -227,6 +226,7 @@ const menu = createMenuController({
   },
   screenChanged: (screen) => {
     controls.screenChanged(screen);
+    if (screen === "map") gameMap.open(input.bindings());
     setViewMode(view, screen === "garage" ? "garage" : "track");
   },
   getAudioLevels: () => audioLevels,

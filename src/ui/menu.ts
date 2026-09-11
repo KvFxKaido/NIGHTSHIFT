@@ -50,6 +50,7 @@ export interface MenuController {
 const actionEvents: Record<string, MenuEvent> = {
   garage: "open-garage",
   controls: "open-controls",
+  map: "map-toggle",
   start: "start-track",
   resume: "resume",
   restart: "restart",
@@ -190,7 +191,9 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   function handleCommands(commands: readonly MenuCommand[]): void {
     for (const command of commands) {
-      if (command === "pause") {
+      if (command === "map") {
+        dispatch("map-toggle");
+      } else if (command === "pause") {
         dispatch("pause-toggle");
       } else if (state.screen !== "playing" && command === "up") {
         moveFocus(-1);

@@ -522,3 +522,17 @@ body[data-game-screen="pause"] #hud {
   .controls-table td { font-size: 10px; }
   .binding-button { padding: 8px 4px; font-size: 10px; }
 }
+/* City map stays in the loaded game and participates in normal pause state. */
+.menu-root[data-screen="map"] { padding: clamp(12px, 2vw, 28px); justify-items: center; background: rgba(3,8,14,.93); }
+.menu-root[data-screen="map"] .menu-shell { width: min(1200px, 100%); max-width: none; }
+.menu-root[data-screen="map"] .menu-screen { width: 100%; max-width: none; }
+.city-map-heading, .city-map-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.city-map-heading .menu-heading { font-size: clamp(24px, 3vw, 38px); margin: 0; }
+.city-map-heading .menu-button { width: auto; min-width: 130px; }
+#city-map { display: block; width: 100%; height: min(62vh, 660px); background: #101e28; border: 1px solid #304751; border-radius: 5px; touch-action: none; cursor: grab; }
+#city-map:active { cursor: grabbing; }
+#city-map-status, .city-map-footer { color: #b1c5cb; font: 12px/1.5 ui-monospace, monospace; }
+.city-map-footer nav { display: flex; gap: 8px; }
+.city-map-footer .garage-option { padding: 8px 12px; }
+body[data-game-screen="map"] #hud { opacity: 0; }
+@media (max-width: 620px) { .city-map-footer { flex-wrap: wrap; gap: 0; } #city-map { height: 55vh; } }

@@ -62,7 +62,7 @@ Overrides are resolved before `SEATTLE_BLOCKS` is exposed to either renderer
 or Rapier. No Three.js objects enter simulation code. The baseline fingerprint
 uses millimetre precision to tolerate last-bit trigonometry differences between
 Node and browsers; edited layout content is included in the world/replay ID.
-An empty override file retains `seattle-slice-v2` and the generated Seattle
+An empty override file retains `seattle-slice-v3` and the generated Seattle
 geometry plus its fixed garage. Old Blackglass placement files have a different
 baseline and must not be imported as Seattle placements.
 

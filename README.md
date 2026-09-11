@@ -57,7 +57,8 @@ pnpm build      # typecheck + production build
 ```
 
 The demo now opens in **Seattle**, a fictionalized, compressed city slice with
-13.1 km of open streets, a waterfront bypass, softened hills, traffic, and the
+18.6 km of open streets, Belltown, Seattle Center and its Space Needle landmark, a waterfront bypass,
+softened hills, traffic, and the
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
 The existing arcade handling, reset, and keyboard/gamepad controls are
@@ -73,7 +74,12 @@ minimap. Approach at cruising speed and flash headlights with **F / X–Square**
 The pause and main menus offer **Return to free roam** during a race.
 In-game replay and the recorded-input ghost remain removed. See [`design/SEATTLE.md`](design/SEATTLE.md).
 
-**Seattle map** opens `/seattle.html`. Its **Edit Seattle** link opens the
+**Seattle map** in the main/pause menus opens a map overlay without unloading
+the drive. **M / Select–View–Share** toggles it during play (remappable in
+Controls). It pauses both racers and traffic, shows current positions and active
+race gates, and returns to the screen it was opened from. Drag/scroll to pan/zoom,
+or use the controller-accessible Find car, Whole city and zoom buttons.
+The standalone `/seattle.html` route board remains available. Its **Edit Seattle** link opens the
 building workshop at `/editor.html`; validated placements are shared by the
 renderer and collision system. See [`design/EDITOR.md`](design/EDITOR.md).
 

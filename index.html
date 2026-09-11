@@ -110,7 +110,7 @@
             <button class="menu-button" data-menu-action="controls">Controls</button>
             <button class="menu-button" data-free-roam hidden>Return to free roam</button>
             <button class="menu-button" data-race="sound-to-sky">Race: Sound to Sky</button>
-            <button class="menu-button" data-district-map>Seattle map</button>
+            <button class="menu-button" data-district-map data-menu-action="map">Seattle map</button>
           </nav>
           <p class="menu-footer">Arrows / D-pad / left stick to navigate · Enter / Cross to select</p>
         </section>
@@ -167,6 +167,16 @@
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
         </section>
 
+        <section class="menu-screen city-map-menu" data-menu-screen="map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
+          <div class="city-map-heading"><div><p class="menu-kicker">Seattle / City map</p><h2 id="city-map-title" class="menu-heading">Find your way</h2></div>
+            <button class="menu-button" data-menu-action="back">Close map</button></div>
+          <p id="city-map-status"></p>
+          <svg id="city-map" role="img" aria-label="Seattle streets, your position, rival and active race checkpoints"></svg>
+          <div class="city-map-footer"><p><span style="color:#f4f7fa">▲ You</span> · <span style="color:#ff6679">● Rival</span> · <span style="color:#ffc56a">● Next gate</span> · <span style="color:#69e5bd">G Garage</span></p>
+            <nav aria-label="Map view"><button class="garage-option" data-map-view="player">Find car</button><button class="garage-option" data-map-view="all">Whole city</button><button class="garage-option" data-map-view="in" aria-label="Zoom in">+</button><button class="garage-option" data-map-view="out" aria-label="Zoom out">−</button></nav></div>
+          <p class="menu-footer" id="city-map-help"></p>
+        </section>
+
         <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
           <p class="menu-kicker">Driver setup</p>
           <h2 id="controls-title" class="menu-heading">Controls</h2>
@@ -194,7 +204,7 @@
             <button class="menu-button" data-free-roam hidden>Return to free roam</button>
             <button class="menu-button" data-menu-action="restart">Restart Run</button>
             <button class="menu-button" data-menu-action="controls">Controls</button>
-            <button class="menu-button" data-district-map>Seattle map</button>
+            <button class="menu-button" data-district-map data-menu-action="map">Seattle map</button>
             <button class="menu-button" data-menu-action="main-menu">Main Menu</button>
           </nav>
           <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
