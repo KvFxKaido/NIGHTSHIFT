@@ -59,9 +59,11 @@ pnpm build      # typecheck + production build
 The demo now opens in **Seattle**, a fictionalized, compressed city slice with
 83.5 km of open streets and 12.6 km² inside the connected street network's outer boundary, Belltown,
 Seattle Center and its Space Needle landmark, Queen Anne and Capitol Hill climbs,
-the Central District, Madrona Ridge, parks, traffic, and the
+the Central District, Madrona Ridge, parks, evergreen groves, traffic, and the
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.
+Collidable evergreen trunks break up broad cross-country cuts while roads,
+alleys and selected passages through the groves stay open.
 The existing arcade handling, reset, and keyboard/gamepad controls are
 retained. **Sound to Sky now has one AI rival**, driving the garage car you did
 not select: NS-01 versus Bulwark. It follows a preferred route, brakes for corners

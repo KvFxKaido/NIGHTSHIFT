@@ -38,7 +38,29 @@ Real Seattle centerlines provide the original southwest structure. The new hill 
 
 Road data also feeds the minimap and existing lane/reservation traffic builder. Traffic remains deterministic. General road projection, building footprint and traffic helpers are separate modules, so importing Seattle does not initialize the retired district.
 
-The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v4`, with a layout fingerprint when edited.
+The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Seattle's world identity is now `seattle-slice-v4-evergreens-v1`, with a layout fingerprint when edited.
+
+## Evergreen groves
+
+Six planting regions add 4,440 evergreens to the current layout: Queen Anne slopes,
+Union Commons, Capitol greenbelt, Madrona woods, Central greenway and the freight
+edge. They break up large empty cross-country cuts without enclosing the roads.
+Union Commons has denser planting; smooth patches and feathered edges leave
+irregular clearings elsewhere. Two broad passages cross Union Commons and Madrona.
+This is a first obstacle-placement pass, not a measured guarantee of race balance.
+
+`src/sim/seattle-evergreens.ts` deterministically generates placements after the
+building layout resolves. Tree canopies stay five metres beyond road edges
+(including alleys), two metres clear of buildings, and out of the garage forecourt.
+New authored buildings take priority and displace nearby planting on reload.
+Solid 1.25 m trunks share their exact placement and dimensions with the renderer;
+branches have no collision. Trunk feet follow the lowest ground corner.
+
+`src/render/evergreens.ts` uses three low-poly crown layers and two instanced meshes
+per 256 m geographic batch, with shared geometry/materials and frustum bounds.
+The existing park trees remain. No assets need downloading, and there are no new
+walls, driving penalties or handling changes. The evergreen version suffix marks
+the changed collision world independently of the generated road-data stamp.
 
 ## Regeneration caveats
 
@@ -68,7 +90,7 @@ plots over a filler plot and a pinned plot it writes 193 buildings instead
 of 195. See `design/EDITOR.md` for the editor's side.
 
 The builder now stamps `seattle-slice-v4` and the sim derives its version from
-that stamp (plus the layout fingerprint). The old separate v1/v2 stamps are
+that stamp (plus the evergreen revision and layout fingerprint). The old separate v1/v2 stamps are
 retired. Map expansions must bump the builder's stamp deliberately. Generated
 race seeds are reproducible within a world version; v3 seeds may draw different
 routes on the expanded graph.

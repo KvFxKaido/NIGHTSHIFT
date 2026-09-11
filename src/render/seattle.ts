@@ -1,7 +1,8 @@
 import { addSpaceNeedle } from "./space-needle.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { SEATTLE_DATA as data, SEATTLE_STREETS, SEATTLE_BLOCKS, SEATTLE_GARAGE, SEATTLE_TREES, seattleHeight } from "../sim/seattle.ts";
+import { SEATTLE_DATA as data, SEATTLE_STREETS, SEATTLE_BLOCKS, SEATTLE_GARAGE, SEATTLE_TREES, SEATTLE_EVERGREENS, seattleHeight } from "../sim/seattle.ts";
+import { addEvergreens } from "./evergreens.ts";
 import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
 import { addNightBuildings, glowTexture } from "./night.ts";
@@ -34,6 +35,7 @@ export function addSeattle(scene: THREE.Scene, lighting: DistrictLighting): void
     treePose.position.y=tree.base+tree.height;treePose.scale.set(1,1,1);treePose.updateMatrix();crowns.setMatrixAt(i,treePose.matrix);
   });
   trunks.name="seattle-park-trunks";crowns.name="seattle-park-canopies";trunks.castShadow=crowns.castShadow=true;scene.add(trunks,crowns);
+  addEvergreens(scene, SEATTLE_EVERGREENS, night);
   const water=new THREE.Mesh(new THREE.PlaneGeometry(2200,data.bounds[3]!-data.bounds[1]!+1000),new THREE.MeshStandardMaterial({color:0x123142,metalness:.55,roughness:.24}));
   water.rotation.x=-Math.PI/2;water.position.set(data.shore-1100,.1,(data.bounds[3]!+data.bounds[1]!)/2);water.name="elliott-bay";scene.add(water);
   // Continue the landform beyond the authored parcels so leaving the streets

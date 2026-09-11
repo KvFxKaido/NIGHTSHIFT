@@ -13,8 +13,9 @@ import type { RaceDefinition } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRace, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
+import { createEvergreens } from "./seattle-evergreens.ts";
 
-export const SEATTLE_DATA = data;
+export const SEATTLE_DATA = { ...data, version: `${data.version}-evergreens-v1` };
 export const SEATTLE_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const SEATTLE_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -125,11 +126,15 @@ export function resolveSeattleLayout(value:unknown, generated:readonly BuildingB
 const resolvedLayout=resolveSeattleLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Seattle layout:\n${resolvedLayout.issues.join("\n")}`);
 export const SEATTLE_BLOCKS=resolvedLayout.blocks;
+export const SEATTLE_EVERGREENS = createEvergreens(SEATTLE_STREETS,
+  [...SEATTLE_BLOCKS, landmarks.needle, ...SEATTLE_TREES,
+    { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], seattleHeight);
 export const SEATTLE_LAYOUT=resolvedLayout;
-export const SEATTLE_VERSION=data.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
+export const SEATTLE_VERSION=SEATTLE_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
 export function createSeattleWorld(racing = false): RoadWorld {
-  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance, solids: [...SEATTLE_BLOCKS, landmarks.needle, ...SEATTLE_TREES],
+  return { id: SEATTLE_VERSION, start: racing ? start : SEATTLE_GARAGE.entrance,
+    solids: [...SEATTLE_BLOCKS, landmarks.needle, ...SEATTLE_TREES, ...SEATTLE_EVERGREENS.map(tree => tree.trunk)],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],
