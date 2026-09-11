@@ -105,6 +105,22 @@ wheels and rear slicks; Rivet uses the existing RWD handling model.
 For inspection, `?scene=track&visit=rivet` starts near the meetup;
 `?scene=track&race=rivet-quarter-mile` starts directly on the grid.
 
+**Sable / South Wharf Drift** lives in the floodlit freight yard south of Harbor
+Way. The wide driveway stays open in free roam. The map labels the yard and
+Sable; flash her parked NS-01 to start a solo 90-second run against 3,000 points.
+Follow the warehouse sweeper into the offset container section, or practice your
+own line. Yellow ground rings and the minimap identify the next clipping bonus.
+Full steering and existing drivetrain handling apply; there is no lane assist or
+drag gearbox. Build speed, turn and briefly use the handbrake to initiate a slide.
+Scoring requires at least 7 m/s and 10 degrees of sideways slip. Speed and angle
+build a chain, sustained drifting raises the multiplier to x4, and linked changes
+of direction add bonuses. Drift through the numbered clips in order for +200 each.
+Straightening for one second banks the chain. Contact, a spin, reversing or leaving
+the yard loses unbanked points; saved points remain. The timer banks the last valid
+chain and shows the result. Restart gives a fresh timed attempt.
+`?scene=track&visit=sable` starts beside Sable;
+`?scene=track&race=sable-yard-drift` starts on the yard grid.
+
 Crossing the finish in a rival race pauses the drive and shows your result/time,
 with **Return to free roam** or **Go to garage**. Both clear the race and retain
 your car/setup; free roam restarts outside Wharf Garage, while garage opens the

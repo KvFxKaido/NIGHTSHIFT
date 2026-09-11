@@ -1,3 +1,6 @@
+import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
+import { SABLE_DRIFT } from "./sim/drift-event.ts";
+import { addDriftYard } from "./render/drift-yard.ts";
 import { HARBOR_DRAG, DRAG_START, RIVET, RIVET_DRAG_DRIVER } from "./sim/drag-event.ts";
 import { addDragStrip } from "./render/drag-strip.ts";
 import { createGameMap } from "./ui/game-map.ts";
@@ -55,6 +58,7 @@ const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
 let rivalParts: CarView | null = null;
 let rivetParts: CarView | null = null;
+let sableParts: CarView | null = null;
 const opponentCar = (id: string) => id === "bulwark" ? "blender" : "bulwark";
 const raceOpponentCar = (id: string) => race?.kind === "drag" ? "hammer" : opponentCar(id);
 let selectedCar = "blender";
@@ -82,7 +86,7 @@ try {
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
-  if (raceId && !generated && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id) throw new Error(`Unknown race '${raceId}'`);
+  if (raceId && !generated && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
@@ -94,10 +98,11 @@ try {
     if (!raceStart) throw new Error(`No street to start on at ${startParam}`);
   } else if (startParam) { params.delete("start"); history.replaceState(history.state, "", url); }
   if (generated) {
-    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag">);
+    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag" | "drift">);
     race = drawn.race; rival = drawn.rival;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
+  } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
@@ -112,6 +117,7 @@ try {
     const opponent = raceOpponentCar(model);
     rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
+    if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
 } catch (error) {
   document.body.dataset.assetState = "error";
@@ -125,17 +131,22 @@ try {
 const input = createInputController();
 if (loadedSave) settings.update(loadedSave.build);
 const controls = createControlsPanel(input);
-const visitingRivet = !race && new URLSearchParams(location.search).get("visit") === RIVET.id;
-const roadWorld = createAlderWorld(!!race || visitingRivet, raceStart ?? (visitingRivet
-  ? { ...RIVET.start, x: RIVET.start.x - 6, z: RIVET.start.z + 18 } : undefined));
+const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
+const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
+  ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival, traffic: race.kind !== "drag" }
-  : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET] });
+const sim = createSim(restored.drivetrain, roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift", parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+  : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
+if (sableParts) {
+  sableParts.paintMaterial.color.setHex(0x70b8b0);
+  setParkedRivalCar(view, SABLE.id, sableParts);
+}
+const driftYardView = addDriftYard(view.scene, lighting === "night");
 const dragStripView = race?.drag ? addDragStrip(view.scene, race.drag, alderHeight) : null;
 document.body.dataset.world = "alder";
 document.title = "NIGHTSHIFT — Port Alder";
@@ -150,6 +161,7 @@ const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
 const performanceOverlay = createPerformanceOverlay();
 const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
+hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
@@ -379,6 +391,7 @@ function updateFlash(dt: number, active: boolean): void {
   });
   if (challengePending && flashRemaining === 0 && active) {
     challengePending = false;
+    if (challengeRival === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
     if (challengeRival === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
     // Every flash draws a new race; the seed comes from the tick of the flash,
     // so a replay of the cruise would draw the same one. It starts where you
@@ -397,6 +410,7 @@ document.addEventListener("visibilitychange", () => {
 function updateHud(): void {
   const car = sim.state.vehicle;
   const raceState = sim.state.race;
+  driftYardView.update(raceState);
   if (dragStripView && raceState) dragStripView.update(raceState);
   const dragControls = document.getElementById("drag-controls");
   if (dragControls && race?.kind === "drag") {
@@ -410,11 +424,22 @@ function updateHud(): void {
     { race: raceState, x: car.x, z: car.z },
     { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) : null;
   hud.update(car, race && raceState ? {
-    progressLabel: raceProgressLabel(race, raceState), targets: raceState.targets,
+    progressLabel: raceProgressLabel(race, raceState), targets: race.kind === "drift" ? [race.drift!.zones[raceState.drift!.nextZone]!] : raceState.targets,
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
+      : race.kind === "drift" ? `${Math.ceil(Math.max(0, race.drift!.durationTicks - raceState.ticks) / TICK_HZ)}s LEFT`
       : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}`,
-  } : null, rival?.vehicle ?? (challengeTarget() === RIVET.id ? sim.state.parkedRivals.find(r => r.id === RIVET.id)?.vehicle : sim.state.encounter));
+  } : null, rival?.vehicle ?? (sim.state.parkedRivals.find(r => r.id === challengeTarget())?.vehicle ?? sim.state.encounter));
+  const driftPanel = document.getElementById("drift-instruments")!;
+  driftPanel.hidden = !raceState?.drift;
+  if (raceState?.drift) {
+    const d = raceState.drift;
+    document.getElementById("drift-chain")!.textContent = `+${Math.floor(d.chain)} x${d.multiplier}`;
+    document.getElementById("drift-feedback")!.textContent = raceState.countdown > 0 ? "90s / BEAT SABLE / 3,000 PTS" : d.feedbackTicks ? d.feedback : d.drifting ? `${Math.round(d.angle)} DEG / LINK THE NEXT CORNER` : "BUILD SPEED / TAP HANDBRAKE";
+    document.getElementById("drift-zone")!.textContent = `NEXT: ${race!.drift!.zones[d.nextZone]!.name.toUpperCase()}`;
+    const bindings = input.bindings();
+    document.getElementById("drift-help")!.textContent = `${input.gamepadName() ? PAD_LABELS[bindings.gamepad.handbrake] : keyLabel(bindings.keyboard.handbrake)}: initiate / straighten to bank / contact loses chain`;
+  }
   modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`;
   const gamepadName = input.gamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
@@ -451,8 +476,8 @@ function frame(now: number): void {
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
-  rivalPrompt.textContent = challengePending ? (challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : "Challenge accepted · Drawing a race…")
-    : `${input.gamepadName() ? PAD_LABELS[input.bindings().gamepad.flash] : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
+  rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : "Challenge accepted · Drawing a race…")
+    : `${input.gamepadName() ? PAD_LABELS[input.bindings().gamepad.flash] : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.gamepadName() ? "Cross / A · Enter Wharf Garage" : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
@@ -473,6 +498,13 @@ function frame(now: number): void {
     lastInput = tickInput;
     step(sim, tickInput);
     accumulator -= DT;
+    if (sim.state.race?.finished && race?.kind === "drift") {
+      const drift = sim.state.race.drift!;
+      menu.finishRace(drift.won ? "Sable beaten" : "Target missed",
+        `${Math.floor(drift.score)} / ${race.drift!.targetScore} points / ${drift.clips} clips / ${drift.transitions} transitions`);
+      accumulator = 0;
+      break;
+    }
     if (sim.state.race?.finished && sim.state.rival && race) {
       const position = racePosition(race,
         { race: sim.state.race, x: sim.state.vehicle.x, z: sim.state.vehicle.z },

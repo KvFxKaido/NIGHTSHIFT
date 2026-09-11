@@ -388,7 +388,7 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   roadWorld: RoadWorld = BLACKGLASS_WORLD, options: SimOptions = {}): Sim {
   if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
   if (options.rival && !options.race) throw new Error("A rival requires a race");
-  if ((options.encounter || options.encounterRoute || options.parkedRivals?.length) && options.race) throw new Error("A cruising encounter belongs in free roam");
+  if ((options.encounter || options.encounterRoute || (options.parkedRivals?.length && options.race?.kind !== "drift")) && options.race) throw new Error("A cruising encounter belongs in free roam");
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
   world.timestep = DT;
   for (const wall of roadWorld.walls) {
@@ -811,7 +811,14 @@ export function step(sim: Sim, rawInput: Input): void {
   }
   sim.state.tick++;
   // After syncState: the race reads the vehicle where this tick left it.
-  if (sim.race && sim.state.race) stepRace(sim.race, sim.state.race, sim.state.vehicle);
+  let driftContact = false;
+  if (sim.race?.kind === "drift") {
+    const collider = sim.body.collider(0);
+    sim.world.contactPairsWith(collider, other => sim.world.contactPair(collider, other, manifold => {
+      if (manifold.numSolverContacts() > 0) driftContact = true;
+    }));
+  }
+  if (sim.race && sim.state.race) stepRace(sim.race, sim.state.race, sim.state.vehicle, driftContact);
   if (sim.race && rival) stepRace(sim.race, rival.race, rival.vehicle);
 }
 

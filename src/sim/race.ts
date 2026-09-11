@@ -1,3 +1,4 @@
+import { createDrift, stepDrift, type DriftState, type DriftDefinition } from "./drift-rules.ts";
 /**
  * Open-checkpoint racing (GDD §7.3): pass through a sequence of checkpoints, in
  * order, by any route you like. The Midnight Club format — the city is the
@@ -28,11 +29,12 @@ export interface Checkpoint {
   readonly exit?: { readonly x: number; readonly z: number };
 }
 
-export type RaceKind = "sprint" | "circuit" | "unordered" | "drag";
+export type RaceKind = "sprint" | "circuit" | "unordered" | "drag" | "drift";
 
 export interface RaceDefinition {
   readonly kind?: RaceKind;
   readonly drag?: DragStrip;
+  readonly drift?: DriftDefinition;
   /** Circuit gates are expanded per lap so rivals and replays share one sequence. */
   readonly laps?: number;
   readonly gatesPerLap?: number;
@@ -47,6 +49,7 @@ export interface RaceDefinition {
 export interface RaceState {
   /** Gates passed; also the next index for ordered events. */
   checkpoint: number;
+  drift?: DriftState;
   dragLane?: number;
   dragSteerHeld?: number;
   dragProgress?: number;
@@ -78,11 +81,13 @@ export function createRace(definition: RaceDefinition): RaceState {
   if (definition.kind === "drag" && (!definition.drag || definition.checkpoints.length !== 1)) {
     throw new RangeError("A drag requires a strip and one finish line");
   }
+  if (definition.kind === "drift" && (!definition.drift || !definition.drift.zones.length || definition.drift.durationTicks <= 0 || definition.drift.targetScore <= 0)) throw new RangeError("A drift event requires a timed arena and clipping zones");
   if (!first) throw new RangeError(`Race '${definition.id}' has no checkpoints`);
   return {
     checkpoint: 0, collected: [], targetIndex: 0,
+    ...(definition.kind === "drift" ? { drift: createDrift() } : {}),
     ...(definition.kind === "unordered" ? { targets: definition.checkpoints.map(g => ({ x: g.x, z: g.z, exit: null })) } : {}), countdown: definition.countdownTicks, ticks: 0, splits: [], finished: false,
-    next: { x: first.x, z: first.z, exit: definition.kind === "unordered" ? null : first.exit ?? null },
+    next: definition.kind === "drift" ? null : { x: first.x, z: first.z, exit: definition.kind === "unordered" ? null : first.exit ?? null },
   };
 }
 
@@ -94,11 +99,12 @@ export function atCheckpoint(definition: RaceDefinition, index: number, vehicle:
 }
 
 /** Advance deterministic ordered gates, or collect any remaining unordered gate. */
-export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: VehicleState): void {
+export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: VehicleState, contact = false): void {
   if (state.finished) return;
   if (state.countdown > 0) { state.countdown--; return; }
   state.ticks++;
   if (definition.kind === "drag") { stepDrag(definition.drag!, state, vehicle); return; }
+  if (definition.kind === "drift") { stepDrift(definition.drift!, state, vehicle, contact); return; }
   const unordered = definition.kind === "unordered";
   const index = unordered
     ? definition.checkpoints.findIndex((_, i) => !state.collected.includes(i) && atCheckpoint(definition, i, vehicle))
@@ -123,6 +129,7 @@ export function stepRace(definition: RaceDefinition, state: RaceState, vehicle: 
 }
 
 export function raceProgressLabel(definition: RaceDefinition, state: RaceState): string {
+  if (definition.kind === "drift") return `${Math.floor(state.drift!.score)} / ${definition.drift!.targetScore} PTS`;
   if (definition.kind === "drag") return state.disqualified ? "DQ · LEFT THE STRIP"
     : state.finished ? "DRAG · FINISH" : `DRAG · ${Math.max(0, Math.round(definition.drag!.length - (state.dragProgress ?? 0)))} M · LANE ${state.dragLane === undefined || state.dragLane < 0 ? "1" : "2"}/2`;
   if (definition.kind === "unordered") return `GATES ${state.checkpoint}/${definition.checkpoints.length} · ANY ORDER`;

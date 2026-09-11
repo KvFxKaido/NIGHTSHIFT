@@ -1,3 +1,4 @@
+import { DRIFT_YARD, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 import { ALDER_DATA, ALDER_BLOCKS, ALDER_GARAGE, ALDER_STREETS, ALDER_RACE, createAlderWorld } from "../sim/alder.ts";
 import { pathLength } from "../sim/lanes.ts";
@@ -39,3 +40,7 @@ shape("text", {x:tower.x+35,y:tower.z+10,"font-size":25,fill:"#d4ddff"},"Broadca
 shape("text", {x:-780,y:-1400,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"ALDER CENTER");
 shape("text", {x:-305,y:-965,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"BELLTOWN");
 for (const area of ALDER_DATA.neighborhoods) shape("text",{x:area.x,y:area.z,"font-size":28,fill:"#c5b898","text-anchor":"middle"},area.name);
+
+for (const b of [DRIFT_YARD.bounds, DRIFT_YARD.driveway]) shape("rect", {x:b.minX,y:b.minZ,width:b.maxX-b.minX,height:b.maxZ-b.minZ,fill:"#38685e",opacity:.8});
+for (const b of YARD_STRUCTURES) shape("rect", {x:b.x-b.width/2,y:b.z-b.depth/2,width:b.width,height:b.depth,fill:"#93aaa4"});
+shape("text", {x:-460,y:1145,"font-size":25,fill:"#96ebce","text-anchor":"middle"}, "South Wharf / Drift Yard");
