@@ -15,7 +15,7 @@ import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRace, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -112,7 +112,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
     const block=authored[index]!, id=placement.id;
     if(ALDER_STREETS.some(street=>street.points.slice(1).some((b,i)=>
       segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
-    if(blockPenetration(block,landmarks.needle)>0)issues.push(`${id}: overlaps the Needle`);
+    if(blockPenetration(block,landmarks.broadcastTower)>0)issues.push(`${id}: overlaps the Broadcast Tower`);
     if(ALDER_TREES.some(tree=>blockPenetration(block,tree)>0))issues.push(`${id}: overlaps a park tree`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
@@ -127,14 +127,14 @@ const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
 export const ALDER_EVERGREENS = createEvergreens(ALDER_STREETS,
-  [...ALDER_BLOCKS, landmarks.needle, ...ALDER_TREES,
+  [...ALDER_BLOCKS, landmarks.broadcastTower, ...ALDER_TREES,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
 export function createAlderWorld(racing = false): RoadWorld {
   return { id: ALDER_VERSION, start: racing ? start : ALDER_GARAGE.entrance,
-    solids: [...ALDER_BLOCKS, landmarks.needle, ...ALDER_TREES, ...ALDER_EVERGREENS.map(tree => tree.trunk)],
+    solids: [...ALDER_BLOCKS, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_EVERGREENS.map(tree => tree.trunk)],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],

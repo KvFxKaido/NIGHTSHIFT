@@ -34,7 +34,7 @@ Wharf Garage are fixed. The garage has a special entrance and spawn that
 require a dedicated placement workflow. Road authoring, materials, and
 decorative props are not supported yet. Height changes can alter the
 generated facade's floor count. Placement checks cover street/pavement
-distance, the Needle, the garage and its forecourt, map boundaries,
+distance, the Broadcast Tower, the garage and its forecourt, map boundaries,
 slope and other authored buildings; a generated plot an authored one stands
 on is not an error — it stands down. A successful save still needs visual
 inspection and a drive.
@@ -91,7 +91,7 @@ still identifies the generation a scene export or a schema-1 file was made
 against; schema-1 files are upgraded on read. Layout content is included in
 the world/replay ID. An empty file retains `alder-slice-v4` and the
 generated Port Alder geometry plus its fixed garage. Overview fits the expanded
-map bounds; tree trunks and the Needle remain protected shared solids.
+map bounds; tree trunks and the Broadcast Tower remain protected shared solids.
 Old Blackglass placement
 files have a different baseline and must not be imported as Port Alder
 placements; the district fixture keeps the schema-1 parser.

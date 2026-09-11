@@ -11,7 +11,7 @@ menu's Port Alder map button. It uses the loaded sim and never navigates away:
 player, rival, traffic and race clocks pause together. Closing returns to the
 originating screen, with driving inputs gated normally on resume. Markers show
 the player, waiting/racing rival and the active race's gates (including generated
-races), plus the garage and Needle. Pan/zoom is available by pointer and
+races), plus the garage and Broadcast Tower. Pan/zoom is available by pointer and
 the map's controller-accessible view buttons. Bindings are remappable and old
 saves retain their existing assignments. The standalone route board remains a
 separate authoring/navigation page.
@@ -53,17 +53,27 @@ remain optional future work.
 
 ## Current slice
 
-The map has **83.5 km of streets**, 318 graph edges and 1,730 generated building masses, plus Wharf Garage and the Needle. The connected street network now spans **12.6 km²**, measured as the convex hull of its street centerlines, with a 14.2 km² road bounding rectangle. Terrain padding and Elliott Bay are excluded from that headline area; it describes the developed footprint, not the area of asphalt. The original SoDo–Belltown–Needle slice remains the southwest anchor. Queen Anne, Capitol Hill, the Central District and Madrona Ridge extend north and east with hill climbs, smaller passages, park edges and an outer scenic loop. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
+The map has **83.5 km of streets**, 318 graph edges and 1,730 generated building masses, plus Wharf Garage and the Broadcast Tower. The connected street network now spans **12.6 km²**, measured as the convex hull of its street centerlines, with a 14.2 km² road bounding rectangle. Terrain padding and Elliott Bay are excluded from that headline area; it describes the developed footprint, not the area of asphalt. The original SoDo–Belltown–Broadcast Tower slice remains the southwest anchor. Queen Anne, Capitol Hill, the Central District and Madrona Ridge extend north and east with hill climbs, smaller passages, park edges and an outer scenic loop. Buildings reserve clear roads and passages through larger parcels. The generated network has no disconnected islands or clipped dead ends.
 
-Real Seattle centerlines provide the original southwest structure. The new hill districts are hand-authored Seattle-inspired layouts, not a new GIS import or a reconstruction of the actual neighborhoods. Distances, widths, elevation, buildings and connections are deliberately adapted. See `assets/maps/alder/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished architecture. The Needle is a compressed primitive landmark with a shared solid footprint. No surveyed terrain, bridges, tunnels, or police yet.
+Real Seattle centerlines provide the original southwest structure. The new hill districts are hand-authored Seattle-inspired layouts, not a new GIS import or a reconstruction of the actual neighborhoods. Distances, widths, elevation, buildings and connections are deliberately adapted. See `assets/maps/alder/README.md` for attribution and regeneration. The visual target remains an upscaled MC3-like city; this is playable massing, not finished architecture. Alder Broadcast Tower is a fictional steel-mast landmark with a shared station footprint. No surveyed terrain, bridges, tunnels, or police yet.
 
 ## Shared surface
+
+**Alder Broadcast Tower** replaces the former Needle silhouette on the same plaza.
+The station is a solid 20 × 20 × 18 m concrete base; an exposed, tapering steel
+mast reaches 120 m above the site, with red warning lights and PORT ALDER signs
+facing all four approaches. The base collider and rendered shell share
+`alder-landmarks.json`. Upper latticework is skyline detail, not an invisible
+120 m collision box. Repeated beams, sign pixels and lights merge by material
+into seven meshes, without downloaded fonts or textures. Both map views label
+the landmark Broadcast Tower. The `broadcast-v1` world suffix records the
+changed collision volume for saved-location validation.
 
 `src/sim/alder.ts` owns the road world and continuous analytic height function. `src/sim/alder-terrain.json` adds compact, smooth hill profiles to the existing downtown grade; the builder and sim read the same parameters. `scripts/build-alder.py` unions buffered road polygons before constrained triangulation; asphalt, pavement and land are disjoint. Triangles refine at more than 7 mm sampled interpolation error or 80 m edge length, and the surface test checks error below 2 cm. Renderer and simulation use the same height function; selecting a different nearest street cannot switch elevation profiles. The outskirts continue that surface beyond the developed blocks. Park grass is a lifted overlay clipped away from roads and pavement; tree trunks use shared rendered and solid footprints.
 
 Road data also feeds the minimap and existing lane/reservation traffic builder. Traffic remains deterministic. General road projection, building footprint and traffic helpers are separate modules, so importing Port Alder does not initialize the retired district.
 
-The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Port Alder's world identity is now `alder-slice-v4-evergreens-v1`, with a layout fingerprint when edited.
+The game and editor no longer bundle the old district/course renderers. A build guard rejects their reintroduction. The 1.35 MB Rivergate GLB moved from `public/assets/tracks` to the offline `assets/tracks` folder; it remains a developer asset regression fixture and is not copied to the demo. Other Blackglass source/handling fixtures remain for regression tests, with no playable entry. No changes to `HANDLING` or the physics version. Port Alder's world identity is now `alder-slice-v4-evergreens-v1-broadcast-v1`, with a layout fingerprint when edited.
 
 ## Evergreen groves
 
@@ -120,7 +130,7 @@ retired. Map expansions must bump the builder's stamp deliberately. Generated
 race seeds are reproducible within a world version; v3 seeds may draw different
 routes on the expanded graph.
 
-### Belltown–Needle extension (2026-09-11)
+### Belltown–Broadcast Tower extension (2026-09-11)
 
 Adds 5.5 km and 45 graph edges, using the city's northern street extract.
 Downtown connects through 2nd/4th Avenue, a short adapted 1st Avenue link,
@@ -130,7 +140,7 @@ Mercer and 5th Avenue N form the campus loop. The three short connector
 segments are authored adaptations. Every crossing remains at grade; no SR99
 ramps, tunnel or grade-separated geometry was imported.
 
-The campus is reserved from procedural building placement. The Needle
+The campus is reserved from procedural building placement. The Broadcast Tower
 has a simplified 120 m silhouette, open plaza and shared collision footprint;
 the map board labels it and Belltown. Original street geometry and building
 plots are retained, including the garage, encounter and Sound to Sky route.

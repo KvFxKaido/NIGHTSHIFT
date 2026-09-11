@@ -262,7 +262,7 @@ should preserve this principle.
 
 Port Alder is the only playable map and opens at the base URL. The expanded slice
 contains about 83.5 km of streets, 318 street-graph edges, 1,730 generated building
-masses plus Wharf Garage and the Needle, a fictional waterfront bypass,
+masses plus Wharf Garage and the Broadcast Tower, a fictional waterfront bypass,
 and softened hills across a 12.6 km² street-network footprint. Belltown connects
 downtown to Alder Center; Queen Anne, Capitol Hill, Central District and
 Madrona Ridge extend north and east. Surveyed terrain remains future work.

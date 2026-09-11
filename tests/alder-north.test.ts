@@ -42,10 +42,10 @@ test("waterfront and downtown approaches all reach Alder Center through the addi
   }
 });
 
-test("Needle has a shared solid footprint with road clearance", () => {
-  assert.ok(createAlderWorld().solids!.includes(landmarks.needle));
+test("Broadcast Tower has a shared solid footprint with road clearance", () => {
+  assert.ok(createAlderWorld().solids!.includes(landmarks.broadcastTower));
   for (const street of ALDER_STREETS) for (let i=1;i<street.points.length;i++) {
-    assert.ok(segmentFootprintDistance(landmarks.needle,street.points[i-1]!,street.points[i]!)>
+    assert.ok(segmentFootprintDistance(landmarks.broadcastTower,street.points[i-1]!,street.points[i]!)>
       street.points[i]!.width/2+2.8,`landmark obstructs ${street.name}`);
   }
 });

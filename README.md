@@ -58,7 +58,7 @@ pnpm build      # typecheck + production build
 
 The demo now opens in **Port Alder**, a fictionalized, compressed city slice with
 83.5 km of open streets and 12.6 km² inside the connected street network's outer boundary, Belltown,
-Alder Center and its Needle landmark, Queen Anne and Capitol Hill climbs,
+Alder Center and its broadcast tower, Queen Anne and Capitol Hill climbs,
 the Central District, Madrona Ridge, parks, evergreen groves, traffic, and the
 four-checkpoint **Sound to Sky** race. Free roam starts outside **Wharf Garage**
 in SoDo. Stop by the marked shutter and press E/Enter or Cross/A to enter.

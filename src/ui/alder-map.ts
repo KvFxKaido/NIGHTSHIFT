@@ -33,9 +33,9 @@ shape("circle",{cx:start.x,cy:start.z,r:20,fill:"#69e5bd",stroke:"#173f37","stro
 shape("text",{x:start.x+34,y:start.z+10,"font-size":26,fill:"#b4ffe5"},ALDER_GARAGE.name);
 document.getElementById("map-stats")!.textContent = `${(ALDER_STREETS.reduce((n,s)=>n+pathLength(s.points),0)/1000).toFixed(1)} km of streets · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² street footprint · Four open checkpoints`;
 
-const needle = landmarks.needle;
-shape("circle", {cx:needle.x,cy:needle.z,r:22,fill:"#b6c9ff",stroke:"#26374e","stroke-width":4});
-shape("text", {x:needle.x+35,y:needle.z+10,"font-size":25,fill:"#d4ddff"},"Needle");
+const tower = landmarks.broadcastTower;
+shape("circle", {cx:tower.x,cy:tower.z,r:22,fill:"#b6c9ff",stroke:"#26374e","stroke-width":4});
+shape("text", {x:tower.x+35,y:tower.z+10,"font-size":25,fill:"#d4ddff"},"Broadcast Tower");
 shape("text", {x:-780,y:-1400,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"ALDER CENTER");
 shape("text", {x:-305,y:-965,"font-size":26,fill:"#93a5ad","text-anchor":"middle"},"BELLTOWN");
 for (const area of ALDER_DATA.neighborhoods) shape("text",{x:area.x,y:area.z,"font-size":28,fill:"#c5b898","text-anchor":"middle"},area.name);

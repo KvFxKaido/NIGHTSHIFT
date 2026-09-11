@@ -1,4 +1,4 @@
-import { addSpaceNeedle } from "./needle.ts";
+import { addBroadcastTower } from "./broadcast-tower.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS, alderHeight } from "../sim/alder.ts";
@@ -10,7 +10,7 @@ import type { DistrictLighting } from "./scene.ts";
 
 export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
-  addSpaceNeedle(scene, night);
+  addBroadcastTower(scene, night);
   if (night) scene.add(new THREE.HemisphereLight(0x9abbd0, 0x39444c, 1.0));
   function surface(name: string, points: number[], color: number, lift = 0): void {
     const positions = new Float32Array(points.length/2*3);
