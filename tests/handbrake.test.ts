@@ -47,7 +47,8 @@ test("handbrake slides never replace the driver's requested steering", () => {
             assert.ok(Math.abs(car.steeringAngle - normalAngle) < 1e-12, "extra range needs an explicit countersteer request");
           }
           for (const tyre of Object.values(car.wheels)) {
-            assert.ok(Math.hypot(tyre.lateralForce, tyre.longitudinalForce) <= tyre.gripLimit + 1e-6);
+            assert.ok(Math.hypot(tyre.lateralForce / tyre.gripLimit,
+              tyre.longitudinalForce / tyre.longitudinalGripLimit) <= 1 + 1e-6);
           }
           assert.ok([car.speed, car.slipAngle, car.yawRate].every(Number.isFinite));
         }
@@ -113,7 +114,8 @@ test("full manual countersteer catches longer city-speed slides without automati
         if (tick === hold + 59) oneSecondSlip = Math.abs(degrees(car.slipAngle));
         if (tick >= hold + 35) assert.equal(car.steeringAngle, 0, "no automatic catch after the driver releases");
         for (const tyre of Object.values(car.wheels)) {
-          assert.ok(Math.hypot(tyre.lateralForce, tyre.longitudinalForce) <= tyre.gripLimit + 1e-6);
+          assert.ok(Math.hypot(tyre.lateralForce / tyre.gripLimit,
+            tyre.longitudinalForce / tyre.longitudinalGripLimit) <= 1 + 1e-6);
         }
       }
       assert.ok(firstCounterTick > 0 && firstCounterTick <= 3);
@@ -163,7 +165,8 @@ test("long handbrake pulls dissipate energy within the tyre force budget", (t) =
       assert.ok(Number.isFinite(currentEnergy) && currentEnergy <= previousEnergy + 0.01);
       previousEnergy = currentEnergy;
       for (const tyre of Object.values(sim.state.vehicle.wheels)) {
-        assert.ok(Math.hypot(tyre.lateralForce, tyre.longitudinalForce) <= tyre.gripLimit + 1e-6);
+        assert.ok(Math.hypot(tyre.lateralForce / tyre.gripLimit,
+          tyre.longitudinalForce / tyre.longitudinalGripLimit) <= 1 + 1e-6);
       }
     }
     // No assertion requiring a spin, or pretending this is a good recovery.

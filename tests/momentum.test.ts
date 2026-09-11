@@ -24,7 +24,8 @@ function maneuver(speed: number, input: Partial<Input> | ((tick: number) => Part
       maxLoadStep = Math.max(maxLoadStep, Math.abs(car.frontLoadFraction - previousLoad));
       previousLoad = car.frontLoadFraction;
       for (const axle of [car.frontAxle, car.rearAxle]) {
-        assert.ok(Math.hypot(axle.longitudinalForce, axle.lateralForce) <= axle.gripLimit + 1e-6,
+        assert.ok(Math.hypot(axle.longitudinalForce / axle.longitudinalGripLimit,
+          axle.lateralForce / axle.gripLimit) <= 1 + 1e-6,
           "braking, drive and cornering must share the axle's finite grip budget");
       }
       if (stopNearRest && car.speed < 0.7) { ticks++; break; }

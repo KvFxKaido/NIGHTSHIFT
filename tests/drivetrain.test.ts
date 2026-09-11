@@ -7,7 +7,7 @@ import { flatSim, flatStep, FLAT_START, hasContact } from "./helpers/handling.ts
 await RAPIER.init();
 const layouts: Drivetrain[] = ["awd", "fwd", "rwd"];
 
-test("the default produces exactly the existing FWD behavior across a mixed run", () => {
+test("the default matches explicit FWD across a mixed run", () => {
   const implicit = createSim();
   const explicit = createSim("fwd");
   try {
@@ -70,7 +70,7 @@ test("each drivetrain routes propulsion to the intended tyres, without global tu
   } finally { sims.forEach(sim => sim.world.free()); }
 });
 
-test("layouts only change propulsion: braking, coasting and handbraking stay identical", () => {
+test("without propulsion, braking, coasting and handbraking stay identical across layouts", () => {
   for (const input of [{ steer: 0.6 }, { steer: 0.6, brake: 0.5 }, { steer: 1, throttle: 1, handbrake: 1 }]) {
     const sims = layouts.map(layout => flatSim(30, 0, layout));
     try {

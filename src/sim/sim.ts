@@ -8,7 +8,7 @@ import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState 
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
-export const PHYSICS_VERSION = "four-wheel-v3";
+export const PHYSICS_VERSION = "four-wheel-v5";
 
 export interface Input {
   throttle: number;
@@ -21,7 +21,10 @@ export interface AxleState {
   slipAngle: number;
   longitudinalForce: number;
   lateralForce: number;
+  /** Lateral axis of the tyre force envelope. */
   gripLimit: number;
+  /** Powered 2WD assist may extend this axis without increasing lateral grip. */
+  longitudinalGripLimit: number;
 }
 
 export type WheelId = "front-left" | "front-right" | "rear-left" | "rear-right";
@@ -138,9 +141,12 @@ export const HANDLING = {
   engineMidAcceleration: 11,
   highSpeedAcceleration: 13,
   reverseAcceleration: 8,
-  // Layout changes propulsion distribution only. FWD is the preferred default;
-  // each tyre still shares finite grip between drive, brakes and cornering.
+  // FWD is the preferred default; each tyre shares finite grip between drive,
+  // brakes and cornering. The 2WD assist only extends powered longitudinal grip.
   frontDriveFraction: { awd: 0.45, fwd: 1, rwd: 0 },
+  twoWheelDriveGripStartSpeed: 25,
+  twoWheelDriveGripFullSpeed: 55,
+  twoWheelDriveGripScale: 1.8,
   frontBrakeFraction: 0.70,
   brakeDeceleration: 14,
   brakeResponseExponent: 1.5,
@@ -152,6 +158,9 @@ export const HANDLING = {
   countersteerMinSpeed: 3,
   countersteerSlipStart: 2 * Math.PI / 180,
   countersteerSlipFull: 10 * Math.PI / 180,
+  rwdCountersteerLookahead: 0.25,
+  rwdCountersteerScrub: 0.1,
+  rwdCountersteerScrubLockStart: 0.8,
   maxSteeringAngle: 0.34,
   steerOverdrive: 1.15,
   highSpeedSteerAllowance: 0.015,
@@ -165,6 +174,13 @@ export const HANDLING = {
   handbrakeDrag: 6,
   handbrakeRearStiffness: 0.45,
   handbrakeRearGrip: 0.95,
+  rwdDriveTractionShare: 0.85,
+  rwdHighSpeedDriveTractionShare: 0.45,
+  rwdSlideDriveTractionShare: 0.25,
+  rwdSlideGripStart: 2 * Math.PI / 180,
+  rwdSlideGripFull: 8 * Math.PI / 180,
+  rwdStabilityStartSpeed: 22, // ~49 mph: begin restoring rear cornering authority
+  rwdStabilityFullSpeed: 40, // ~89 mph
   reverseEngageSpeed: 0.5,
   gravityAlongGrade: 9.81,
   pitchResponse: 7.5,
@@ -209,7 +225,7 @@ export function steeringAngleFor(speed: number, steering = 1): number {
 /** Driver-operated steering, with extra response/range only for a requested catch.
  * No slip-derived angle is added: centred input always targets centred wheels. */
 export function steeringControlFor(current: number, requested: number, forwardSpeed: number,
-  lateralSpeed = 0, yawRate = 0): { steering: number; steeringAngle: number } {
+  lateralSpeed = 0, yawRate = 0, recoveryLookahead = 0): { steering: number; steeringAngle: number } {
   const target = clamp(requested, -1, 1);
   const slipReference = Math.max(Math.abs(forwardSpeed), HANDLING.lowSpeedSlipReference);
   const bodySlip = Math.atan2(lateralSpeed, slipReference);
@@ -227,7 +243,14 @@ export function steeringControlFor(current: number, requested: number, forwardSp
   const normalLimit = steeringAngleFor(forwardSpeed);
   let limit = normalLimit;
   if (countersteering && steering * bodySlip > 0) {
-    const blend = progress * progress * (3 - 2 * progress);
+    // Ease extra manual lock as yaw begins closing the slide, before slip
+    // crosses zero and the catch becomes an opposite slide. This short yaw-only
+    // estimate changes available steering range, never chassis motion.
+    const projectedSlip = bodySlip + yawRate * recoveryLookahead;
+    const remainingSlip = Math.max(0, projectedSlip * Math.sign(bodySlip));
+    const recoveryProgress = Math.min(progress, clamp((remainingSlip - HANDLING.countersteerSlipStart) /
+      (HANDLING.countersteerSlipFull - HANDLING.countersteerSlipStart), 0, 1));
+    const blend = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
     // Unlock enough range to aim across front-axle travel, not full lock on a
     // tiny slide. Holding half stick still requests half the available angle.
     const catchLimit = Math.min(HANDLING.maxSteeringAngle, Math.abs(frontSlip) + normalLimit);
@@ -299,7 +322,7 @@ function headingFromRotation(rotation: RAPIER.Rotation): number {
 }
 
 function emptyAxle(): AxleState {
-  return { slipAngle: 0, longitudinalForce: 0, lateralForce: 0, gripLimit: 0 };
+  return { slipAngle: 0, longitudinalForce: 0, lateralForce: 0, gripLimit: 0, longitudinalGripLimit: 0 };
 }
 
 function initialWheels(): Record<WheelId, WheelState> {
@@ -437,6 +460,11 @@ export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain
 }
 
 interface WheelInput {
+  front: boolean;
+  countersteerRecovery: number;
+  bodySlip: number;
+  driveGripScale: number;
+  speed: number;
   forward: number;
   right: number;
   steeringAngle: number;
@@ -481,7 +509,42 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   // Four simultaneous patches share the stop budget; duplicating the old
   // two-axle cap would over-correct a stationary chassis and inject energy.
   const lateralStopForce = Math.abs(lateralSpeed) * effectiveLateralMass / DT * HANDLING.tyreRelaxation * 0.5;
-  const lateralRequest = -gripLimit * Math.tanh(slipAngle * tyre.stiffness);
+
+  // For front (steered) wheels, and for FWD/AWD historical baselines,
+  // preserve full lateral grip for steering authority ("a hard pedal cannot
+  // erase steering"). For RWD driven rear wheels, share the friction budget
+  // with drive propulsion so the rear axle does not starve or bog down in
+  // corners and responds to throttle.
+  const driveDemand = (tyre.front || sim.state.drivetrain !== "rwd") ? 0 : Math.abs(tyre.driveForce);
+  let lateralBudget = gripLimit;
+  if (driveDemand > 0) {
+    // Power rotation is useful in slower corners. At highway speeds, reserve
+    // more lateral authority so a small steering correction cannot grow into
+    // a spin under sustained throttle. This changes tyre allocation, not yaw.
+    const progress = clamp((tyre.speed - HANDLING.rwdStabilityStartSpeed) /
+      (HANDLING.rwdStabilityFullSpeed - HANDLING.rwdStabilityStartSpeed), 0, 1);
+    const blend = progress * progress * (3 - 2 * progress);
+    const speedDriveShare = HANDLING.rwdDriveTractionShare +
+      (HANDLING.rwdHighSpeedDriveTractionShare - HANDLING.rwdDriveTractionShare) * blend;
+    // Once sideways, asking for gas should help exit the turn instead of
+    // continually sacrificing rear support. Restore cornering priority as slip
+    // grows; remaining longitudinal capacity still supplies rear-wheel drive.
+    const slideProgress = clamp((Math.abs(tyre.bodySlip) - HANDLING.rwdSlideGripStart) /
+      (HANDLING.rwdSlideGripFull - HANDLING.rwdSlideGripStart), 0, 1);
+    const slideBlend = slideProgress * slideProgress * (3 - 2 * slideProgress);
+    const driveShare = speedDriveShare +
+      (Math.min(speedDriveShare, HANDLING.rwdSlideDriveTractionShare) - speedDriveShare) * slideBlend;
+    const maxDriveShare = gripLimit * driveShare;
+    const effectiveDriveDemand = Math.min(driveDemand / tyre.driveGripScale, maxDriveShare);
+    lateralBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - effectiveDriveDemand * effectiveDriveDemand));
+  }
+  // Near full manual counter-lock, a front tyre can still scrub in the same
+  // direction as the rear because the wheel cannot aim far enough into travel.
+  // Soften that resisting front force to let the rear straighten the chassis.
+  // Never add grip or yaw torque; stop assisting once the front slip reverses.
+  const scrubScale = tyre.front && tyre.steeringAngle * slipAngle > 0
+    ? 1 - tyre.countersteerRecovery * (1 - HANDLING.rwdCountersteerScrub) : 1;
+  const lateralRequest = -lateralBudget * Math.tanh(slipAngle * tyre.stiffness) * scrubScale;
   const lateralForce = clamp(lateralRequest, -lateralStopForce, lateralStopForce);
 
   // Service brakes oppose wheel travel. Near rest they cannot stop and reverse
@@ -490,11 +553,13 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   const effectiveLongitudinalMass = 1 / (1 / body.mass() + longitudinalLever * longitudinalLever / yawInertia);
   const stoppingForce = Math.abs(longitudinalSpeed) * effectiveLongitudinalMass / DT * 0.25;
   const brakingForce = -Math.sign(longitudinalSpeed) * Math.min(tyre.brakeForce, stoppingForce);
-  // ABS/traction-style allocation: preserve available lateral grip, then spend
-  // the remainder on braking/drive. A hard pedal cannot erase steering; asking
-  // for more cornering instead costs acceleration or stopping distance.
-  const longitudinalBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - lateralForce * lateralForce));
-  Object.assign(telemetry, { slipAngle, lateralForce, gripLimit,
+  // ABS/traction-style allocation: spend the remaining envelope on drive/brakes.
+  // A deliberate arcade assist extends the powered 2WD axis at higher speed.
+  // Lateral authority is unchanged; turning still consumes drive capacity.
+  // The scale is one for AWD, coasting, braking, reverse and handbraking.
+  const longitudinalGripLimit = gripLimit * tyre.driveGripScale;
+  const longitudinalBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - lateralForce * lateralForce)) * tyre.driveGripScale;
+  Object.assign(telemetry, { slipAngle, lateralForce, gripLimit, longitudinalGripLimit,
     steeringAngle: tyre.steeringAngle, loadFraction: tyre.loadFraction,
     normalLoad: HANDLING.mass * HANDLING.gravityAlongGrade * tyre.loadFraction });
   return { point, forward: wheelForward, right: wheelRight, lateralForce,
@@ -520,6 +585,7 @@ function summarizeAxle(left: WheelState, right: WheelState, axle: AxleState): vo
     longitudinalForce: left.longitudinalForce + right.longitudinalForce,
     lateralForce: left.lateralForce + right.lateralForce,
     gripLimit: left.gripLimit + right.gripLimit,
+    longitudinalGripLimit: left.longitudinalGripLimit + right.longitudinalGripLimit,
   });
 }
 
@@ -548,7 +614,14 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   // The player chooses the direction and amount. Slip only opens the manual
   // countersteering envelope; it never steers on the player's behalf.
   const lateralSpeed = velocity.x * Math.cos(heading) - velocity.z * Math.sin(heading);
-  Object.assign(car, steeringControlFor(car.steering, input.steer, forwardSpeed, lateralSpeed, body.angvel().y));
+  const bodySlip = Math.atan2(lateralSpeed, Math.max(Math.abs(forwardSpeed), HANDLING.lowSpeedSlipReference));
+  Object.assign(car, steeringControlFor(car.steering, input.steer, forwardSpeed, lateralSpeed, body.angvel().y,
+    sim.state.drivetrain === "rwd" ? HANDLING.rwdCountersteerLookahead : 0));
+  const countersteerRecovery = sim.state.drivetrain === "rwd" && forwardSpeed > HANDLING.countersteerMinSpeed &&
+    input.steer * lateralSpeed > 0 && car.steering * lateralSpeed > 0
+    ? Math.min(1, Math.abs(car.steering) / 0.5) *
+      clamp((Math.abs(car.steeringAngle) / HANDLING.maxSteeringAngle - HANDLING.rwdCountersteerScrubLockStart) /
+        (1 - HANDLING.rwdCountersteerScrubLockStart), 0, 1) : 0;
 
   // Longitudinal weight transfer follows last tick's applied tyre forces,
   // not impact acceleration. This changes axle grip, never commands rotation.
@@ -586,6 +659,11 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const serviceBrake = reversing ? 0 : brakeDecelerationFor(input.brake) * HANDLING.mass;
   const rollingBrake = effectiveThrottle === 0 ? HANDLING.rollingResistance * HANDLING.mass : 0;
   const driveForce = driveAcceleration * HANDLING.mass;
+  const driveGripProgress = clamp((forwardSpeed - HANDLING.twoWheelDriveGripStartSpeed) /
+    (HANDLING.twoWheelDriveGripFullSpeed - HANDLING.twoWheelDriveGripStartSpeed), 0, 1);
+  const driveGripBlend = driveGripProgress * driveGripProgress * (3 - 2 * driveGripProgress);
+  const driveGripScale = sim.state.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
+    ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1;
   const angles = frontWheelAngles(car.steeringAngle);
   let forceX = 0;
   let forceZ = 0;
@@ -598,6 +676,11 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
     const rollingShare = wheel.front ? STATIC_FRONT_LOAD : 1 - STATIC_FRONT_LOAD;
     const handbrake = wheel.front ? 0 : input.handbrake;
     return sampleWheelForces(sim, {
+      front: wheel.front,
+      countersteerRecovery,
+      bodySlip,
+      speed,
+      driveGripScale: driveShare > 0 ? driveGripScale : 1,
       forward: wheel.forward, right: wheel.right,
       steeringAngle: wheel.front ? (wheel.right > 0 ? angles.right : angles.left) : 0,
       loadFraction: frontShare * sideShare,

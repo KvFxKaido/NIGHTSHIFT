@@ -1,14 +1,17 @@
 # Four-wheel handling prototype
 
 **Current world: Seattle.** The map/garage migration did not change
-`HANDLING` or `four-wheel-v3`. Blackglass course mentions and reference-lap
+the handling tune. Blackglass course mentions and reference-lap
 measurements below describe retained regression fixtures, not the demo's
 playable map. See [SEATTLE.md](SEATTLE.md) for current world behavior.
 
-Physics revision: `four-wheel-v3` (replaces `four-wheel-v2`). Rapier: **0.19.3**, pinned in the manifest and
-lockfile. Manual countersteering is quicker and less restricted; automatic
-countersteering remains off. Inputs, drivetrain comparisons, tyre/engine/brake
-tuning, track, car customization and camera remain the same.
+Physics revision: `four-wheel-v5` (replaces `four-wheel-v4`). Rapier: **0.19.3**,
+pinned in the manifest and lockfile. RWD's throttle-induced rotation now tapers
+at highway speeds, and FWD/RWD receive a high-speed longitudinal traction assist
+to approach the same 140 mph governor as AWD. AWD motion is unchanged. Manual
+countersteering retains v3's response rates and steering limits. RWD anticipates
+recovery to limit opposite overshoot and softens resisting front scrub near full
+manual counter-lock; automatic steering remains off.
 
 ## What drives the car
 
@@ -29,9 +32,20 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
 
 ## Deliberate sim-cade assists
 
-- **Combined grip:** lateral force gets priority, then acceleration/braking uses
-  the remainder of each tire's circular force budget. This is ABS/traction-style
-  allocation, not simulated wheel lockup. More turning costs braking distance.
+- **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part
+  of the rear budget for propulsion, allowing throttle rotation in slower bends.
+  That reservation falls smoothly from 85% to 45% between 22 and 40 m/s
+  (49–89 mph), preserving more rear lateral authority at highway speed. The
+  previous fixed 85% reservation could turn a brief 95 mph correction into a
+  spin after the stick was released. As body slip develops from 2 to 8 degrees,
+  the reservation also eases toward 25%, preserving rear cornering support while
+  throttle uses the remaining drive capacity. This is intentionally forgiving:
+  adding gas during a controlled slide should help the exit, not keep amplifying
+  rotation. It changes tyre forces, never chassis yaw.
+  The 2WD propulsion assist extends the longitudinal axis of the force envelope;
+  steering still consumes acceleration capacity. Braking retains the original
+  circular budget and lateral priority. This is arcade traction allocation,
+  not simulated wheel lockup.
 - **Steering:** speed-sensitive center steering angle keeps full stick useful
   at speed; Ackermann geometry gives the inside front tire more steering than
   the outside tire around a common turn center. It never writes chassis yaw.
@@ -44,8 +58,17 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
   Extra range requires forward travel above 3 m/s and a stick request in the
   direction of both body and front-axle sideways travel. It blends in over
   2–10 degrees of body slip, with the available lock capped by front-axle travel
-  angle plus the normal steering allowance, and always by the existing 0.34 rad
-  physical limit. This avoids unlocking full lock for a tiny highway slide.
+  angle plus the normal steering allowance, capped at 0.34 rad in all layouts.
+  RWD's extra range tapers using
+  a 0.25-second yaw-only estimate of remaining body slip, so a successful catch
+  does not retain large opposite lock until the slide has already crossed zero.
+  This avoids unlocking full lock for a tiny highway slide.
+  If explicit RWD countersteer reaches the last 20% of available lock and a front
+  tyre still scrubs toward the slide, its opposing lateral force softens toward
+  10% of the ordinary request. This lets the rear tyres straighten the chassis
+  when the bounded front angle cannot point far enough into travel. The assist
+  fades in with lock, stops when front slip reverses or the input centres, and
+  never increases the tyre force envelope or directly changes yaw/velocity.
   Half stick requests half the available angle. Steering into a slide is not
   suppressed; no angle is added independently of the stick. Centred input
   always targets centred wheels, even if the chassis continues sliding.
@@ -56,12 +79,15 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
   transfer cannot manufacture extra total grip. This is not suspension.
 - **Low speed:** regularized slip angles and effective-mass force caps prevent
   one-tick stop/reversal jitter without snapping velocity to zero.
-- **Drive:** FWD (100% front) is the default and current feel reference. AWD
-  (45% front / 55% rear) and RWD (0% front) retain their existing tunes; the
-  default change does not rebalance power or tyres. Layout changes only propulsion
-  distribution. The configured governor remains approximately 140 mph, but the
-  driven tyres' available traction also limits acceleration and attainable speed.
-  The historical 140 mph measurement is for AWD, not a guarantee for FWD/RWD.
+- **Drive:** FWD (100% front) is the default. AWD uses 45% front / 55% rear;
+  RWD uses 100% rear. Under forward throttle without service braking, powered
+  FWD/RWD tyres gradually gain longitudinal capacity from 25 to 55 m/s
+  (56–123 mph), up to 1.8 times their ordinary longitudinal limit. Lateral grip,
+  low-speed launch, brakes, reverse and coasting retain their shared parameters.
+  This deliberately arcade assist prevents two driven tyres becoming a permanent
+  lower speed cap: measured level-ground limits change from about 111 mph FWD
+  and 117 mph RWD to about 140 mph for both. AWD remains at 140 mph and retains
+  its launch advantage. Engine output, drag and the governor are unchanged.
   The governor limits propulsion, not impact/downhill velocity. Each axle shares
   equal drive torque between its tires, traction-limited by the weaker side
   (open-differential/traction-control approximation). Without that coupling,
@@ -96,10 +122,33 @@ Your explicit layout selection saves locally and is restored next launch. This
 is still a prototype comparison, not a garage purchase or upgrade. URL overrides
 are temporary previews and do not overwrite your saved preference.
 
-All other parameters are identical: engine, steering, tyres, mass, brakes and
-handbrake. With no propulsion (including while handbraking), the three layouts
-produce identical vehicle states. Lateral-priority grip allocation still limits
-power-induced oversteer; RWD is not yet a full throttle-drift model.
+Engine, ordinary steering, mass, brake and handbrake parameters remain shared.
+RWD's manual recovery assistance also applies after lifting; ordinary coasting and
+braking retain the common tyre model. RWD's powered rear allocation and FWD/RWD's
+high-speed drive capacity are the other explicit arcade differences. This is not
+a wheel-spin model.
+Wheel telemetry reports lateral `gripLimit` and `longitudinalGripLimit`; debug
+`gripUsed` measures utilization of their ellipse, rather than treating assisted
+longitudinal force as excess lateral grip.
+
+The v4 regression covers mirrored brief and sustained steering at 85, 95, 110
+and 135 mph, settling after release with full throttle held, plus all three
+layouts reaching the shared governor on a 60-second flat run. Both the spin and
+lower-speed-cap assertions failed before their respective fixes. An additional
+2,400-tick mixed-input comparison against the pre-fix AWD produced identical
+vehicle motion and an identical final Rapier world snapshot.
+
+The v5 lift-off regression seeds established 15–22 degree slides at 20 and
+30 m/s independently of the power-on tune, applies half a second of full manual
+countersteer, then centres the stick. It settles within two seconds while
+retaining at least 70% of entry speed and stays below 5 degrees of opposite slip.
+Disabling recovery assistance fails this test. A separate 24-case matrix uses
+actual handbrake entries at 20/30 m/s, left/right slides and immediate/gradual
+throttle application during countersteer. These exits regain at least 3 m/s
+within two seconds without a spin and settle below 3 degrees of body slip.
+Disabling slip-dependent rear grip protection fails that regression. This does
+not guarantee recovery from a completed spin. Steering limits and both shipped
+car bodies are unchanged.
 Debug entry points: `__ns.drivetrain('rwd')`, `__ns.state().drivetrain`, or
 `?scene=track&drivetrain=rwd&drive=W120&freeze=1`. Unknown layouts are rejected.
 

@@ -47,7 +47,8 @@ test("four tyre loads conserve vehicle weight through braking and cornering", ()
       near(tyres.reduce((total, tyre) => total + tyre.normalLoad, 0), HANDLING.mass * HANDLING.gravityAlongGrade);
       assert.ok(tyres.every(tyre => tyre.normalLoad > 0));
       for (const tyre of tyres) {
-        assert.ok(Math.hypot(tyre.longitudinalForce, tyre.lateralForce) <= tyre.gripLimit + 1e-6);
+        assert.ok(Math.hypot(tyre.longitudinalForce / tyre.longitudinalGripLimit,
+          tyre.lateralForce / tyre.gripLimit) <= 1 + 1e-6);
       }
     }
     const car = sim.state.vehicle;

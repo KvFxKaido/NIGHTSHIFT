@@ -257,7 +257,8 @@ export function installDebugApi(bridge: DebugBridge): void {
           longitudinalForce: Math.round(tyre.longitudinalForce),
           lateralForce: Math.round(tyre.lateralForce),
           longitudinalSpeed: Number(tyre.longitudinalSpeed.toFixed(2)),
-          gripUsed: Number((Math.hypot(tyre.longitudinalForce, tyre.lateralForce) / Math.max(1, tyre.gripLimit)).toFixed(3)),
+          gripUsed: Number(Math.hypot(tyre.longitudinalForce / Math.max(1, tyre.longitudinalGripLimit),
+            tyre.lateralForce / Math.max(1, tyre.gripLimit)).toFixed(3)),
         }])),
       },
     };
