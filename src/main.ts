@@ -20,9 +20,11 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setView
   type DistrictLighting } from "./render/scene.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createAlderWorld, ALDER_DATA, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, alderGeneratedRace } from "./sim/alder.ts";
+import { createAlderWorld, ALDER_DATA, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
+import { snapToLane, encodeStart, decodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
+import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
@@ -54,6 +56,8 @@ const opponentCar = (id: string) => id === "bulwark" ? "blender" : "bulwark";
 let selectedCar = "blender";
 let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
+/** Where a generated race starts: where the flash was, snapped to its lane. Null means the grid. */
+let raceStart: RoadWorld["start"] | null = null;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -75,8 +79,18 @@ try {
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})$/.exec(raceId) : null;
   if (raceId && !generated && raceId !== ALDER_RACE.id) throw new Error(`Unknown race '${raceId}'`);
+  // A generated race starts where the flash was: ?start=x,z,heading, snapped
+  // to its lane again here so the pose the URL carries is the pose driven.
+  // The authored race starts on the grid its line was authored from.
+  const startParam = params.get("start");
+  if (startParam && generated) {
+    const flashed = decodeStart(startParam);
+    if (!flashed) throw new Error(`Unknown start '${startParam}'`);
+    raceStart = snapToLane(ALDER_STREETS, flashed, alderHeight);
+    if (!raceStart) throw new Error(`No street to start on at ${startParam}`);
+  } else if (startParam) { params.delete("start"); history.replaceState(history.state, "", url); }
   if (generated) {
-    const drawn = alderGeneratedRace(Number(generated[1]));
+    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined);
     race = drawn.race; rival = drawn.rival;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   const requested = params.get("lighting") ?? "night";
@@ -104,7 +118,7 @@ try {
 const input = createInputController();
 if (loadedSave) settings.update(loadedSave.build);
 const controls = createControlsPanel(input);
-const roadWorld = createAlderWorld(!!race);
+const roadWorld = createAlderWorld(!!race, raceStart ?? undefined);
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const sim = createSim(restored.drivetrain, roadWorld, race && rival ? { race, rival } : { encounterRoute: ALDER_CRUISE });
@@ -114,7 +128,7 @@ if (rivalParts) setRivalCar(view, rivalParts);
 document.body.dataset.world = "alder";
 document.title = "NIGHTSHIFT — Port Alder";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / PORT ALDER";
-document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? "Port Alder / Sound to Sky" : "Port Alder / Free roam";
+document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? `Port Alder / ${race.name}` : "Port Alder / Free roam";
 document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : "Return to garage";
 const gameMap = createGameMap(sim);
 document.body.dataset.assetState = "ready";
@@ -318,9 +332,10 @@ const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElem
 let flashRemaining = 0;
 let challengePending = false;
 const challengeAvailable = () => canChallenge(sim.state.vehicle, sim.state.encounter, !!sim.state.race);
-function loadDrive(raceId: string | null, scene: "track" | "garage" = "track"): void {
+function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null): void {
   const url = new URL(location.href);
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
+  if (start) url.searchParams.set("start", start); else url.searchParams.delete("start");
   url.searchParams.set("scene", scene);
   url.searchParams.set("car", selectedCar);
   url.searchParams.delete("save");
@@ -350,8 +365,10 @@ function updateFlash(dt: number, active: boolean): void {
   if (challengePending && flashRemaining === 0 && active) {
     challengePending = false;
     // Every flash draws a new race; the seed comes from the tick of the flash,
-    // so a replay of the cruise would draw the same one.
-    loadDrive(`gen-${seedFromTick(sim.state.tick)}`);
+    // so a replay of the cruise would draw the same one. It starts where you
+    // are, snapped to your lane; off every street, it starts on the grid.
+    const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
+    loadDrive(`gen-${seedFromTick(sim.state.tick)}`, "track", here ? encodeStart(here) : null);
   }
 }
 

@@ -11,6 +11,7 @@
  * and built from the streets' own points, exactly as the authored line was.
  */
 import { mix } from "./traffic.ts";
+import { forwardOf, rightOf } from "./race-start.ts";
 import { measureLeg, route, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
 import { projectOntoPath, type Street } from "./street-path.ts";
 import type { RaceDefinition } from "./race.ts";
@@ -165,7 +166,10 @@ export function startApproach(streets: readonly Street[], start: RoadWorld["star
 export function rivalLineFor(graph: RoutingGraph, race: GeneratedRace, streets: readonly Street[],
   start: RoadWorld["start"], height: (x: number, z: number) => number): RivalDefinition {
   const approach = startApproach(streets, start);
-  const rivalStart = { ...start, x: start.x - 4.5, z: start.z - 7 };
+  // Seven metres ahead in the other lane, in the start's own frame: on the
+  // grid, facing north, that is x - 4.5, z - 7, as it always was.
+  const forward = forwardOf(start.heading), right = rightOf(start.heading);
+  const rivalStart = { ...start, x: start.x + forward.x * 7 - right.x * 4.5, z: start.z + forward.z * 7 - right.z * 4.5 };
   const points: CoursePoint[] = [{ ...approach.points[0]!, x: rivalStart.x, z: rivalStart.z, y: height(rivalStart.x, rivalStart.z) }];
   const push = (point: CoursePoint) => {
     const last = points[points.length - 1]!;

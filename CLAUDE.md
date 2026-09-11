@@ -146,7 +146,14 @@ reusing a street, 12–40 s a leg and 45–160 s a race, and routes the rival's
 line through the gates from the streets' own points exactly as the authored
 Sound to Sky line was built. `?race=gen-<seed>` is the race; the flash in
 free roam loads `gen-${seedFromTick(tick)}`, so a replay of the cruise draws
-the same race and every real flash draws a new one. A flow rule (2026-09-11)
+the same race and every real flash draws a new one. **A race starts where you
+flashed** (2026-09-11): the flash pose is snapped to the right-hand lane of
+its street, facing the way it was going and 15 m short of the junction ahead
+(`src/sim/race-start.ts`), carried as `?start=x,z,heading` and snapped again
+on load; the generator's origin is the junction ahead of it and the rival
+starts 7 m ahead in the other lane in the start's own frame. A race's
+identity is (world version, seed, start). Sound to Sky ignores `start`; a
+flash from off every street still starts on the grid. A flow rule (2026-09-11)
 keeps a race going somewhere: the next gate lies within 120° of the heading
 the last one is reached on, and the leg's first street leaves within 135°.
 Without it the class weights pulled the draw straight back to the few priced

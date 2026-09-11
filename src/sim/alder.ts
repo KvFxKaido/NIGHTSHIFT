@@ -132,8 +132,9 @@ export const ALDER_EVERGREENS = createEvergreens(ALDER_STREETS,
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
-export function createAlderWorld(racing = false): RoadWorld {
-  return { id: ALDER_VERSION, start: racing ? start : ALDER_GARAGE.entrance,
+/** `from` is where a race starts: the grid unless the flash said otherwise. */
+export function createAlderWorld(racing = false, from: RoadWorld["start"] = start): RoadWorld {
+  return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE.entrance,
     solids: [...ALDER_BLOCKS, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_EVERGREENS.map(tree => tree.trunk)],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
@@ -160,10 +161,10 @@ export function alderRouting(): RoutingGraph {
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
  *  the rival's line through its gates. (ALDER_VERSION, seed) reproduces it. */
-export function alderGeneratedRace(seed: number): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
+export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
-  const approach = startApproach(ALDER_STREETS, start);
+  const approach = startApproach(ALDER_STREETS, from);
   const generated = generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]);
   return { race: generated.definition, generated,
-    rival: rivalLineFor(graph, generated, ALDER_STREETS, start, alderHeight) };
+    rival: rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight) };
 }

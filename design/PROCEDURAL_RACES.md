@@ -49,10 +49,16 @@ These arrived as a possible "more elegant solution" to the shortcut rule
 
 ## Proposed, in order
 
-1. **Start where you flashed.** Races begin from the grid on 1st Ave S today;
-   MC3 starts them where you are. The encounter has to hand its position
-   across the page transition, and the generator's origin becomes the
-   junction ahead of the flash rather than the grid's.
+1. **Start where you flashed.** *Done 2026-09-11.* The flash pose is snapped
+   to the right-hand lane of the street it is on, facing the way it was
+   going and at least 15 m short of the junction ahead (`src/sim/race-start.ts`),
+   carried across the page transition as `?start=x,z,heading`, and snapped
+   again on load so the pose the URL carries is the pose driven. The
+   generator's origin is the junction ahead of it and the rival starts 7 m
+   ahead in the other lane, in the start's own frame. A race's identity is
+   now (world version, seed, start); a playlist keeps all three. The authored
+   race ignores `start`, since its line was authored from the grid, and a
+   flash from off every street still starts on the grid.
 2. **Rival turf bias** on the draw, once there is a second rival to differ.
 3. **Calibrate the pace model** by driving the priced corridors (Western vs
    1st, 6th Ave S vs 4th from Jackson): the model's 32 m/s and 2.5 s per

@@ -394,9 +394,19 @@ decision. One data quirk it found: 4th Ave begins with a 4 m stub 12° off
 its line, so the routing's first-segment direction is the noisier of the
 two and the 6 m chord is the better arrow.
 
-Not yet: rivals biasing the draw towards their own streets, a race starting
-where the flash happened rather than at the grid, saved playlists, and
-rivals learning the player's line per street.
+A race starts where the flash was (2026-09-11): the pose is snapped to the
+right-hand lane of its street, facing the way it was going and 15 m short of
+the junction ahead, carried across the page transition as `?start=x,z,heading`
+and snapped again on load; the generator's origin is the junction ahead of
+it, the rival starts 7 m ahead in the other lane in the start's own frame,
+and the race's identity is (world version, seed, start). Today the rival
+cruises the freight block, so a flash happens on 1st Ave S, Holgate or 4th Ave
+S in either direction; the mechanism is what makes a cruise route anywhere
+in the city a start anywhere in the city. `tests/race-start.test.ts` snaps,
+round-trips the URL, draws from Pike St, Queen Anne Climb, Freight Cut and
+4th Ave S southbound, and drives a race from the hill to the finish in traffic.
+Not yet: rivals biasing the draw towards their own streets, saved playlists,
+and rivals learning the player's line per street.
 
 
 ## First racing rival
