@@ -11,18 +11,24 @@ export function createLiveryEditor(options: { car(): CarView; restorePaint(): vo
   const heading = document.getElementById("garage-menu-title")!;
   const renderer = createLiveryRenderer();
   let message = "Designs save automatically on this browser.";
-  let initial = defaultLivery();
-  try {
-    const loaded = decodeLivery(localStorage.getItem(`${LIVERY_KEY}.blender`)); initial = loaded.design;
-    if (loaded.recovered) message = "Saved design was unreadable. Started with a clean design.";
-  } catch { message = "Storage unavailable. You can still design during this session."; }
-  const history = new LiveryHistory(initial);
-  let selected = initial.layers[0]?.id ?? -1;
-  let panel: Panel = initial.layers[0]?.panel ?? "hood";
+  const modelOf = () => String(options.car().car.userData.model ?? "classic");
+  // Designs are per body: every car carries its own, and switching in the
+  // garage loads that car rather than repainting it with the last one.
+  function load(model: string): Livery {
+    try {
+      const loaded = decodeLivery(localStorage.getItem(`${LIVERY_KEY}.${model}`));
+      if (loaded.recovered) message = "Saved design was unreadable. Started with a clean design.";
+      return loaded.design;
+    } catch { message = "Storage unavailable. You can still design during this session."; return defaultLivery(); }
+  }
+  let model = modelOf();
+  let history = new LiveryHistory(load(model));
+  let selected = history.current.layers[0]?.id ?? -1;
+  let panel: Panel = history.current.layers[0]?.panel ?? "hood";
   const names: Record<Panel,string> = {hood:"Hood",roof:"Roof",left:"Left door",right:"Right door",rear:"Rear"};
   root.innerHTML = `
     <div class="livery-toolbar"><button class="garage-option" data-livery-close>Back to build</button><button class="garage-option" data-livery-toggle></button></div>
-    <p class="livery-note">NS-01 / Right stick turns the platform. Choose a panel, then add a graphic.</p>
+    <p class="livery-note">Right stick turns the platform. Choose a panel, then add a graphic.</p>
     <fieldset class="garage-control"><legend>Base paint</legend><label class="livery-field">Hex color<input type="text" maxlength="7" data-livery-base aria-label="Base paint hex color"></label>
       <div class="livery-swatches" data-base-swatches></div><div class="livery-toolbar">${FINISHES.map(f=>`<button class="garage-option" data-finish="${f}">${f}</button>`).join("")}</div>
     </fieldset>
@@ -46,7 +52,7 @@ export function createLiveryEditor(options: { car(): CarView; restorePaint(): vo
     options.restorePaint(); renderer.invalidate(); renderer.apply(options.car(), history.current);
   }
   function save() {
-    try { localStorage.setItem(`${LIVERY_KEY}.blender`, JSON.stringify({version:1,design:history.current})); message = "Design saved on this browser."; }
+    try { localStorage.setItem(`${LIVERY_KEY}.${model}`, JSON.stringify({version:1,design:history.current})); message = "Design saved on this browser."; }
     catch { message = "Could not save. Design remains available during this session."; }
     apply(); render();
   }
@@ -125,11 +131,16 @@ export function createLiveryEditor(options: { car(): CarView; restorePaint(): vo
   get('[data-livery-close]').onclick=()=>close();
   open.onclick=()=>{options.editing(true);root.hidden=false;build.hidden=true;open.hidden=true;heading.textContent='Livery';render();get<HTMLButtonElement>('[data-livery-close]').focus();options.facePanel(panel);};
   function refresh() {
-    const supported=options.car().car.userData.model==='ns-01';open.disabled=!supported;
-    open.textContent=supported?'Livery / NS-01':'Livery / NS-01 only';
-    if(!supported&&!root.hidden)close();apply();render();
+    const current=modelOf();
+    if(current!==model){
+      // A different body has its own design; do not carry this one across.
+      model=current;history=new LiveryHistory(load(model));
+      selected=history.current.layers[0]?.id ?? -1;panel=history.current.layers[0]?.panel ?? 'hood';
+    }
+    open.textContent='Livery';
+    apply();render();
   }
   refresh();
   return { refresh, close, handleBack(commands: readonly MenuCommand[]) {if(!root.hidden&&commands.some(c=>c==='back'||c==='pause')){close();return true;}return false;},
-    useFactoryPaint() {if(options.car().car.userData.model==='ns-01' && history.current.enabled){const d=copyLivery(history.current);d.enabled=false;history.commit(d);save();}} };
+    useFactoryPaint() {if(history.current.enabled){const d=copyLivery(history.current);d.enabled=false;history.commit(d);save();}} };
 }

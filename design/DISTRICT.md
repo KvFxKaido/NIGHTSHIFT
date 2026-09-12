@@ -969,3 +969,43 @@ wants measuring on its own. And a new merged prop mesh must join
 `CHUNKED_SCENERY`, or it is drawn in full from everywhere: `alder-kerb-bins`
 chunks with the rest of the scenery and costs its 13,800 triangles only where
 it is visible.
+
+## A livery needs a panel, and a panel is a box
+
+The livery editor shipped NS-01-only, and the reason was more interesting than a
+hardcoded model name. `liverySurface` collects painted triangles whose normal
+agrees with a direction, so "up-facing" is the hood, the roof and the boot lid
+at once -- on the NS-01 that surface spans the whole 4.5 m of the car, and the
+hood and roof queries return byte-identical geometry. What actually localises a
+decal is the zone box, because `DecalGeometry` clips the surface to it. The box
+is the panel definition, and there were five of them, measured by hand against
+one car.
+
+`deriveZones` computes them per body instead. Position and extent come from
+proportions of the body's own bounding box; the height of the two horizontal
+panels is *measured* from the up-facing geometry inside that z-band, because a
+bounding box cannot tell you where a hood is and a derived hood at roof height
+floats above the car. Bodies are not tessellated evenly -- the Hammer has three
+triangles across its bonnet -- so a thin band widens once and then falls back to
+a proportion rather than trusting two samples.
+
+The hand-measured table is kept in `tests/livery.test.ts` as the oracle, because
+deriving the boxes is only worth doing if it reproduces the car someone actually
+measured:
+
+| panel | worst centre error | worst size error |
+| --- | --- | --- |
+| hood | 0.07 m | 0.03 m |
+| roof | 0.12 m | 0.01 m |
+| left / right | 0.01 m | 0.02 m |
+| rear | 0.01 m | 0.01 m |
+
+All of that is inside the thickness of the decal box, so the NS-01 looks as it
+did. The other four bodies land where they should: the Bulwark's hood derives to
+y 1.16 where the NS-01's sits at 0.96, and the Kestrel's roof to 1.62. Flanks
+mirror to 1.19e-7 on the Bulwark, which is float round-trip noise out of the
+GLB, not a lopsided car -- the test allows 1e-6 rather than demanding zero.
+
+Designs are stored per body (`nightshift.liveries.v1.<model>`), so a Cinder
+livery does not load onto a Bulwark, and switching cars in the garage reloads
+that car's design instead of repainting it with the last one.
