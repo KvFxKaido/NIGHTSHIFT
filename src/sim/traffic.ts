@@ -119,6 +119,9 @@ export interface TrafficNetwork {
   readonly lanes: readonly TrafficLane[];
   readonly movements: readonly TrafficMovement[];
   pose(lane: number, distance: number): LanePose;
+  /** Ground height anywhere, not only on a lane. A vehicle crossing a junction
+   *  is briefly between two lanes, and `pose` can only answer for one of them. */
+  height(x: number, z: number): number;
 }
 
 export interface TrafficVehicleState {
@@ -147,6 +150,23 @@ export interface TrafficVehicleState {
   y: number;
   z: number;
   heading: number;
+  /**
+   * The offset from the new lane's pose back to where the vehicle actually was
+   * when it last crossed into that lane, and how much of it is left to absorb.
+   *
+   * Lanes are independent offset polylines, so the start of the next lane is
+   * not the end of the previous one: writing the new lane's pose directly moved
+   * a vehicle several metres sideways in a single tick. Traffic bodies are
+   * kinematic, so that swept the body through anything beside it. The offset is
+   * closed off as the vehicle drives instead, which keeps the pose continuous.
+   */
+  blendX: number;
+  blendZ: number;
+  blendHeading: number;
+  /** Metres of offset still to absorb; 0 when not crossing. */
+  blendLeft: number;
+  /** What blendLeft started at, so the blend has a fraction to interpolate. */
+  blendSpan: number;
 }
 
 export interface TrafficState {
@@ -187,6 +207,57 @@ function place(network: TrafficNetwork, vehicle: TrafficVehicleState): void {
 function movementAt(network: TrafficNetwork, id: number, lane: number, turns: number): number {
   const options = network.lanes[lane]!.movements;
   return options[mix(id * 40503 + turns) % options.length]!;
+}
+
+/** Longest offset absorbed in one crossing. Beyond this a vehicle would spend
+ *  most of a street catching up, which reads as drifting rather than turning. */
+const BLEND_CAP = 24;
+
+/**
+ * Begin absorbing the step from `from` to wherever the new lane just put it.
+ *
+ * Held as the offset back to where the vehicle was, not as that point. The new
+ * lane's pose keeps advancing, so interpolating toward it chases a receding
+ * target: the correction grows with every metre driven instead of shrinking,
+ * and costs about two extra steps a tick rather than a fraction of one.
+ */
+function beginHandoff(vehicle: TrafficVehicleState, from: { x: number; z: number; heading: number }): void {
+  const dx = from.x - vehicle.x, dz = from.z - vehicle.z;
+  const jump = Math.hypot(dx, dz);
+  if (jump <= 1e-6) return;
+  vehicle.blendX = dx;
+  vehicle.blendZ = dz;
+  // Shortest arc: a U-turn must not unwind the long way round.
+  vehicle.blendHeading = Math.atan2(Math.sin(from.heading - vehicle.heading),
+    Math.cos(from.heading - vehicle.heading));
+  // Spread over twice the offset, so closing it adds half a step per tick to
+  // the step the vehicle was already taking, rather than a whole one.
+  vehicle.blendSpan = Math.min(jump, BLEND_CAP) * 2;
+  vehicle.blendLeft = vehicle.blendSpan;
+}
+
+/**
+ * Add what is left of the crossing offset to the lane pose, decaying it to zero
+ * as the vehicle drives. At the crossing tick the offset is still whole, so the
+ * pose is where the vehicle already was; by the end of the span it is nothing,
+ * and the vehicle is exactly on its lane.
+ *
+ * `y` is resampled under the blended point rather than kept from the lane. The
+ * two lanes do NOT meet the ground at the same place: across the hill districts
+ * that left a turning vehicle floating above or sunk into the road, which
+ * `tests/alder.test.ts` measures against `alderHeight` to within 2 cm.
+ */
+function absorbHandoff(network: TrafficNetwork, vehicle: TrafficVehicleState, travelled: number): void {
+  if (vehicle.blendLeft <= 0 || vehicle.blendSpan <= 0) return;
+  // A vehicle stopped inside a junction still has to converge, or it would hold
+  // its offset until it moved again. Small enough never to outrun its own step.
+  vehicle.blendLeft = Math.max(0, vehicle.blendLeft - Math.max(travelled, vehicle.blendSpan / 600));
+  const left = vehicle.blendLeft / vehicle.blendSpan;
+  vehicle.x += vehicle.blendX * left;
+  vehicle.z += vehicle.blendZ * left;
+  vehicle.heading += vehicle.blendHeading * left;
+  vehicle.y = network.height(vehicle.x, vehicle.z);
+  if (vehicle.blendLeft === 0) vehicle.blendSpan = 0;
 }
 
 function chooseMovement(network: TrafficNetwork, vehicle: TrafficVehicleState): number {
@@ -261,6 +332,7 @@ export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING
         id, kind, lane: lane.id, distance: first + (next - travelled),
         speed: TRAFFIC_KINDS[kind].cruise,
         movement: -1, holds: [], turns: 0, x: 0, y: 0, z: 0, heading: 0,
+        blendX: 0, blendZ: 0, blendHeading: 0, blendLeft: 0, blendSpan: 0,
       };
       vehicle.movement = chooseMovement(network, vehicle);
       place(network, vehicle);
@@ -411,6 +483,10 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
       vehicle.speed = 0;
     }
 
+    // Where it stood before any crossing, which is what the new pose has to
+    // stay continuous with.
+    const held = { x: vehicle.x, z: vehicle.z, heading: vehicle.heading };
+    const laneBefore = vehicle.lane;
     let current = network.lanes[vehicle.lane]!;
     // `while`, not `if`: a short connector can be crossed inside one tick.
     while (vehicle.distance >= current.length) {
@@ -433,5 +509,7 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
       }
     }
     place(network, vehicle);
+    if (vehicle.lane !== laneBefore) beginHandoff(vehicle, held);
+    absorbHandoff(network, vehicle, vehicle.speed * dt);
   }
 }

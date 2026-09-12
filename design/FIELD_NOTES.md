@@ -382,6 +382,23 @@ computed offline from lane geometry, which is only possible because the district
 guarantees carriageways overlap only at junctions. The invariant is that nothing
 is inside a junction without holding it, enforced by a hard stop on the entry
 line. Traffic is kinematic — an immovable hazard, never a second handling model.
+That is also why its pose has to be continuous. On 2026-09-12 a lane change was
+found to write a vehicle straight onto the next lane, and consecutive lanes do
+not meet, so 85% of turns moved one several metres in a single tick — worst
+measured 15.25 m against a legal 0.26 m. A kinematic body cannot be pushed, so
+the solver evicts whatever the sweep catches: it threw the Sound to Sky rival
+sideways at 42 m/s, a gain of 259 g in one tick, and cost her a twelve-second
+fallback reset. Giving Moth AWD only changed her arrival time; the defect was
+there for any car, including the player's. Three explanations died on the way to
+it, each refuted by measurement rather than argument: a raw `setTranslation`
+teleport (it already used `setNextKinematicTranslation`), penetration recovery
+(the contact manifold read `deepest=0.000`), and a wedge against static geometry
+(the only contact was the lorry). The manifold dump settled it. The offset is
+absorbed over twice its own length now, which costs a turning vehicle half a
+step per tick on top of the step it was taking; interpolating toward the new
+lane's pose instead does not work, because that target recedes as the vehicle
+drives and the correction grows rather than decays.
+
 A vehicle may claim a movement only at the head of its own approach; claiming
 from behind a queue reserves a junction it can never reach and never releases,
 which deadlocks every conflicting movement. That was first mis-read as a

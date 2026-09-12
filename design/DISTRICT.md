@@ -308,6 +308,16 @@ only until that is addressed.
 `src/sim/traffic.ts` drives the lane model. Sparse by design (GDD §12): about
 two dozen vehicles over 9 km, in four kinds, all slower than the player.
 
+**Continuous handoff.** Lanes are independent offset polylines, so the start of
+the next lane is not the end of the previous one. A vehicle crossing a junction
+carries that offset and absorbs it over twice its length as it drives, rather
+than being written onto the new lane in one tick. Traffic bodies are kinematic,
+so a discontinuous pose sweeps the body through anything standing beside it:
+before this, 85% of turns jumped a vehicle several metres and the worst ejected
+a car at 42 m/s. Only the drawn and collided pose is blended — lane, distance,
+speed and reservations are untouched, so the follower and junction logic sees
+exactly what it always did.
+
 **Reservation, not avoidance.** Every place two vehicles can collide is a
 junction — that is what the carriageway-overlap gate above buys — so the whole
 conflict set is computed offline from lane geometry and a vehicle asks

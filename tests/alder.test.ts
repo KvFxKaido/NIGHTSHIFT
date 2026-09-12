@@ -67,6 +67,42 @@ test("Port Alder free roam starts at the garage while races retain their street 
   assert.ok(segmentFootprintDistance(building,entrance,{x:entrance.x,z:entrance.z+9})>=4.9,"chase camera sits inside garage");
 });
 
+// A vehicle changing lanes is written onto the new lane at the distance it
+// carried across -- and consecutive lanes do not meet, so the pose jumps. Every
+// other invariant here samples every tenth tick and compares vehicles to each
+// other, which cannot see a one-tick discontinuity at all.
+//
+// It is not cosmetic. Traffic bodies are kinematic, so a jump sweeps the body
+// through whatever is beside it, and Rapier evicts a dynamic car caught in that
+// volume: measured at 84.9% of turns, worst 15.25 m, and it launched the Sound
+// to Sky rival at 42 m/s into a fallback reset. Nothing may cover more ground in
+// one tick than it could have driven.
+test("no traffic vehicle teleports when it changes lane", () => {
+  const network = createAlderWorld().traffic!;
+  const traffic = createTraffic(network);
+  let previous = traffic.vehicles.map(v => ({ x: v.x, z: v.z }));
+  let worst = 0, worstAt = "", jumps = 0;
+  for (let tick = 0; tick < 3600; tick++) {
+    stepTraffic(network, traffic, 1 / 60);
+    traffic.vehicles.forEach((v, i) => {
+      const moved = Math.hypot(v.x - previous[i]!.x, v.z - previous[i]!.z);
+      // Twice its legal step: closing a junction offset while still driving
+      // forward covers ground on both counts, and that is the whole allowance.
+      const allowed = TRAFFIC_KINDS[v.kind].cruise / 60 * 2 + 1e-6;
+      if (moved > allowed) {
+        jumps++;
+        if (moved > worst) {
+          worst = moved;
+          worstAt = `${v.kind} #${v.id} moved ${moved.toFixed(2)} m in one tick ` +
+            `at tick ${tick} (could have driven ${allowed.toFixed(3)} m)`;
+        }
+      }
+      previous[i] = { x: v.x, z: v.z };
+    });
+  }
+  assert.equal(jumps, 0, `${jumps} teleports; worst ${worstAt}`);
+});
+
 test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
   const network=createAlderWorld().traffic!;
   for(const lane of network.lanes){assert.ok(lane.movements.length);assert.ok(lane.entry>0&&lane.entry<lane.length);}
@@ -78,9 +114,24 @@ test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
       +Math.abs(Math.cos(v.heading)*x-Math.sin(v.heading)*z)*spec.width/2;
   };
   let worst=0,where="";
+  // A vehicle crossing a junction is briefly between two lanes, where neither
+  // lane's height profile describes the ground under it; keeping the new lane's
+  // height there floated it off the graded hills. Checked every sampled tick,
+  // because sampling only the final state caught that by luck — one vehicle
+  // happened to still be mid-crossing.
+  //
+  // Only while crossing. A settled vehicle takes its height from the lane
+  // profile, whose 4 m samples miss the surface by up to 5.6 cm on the hills:
+  // measured, real, and older than this check.
+  let offGround="";
   for(let tick=0;tick<7200;tick++){
     stepTraffic(network,traffic,1/60);
     if(tick%10)continue;
+    if(!offGround)for(const v of traffic.vehicles){
+      if(v.blendLeft<=0)continue;
+      const drop=Math.abs(v.y-alderHeight(v.x,v.z));
+      if(drop>=.02){offGround=`#${v.id} ${drop.toFixed(3)} m off mid-crossing at tick ${tick}`;break;}
+    }
     for(let i=0;i<traffic.vehicles.length;i++)for(let j=i+1;j<traffic.vehicles.length;j++){
       const a=traffic.vehicles[i]!,b=traffic.vehicles[j]!;
       if(Math.hypot(a.x-b.x,a.z-b.z)>12)continue;
@@ -96,5 +147,6 @@ test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
     assert.ok([v.x,v.y,v.z,v.speed,v.heading].every(Number.isFinite));
     assert.ok(Math.abs(v.y-alderHeight(v.x,v.z))<.02);
   }
+  assert.ok(!offGround,`traffic left the road surface: ${offGround}`);
   assert.ok(traffic.vehicles.filter(v=>v.turns>0).length>traffic.vehicles.length*.5,"most traffic never crossed a junction");
 });

@@ -194,6 +194,14 @@ fixtures outside the playable bundle, and old world links redirect.
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
+- Lanes are independent offset polylines, so consecutive lanes do not meet. A
+  vehicle changing lane absorbs that offset as it drives (`beginHandoff` /
+  `absorbHandoff` in `traffic.ts`); it is never written straight onto the new
+  lane. Doing that moved a vehicle up to 15 m in a single tick on 85% of turns,
+  and traffic bodies are kinematic, so the sweep evicted whatever was beside
+  them — it launched the race rival at 42 m/s. The per-tick step is guarded in
+  `tests/alder.test.ts`; every other traffic invariant samples every tenth tick
+  and cannot see a one-tick discontinuity.
 - `#race[hidden] { display: none; }` is load-bearing; the readout's own
   `display: flex` beats the attribute. The rival contact card is
   the same shape: it is `display: grid`, so the rule naming `#rival-challenge[hidden]`

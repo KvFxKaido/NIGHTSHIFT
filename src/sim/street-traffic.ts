@@ -313,6 +313,7 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
 
   return {
     lanes: trafficLanes,
+    height: heightAt,
     movements: movements.map(movement => ({
       ...movement, conflicts: conflicts[movement.id]!, sweeps: sweeps[movement.id]!,
       // Hold the claim until clear of the shared tarmac on the far side, not
