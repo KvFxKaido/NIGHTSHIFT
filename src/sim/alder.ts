@@ -15,6 +15,7 @@ import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
+import { kerbPoses, ALDER_LAMPS, ALDER_BINS } from "./kerb-props.ts";
 
 export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
@@ -131,6 +132,14 @@ export const ALDER_BLOCKS=resolvedLayout.blocks;
 export const ALDER_EVERGREENS = createEvergreens(ALDER_STREETS,
   [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
+/** Props that belong to the street rather than to a parcel. The lamps are the
+ *  rule the renderer used to apply inline; the bins are the second consumer,
+ *  which is how the anchor earns its keep. Neither collides: they are dressing
+ *  until something puts them in `solids` on purpose. */
+export const ALDER_LAMP_POSES = kerbPoses(ALDER_STREETS, ALDER_LAMPS);
+export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS, ALDER_BINS,
+  [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
+    ...ALDER_EVERGREENS.map(tree => tree.trunk)]);
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;

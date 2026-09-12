@@ -1,7 +1,8 @@
 import { addBroadcastTower } from "./broadcast-tower.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS, alderHeight } from "../sim/alder.ts";
+import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
+  ALDER_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
 import { addEvergreens } from "./evergreens.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
@@ -102,22 +103,21 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     blending:THREE.AdditiveBlending,depthWrite:false,opacity:.28,toneMapped:false});
   const lamps: THREE.BufferGeometry[]=[];
   const bulbs: THREE.BufferGeometry[]=[];
-  for(const street of ALDER_STREETS) {
-    const length=pathLength(street.points);
-    for(const sample of pathSamples(street.points,55)){
-      if(sample.distance<20||sample.distance>length-15)continue;
-      const x=sample.x-sample.dirZ*(sample.width/2+1.7),z=sample.z+sample.dirX*(sample.width/2+1.7),y=alderHeight(x,z);
-      lamps.push(new THREE.BoxGeometry(.22,7,.22).translate(x,y+3.5,z));
-      bulbs.push(new THREE.BoxGeometry(1.6,.2,.5).translate(x,y+7,z));
-      if(night){
-        const pool=new THREE.PlaneGeometry(25,32,5,6);pool.rotateX(-Math.PI/2);
-        const position=pool.getAttribute('position');
-        for(let j=0;j<position.count;j++){
-          const px=position.getX(j)+x,pz=position.getZ(j)+z;
-          position.setXYZ(j,px,alderHeight(px,pz)+.045,pz);
-        }
-        pools.push(pool);
+  // Where a kerb prop stands is the sim's decision now (sim/kerb-props.ts).
+  // This turns each pose into geometry and nothing else; the poses are the same
+  // ones this loop used to compute inline, which tests/kerb-props.test.ts pins.
+  for(const pose of ALDER_LAMP_POSES){
+    const x=pose.x,z=pose.z,y=alderHeight(x,z);
+    lamps.push(new THREE.BoxGeometry(.22,7,.22).translate(x,y+3.5,z));
+    bulbs.push(new THREE.BoxGeometry(1.6,.2,.5).translate(x,y+7,z));
+    if(night){
+      const pool=new THREE.PlaneGeometry(25,32,5,6);pool.rotateX(-Math.PI/2);
+      const position=pool.getAttribute('position');
+      for(let j=0;j<position.count;j++){
+        const px=position.getX(j)+x,pz=position.getZ(j)+z;
+        position.setXYZ(j,px,alderHeight(px,pz)+.045,pz);
       }
+      pools.push(pool);
     }
   }
   // Named like the district's lamps. Every mesh carries a kebab-case name --
@@ -133,6 +133,25 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     const geometry=mergeGeometries(pools);
     if(geometry){const mesh=new THREE.Mesh(geometry,poolMaterial);mesh.name='alder-lamp-pools';scene.add(mesh);}
     pools.forEach(g=>g.dispose());
+  }
+  // The anchor's second consumer, and the whole point of extracting it: the
+  // other kerb, from a spec rather than from another loop. placeCar's
+  // convention is that rotation.y IS the heading, so a bin turns its back on
+  // the carriageway.
+  const bins: THREE.BufferGeometry[]=[];
+  for(const pose of ALDER_BIN_POSES){
+    const bin=new THREE.BoxGeometry(.62,.95,.44);
+    bin.rotateY(pose.heading);
+    bin.translate(pose.x,alderHeight(pose.x,pose.z)+.475,pose.z);
+    bins.push(bin);
+  }
+  if(bins.length){
+    const geometry=mergeGeometries(bins);
+    if(geometry){
+      const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x39434d,roughness:.85}));
+      mesh.name='alder-kerb-bins';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);
+    }
+    bins.forEach(g=>g.dispose());
   }
   // Last, once every merged mesh exists: divide the city-wide ones so the far
   // side of the map stops being submitted from every position on it.

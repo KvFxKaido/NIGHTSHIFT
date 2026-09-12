@@ -147,7 +147,7 @@ fixtures outside the playable bundle, and old world links redirect.
 |---|---|---|
 | Vehicle model, `HANDLING`, `PHYSICS_VERSION`, tick | `src/sim/sim.ts` | `design/HANDLING.md` |
 | Port Alder streets, terrain, plots, layout | `src/sim/alder*.ts`, `src/sim/alder-*.json` | `design/PORT_ALDER.md` |
-| District machinery: footprints, surface, aprons, lanes | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts` | `design/DISTRICT.md` |
+| District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |

@@ -80,6 +80,7 @@ export const CHUNK_SIZE = 512;
 export const CHUNKED_SCENERY = [
   "alder-asphalt", "alder-pavement", "alder-ground", "alder-outskirts", "alder-lane-paint",
   "alder-lamp-posts", "alder-lamp-heads", "alder-lamp-pools",
+  "alder-kerb-bins",
   "district-facades", "district-roofs", "district-signage", "district-signage-glow", "district-shop-spill",
 ] as const;
 

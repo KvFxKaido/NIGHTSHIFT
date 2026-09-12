@@ -65,3 +65,34 @@ export function segmentFootprintDistance(block: BuildingBlock, a: {x:number;z:nu
   }
   return distance;
 }
+
+/** How far a point lies outside a footprint, 0 when it is inside. The block's
+ *  rotation is blockCorners' convention, a 2D rotation in (x, z). */
+export function pointFootprintDistance(block: BuildingBlock, x: number, z: number): number {
+  const dx = x - block.x, dz = z - block.z;
+  const cos = Math.cos(block.rotation), sin = Math.sin(block.rotation);
+  return Math.hypot(Math.max(0, Math.abs(dx * cos + dz * sin) - block.width / 2),
+    Math.max(0, Math.abs(-dx * sin + dz * cos) - block.depth / 2));
+}
+
+export interface Bounds { minX: number; maxX: number; minZ: number; maxZ: number }
+const BUCKET = 64;
+
+/**
+ * Bucket items by the cells their bounds touch, and answer "what is near this
+ * point" without walking the whole list. Clearance tests against every building
+ * in the district are otherwise quadratic in the number of things placed.
+ */
+export function spatialIndex<T>(items: readonly T[], bounds: (item: T) => Bounds): (x: number, z: number) => T[] {
+  const cells = new Map<string, T[]>();
+  for (const item of items) {
+    const b = bounds(item);
+    for (let x = Math.floor(b.minX / BUCKET); x <= Math.floor(b.maxX / BUCKET); x++) {
+      for (let z = Math.floor(b.minZ / BUCKET); z <= Math.floor(b.maxZ / BUCKET); z++) {
+        const key = `${x},${z}`, cell = cells.get(key) ?? [];
+        cell.push(item); cells.set(key, cell);
+      }
+    }
+  }
+  return (x, z) => cells.get(`${Math.floor(x / BUCKET)},${Math.floor(z / BUCKET)}`) ?? [];
+}

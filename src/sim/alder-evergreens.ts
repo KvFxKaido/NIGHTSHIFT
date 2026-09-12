@@ -1,4 +1,4 @@
-import { blockCorners, type BuildingBlock } from "./building-footprint.ts";
+import { blockCorners, spatialIndex, type BuildingBlock } from "./building-footprint.ts";
 import type { Street } from "./street-path.ts";
 
 export interface Evergreen {
@@ -38,22 +38,6 @@ function patchDensity(x: number, z: number): number {
   const b = hash(ix, iz + 1, 53) * (1 - u) + hash(ix + 1, iz + 1, 53) * u;
   return a * (1 - v) + b * v;
 }
-const bucketSize = 64;
-type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
-function spatialIndex<T>(items: readonly T[], bounds: (item: T) => Bounds) {
-  const cells = new Map<string, T[]>();
-  for (const item of items) {
-    const b = bounds(item);
-    for (let x = Math.floor(b.minX / bucketSize); x <= Math.floor(b.maxX / bucketSize); x++) {
-      for (let z = Math.floor(b.minZ / bucketSize); z <= Math.floor(b.maxZ / bucketSize); z++) {
-        const key = `${x},${z}`, cell = cells.get(key) ?? [];
-        cell.push(item); cells.set(key, cell);
-      }
-    }
-  }
-  return (x: number, z: number) => cells.get(`${Math.floor(x / bucketSize)},${Math.floor(z / bucketSize)}`) ?? [];
-}
-
 export function createEvergreens(streets: readonly Street[], buildings: readonly BuildingBlock[],
   heightAt: (x: number, z: number) => number): Evergreen[] {
   const segments = streets.flatMap(street => street.points.slice(1).map((b, i) => ({ a: street.points[i]!, b })));

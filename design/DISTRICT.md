@@ -921,3 +921,51 @@ matching the district's `-lamp-posts` / `-lamp-heads` / `-lamp-pools`
 vocabulary. Every mesh carries a kebab-case name because `__ns.pick` and the
 chunker both read them; the district has a test that enforces it and Port Alder
 does not, which is how three meshes slipped through.
+
+## Props anchor to a parcel or to a kerb
+
+Port Alder had two placement rules and no way to reuse either. `alder-evergreens.ts`
+scatters trees through authored regions — the anchor for anything standing in
+open ground: deterministic hash, value-noise clumping, clearance against every
+road and building, and carved passages so a grove cannot quietly close a
+shortcut. The street lamps were the other rule, written inline in the renderer:
+walk each centreline at a fixed spacing, step out past the kerb, skip the ends
+where the junctions are.
+
+`sim/kerb-props.ts` is that second rule with its constants lifted into a spec,
+so another prop costs data rather than code:
+
+| | spacing | offset past the kerb | ends cleared | side | density | off solids | off roads |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Lamps | 55 m | 1.7 m | 20 / 15 m | left | all | none | none |
+| Bins | 34 m | 1.35 m | 26 / 20 m | right | 55% | 1.1 m | 0.5 m |
+
+That places 1265 lamps — the same 1265, in the same places, as the inline loop
+did — and 1150 bins out of 2116 candidates. Streets only meet at junctions, so
+a street's ends *are* its crossings, which is why clearing a fixed distance from
+each end is the right primitive rather than something cleverer.
+
+Clearance comes in two kinds because a prop can be wrong in two ways. Solid
+clearance keeps it out of walls. Road clearance keeps it out of *other* streets:
+`project()` answers with the nearest street, and near a junction a prop can sit
+correctly on its own kerb and still stand inside a wider road's carriageway.
+Measured before the check existed, that was 12 bins and 8 lamps — 0.7% and 0.6%,
+the worst of them 9 m into the road. It costs ten bins to fix and it is left off
+for the lamps, so their seven stay exactly where the renderer has always put
+them; `tests/kerb-props.test.ts` asserts the bins are clear, and that the lamps
+are *not*, which is what catches the default being flipped on.
+
+Two more decisions worth keeping. Thinning is keyed to the pose's world position
+rather than to a loop index, so authoring a new street cannot shuffle the props
+on an existing one; `tests/kerb-props.test.ts` proves it by reversing the street
+order and demanding the same set back. And clearance is opt-in, because the
+lamps never had any: switching it on for them would move them, and the same
+test pins them to the arithmetic the renderer used to run, to the bit.
+
+Nothing here collides. These are dressing, and a prop that should stop a car has
+to be put in the sim's solids deliberately, the way an evergreen trunk is. That
+is a driving decision, not a dressing one — it changes racing lines — so it
+wants measuring on its own. And a new merged prop mesh must join
+`CHUNKED_SCENERY`, or it is drawn in full from everywhere: `alder-kerb-bins`
+chunks with the rest of the scenery and costs its 13,800 triangles only where
+it is visible.
