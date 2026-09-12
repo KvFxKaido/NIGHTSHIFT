@@ -23,6 +23,7 @@ export interface View extends CarView {
   scene: THREE.Scene;
   garageScene: THREE.Scene;
   garageYaw: number;
+  garageLiveryEditing: boolean;
   camera: THREE.PerspectiveCamera;
   moon: THREE.DirectionalLight;
   cameraPosition: THREE.Vector3;
@@ -145,6 +146,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     scene,
     garageScene,
     garageYaw: 0,
+    garageLiveryEditing: false,
     camera,
     moon,
     ...carParts,
@@ -214,7 +216,8 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   view.garageYaw = Math.atan2(Math.sin(view.garageYaw + cameraLook.x * 1.4 * frameDelta),
     Math.cos(view.garageYaw + cameraLook.x * 1.4 * frameDelta));
   view.garageScene.getObjectByName("garage-turntable")!.rotation.y = view.garageYaw;
-  const distance = 7.7;
+  const mobileLivery = view.garageLiveryEditing && view.renderer.domElement.clientWidth <= 720;
+  const distance = mobileLivery ? 12 : 7.7;
   const orbitHeading = Math.PI * 0.75;
   const horizontalDistance = distance;
   const targetPosition = new THREE.Vector3(
@@ -243,6 +246,10 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   view.camera.position.copy(view.cameraPosition);
   view.camera.lookAt(view.cameraTarget);
   view.camera.fov = 48;
+  if (mobileLivery) {
+    const width = view.renderer.domElement.clientWidth, height = view.renderer.domElement.clientHeight;
+    view.camera.setViewOffset(width, height, 0, height * .25, width, height);
+  } else view.camera.clearViewOffset();
   view.camera.updateProjectionMatrix();
   view.renderer.render(view.garageScene, view.camera);
 }
@@ -310,6 +317,7 @@ export function render(
   view.cameraTarget.lerp(targetLook, targetBlend);
   view.camera.position.copy(view.cameraPosition);
   view.camera.lookAt(view.cameraTarget);
+  view.camera.clearViewOffset();
   view.camera.fov = 62 + speedRatio * 15;
   view.camera.updateProjectionMatrix();
   // After the camera: the beacon's sign faces it and points the exit its way.

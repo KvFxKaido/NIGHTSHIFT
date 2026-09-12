@@ -608,3 +608,27 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
 @media (max-width: 640px) {
   #garage-entry, #rival-challenge { bottom: 150px; font-size: 11px; }
 }
+
+[data-open-livery] { width: 100%; margin: 0 0 16px; }
+#livery-editor { display: grid; gap: 16px; }
+#livery-editor[hidden], #garage-build[hidden] { display: none; }
+.livery-toolbar, .livery-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.livery-toolbar { margin-top: 7px; }
+.livery-swatches { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 6px; margin: 8px 0; }
+.livery-swatches button { min-height: 28px; border: 2px solid var(--ui-border); }
+.livery-layer-list { display: grid; gap: 5px; max-height: 150px; overflow: auto; }
+.livery-layer-list button { text-align: left; padding: 9px; }
+.livery-note { margin: 0; color: var(--ui-muted); font: 11px/1.6 var(--ui-mono); }
+.livery-field { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 10px 0; color: var(--ui-ink); font: 11px/1.5 var(--ui-mono); }
+.livery-field[hidden] { display: none; }
+.livery-field input { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.livery-field input[type="text"] { background: var(--ui-panel); border: 1px solid var(--ui-border); color: var(--ui-ink); padding: 8px; font: inherit; }
+.livery-field input[type="range"] { accent-color: var(--ui-navigation); }
+.livery-field output { color: var(--ui-navigation); }
+
+@media (max-width: 720px) {
+  .menu-root[data-screen="garage"]:has(#livery-editor:not([hidden])) .menu-screen { max-height: 48dvh; }
+}
+
+#livery-editor > .livery-toolbar:first-child { position: sticky; top: 0; z-index: 2; padding: 6px 0; background: var(--ui-panel); }
+#livery-editor button:disabled { opacity: .4; cursor: default; }
