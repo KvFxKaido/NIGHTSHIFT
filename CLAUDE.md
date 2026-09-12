@@ -208,6 +208,11 @@ fixtures outside the playable bundle, and old world links redirect.
 - Settings never persist physics snapshots, replays, camera poses or debug
   flags. URL overrides are previews; deliberate menu edits save only their
   own field.
+- `decodeSaves` requires each slot's build to decode as exactly `"saved"`, and
+  its throw sits outside the loop: one slot naming a value that only *recovers*
+  discards every slot, not that one. Retiring a `PlayerCarId` therefore needs an
+  entry in `RETIRED_CARS` (`settings.ts`), which migrates the old value without
+  reporting recovery. The NS-01 became Sable's car this way.
 - `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
   the phone. Do not add to it casually.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
