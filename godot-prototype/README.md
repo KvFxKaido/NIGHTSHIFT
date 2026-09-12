@@ -112,7 +112,7 @@ and track during a session; there is no save-game system in this trial.
   with per-tick input recording (no replay UI yet).
 
 What is deliberately not ported: the full BLACKGLASS layout and hills, replay,
-audio, progression, race opponents, and Live Cred. Wall contact uses Godot's
+audio, progression, race opponents, and Surge. Wall contact uses Godot's
 kinematic collision handling, not Rapier; impact feel is **not equivalent**.
 The handling tests establish repeatability within this engine build, not
 cross-engine or cross-platform bitwise determinism. Lighting is a first pass.

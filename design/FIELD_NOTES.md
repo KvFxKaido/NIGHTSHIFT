@@ -444,12 +444,17 @@ Save failures are visible in Pause/Garage and do not block playing. Historical
 AWD performance/contact fixtures name that layout explicitly; default-FWD and
 all-layout behavioral coverage remain separate.
 
-The proposed core gameplay/economy hook is Live Cred: style earned in a race
-can be burned on Surge or carried across the finish line as performance-parts
-currency. It is specified in `design/LIVE_CRED.md` and summarized in GDD
-sections 3.6, 5.1, and 8.4. **It is not implemented in the current prototype.**
-Keep Chain Cred, Live Cred, Banked Cred, and lifetime reputation distinct when
-working on it; race-time Surge must never consume the permanent wallet.
+Live Cred was the proposed core economy hook until 2026-09-12: style earned in
+a race could be burned on Surge or carried across the line as parts currency.
+It was dropped, unimplemented, the same day an MC3 progression reference was
+read against it. The point of Cred had only ever been to stop nitrous becoming
+a crutch, and three currencies, chain rules, a self-feeding-loop guard and a
+settlement path replays must not re-run is a large machine for one question.
+Finite Surge tanks answer it directly: capacity is bought in the garage, every
+event starts full, nothing refills mid-race, and the hoarding problem never
+arises because you buy the bottle rather than the fill. Style became reputation
+only. `design/LIVE_CRED.md` is kept and marked superseded, because the
+reasoning is worth reading before anyone proposes it again.
 Every mesh in the car and the course carries a kebab-case `name`, and
 `src/debug/debug.ts` installs `window.__ns` for inspection that both people and
 agents can drive: `__ns.pick(x, y, screenshotWidth)` names the mesh under a

@@ -28,7 +28,7 @@ handling and develop the PC prototype first. The eventual target device is
 Customization should focus on body parts, paint and a few understandable
 performance upgrades. Selected LA ideas, including police, can be considered
 later. The current demo does not implement body-part swaps, purchased upgrades,
-police, career progression, Live Cred or Surge.
+police, career progression or Surge.
 
 ## The two laws
 
@@ -141,10 +141,11 @@ Port Alder is the only playable demo map. Old Blackglass links redirect to it;
 Blackglass geometry and asset files remain offline regression fixtures and
 are excluded from the playable map/rendering bundle.
 
-The proposed core gameplay hook is documented in
-[`design/LIVE_CRED.md`](design/LIVE_CRED.md): stylish racing creates temporary
-Cred that can be burned on Surge or carried across the finish line to buy
-parts. It is a design target, not functionality in the current build.
+Surge is the proposed nitrous verb: a small number of finite tanks, bought as
+garage capacity, full at the start of every event and never refilled mid-race.
+It is a design target, not functionality in the current build. The Live Cred
+style-to-speed economy it replaced was retired on 2026-09-12 and is kept in
+[`design/LIVE_CRED.md`](design/LIVE_CRED.md).
 
 The garage is a functional first visual-customization slice. It uses the same
 car mesh as the track and offers **NS-01** and **Bulwark** car choices, paint,

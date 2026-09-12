@@ -90,10 +90,12 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
 - Customization target: body parts, paint and a few simple performance
   upgrades. Today: paint, wheel finish, visual ride height, and a layered
   NS-01 livery editor (`src/customization/livery.ts`); all visual only.
-- Live Cred / Surge (`design/LIVE_CRED.md`, GDD §3.6, 5.1, 8.4) is the
-  proposed core hook and is **not implemented**. Keep Chain Cred, Live Cred,
-  Banked Cred and lifetime reputation distinct when working on it; race-time
-  Surge must never consume the permanent wallet.
+- **Surge** (GDD §3.6, 5.1, 8.4) is the proposed nitrous verb and is **not
+  implemented**: a few finite tanks, capacity bought in the garage, full at
+  every event start, no mid-race refill and no passive recharge. Style is
+  reputation only — it converts into nothing. The Live Cred style-to-speed
+  economy it replaced was dropped on 2026-09-12 and kept, superseded, in
+  `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
 - Procedural races are the direction (`design/PROCEDURAL_RACES.md`): every
   flash a new race, playlists keep one, flashed rivals learn your line per
   street. Read it before touching races or rivals.

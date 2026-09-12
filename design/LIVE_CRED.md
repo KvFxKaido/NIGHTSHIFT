@@ -1,6 +1,21 @@
-# Live Cred
+# Live Cred (superseded)
 
-Status: Proposed core mechanic — not implemented
+Status: **Retired 2026-09-12. Never implemented.** Superseded by finite Surge
+tanks: a small number per car, capacity bought in the garage, full at the start
+of every event, no mid-race refill and no passive recharge. Style is reputation
+only and buys nothing.
+
+Cred existed to stop nitrous becoming a crutch. It answered that with three
+currencies, chain rules, a guard against Surge feeding the style that fuels it,
+and a settlement path that replays must never re-run -- a large machine for one
+question that scarcity answers on its own. The tank model also dissolves the
+hoarding risk this document worries about below: you buy the bottle rather than
+the fill, so spending a tank costs nothing and a restart cannot farm them.
+
+This is kept, not deleted, because the reasoning is worth reading before anyone
+proposes it again, and because the style sources and chain rules below remain a
+good list if style ever needs to feed something. Everything below this line is
+the retired design, unchanged.
 
 Live Cred is NIGHTSHIFT's style-to-speed economy. Skilled and expressive
 driving generates a temporary race currency. The player can burn that currency

@@ -53,8 +53,8 @@ varied street geometry and useful connections to the north and east. See
 - **Scope:** grow one city from play feedback. Police and other LA-inspired
   features are possible later additions, not commitments for the current slice.
 
-The rest of this document includes unimplemented career, rival, Live Cred and
-Surge proposals. The current playable features are listed in §6.4 and
+The rest of this document includes unimplemented career, rival and Surge
+proposals. The current playable features are listed in §6.4 and
 [PORT_ALDER.md](PORT_ALDER.md); a design paragraph is not evidence that it exists.
 
 Shortcuts should have readable tradeoffs: a narrow gap, a difficult turn,
@@ -116,14 +116,16 @@ Reputation is expressed through cars, rivals, locations, music, UI treatment, an
 
 The game should feel like entering a local scene rather than advancing through a conventional sports championship.
 
-### 3.6 Style Becomes Speed
+### 3.6 Speed Is Spent, Not Refilled
 
-Expressive driving produces Live Cred during a race. The player may burn that
-Cred on nitrous to improve the current result or carry it across the finish line
-as permanent upgrade currency.
+Surge is nitrous, and it is finite. A car carries a small number of tanks, every
+event starts full, and nothing refills mid-race. Capacity is bought in the
+garage; the fills themselves are free.
 
-The hook is not merely scoring stylish actions. It is deciding when today's
-reputation is worth more as speed and when it is worth more as tomorrow's part.
+The decision belongs inside the race rather than in an economy layer: this
+corner or the next straight, the pass now or the exit speed later. A boost that
+recharges on its own is a button held down until it works, and that is the
+failure this pillar exists to prevent.
 
 ---
 
@@ -138,7 +140,7 @@ The desired emotional rhythm is:
 5. Challenge them by flashing the headlights.
 6. Follow them to the starting location.
 7. Race through a familiar but newly configured part of the city.
-8. Earn Cred, reputation, parts, or information.
+8. Earn cash, reputation, parts, or information.
 9. Return to the garage or continue exploring.
 
 The player should regularly experience three distinct pleasures:
@@ -146,7 +148,6 @@ The player should regularly experience three distinct pleasures:
 - The immediate physical pleasure of driving
 - The strategic pleasure of recognizing a better route
 - The expressive pleasure of changing the car
-- The tactical pleasure of turning style into speed
 
 ---
 
@@ -175,25 +176,23 @@ Players earn reputation by:
 
 Major rivals act as chapter bosses. Defeating one unlocks the next level of the local racing scene.
 
-### 5.1 Live Cred Economy
+### 5.1 Garage Economy
 
-Cred is the first vertical slice's performance-parts currency. It exists in
-three forms during a race:
+Race payouts are cash. Cash buys performance parts and Surge capacity, and there
+is no second race-time currency to track.
 
-- Chain Cred is provisional style value that can be lost through a collision.
-- Live Cred is secured during the current event and can fuel nitrous.
-- Banked Cred is permanent garage currency and cannot be consumed mid-race.
+Reputation and lifetime style remain non-spendable progression records. They
+gate chapters and decide what the scene offers the player, never what the player
+can afford. Style is reputation only: it does not convert into speed or parts.
 
-Remaining Live Cred and the event's position payout are committed to Banked
-Cred only when the event finishes. Restarting or abandoning an attempt commits
-nothing. Replays reproduce the driving but never settle the economy.
+Base event payouts must guarantee forward progress even for weaker players.
+There are no repair bills or other loss spirals in the first slice.
 
-Reputation and lifetime style remain non-spendable progression records. For the
-first slice, a separate cash currency should not duplicate Cred without a
-distinct design purpose.
-
-The complete proposed rules, safeguards, interface requirements, and prototype
-plan live in [`LIVE_CRED.md`](LIVE_CRED.md). This system is not implemented yet.
+Live Cred, a style-to-speed economy, was the proposed hook until 2026-09-12. It
+was dropped as an elaborate answer to a single question -- whether nitrous
+becomes a crutch -- that finite tanks answer directly. The retired design and
+its reasoning are kept in [`LIVE_CRED.md`](LIVE_CRED.md). Neither system is
+implemented.
 
 ---
 
@@ -440,17 +439,22 @@ The controller should support several overlapping states:
 
 Transitions between states should be predictable and forgiving.
 
-### 8.4 Live Cred and Surge
+### 8.4 Surge
 
-Useful and expressive racing actions build a style chain. Cleanly completing
-the chain secures Live Cred; a collision can destroy only the unbanked portion.
-Valid sources include controlled slides, drafting, clean apex sequences,
-proximity driving, overtakes, shortcuts, and authored Nightlines.
+Surge is the player-controlled nitrous verb.
 
-Holding Surge consumes Live Cred to provide nitrous acceleration. Surge cannot
-draw from the player's permanent Banked Cred and cannot generate enough style
-to sustain itself. The starter car should have access to this verb immediately;
-upgrades tune its delivery and efficiency rather than withholding the core hook.
+- Input target: keyboard Shift and standard-gamepad Circle/B.
+- A car carries a small number of tanks. Holding Surge drains the current tank;
+  releasing stops the drain immediately and keeps what is left of it.
+- Every event starts with a full set. Nothing refills during a race, and there
+  is no passive recharge.
+- Capacity is the garage purchase; refilling is free. Tanks are not ammunition
+  to hoard, so spending one costs nothing and a restart cannot farm them.
+- The starter car has a baseline tank so the verb exists from the first race.
+  Upgrades change capacity, delivery and efficiency rather than unlocking it.
+
+The first implementation should use a linear drain. Tiered power and variable
+burn rates add tuning complexity before the basic decision is proven.
 
 ### 8.5 Car Personalities
 
@@ -488,9 +492,10 @@ braking. They should change how the car feels without asking the player to
 understand transmissions, differentials or detailed engine builds. Purchased
 performance upgrades are not implemented yet.
 
-The proposed economy buys these parts with Banked Cred. Keep base event
-payouts sufficient for progress while style can accelerate access; this is
-an economy design target rather than current behavior.
+The proposed economy buys these parts with cash. Base event payouts must keep
+progress moving on their own; there is no style bonus accelerating them, because
+style is reputation and buys nothing. This is an economy design target rather
+than current behavior.
 
 ### 9.3 Tuning
 
@@ -682,9 +687,7 @@ Core HUD information:
 - Gear
 - Position
 - Lap or checkpoint progress
-- Current style chain and multiplier
-- Live Cred and Surge state
-- Optional tracked-part price and projected post-race balance
+- Surge tanks remaining, and the drain while one is burning
 - Minimap or directional indicator
 - Rival status
 
@@ -820,9 +823,9 @@ The first playable vertical slice should include:
 - Headlight challenge interaction
 - Basic performance upgrades
 - Paint and wheel customization
-- Live Cred and reputation rewards
-- Style-chain-to-Surge race loop
-- One Banked Cred performance-part purchase
+- Cash and reputation rewards
+- Surge with finite tanks and no mid-race refill
+- One performance-part purchase
 - Save and load
 - Controller support
 - A complete race restart loop
@@ -835,8 +838,8 @@ The slice is successful when:
 4. Upgrades create a perceptible handling difference.
 5. Moving between garage, hub, challenge, race, and rewards feels coherent.
 6. The district remains interesting after multiple races.
-7. Players sometimes burn Live Cred to improve a result and sometimes preserve
-   it for a part.
+7. Players think about when to spend a Surge tank, and sometimes finish a race
+   with one still unused.
 
 ---
 
@@ -861,7 +864,7 @@ Phase 2: Race Prototype
 - Restart flow
 - Basic opponent
 - Timing and position tracking
-- Style chain, Live Cred, and Surge prototype
+- Surge tank prototype
 
 Phase 3: District Prototype
 
@@ -876,7 +879,7 @@ Phase 3: District Prototype
 the mapped garage and building workshop exist. Blackglass has been retired
 from the demo. Preserve the handling, improve route choice and neighborhood
 readability through play, and grow the map when useful. Rival behavior,
-career rewards, purchased upgrades, Live Cred and Surge remain future work.
+career rewards, purchased upgrades and Surge remain future work.
 Android testing follows the PC prototype.*
 
 Phase 4: Game Loop
@@ -886,7 +889,7 @@ Phase 4: Game Loop
 - Event selection
 - Rewards
 - Upgrades
-- Banked Cred settlement and purchase flow
+- Garage purchase flow
 - Save system
 
 Phase 5: Vertical Slice Polish
@@ -949,12 +952,13 @@ Opponent Navigation
 
 Open-checkpoint racing creates more interesting decisions but substantially increases AI complexity. Early rivals may use authored route choices before more flexible navigation is attempted.
 
-Live Cred Hoarding
+Surge as a Crutch or a Tax
 
-If spending Cred is always optimal, there is no meaningful decision. If saving
-is always optimal, players avoid the game's signature mechanic. Position
-payouts, Surge cost, base earnings, and part prices must produce legible cases
-for both choices without creating an economic death spiral.
+Finite tanks answer the crutch directly: a boost that cannot refill mid-race
+cannot paper over a whole lap. The remaining risks are the opposite ones. Price
+capacity as a necessity and buying it becomes a tax rather than a choice; hand
+out too many tanks and the decision of when to spend one disappears. Capacity
+should be cheap enough to own and small enough to matter.
 
 ---
 
@@ -966,7 +970,7 @@ Project Nightshift succeeds when players say:
 - "I found a faster way through that section."
 - "I knew that rival was going to take the alley."
 - "This is my car."
-- "I wanted to hit the nitrous, but I was saving for that part."
+- "I had one tank left and I saved it for the last corner."
 - "I want to run that race again."
 
 The project does not need the largest city, the most vehicles, or the most realistic physics.
