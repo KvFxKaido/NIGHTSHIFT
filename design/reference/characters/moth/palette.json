@@ -1,0 +1,34 @@
+{
+  "id": "moth",
+  "source": "moth-bust.png",
+  "swatches": [
+    {
+      "hex": "#1d4246",
+      "share": 0.12
+    },
+    {
+      "hex": "#977c5b",
+      "share": 0.111
+    },
+    {
+      "hex": "#2c5a5d",
+      "share": 0.1
+    },
+    {
+      "hex": "#e7c389",
+      "share": 0.071
+    },
+    {
+      "hex": "#201d19",
+      "share": 0.06
+    },
+    {
+      "hex": "#9aac9e",
+      "share": 0.054
+    },
+    {
+      "hex": "#5d513e",
+      "share": 0.041
+    }
+  ]
+}

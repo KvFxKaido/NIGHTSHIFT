@@ -77,7 +77,9 @@ with the brief on stdin) did the job in about four minutes a round; the
 Gemini agent (`agy` in print mode) hung for its whole nine-minute timeout
 and wrote nothing. Expect round one to get framing, lighting and identity right
 and the skin wrong, and round two to be "skin in three bands, add the ink
-line, change nothing else". Rivet's README has the exact briefs.
+line, change nothing else". The expression round and the sheet round
+depend only on the bust, so they run at the same time; Moth's both came back
+in under three minutes. Rivet's README has the exact briefs.
 
 ## Who exists
 
@@ -85,6 +87,8 @@ line, change nothing else". Rivet's README has the exact briefs.
 | --- | --- | --- | --- |
 | `rivet` | Rivet | Hammer | The Harbor Quarter drag strip |
 | `sable` | Sable | NS-01 | The South Wharf drift yard |
-| `cruiser` | (unnamed) | Kestrel | The freight block by Wharf Garage |
+| `moth` | Moth | Kestrel | The freight block by Wharf Garage; the first rival anyone meets |
 
-Rivet is first. The name in the code is the name on the card.
+Rivet was first, Sable proved the style, Moth was named for the thing that
+is always there when the lamps come on. The name in the code is the name on
+the card: `RIVET`, `SABLE` and `MOTH` in the sim are what the prompts say.

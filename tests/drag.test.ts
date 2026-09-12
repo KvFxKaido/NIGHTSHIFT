@@ -6,7 +6,7 @@ import { onDragStrip } from "../src/sim/drag-rules.ts";
 import { HARBOR_DRAG, DRAG_START, RIVET, RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
 import { createSim, step, resetSim, type VehicleState } from "../src/sim/sim.ts";
 import { createAlderWorld } from "../src/sim/alder.ts";
-import { ALDER_CRUISE, nearbyChallenge } from "../src/sim/encounter.ts";
+import { ALDER_CRUISE, MOTH, nearbyChallenge } from "../src/sim/encounter.ts";
 
 await RAPIER.init();
 const strip = HARBOR_DRAG.drag!;
@@ -71,7 +71,7 @@ test("Rivet coexists with the cruiser, stays parked, survives reset and owns the
     assert.ok(Math.hypot(rivet.vehicle.x - RIVET.start.x, rivet.vehicle.z - RIVET.start.z) < .1);
     assert.equal(nearbyChallenge({ ...rivet.vehicle, x: rivet.vehicle.x - 8, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), RIVET.id);
     assert.equal(nearbyChallenge({ ...rivet.vehicle, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, true), null);
-    assert.equal(nearbyChallenge({ ...sim.state.encounter!, x: sim.state.encounter!.x + 8, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), "cruiser");
+    assert.equal(nearbyChallenge({ ...sim.state.encounter!, x: sim.state.encounter!.x + 8, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), MOTH.id);
     resetSim(sim);
     assert.equal(sim.state.parkedRivals[0]!.id, RIVET.id);
     assert.equal(sim.parkedRivalBodies.length, 1);

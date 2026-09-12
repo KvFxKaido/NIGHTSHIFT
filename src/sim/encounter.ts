@@ -5,6 +5,10 @@ import type { CoursePoint } from "./track.ts";
 
 /** Starts northbound beside Wharf Garage, then cruises the surrounding freight block. */
 export const ALDER_ENCOUNTER = { x: -6, y: 2, z: 875, heading: 0, pitch: 0 };
+/** The cruiser: the rival who is always circling the block when the lamps
+ *  come on, small and quick like her car, and the first one anyone meets.
+ *  Named 2026-09-12; her portrait is design/reference/characters/moth. */
+export const MOTH = { id: "moth", name: "Moth", carName: "Kestrel", car: "kestrel" } as const;
 
 function localCruise(): RivalDefinition {
   const first = ALDER_STREETS.find(s => s.id === "sea-29")!.points[0]!;
@@ -47,7 +51,7 @@ export function canChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed
 export function nearbyChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed">,
   cruise: VehicleState | null | undefined,
   parked: readonly { id: string; vehicle: VehicleState }[], inRace: boolean): string | null {
-  const candidates = [...(cruise ? [{ id: "cruiser", vehicle: cruise }] : []), ...parked]
+  const candidates = [...(cruise ? [{ id: MOTH.id, vehicle: cruise }] : []), ...parked]
     .filter(rival => canChallenge(player, rival.vehicle, inRace))
     .sort((a, b) => Math.hypot(player.x - a.vehicle.x, player.z - a.vehicle.z)
       - Math.hypot(player.x - b.vehicle.x, player.z - b.vehicle.z));

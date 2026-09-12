@@ -10,7 +10,7 @@ import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
-import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
+import { ALDER_CRUISE, MOTH, nearbyChallenge } from "./sim/encounter.ts";
 import type { SpotLight } from "three";
 import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
@@ -480,8 +480,8 @@ function frame(now: number): void {
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
-  rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : "Challenge accepted · Drawing a race…")
-    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : "Kestrel"}`;
+  rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : `${MOTH.name} accepted · Drawing a race…`)
+    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : `${MOTH.name} / ${MOTH.carName}`}`;
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
