@@ -27,7 +27,10 @@ These arrived as a possible "more elegant solution" to the shortcut rule
 - **The seed is the race's identity.** `(world version, seed)` reproduces the
   gates and the rival's line, so a playlist entry is that pair (plus the
   rival, once rivals differ), and a saved ghost carries it the way debug
-  links carry world/route identity. Nothing else needs storing. Every tick's
+  links carry world/route identity. Nothing else needs storing. *Since the
+  start-where-you-flashed and variant work the tuple is (world version, race
+  id, start): the id is the seed plus the variant, `gen-<seed>[-circuit|-unordered]`,
+  which a flash derives from the seed (`seed % 3`) but a link may name outright.* Every tick's
   input is already logged (law 2), so "save this race" costs nothing new.
 - **A rival is the distribution of races it proposes.** Bias the draw
   towards a rival's own streets and it has a personality before it has
@@ -56,7 +59,8 @@ These arrived as a possible "more elegant solution" to the shortcut rule
    again on load so the pose the URL carries is the pose driven. The
    generator's origin is the junction ahead of it and the rival starts 7 m
    ahead in the other lane, in the start's own frame. A race's identity is
-   now (world version, seed, start); a playlist keeps all three. The authored
+   now (world version, race id, start), the id being the seed plus its
+   variant; a playlist keeps all three. The authored
    race ignores `start`, since its line was authored from the grid, and a
    flash from off every street still starts on the grid.
 2. **Rival turf bias** on the draw, once there is a second rival to differ.

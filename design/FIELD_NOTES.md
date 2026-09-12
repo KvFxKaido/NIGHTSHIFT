@@ -75,7 +75,8 @@ its street, facing the way it was going and 15 m short of the junction ahead
 (`src/sim/race-start.ts`), carried as `?start=x,z,heading` and snapped again
 on load; the generator's origin is the junction ahead of it and the rival
 starts 7 m ahead in the other lane in the start's own frame. A race's
-identity is (world version, seed, start). Sound to Sky ignores `start`; a
+identity is (world version, race id, start), the id being the seed plus the
+variant added the same day (`gen-<seed>[-circuit|-unordered]`). Sound to Sky ignores `start`; a
 flash from off every street still starts on the grid. A flow rule (2026-09-11)
 keeps a race going somewhere: the next gate lies within 120° of the heading
 the last one is reached on, and the leg's first street leaves within 135°.

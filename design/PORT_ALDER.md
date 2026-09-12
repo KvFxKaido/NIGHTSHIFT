@@ -399,7 +399,9 @@ right-hand lane of its street, facing the way it was going and 15 m short of
 the junction ahead, carried across the page transition as `?start=x,z,heading`
 and snapped again on load; the generator's origin is the junction ahead of
 it, the rival starts 7 m ahead in the other lane in the start's own frame,
-and the race's identity is (world version, seed, start). Today the rival
+and the race's identity is (world version, race id, start), the id being
+the seed plus its variant (`gen-<seed>[-circuit|-unordered]`, which a flash
+draws from the seed and a link may name outright). Today the rival
 cruises the freight block, so a flash happens on 1st Ave S, Holgate or 4th Ave
 S in either direction; the mechanism is what makes a cruise route anywhere
 in the city a start anywhere in the city. `tests/race-start.test.ts` snaps,
