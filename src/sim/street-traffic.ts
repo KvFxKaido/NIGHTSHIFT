@@ -338,5 +338,19 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
   };
 }
 
-/** Spacing of the sampled lane height profile, in metres. */
-export const TRAFFIC_HEIGHT_STEP = 4;
+/**
+ * Spacing of the sampled lane height profile, in metres.
+ *
+ * Sampled rather than projected because `projectOntoDistrict` searches the
+ * street network and measured at most of a traffic tick when called per
+ * vehicle. A finer profile therefore costs build time, not tick time.
+ *
+ * 4 m left traffic up to 7.9 cm off the real surface across Port Alder's hills,
+ * against the 2 cm the terrain tests allow. The error is dominated by curvature
+ * kinks -- the clamped `smooth()` terms and each hill's edge -- rather than by
+ * smooth curvature, so it falls off far slower than the square of the step:
+ * 1 m still reaches 1.95 cm, which is no margin at all. 0.5 m holds it to
+ * 1.12 cm, measured over three million probes, for 2.3 MB of samples, +0.2 s of
+ * Alder's build and +1.2 s of the retired district's, which ships to nobody.
+ */
+export const TRAFFIC_HEIGHT_STEP = 0.5;

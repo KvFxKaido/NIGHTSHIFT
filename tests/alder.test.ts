@@ -5,6 +5,7 @@ import { ALDER_DATA as data, ALDER_BLOCKS, ALDER_GARAGE, ALDER_STREETS, ALDER_RA
 import { segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { TRAFFIC_HEIGHT_STEP } from "../src/sim/street-traffic.ts";
 import { hasContact } from "./helpers/handling.ts";
 
 await RAPIER.init();
@@ -103,6 +104,32 @@ test("no traffic vehicle teleports when it changes lane", () => {
   assert.equal(jumps, 0, `${jumps} teleports; worst ${worstAt}`);
 });
 
+// What a settled vehicle stands on. The traffic guard below can only see the
+// positions vehicles happen to occupy at a sampled tick, and the worst errors
+// sit at narrow curvature kinks: it catches a 4 m step (7.9 cm) but a 2 m one
+// (4.8 cm) survives it, because nobody is standing on the bad spot when it
+// looks. This checks every lane position, whoever is driving where.
+//
+// The probe has to be finer than the step or it lands on the stored samples,
+// where interpolation is exact by construction and the test measures nothing --
+// a 0.5 m probe against a 0.5 m step reported a perfect 0.00 cm. At 0.25 m it
+// checks midpoints; the true worst, probed at 0.1 m, is 1.12 cm.
+test("the stored lane height profile follows the ground it stands on", () => {
+  const network = createAlderWorld().traffic!;
+  const PROBE = 0.25;
+  assert.ok(PROBE < TRAFFIC_HEIGHT_STEP, "the probe must be finer than the step it judges");
+  let worst = 0, where = "";
+  for (const lane of network.lanes) {
+    for (let d = 0; d <= lane.length; d += PROBE) {
+      const pose = network.pose(lane.id, d);
+      const drop = Math.abs(pose.y - alderHeight(pose.x, pose.z));
+      if (drop > worst) { worst = drop; where = `lane ${lane.id} at ${d.toFixed(2)} m`; }
+    }
+  }
+  assert.ok(worst < .02,
+    `lane profile is ${(worst * 100).toFixed(2)} cm off the surface at ${where}`);
+});
+
 test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
   const network=createAlderWorld().traffic!;
   for(const lane of network.lanes){assert.ok(lane.movements.length);assert.ok(lane.entry>0&&lane.entry<lane.length);}
@@ -114,23 +141,22 @@ test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
       +Math.abs(Math.cos(v.heading)*x-Math.sin(v.heading)*z)*spec.width/2;
   };
   let worst=0,where="";
-  // A vehicle crossing a junction is briefly between two lanes, where neither
-  // lane's height profile describes the ground under it; keeping the new lane's
-  // height there floated it off the graded hills. Checked every sampled tick,
-  // because sampling only the final state caught that by luck — one vehicle
-  // happened to still be mid-crossing.
+  // Every vehicle, every sampled tick. Checking only the final state caught a
+  // mid-crossing error by luck once, and would not have caught the profile at
+  // all: at a 4 m step the stored heights missed the hills by up to 7.9 cm.
   //
-  // Only while crossing. A settled vehicle takes its height from the lane
-  // profile, whose 4 m samples miss the surface by up to 5.6 cm on the hills:
-  // measured, real, and older than this check.
+  // Both halves have to hold for this to pass. A crossing vehicle is between
+  // two lanes and has its height resampled exactly; a settled one takes it from
+  // the stored profile, whose step (TRAFFIC_HEIGHT_STEP) is sized to stay
+  // inside this tolerance rather than merely near it.
   let offGround="";
   for(let tick=0;tick<7200;tick++){
     stepTraffic(network,traffic,1/60);
     if(tick%10)continue;
     if(!offGround)for(const v of traffic.vehicles){
-      if(v.blendLeft<=0)continue;
       const drop=Math.abs(v.y-alderHeight(v.x,v.z));
-      if(drop>=.02){offGround=`#${v.id} ${drop.toFixed(3)} m off mid-crossing at tick ${tick}`;break;}
+      if(drop>=.02){offGround=`#${v.id} ${drop.toFixed(3)} m off the ground at tick ${tick}`+
+        `${v.blendLeft>0?" (mid-crossing)":" (settled on its lane)"}`;break;}
     }
     for(let i=0;i<traffic.vehicles.length;i++)for(let j=i+1;j<traffic.vehicles.length;j++){
       const a=traffic.vehicles[i]!,b=traffic.vehicles[j]!;

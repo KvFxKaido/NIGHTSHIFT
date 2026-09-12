@@ -318,6 +318,16 @@ a car at 42 m/s. Only the drawn and collided pose is blended — lane, distance,
 speed and reservations are untouched, so the follower and junction logic sees
 exactly what it always did.
 
+**Height is a stored profile.** Each lane's surface height is sampled at build
+and interpolated between, rather than projected per vehicle per tick: projecting
+searches the street network and measured at most of a traffic tick when called
+per vehicle, for a number that cannot change. The step was 4 m until
+2026-09-12, which left traffic up to 7.9 cm off the real surface across the hill
+districts; it is 0.5 m now, holding that to 1.1 cm against the 2 cm the terrain
+tests allow. A vehicle crossing a junction is the exception — it is between two
+lanes, where no single lane's profile describes the ground, so its height is
+resampled exactly.
+
 **Reservation, not avoidance.** Every place two vehicles can collide is a
 junction — that is what the carriageway-overlap gate above buys — so the whole
 conflict set is computed offline from lane geometry and a vehicle asks
