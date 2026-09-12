@@ -35,7 +35,9 @@ function localCruise(): RivalDefinition {
   });
   const along = [0];
   for (let i = 1; i < points.length; i++) along.push(along.at(-1)! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
-  return { id: "wharf-cruise", start: ALDER_ENCOUNTER, points, along, gates: [], loop: true, speedLimit: 10 };
+  // Her own car whether she is cruising or racing. At a 10 m/s cruise this is
+  // nearly invisible; it matters because the same body is raced from a roll.
+  return { id: "wharf-cruise", drivetrain: "awd", start: ALDER_ENCOUNTER, points, along, gates: [], loop: true, speedLimit: 10 };
 }
 export const ALDER_CRUISE = localCruise();
 

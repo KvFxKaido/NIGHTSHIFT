@@ -5,6 +5,10 @@ import { BLENDER_CARS } from "../src/render/blender-car.ts";
 import { DEFAULT_DRIVETRAIN, isDrivetrain } from "../src/sim/sim.ts";
 import { defaultSettings } from "../src/settings/settings.ts";
 import { RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
+import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
+import { ALDER_CRUISE } from "../src/sim/encounter.ts";
+import { alderGeneratedRace } from "../src/sim/alder.ts";
+import type { RivalDefinition } from "../src/sim/rival.ts";
 
 // The drivetrain stopped being a garage toggle and became a property of the
 // body. These pin the parts of that which are easy to get silently wrong.
@@ -26,11 +30,23 @@ test("the fallback for an unknown body matches the simulation default", () => {
   assert.equal(drivetrainFor("no-such-car"), DEFAULT_DRIVETRAIN);
 });
 
-// Not a restatement of the table: drag-event.ts declared the Hammer rear-drive
-// long before the table existed, so this checks the two agree.
-test("the Hammer's profile matches the drivetrain its drag rival already declared", () => {
-  assert.equal(RIVET_DRAG_DRIVER.drivetrain, "rwd", "the drag rival stopped being rear-drive");
-  assert.equal(CAR_DRIVETRAIN.hammer, RIVET_DRAG_DRIVER.drivetrain);
+// Not a restatement of the table. A RivalDefinition declares its own drivetrain
+// and nothing derives it from CAR_DRIVETRAIN, so a rival can contradict the body
+// it is drawn as -- which is exactly what Moth did until 2026-09-12, racing a
+// rally hatch on front-wheel drive. An undeclared drivetrain is not a neutral
+// default either: it silently means FWD.
+test("every rival drives the body it is rendered as", () => {
+  const driven: [string, string, RivalDefinition][] = [
+    ["Rivet on the drag strip", "hammer", RIVET_DRAG_DRIVER],
+    ["Moth on Sound to Sky", "kestrel", ALDER_RIVAL],
+    ["Moth cruising the freight block", "kestrel", ALDER_CRUISE],
+    ["Moth in a generated race", "kestrel", alderGeneratedRace(11).rival],
+  ];
+  for (const [who, car, rival] of driven) {
+    assert.ok(rival.drivetrain !== undefined,
+      `${who} declares no drivetrain, so the sim runs the ${car} on FWD`);
+    assert.equal(rival.drivetrain, CAR_DRIVETRAIN[car], `${who} contradicts the ${car} body`);
+  }
 });
 
 test("a new player starts in a rear-drive car, whatever the sim defaults to", () => {

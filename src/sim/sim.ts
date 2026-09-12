@@ -758,7 +758,9 @@ export function step(sim: Sim, rawInput: Input): void {
   for (const parked of parkedRigs) applyVehicleInput(parked, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
   const encounterRig: VehicleRig | null = sim.state.encounter && sim.encounterBody
     ? { roadWorld: sim.roadWorld, body: sim.encounterBody,
-      state: { vehicle: sim.state.encounter, drivetrain: "fwd", race: null } } : null;
+      // Read the route's own layout: hardcoding this quietly ignored a field
+      // RivalDefinition offers, so setting it on a cruise route did nothing.
+      state: { vehicle: sim.state.encounter, drivetrain: sim.encounterRoute?.drivetrain ?? "fwd", race: null } } : null;
   if (encounterRig) {
     const driver = sim.state.encounterDriver;
     const input = sim.encounterRoute && driver ? rivalInput(sim.encounterRoute,

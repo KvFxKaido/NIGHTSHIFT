@@ -176,6 +176,9 @@ export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = star
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);
   const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]), approach.node, kind);
+  // Every generated road race fields Moth's Kestrel (raceOpponentCar in
+  // main.ts), so the drawn line is driven all-wheel. rivalLineFor itself stays
+  // ignorant of who is driving it -- it draws a route, not a personality.
   return { race: generated.definition, generated,
-    rival: rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight) };
+    rival: { ...rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight), drivetrain: "awd" } };
 }
