@@ -266,3 +266,9 @@ traffic and Wharf Garage; it does not simulate businesses.
 ### Interface styling
 
 `src/ui/theme.css` owns the shared interface palette: cyan navigation, amber objectives, red rivals/warnings, and mint success. Menus and HUD use the same smoked panels and numeric typography; drag and drift share an instrument slot. Contextual prompts follow the last keyboard/controller input and saved bindings, with PlayStation labels for recognized Sony controllers.
+
+### Kestrel / garage-area rival
+
+The cruising rival near Wharf Garage drives an original ivory Kestrel rally hatch, including generated sprint, circuit, and unordered challenges. Switching the player's car does not change it. The garage still offers only NS-01 and Bulwark; Kestrel and Rivet's Hammer are rival-only bodies.
+
+Source: `assets/cars/ns-kestrel-01.blend`. Rebuild with Blender's `--background --python scripts/build-kestrel.py` (`-- --render` also produces front/rear studio renders). Export hand edits using `scripts/export-kestrel.py`, then run `node scripts/optimize-car.mjs --car=ns-kestrel-01`. The texture-free GLB uses the existing steering/spin pivots and shared vehicle collider.

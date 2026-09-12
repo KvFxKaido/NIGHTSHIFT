@@ -60,8 +60,7 @@ let carParts: CarView;
 let rivalParts: CarView | null = null;
 let rivetParts: CarView | null = null;
 let sableParts: CarView | null = null;
-const opponentCar = (id: string) => id === "bulwark" ? "blender" : "bulwark";
-const raceOpponentCar = (id: string) => race?.kind === "drag" ? "hammer" : opponentCar(id);
+const raceOpponentCar = () => race?.kind === "drag" ? "hammer" : "kestrel";
 let selectedCar = "blender";
 let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
@@ -115,7 +114,7 @@ try {
   carParts = model === "classic" ? createCar()
     : await loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model);
   {
-    const opponent = raceOpponentCar(model);
+    const opponent = raceOpponentCar();
     rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
@@ -221,7 +220,6 @@ function reset(drivetrain = sim.state.drivetrain): void {
 
 // Cache each loaded body once; only the active body belongs to a scene.
 const cars = new Map<string, CarView>([[selectedCar, carParts]]);
-if (rivalParts) cars.set(raceOpponentCar(selectedCar), rivalParts);
 let carLoading = false;
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
@@ -239,13 +237,7 @@ async function selectCar(id: string): Promise<void> {
     const parts = cars.get(id)
       ?? await loadBlenderCar(new URL(BLENDER_CARS[id].path, document.baseURI).href, id);
     cars.set(id, parts);
-    const opponent = raceOpponentCar(id);
-    const other = cars.get(opponent)
-      ?? await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
-    if (other) cars.set(opponent, other);
-    setRivalCar(view, null);
     setPlayerCar(view, parts);
-    if (other) setRivalCar(view, other);
     applyCarCustomization(view, customization);
     selectedCar = id;
     saveSettings({ car: id }, ["car"]);
@@ -479,7 +471,7 @@ function frame(now: number): void {
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
   rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : "Challenge accepted · Drawing a race…")
-    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : opponentCar(selectedCar) === "bulwark" ? "Bulwark" : "NS-01"}`;
+    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : "Kestrel"}`;
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
