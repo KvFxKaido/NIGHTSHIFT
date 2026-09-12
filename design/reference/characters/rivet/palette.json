@@ -1,0 +1,30 @@
+{
+  "id": "rivet",
+  "source": "rivet-bust.png",
+  "swatches": [
+    {
+      "hex": "#ecd5a4",
+      "share": 0.076
+    },
+    {
+      "hex": "#8f5d39",
+      "share": 0.064
+    },
+    {
+      "hex": "#c6c4ad",
+      "share": 0.061
+    },
+    {
+      "hex": "#d79858",
+      "share": 0.06
+    },
+    {
+      "hex": "#3c2d22",
+      "share": 0.055
+    },
+    {
+      "hex": "#99998a",
+      "share": 0.055
+    }
+  ]
+}
