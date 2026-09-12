@@ -37,13 +37,21 @@ export function chunkMesh(mesh: THREE.Mesh<THREE.BufferGeometry>, size = CHUNK_S
   for (const [key, vertices] of cells) {
     const geometry = new THREE.BufferGeometry();
     for (const [name, attribute] of Object.entries(source.attributes)) {
-      const values = new Float32Array(vertices.length * attribute.itemSize);
+      // Copy the raw elements rather than getComponent's reading of them.
+      // getComponent denormalizes, so a normalized Uint8 colour read that way
+      // and written back into a Uint8 array truncates every channel to zero --
+      // the corruption a type-preserving copy exists to avoid. Raw elements
+      // keep the source's array type and normalized flag exactly, and cost a
+      // packed attribute its own size instead of four times it.
+      const size = attribute.itemSize;
+      const ArrayType = attribute.array.constructor as { new (length: number): typeof attribute.array };
+      const values = new ArrayType(vertices.length * size);
       vertices.forEach((vertex, i) => {
-        for (let component = 0; component < attribute.itemSize; component++) {
-          values[i * attribute.itemSize + component] = attribute.getComponent(vertex, component);
+        for (let component = 0; component < size; component++) {
+          values[i * size + component] = attribute.array[vertex * size + component]!;
         }
       });
-      geometry.setAttribute(name, new THREE.BufferAttribute(values, attribute.itemSize));
+      geometry.setAttribute(name, new THREE.BufferAttribute(values, size, attribute.normalized));
     }
     geometry.computeBoundingBox(); geometry.computeBoundingSphere();
     const child = new THREE.Mesh(geometry, mesh.material);

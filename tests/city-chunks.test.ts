@@ -83,3 +83,36 @@ test("the chunked list names only merged static scenery, and the cell size is sa
   }
   assert.ok(CHUNK_SIZE >= 128 && CHUNK_SIZE <= 1024, "cell size outside the measured range");
 });
+
+// The generality gap the Market Row PR's review found, and the trap in the
+// obvious fix for it. Every attribute in the chunked scenery is float today,
+// so nothing here is broken; this keeps it that way when someone packs a
+// colour into bytes. Copying through getComponent, which denormalizes, and
+// writing back into a Uint8 array would truncate every channel to zero.
+test("a packed colour keeps its array type, its normalized flag and its values", () => {
+  const mesh = sheet();
+  const count = mesh.geometry.getAttribute("position").count;
+  const packed = new Uint8Array(count * 3);
+  for (let i = 0; i < packed.length; i++) packed[i] = (i * 37) % 256;
+  mesh.geometry.setAttribute("color", new THREE.BufferAttribute(packed, 3, true));
+
+  const source = mesh.geometry.getAttribute("color");
+  const before: string[] = [];
+  for (let i = 0; i < source.count; i++) before.push(`${source.getX(i)},${source.getY(i)},${source.getZ(i)}`);
+
+  const chunked = chunkMesh(mesh, 256);
+  const after: string[] = [];
+  let bytes = 0;
+  for (const object of chunked.children) {
+    const attribute = (object as THREE.Mesh<THREE.BufferGeometry>).geometry.getAttribute("color");
+    assert.ok(attribute.array instanceof Uint8Array, "a packed colour was widened to floats");
+    assert.equal(attribute.normalized, true, "the normalized flag was dropped");
+    bytes += attribute.array.byteLength;
+    for (let i = 0; i < attribute.count; i++) {
+      after.push(`${attribute.getX(i)},${attribute.getY(i)},${attribute.getZ(i)}`);
+    }
+  }
+  // Each triangle lands in exactly one cell, so the attribute costs what it did.
+  assert.equal(bytes, packed.byteLength, "chunking changed what the attribute costs");
+  assert.deepEqual(after.sort(), before.sort(), "packed colours changed value");
+});
