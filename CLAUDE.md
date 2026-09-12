@@ -112,7 +112,7 @@ fixtures outside the playable bundle, and old world links redirect.
   been off since v3; v5 added RWD slide-exit traction sharing and brought
   FWD/RWD to the same 140 mph governor as AWD.
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
-  enter; the garage has a fixed camera and offers NS-01 and Bulwark bodies,
+  enter; the garage has a fixed camera and offers Cinder and Bulwark bodies,
   paint, wheel finish, visual stance and an NS-01 livery editor (all visual
   only; liveries are a per-car browser profile, not part of save slots).
 - **Encounters and generated races.** A rival cruises a freight-block loop

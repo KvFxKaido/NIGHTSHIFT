@@ -270,13 +270,13 @@ traffic and Wharf Garage; it does not simulate businesses.
 
 ### Kestrel / garage-area rival
 
-The cruising rival near Wharf Garage drives an original ivory Kestrel rally hatch, including generated sprint, circuit, and unordered challenges. Switching the player's car does not change it. The garage still offers only NS-01 and Bulwark; Kestrel and Rivet's Hammer are rival-only bodies.
+The cruising rival near Wharf Garage drives an original ivory Kestrel rally hatch, including generated sprint, circuit, and unordered challenges. Switching the player's car does not change it. The garage offers Cinder and Bulwark. The NS-01 is the car Sable keeps in the South Wharf yard, and the Kestrel and Hammer belong to Moth and Rivet; all three are rival-only bodies. A saved game that still names the NS-01 migrates to the Cinder, and an old `?car=blender` link resolves the same way.
 
 Source: `assets/cars/ns-kestrel-01.blend`. Rebuild with Blender's `--background --python scripts/build-kestrel.py` (`-- --render` also produces front/rear studio renders). Export hand edits using `scripts/export-kestrel.py`, then run `node scripts/optimize-car.mjs --car=ns-kestrel-01`. The texture-free GLB uses the existing steering/spin pivots and shared vehicle collider.
 
 ### NS-01 livery editor
 
-Open **Garage → Livery / NS-01**. Pick a panel (hood, roof, either door, rear), then add stripes, racing numbers, chevrons, bolts, or a NIGHTSHIFT/text label. Select layers to change their color, position, size, rotation, or panel, mirror onto the opposite door, reorder, or delete them. Base paint supports hex colors and gloss/satin/matte finishes. Color swatches, number buttons, and the existing keyboard/controller menu navigation make common edits possible without typing; custom text and hex values use keyboard input. Right stick rotates the platform.
+Open **Garage → Livery**. Pick a panel (hood, roof, either door, rear), then add stripes, racing numbers, chevrons, bolts, or a NIGHTSHIFT/text label. Select layers to change their color, position, size, rotation, or panel, mirror onto the opposite door, reorder, or delete them. Base paint supports hex colors and gloss/satin/matte finishes. Color swatches, number buttons, and the existing keyboard/controller menu navigation make common edits possible without typing; custom text and hex values use keyboard input. Right stick rotates the platform.
 
 Up to 12 layers save automatically per browser for NS-01, with 40 session undo steps and redo. Livery off restores factory paint while keeping the design. Choosing a factory paint preset also turns the livery off. Graphics follow the body into driving and survive reloads and switching cars; Bulwark keeps its existing customization and does not edit NS-01's design. Designs are a per-car browser profile, not part of individual game-save slots. Bulwark livery authoring, image imports, and freehand painting are future work.
 

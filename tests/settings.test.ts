@@ -11,14 +11,14 @@ function storage() {
   return { data, writes, getItem: (key: string) => data.get(key) ?? null,
     setItem: (key: string, value: string) => { writes.push(key); data.set(key, value); } };
 }
-const example = { car: "blender" as const, drivetrain: "rwd" as const,
+const example = { car: "cinder" as const, drivetrain: "rwd" as const,
   customization: { paint: "ice", wheels: "alloy", stance: "slammed" },
   audio: { ...DEFAULT_LEVELS } };
 
 test("a fresh settings store defaults to FWD without writing on startup", () => {
   const disk = storage();
   const store = createSettingsStore(() => disk);
-  assert.deepEqual(store.get(), { car: "blender", drivetrain: "fwd",
+  assert.deepEqual(store.get(), { car: "cinder", drivetrain: "fwd",
     customization: { paint: "signal", wheels: "graphite", stance: "street" }, audio: DEFAULT_LEVELS });
   assert.equal(store.status(), "ready");
   assert.equal(disk.writes.length, 0);
@@ -58,7 +58,7 @@ test("invalid saved fields recover individually and unrelated saved fields survi
     customization: { paint: "ice", wheels: 3, stance: "slammed" }, vehicle: { speed: 100 } }));
   // Version 1 predates audio, so those levels default while the damaged
   // drivetrain and wheels still report as recovered.
-  assert.deepEqual(decoded.settings, { car: "blender", drivetrain: "fwd",
+  assert.deepEqual(decoded.settings, { car: "cinder", drivetrain: "fwd",
     customization: { paint: "ice", wheels: "graphite", stance: "slammed" }, audio: DEFAULT_LEVELS });
   assert.equal(decoded.status, "recovered");
 });
@@ -111,7 +111,7 @@ test("two open tabs merge deliberate field changes instead of clobbering each ot
   first.update({ drivetrain: "rwd" });
   second.update({ customization: { paint: "ice" } });
   first.update({ customization: { stance: "low" } });
-  assert.deepEqual(createSettingsStore(() => disk).get(), { car: "blender", drivetrain: "rwd",
+  assert.deepEqual(createSettingsStore(() => disk).get(), { car: "cinder", drivetrain: "rwd",
     customization: { paint: "ice", wheels: "graphite", stance: "low" }, audio: DEFAULT_LEVELS });
 });
 
@@ -156,9 +156,24 @@ test("car choice persists, merges across tabs and rejects invalid models", () =>
   assert.equal(reloaded.get().customization.paint, "ice");
   assert.throws(() => first.update({ car: "unknown" as "bulwark" }), RangeError);
   const recovered = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, ...example, car: "unknown" }));
-  assert.equal(recovered.settings.car, "blender");
+  assert.equal(recovered.settings.car, "cinder");
   assert.equal(recovered.settings.drivetrain, "rwd");
   assert.equal(recovered.status, "recovered");
   assert.match(settingsStatusMessage("saved", "?car=bulwark"), /Preview/);
   assert.equal(new URL(withoutSettingsOverrides("http://localhost/?car=bulwark&scene=garage", ["car"])).search, "?scene=garage");
+});
+
+// The NS-01 became the car Sable drives, so it is no longer a garage choice.
+// A stored setting that still names it is a migration, not damage: reporting
+// recovery would leave decodeSaves short of "saved", and it throws on that,
+// taking every save slot with it rather than just the stale one.
+test("a retired car migrates to its replacement without reporting recovery", () => {
+  const stored = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, ...example, car: "blender" }));
+  assert.equal(stored.settings.car, "cinder", "an NS-01 save did not migrate");
+  assert.notEqual(stored.status, "recovered", "migration must not read as damage");
+  assert.equal(stored.settings.drivetrain, example.drivetrain, "the rest of the build survived");
+  // An unknown car is still damage, and still falls back to the default.
+  const damaged = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, ...example, car: "ns-99" }));
+  assert.equal(damaged.settings.car, defaultSettings().car);
+  assert.equal(damaged.status, "recovered");
 });

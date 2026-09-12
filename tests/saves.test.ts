@@ -16,6 +16,9 @@ test("three named builds and positions round-trip independently across stores", 
   const storage = disk(), first = createSaveStore(() => storage), second = createSaveStore(() => storage);
   assert.deepEqual(first.list(), []); assert.equal(storage.data.size, 0);
   first.write(example);
+  // A slot written before the NS-01 left the garage. It must migrate, not
+  // throw: decodeSaves rejects a build whose status is short of "saved", and
+  // that discards every slot rather than the one naming a retired car.
   second.write({ ...example, id: "slot-2", name: "Wet streets", build: { ...example.build, car: "blender", drivetrain: "awd" } });
   first.write({ ...example, id: "slot-3", name: "Race save", position: null });
   first.write({ ...example, name: "Updated hill runner", savedAt: 5678 });

@@ -276,7 +276,7 @@ the camera stays fixed while right stick rotates the car/platform. Driving
 out returns to the forecourt. Races use a separate street start and disable
 garage entry. **Sound to Sky** is a four-checkpoint race with free route choice.
 Traffic, reset and browser-local car/customization settings exist. The garage
-offers NS-01 and Bulwark; both share the current handling and visual setup.
+offers Cinder and Bulwark; both share the current handling and visual setup.
 In-game replay and the recorded-input ghost have been removed. Sound to Sky now
 has one AI rival in the other garage car, with an authored preferred route,
 corner/traffic braking, basic recovery and shared-world collisions. The player

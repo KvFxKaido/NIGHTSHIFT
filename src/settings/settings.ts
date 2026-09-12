@@ -29,9 +29,12 @@ const categories: CustomizationCategory[] = ["paint", "wheels", "stance"];
 
 const channels: (keyof AudioLevels)[] = ["master", "engine", "music"];
 
+/** Bodies that left the garage, and what a save naming one becomes. */
+const RETIRED_CARS: Record<string, PlayerCarId> = { blender: "cinder" };
+
 export function defaultSettings(): PlayerSettings {
   return {
-    car: "blender",
+    car: "cinder",
     drivetrain: DEFAULT_DRIVETRAIN,
     customization: createDefaultCustomization(),
     audio: { ...DEFAULT_LEVELS },
@@ -53,7 +56,11 @@ export function decodeSettings(raw: string | null): { settings: PlayerSettings; 
     }
     let recovered = false;
     if (data.version === SETTINGS_VERSION) {
-      if (isPlayerCarId(data.car)) settings.car = data.car;
+      // A retired body is migrated, not recovered. Recovery would leave the
+      // status short of "saved", and decodeSaves throws on that -- discarding
+      // every slot, not just the one that still names an old car.
+      const car = typeof data.car === "string" && data.car in RETIRED_CARS ? RETIRED_CARS[data.car]! : data.car;
+      if (isPlayerCarId(car)) settings.car = car;
       else recovered = true;
     }
     if (isDrivetrain(data.drivetrain)) settings.drivetrain = data.drivetrain;

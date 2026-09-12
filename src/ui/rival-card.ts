@@ -17,7 +17,10 @@ import { MOTH } from "../sim/encounter.ts";
  * the accent is the rival's car's, but that does not survive contact with the
  * cars: the Hammer and the Kestrel are both cream, the Hammer's stated
  * fallback secondary is satin black (invisible on this panel), and Sable's
- * NS-01 is repainted teal so it cannot be confused with the player's. The face
+ * NS-01 was repainted teal so it could not be confused with the player's, which
+ * is fixed: it is his outright now, in the signal red his portrait describes.
+ * The Hammer and Kestrel are still both cream, so the rule still cannot be
+ * followed for Rivet and Moth. The face
  * is the identity at this size, so the card leads with it and the edge stays
  * the one rival colour until the car colours are settled.
  */

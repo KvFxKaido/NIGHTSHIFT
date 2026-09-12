@@ -12,7 +12,10 @@ export function createSavesPanel(store: ReturnType<typeof createSaveStore>, snap
   let mode: "load" | "save" = "load";
   let selected: SaveId | null = null;
   let expectedTimestamp: number | undefined;
-  const carName = (save: DriveSave) => `${save.build.car === "cinder" ? "Cinder" : save.build.car === "bulwark" ? "Bulwark" : "NS-01"} / ${save.build.drivetrain.toUpperCase()}`;
+  const CAR_NAMES: Record<string, string> = { cinder: "Cinder", bulwark: "Bulwark" };
+  // Falls back to the id rather than to a name: a retired body should read as
+  // itself if one ever reaches here, not silently as some other car.
+  const carName = (save: DriveSave) => `${CAR_NAMES[save.build.car] ?? save.build.car} / ${save.build.drivetrain.toUpperCase()}`;
   const date = (save: DriveSave) => new Date(save.savedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   const load = (id: SaveId) => { location.href = loadSaveUrl(location.href, id); };
   function refreshSummary() {

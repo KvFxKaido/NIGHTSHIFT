@@ -63,7 +63,7 @@ let rivalParts: CarView | null = null;
 let rivetParts: CarView | null = null;
 let sableParts: CarView | null = null;
 const raceOpponentCar = () => race?.kind === "drag" ? "hammer" : "kestrel";
-let selectedCar = "blender";
+let selectedCar = "cinder";
 let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
 /** Where a generated race starts: where the flash was, snapped to its lane. Null means the grid. */
@@ -110,7 +110,10 @@ try {
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
   await RAPIER.init();
-  const model = new URLSearchParams(location.search).get("car") ?? restored.car;
+  const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
+  // The NS-01 became the car Sable drives. Old links still resolve, the way
+  // ?world=seattle does, rather than failing to an asset-error screen.
+  const model = requestedCar === "blender" ? "cinder" : requestedCar;
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
   selectedCar = model;
   carParts = model === "classic" ? createCar()
@@ -145,7 +148,9 @@ const view = createView(document.getElementById("view") as HTMLCanvasElement, ca
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
 if (sableParts) {
-  sableParts.paintMaterial.color.setHex(0x70b8b0);
+  // No repaint: the NS-01 leaves the factory in signal red, which is the car
+  // the portrait in design/reference/characters/sable has always described.
+  // It was teal only so it could not be mistaken for the car the player drove.
   setParkedRivalCar(view, SABLE.id, sableParts);
 }
 const driftYardView = addDriftYard(view.scene, lighting === "night");
@@ -264,7 +269,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
 
 const savePanel = createSavesPanel(saves, () => ({
   world: roadWorld.id,
-  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "blender", drivetrain: sim.state.drivetrain, customization: { ...customization } },
+  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "cinder", drivetrain: sim.state.drivetrain, customization: { ...customization } },
   position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
 }));
 const menu = createMenuController({
