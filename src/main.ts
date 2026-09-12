@@ -1,3 +1,4 @@
+import { createLiveryEditor } from "./ui/livery.ts";
 import { padLabel, refreshControlHints } from "./ui/prompts.ts";
 import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
 import { SABLE_DRIFT } from "./sim/drift-event.ts";
@@ -165,6 +166,11 @@ hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
+const liveryEditor = createLiveryEditor({ car: () => view,
+  restorePaint: () => applyCarCustomization(view, customization),
+  editing: active => { view.garageLiveryEditing = active; },
+  facePanel: panel => { view.garageYaw = ({ hood: -Math.PI / 4, roof: -Math.PI / 4, left: -Math.PI * .75, right: Math.PI / 4, rear: Math.PI * .75 }[panel]); },
+});
 
 // Audio is presentation, so it lives beside the renderer and reads state after
 // the ticks are done. Browsers refuse an AudioContext without a gesture, so the
@@ -240,6 +246,7 @@ async function selectCar(id: string): Promise<void> {
     setPlayerCar(view, parts);
     applyCarCustomization(view, customization);
     selectedCar = id;
+    liveryEditor.refresh();
     saveSettings({ car: id }, ["car"]);
     carNote.textContent = "Both cars use your current handling and visual setup.";
   } catch {
@@ -295,9 +302,12 @@ const menu = createMenuController({
   customize: (category, optionId) => {
     customization = updateCustomization(customization, category, optionId);
     applyCarCustomization(view, customization);
+    if (category === "paint") liveryEditor.useFactoryPaint();
+    liveryEditor.refresh();
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => {
+    if (screen !== "garage") liveryEditor.close(false);
     performanceOverlay.reset();
     if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);
@@ -466,7 +476,7 @@ function frame(now: number): void {
   if (commands.includes("flash")) flashHeadlights();
   if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
     menu.enterGarage();
-  } else menu.handleCommands(commands);
+  } else if (!liveryEditor.handleBack(commands)) menu.handleCommands(commands);
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
   rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
