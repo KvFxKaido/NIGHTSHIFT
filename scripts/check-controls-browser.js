@@ -19,7 +19,8 @@ async page => {
   await page.evaluate(() => localStorage.removeItem('nightshift.controls'));
   await page.reload(); await ready();
   if (await page.locator('#controls').count()) throw Error('Driving guide still exists');
-  await page.locator('[data-menu-screen="main"] [data-menu-action="controls"]').click(); await screen('controls');
+  await page.locator('[data-menu-screen="main"] [data-menu-action="options"]').click(); await screen('options');
+  await page.locator('[data-menu-screen="options"] [data-menu-action="controls"]').click(); await screen('controls');
   await binding('throttle').click(); await page.keyboard.press('i');
   await page.waitForFunction(() => document.querySelector('[data-controls-status]').textContent.includes('saved'));
   if (await binding('throttle').textContent() !== 'I') throw Error('Keyboard binding missing');
@@ -31,15 +32,21 @@ async page => {
   await setPad({0:1});
   await frames();
   if (!await binding('handbrake','gamepad').isDisabled()) throw Error('Held confirm was captured');
-  await setPad({}); await setPad({5:1});
-  await page.waitForFunction(() => document.querySelector('[data-binding="handbrake"][data-binding-device="gamepad"]').textContent === 'RB / R1');
+  // RB / R1 is Shift up since the drag gearbox landed, so capturing it now
+  // trips the conflict guard. B / Circle is the only pad button the defaults
+  // leave unbound; menus may share it because they run on another screen.
+  await setPad({}); await setPad({1:1});
+  await page.waitForFunction(() => document.querySelector('[data-binding="handbrake"][data-binding-device="gamepad"]').textContent === 'B / Circle');
   await setPad({});
   await page.screenshot({path:'artifacts/controls-desktop.png'});
   await page.reload(); await ready();
-  await page.locator('[data-menu-screen="main"] [data-menu-action="controls"]').click(); await screen('controls');
-  if (await binding('throttle').textContent() !== 'I' || await binding('handbrake','gamepad').textContent() !== 'RB / R1') throw Error('Bindings lost on reload');
+  await page.locator('[data-menu-screen="main"] [data-menu-action="options"]').click(); await screen('options');
+  await page.locator('[data-menu-screen="options"] [data-menu-action="controls"]').click(); await screen('controls');
+  if (await binding('throttle').textContent() !== 'I' || await binding('handbrake','gamepad').textContent() !== 'B / Circle') throw Error('Bindings lost on reload');
+  // Two backs: controls sits inside options, so the first returns to options.
+  await page.keyboard.press('Escape'); await screen('options');
   await page.keyboard.press('Escape'); await screen('main');
-  await page.locator('[data-menu-screen="main"] [data-menu-action="start"]').click(); await screen('playing');
+  await page.locator('[data-menu-screen="main"] [data-menu-action="new-drive"]').click(); await screen('playing');
   await frames();
   await page.keyboard.down('i');
   await page.waitForFunction(() => __ns.input().delivered.throttle === 1 && __ns.sim.state.vehicle.speed > 1);
@@ -47,17 +54,21 @@ async page => {
   await page.keyboard.down('w'); await frames();
   if (await page.evaluate(() => __ns.input().delivered.throttle !== 0)) throw Error('Old key still accelerates');
   await page.keyboard.up('w');
-  await setPad({5:1});
+  await setPad({1:1});
   await page.waitForFunction(() => __ns.input().delivered.handbrake === 1);
   await setPad({});
   await page.keyboard.press('Escape'); await screen('pause');
   const paused = await page.evaluate(() => JSON.stringify(__ns.sim.state));
-  await page.locator('[data-menu-screen="pause"] [data-menu-action="controls"]').click(); await screen('controls');
+  await page.locator('[data-menu-screen="pause"] [data-menu-action="options"]').click(); await screen('options');
+  await page.locator('[data-menu-screen="options"] [data-menu-action="controls"]').click(); await screen('controls');
   await frames();
   if (await page.evaluate(before => JSON.stringify(__ns.sim.state) !== before, paused)) throw Error('Controls advanced paused run');
+  await page.keyboard.press('Escape'); await screen('options');
   await page.keyboard.press('Escape'); await screen('pause');
   if (await page.evaluate(before => JSON.stringify(__ns.sim.state) !== before, paused)) throw Error('Back resumed run');
-  await page.locator('[data-menu-screen="pause"] [data-menu-action="controls"]').focus();
+  await page.locator('[data-menu-screen="pause"] [data-menu-action="options"]').focus();
+  await page.keyboard.press('Enter'); await screen('options');
+  await page.locator('[data-menu-screen="options"] [data-menu-action="controls"]').focus();
   await page.keyboard.press('Enter'); await screen('controls');
   await binding('throttle').focus(); await page.keyboard.press('Enter');
   await page.keyboard.press('o');
@@ -73,5 +84,5 @@ async page => {
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw Error('Controls overflow horizontally');
   await page.evaluate(() => localStorage.removeItem('nightshift.controls'));
   if (errors.length) throw Error(errors.join('\n'));
-  return {checks:'Main/pause navigation; paused state preserved; keyboard and simulated controller capture; held-button release; conflicts; cancel; persistence; live driving; restore defaults; blocked storage; small viewport', errors};
+  return {checks:'Main/pause navigation through Options; paused state preserved; keyboard and simulated controller capture; held-button release; conflicts; cancel; persistence; live driving; restore defaults; blocked storage; small viewport', errors};
 }
