@@ -3,10 +3,15 @@
 Design note, 2026-09-12. Rivals are driving personalities (GDD §3.3); a
 portrait is how one becomes somebody. This is the style they are drawn in,
 the rules that keep eight of them looking like one game, and the sheet a
-finished character has to have. Concept work is 2D, produced with an image
-model against these rules; the sheet is then the target for a scripted
-Blender build (`build-rival.py`, like the cars), which is why the style is
-one a script can reach.
+finished character has to have. The portrait is 2D and stays 2D: produced
+with an image model against these rules, the previous pick attached so only
+the named change moves, and kept as the PNGs the HUD card shows. Rivet
+proved five views of one character hold from one rig; Sable proved a second
+character holds the style from a new brief with her bust as the only shared
+reference, in the same two-round shape. A scripted Blender build
+(`build-rival.py`, like the cars) is not part of the portrait system. It
+becomes worth doing only if a rival ever has to stand beside their car in
+the world, and the style is one a script can reach for that day.
 
 ## The look, in one sentence
 
@@ -48,10 +53,11 @@ is built.
 
 Under `design/reference/characters/<id>/`:
 
-- `<id>-bust.png` — the hero portrait, 1:1, on black.
-- `<id>-front.png`, `<id>-side.png`, `<id>-three-quarter.png` — the sheet,
-  one fixed camera and rig, for the Blender build to match.
+- `<id>-bust.png` — the hero portrait, 1:1, three-quarter, on black. This
+  is the one the game shows.
 - `<id>-calm.png`, `<id>-sore.png`, `<id>-alley.png` — the expressions.
+- `<id>-front.png`, `<id>-side.png` — the sheet views, same rig. Optional:
+  they cost one round and exist for the day a rival is built in the world.
 - `<id>-thumb.png` — the bust at 96 px, to prove the silhouette.
 - `palette.json` — the accent and skin tones as hex, taken from the renders.
 - `README.md` — who they are in one paragraph, which car, which turf, what

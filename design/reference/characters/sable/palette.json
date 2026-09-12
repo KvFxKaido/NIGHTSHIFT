@@ -1,0 +1,30 @@
+{
+  "id": "sable",
+  "source": "sable-bust.png",
+  "swatches": [
+    {
+      "hex": "#1c1c1b",
+      "share": 0.13
+    },
+    {
+      "hex": "#d4ae84",
+      "share": 0.097
+    },
+    {
+      "hex": "#955f39",
+      "share": 0.088
+    },
+    {
+      "hex": "#461b1a",
+      "share": 0.045
+    },
+    {
+      "hex": "#93a8a0",
+      "share": 0.03
+    },
+    {
+      "hex": "#42382c",
+      "share": 0.023
+    }
+  ]
+}
