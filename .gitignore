@@ -23,6 +23,15 @@ dist/
 .env.*
 !.env.example
 
+# AI assistants' local state. Claude Code and Codex both work in this tree;
+# their scratch, attachments and per-machine settings stay on the machine.
+# The one shared file is .claude/launch.json, which tells the Claude desktop
+# app's preview how to start the dev server.
+/.claude/*
+!/.claude/launch.json
+/.codex/
+/.codex-remote-attachments/
+
 # The player's own music, and the manifest listing it, stay on their machine.
 # Only the folder's README is tracked. See public/assets/music/README.md.
 /public/assets/music/*
