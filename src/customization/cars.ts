@@ -1,5 +1,5 @@
-/** Garage choices. Both bodies currently share the same handling model. */
-export type PlayerCarId = "blender" | "bulwark";
+/** Garage choices. All bodies currently share the same handling model. */
+export type PlayerCarId = "blender" | "bulwark" | "cinder";
 export function isPlayerCarId(value: unknown): value is PlayerCarId {
-  return value === "blender" || value === "bulwark";
+  return value === "blender" || value === "bulwark" || value === "cinder";
 }

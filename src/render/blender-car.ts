@@ -9,11 +9,12 @@ export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
  * The Blender-authored bodies, keyed by asset id. `model` is the id
  * the debug tools and deep links round-trip on, so it must stay stable.
  *
- * NS-01 and Bulwark are garage choices; Hammer belongs to Rivet; Kestrel belongs to the garage-area rival.
+ * NS-01, Bulwark and Cinder are garage choices; Hammer belongs to Rivet; Kestrel belongs to the garage-area rival.
  * Bodies do not change the simulation collider or HANDLING.
  */
 export const BLENDER_CARS = {
   blender: { path: BLENDER_CAR_PATH, root: "ns-coupe-01", model: "ns-01" },
+  cinder: { path: "assets/cars/ns-cinder-01.glb", root: "ns-cinder-01", model: "ns-cinder" },
   kestrel: { path: "assets/cars/ns-kestrel-01.glb", root: "ns-kestrel-01", model: "ns-kestrel" },
   hammer: { path: "assets/cars/ns-hammer-01.glb", root: "ns-hammer-01", model: "ns-hammer" },
   bulwark: { path: "assets/cars/ns-bulwark-01.glb", root: "ns-bulwark-01", model: "ns-bulwark" },

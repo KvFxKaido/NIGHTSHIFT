@@ -249,7 +249,7 @@ async function selectCar(id: string): Promise<void> {
     selectedCar = id;
     liveryEditor.refresh();
     saveSettings({ car: id }, ["car"]);
-    carNote.textContent = "Both cars use your current handling and visual setup.";
+    carNote.textContent = "All cars use your current handling and visual setup.";
   } catch {
     carNote.textContent = "Could not load that car. Your current car is still ready; select again to retry.";
   } finally {

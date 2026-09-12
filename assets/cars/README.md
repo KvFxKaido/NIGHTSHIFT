@@ -136,3 +136,22 @@ The optimized asset is about 315 KB, with 59 meshes, eight materials and no
 textures or decoder dependencies. Studio cameras/lights and clearance cutters
 stay out of the GLB. `tests/hammer-car.test.ts` checks the shipped file, including
 the wider rear tyres and front steering clearance. No downloaded assets are used.
+
+
+## Cinder hero sedan
+
+An original first-generation Lexus IS300-inspired four-door: tapered bonnet,
+compact greenhouse, paired circular headlamps, silver rear lamp housings with
+round red optics, five-spoke wheels, and a small trunk lip. Existing body choices
+remain available. The shared simulation, collider and wheel pivots are unchanged.
+
+- Source: `ns-cinder-01.blend`; runtime: `public/assets/cars/ns-cinder-01.glb`.
+- Rebuild: Blender `--background --python scripts/build-cinder.py`.
+- Export hand edits: open the source in Blender and run `scripts/export-cinder.py`.
+- Optimize/validate: `node scripts/optimize-car.mjs --car=ns-cinder-01`.
+- Preview: `?scene=garage&car=cinder`; select Cinder in the garage to save it.
+- Paint, wheel finish and stance are supported. Panel liveries remain NS-01 only.
+- Tests cover shipped asset validation and wheel clearance at every stance/steer.
+
+Proportion reference: https://www.cars.com/research/lexus-is_300-2001/
+Geometry is authored here; no third-party model or texture is included.
