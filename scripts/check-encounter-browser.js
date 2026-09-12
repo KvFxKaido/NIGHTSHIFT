@@ -17,7 +17,9 @@ async page => {
   await page.reload();await ready();
   const initial=await page.evaluate(()=>{
     const state=__ns.state();
-    if(state.encounter?.model!=='ns-bulwark'||__ns.sim.state.race)throw Error('Missing free-roam Bulwark');
+    // The cruiser is Moth's Kestrel whatever the player drives. It stopped
+    // mirroring the player's body when she was given her own car.
+    if(state.encounter?.model!=='ns-kestrel'||__ns.sim.state.race)throw Error('Missing free-roam Kestrel');
     return state.encounter;
   });
   await page.keyboard.press('f');
@@ -56,7 +58,7 @@ async page => {
   await page.evaluate(()=>{
     __ns.freeze();
     if(!__ns.sim.state.rival||__ns.sim.state.encounter)throw Error('Race did not replace encounter');
-    if(__ns.state().rival.model!=='ns-bulwark')throw Error('Race opponent changed');
+    if(__ns.state().rival.model!=='ns-kestrel')throw Error('Race opponent changed');
   });
   await page.evaluate(()=>__ns.go('pause'));
   await page.locator('[data-menu-screen="pause"] [data-free-roam]').click();
@@ -65,7 +67,10 @@ async page => {
   if(await page.evaluate(()=>!__ns.sim.state.encounter||!!__ns.sim.state.rival))throw Error('Return to roam failed');
   await page.evaluate(()=>__ns.go('garage'));
   await page.locator('[data-car="bulwark"]').click();
-  await page.waitForFunction(()=>__ns.state().encounter?.model==='ns-01');
+  // The garage choice moves the player's own car and nothing else now, so that
+  // is what proves it landed. Waiting on the cruiser to change hung here for
+  // the full timeout: it is the Kestrel before and after.
+  await page.waitForFunction(()=>__ns.state().carModel==='ns-bulwark'&&__ns.state().encounter?.model==='ns-kestrel');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   await approach();
   await page.evaluate(()=>{
@@ -73,13 +78,23 @@ async page => {
       buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0}))};
     Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.testPad]});
   });
-  await page.waitForFunction(()=>document.querySelector('#rival-challenge [data-card-action]').textContent.startsWith('X / Square'));
+  // A pad only becomes the active device once it has been used, so injecting
+  // one is not enough now that the prompts read activeGamepadName. Nudge the
+  // camera stick: it is over the .35 activation threshold and moves nothing in
+  // the world. The label for button 2 is 'X' on a standard pad; 'X / Square' is
+  // the whole table entry, which only a PlayStation pad reduces to 'Square'.
+  await page.evaluate(()=>{window.testPad.axes=[0,0,0,.9];});
+  await page.waitForFunction(()=>{
+    const action=document.querySelector('#rival-challenge [data-card-action]').textContent;
+    return action.startsWith('X ')&&action.includes('Flash headlights');
+  });
+  await page.evaluate(()=>{window.testPad.axes=[0,0,0,0];});
   await page.evaluate(()=>{window.testPad.buttons[2]={pressed:true,touched:true,value:1};});
   await page.waitForURL('**/*race=gen-*',{timeout:15000});await ready();
   await page.evaluate(()=>{
     __ns.freeze();
-    if(__ns.state().rival.model!=='ns-01'||__ns.state().carModel!=='ns-bulwark')throw Error('Pad challenge lost garage selection');
+    if(__ns.state().rival.model!=='ns-kestrel'||__ns.state().carModel!=='ns-bulwark')throw Error('Pad challenge lost garage selection');
   });
   if(errors.length)throw Error(errors.join('\n'));
-  return {initial,checks:'Visible encounter; distant flash; nearby prompt; remapping; pause; keyboard challenge; race transition; return to roam; garage swap; controller challenge',errors};
+  return {initial,checks:'Visible encounter; distant flash; nearby contact card; remapping; pause; keyboard challenge; race transition; return to roam; garage swap keeps the Kestrel; controller challenge',errors};
 }
