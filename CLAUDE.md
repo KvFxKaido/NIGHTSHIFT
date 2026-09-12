@@ -172,6 +172,11 @@ fixtures outside the playable bundle, and old world links redirect.
   from datum. The night dressing is built in the building's frame and turned
   by `-site.rotation`; footprints passing does not prove the drawn mesh is
   in the footprint. Scan rendered vertices before trusting a screenshot.
+- A merged city-wide mesh has a city-wide bounding sphere and is therefore
+  drawn in full from everywhere; only chunked geometry culls. New merged
+  scenery must be listed in `CHUNKED_SCENERY` (`render/city-chunks.ts`) or it
+  silently costs its triangles from every position on the map. Chunk children
+  are named `name:cell`, like the evergreens'.
 - Footprint separation is a separating-axis test (`blockPenetration`), never
   circumscribed circles. Clearance samples every footprint edge against the
   width the road actually has there, never corners and never the narrowest

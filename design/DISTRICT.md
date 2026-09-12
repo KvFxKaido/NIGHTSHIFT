@@ -874,3 +874,50 @@ Driving camera orbit remains unchanged. Tests exercise the actual garage
 render path, physical clearance when driving away, and entry restrictions.
 `scripts/check-garage-browser.js` covers keyboard/pad entry, fixed-camera
 rotation, reset, preserved simulation state on exit, and map placement.
+
+## The city was drawn in full from everywhere
+
+Port Alder's static scenery is merged into a handful of city-wide meshes: one
+ground mesh, one pavement mesh, one lane-paint mesh, the night dressing, the
+street lamps. A city-wide mesh has a city-wide bounding sphere, so frustum
+culling never rejects it. Driving from the freight blocks to mid-city on
+2026-09-11 moved the draw calls from 102 to 452 while the triangle count stayed
+between 832k and 874k — a 3% spread across the whole district. The trees were
+the only scenery that culled, because `render/evergreens.ts` had always batched
+its instances per 256 m cell.
+
+`render/city-chunks.ts` divides those merged meshes on a grid, bucketing each
+triangle by its centroid so none is ever split, and carrying every vertex
+attribute, the material identity, the shadow flags and the render order across
+unchanged. Each piece gets its own bounds, which is the whole point. Chunk
+children keep the evergreens' `name:cell` convention, so `__ns.pick` still names
+what it hits.
+
+### Choosing the cell, measured at mid-city
+
+| cell | scene meshes | draw calls | triangles | CPU render |
+| --- | --- | --- | --- | --- |
+| 128 m | 8179 | 438 | 73k | 9.05 ms |
+| 256 m | 3325 | 213 | 87k | 2.89 ms |
+| **512 m** | **1650** | **195** | **145k** | **2.20 ms** |
+| effectively unchunked | 952 | 120 | 701k | 1.14 ms |
+
+Read this honestly: it is a trade, not a free win. The timing is the cost of
+`renderer.render()`, which is CPU submission and frustum testing; GPU work is
+asynchronous and is not in that column. So the unchunked row looks cheapest
+while shipping 701k triangles a frame, and every chunked row pays CPU to stop
+doing that. 128 m is plainly bad — eight thousand objects to frustum-test for
+barely fewer triangles than 256 m. 512 m keeps about 80% of the geometry out of
+the frame for roughly one extra millisecond of CPU here.
+
+On this desktop that is close to a wash. The bet is the phone (GDD §21, the
+RedMagic 10 Pro), where 700k triangles a frame is the expensive half and a
+millisecond of CPU is the cheap one — and it is a bet, because a desktop
+measurement cannot certify a mobile GPU. Revisit the cell size on the device.
+
+The sweep also found three unnamed meshes: the lamp posts, heads and pools in
+`render/alder.ts`, 106k triangles of city-wide geometry. They are named now,
+matching the district's `-lamp-posts` / `-lamp-heads` / `-lamp-pools`
+vocabulary. Every mesh carries a kebab-case name because `__ns.pick` and the
+chunker both read them; the district has a test that enforces it and Port Alder
+does not, which is how three meshes slipped through.

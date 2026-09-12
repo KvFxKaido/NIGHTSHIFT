@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS, alderHeight } from "../sim/alder.ts";
 import { addEvergreens } from "./evergreens.ts";
+import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
 import { addNightBuildings, glowTexture } from "./night.ts";
@@ -119,8 +120,21 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       }
     }
   }
-  for(const [parts,material] of [[lamps,concrete],[bulbs,new THREE.MeshBasicMaterial({color:0xffd38a})]] as const){
-    const geometry=mergeGeometries([...parts]);if(geometry)scene.add(new THREE.Mesh(geometry,material));parts.forEach(g=>g.dispose());
+  // Named like the district's lamps. Every mesh carries a kebab-case name --
+  // __ns.pick reads them and so does the chunker -- and these three were the
+  // only unnamed meshes in Port Alder, 106k triangles of them drawn city-wide.
+  for(const [name,parts,material] of [['alder-lamp-posts',lamps,concrete],
+    ['alder-lamp-heads',bulbs,new THREE.MeshBasicMaterial({color:0xffd38a})]] as const){
+    const geometry=mergeGeometries([...parts]);
+    if(geometry){const mesh=new THREE.Mesh(geometry,material);mesh.name=name;scene.add(mesh);}
+    parts.forEach(g=>g.dispose());
   }
-  if(pools.length){const geometry=mergeGeometries(pools);if(geometry)scene.add(new THREE.Mesh(geometry,poolMaterial));pools.forEach(g=>g.dispose());}
+  if(pools.length){
+    const geometry=mergeGeometries(pools);
+    if(geometry){const mesh=new THREE.Mesh(geometry,poolMaterial);mesh.name='alder-lamp-pools';scene.add(mesh);}
+    pools.forEach(g=>g.dispose());
+  }
+  // Last, once every merged mesh exists: divide the city-wide ones so the far
+  // side of the map stops being submitted from every position on it.
+  chunkAlderScenery(scene);
 }
