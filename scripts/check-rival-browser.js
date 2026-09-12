@@ -5,14 +5,14 @@ async page => {
   const base='http://127.0.0.1:5173/';
   const ready=()=>page.waitForFunction(()=>window.__ns&&document.body.dataset.assetState==='ready');
   await page.setViewportSize({width:1440,height:900});
-  await page.goto(base+'?scene=track&race=sound-to-sky&car=blender&freeze=1');await ready();
+  await page.goto(base+'?scene=track&race=sound-to-sky&car=cinder&freeze=1');await ready();
   const grid=await page.evaluate(()=>{
     const ns=__ns, r=ns.sim.state.rival;
     if(!r||!ns.sim.rivalBody)throw Error('No rival on the grid');
     // The opponent is the Kestrel for every road race whatever the player
     // drives. It stopped mirroring the player's body when the rivals were given
     // their own cars; only the drag strip differs, where it is the Hammer.
-    if(ns.view.car.userData.model!=='ns-01'||ns.view.rivalCar.car.userData.model!=='ns-kestrel')throw Error('Wrong cars on the grid');
+    if(ns.view.car.userData.model!=='ns-cinder'||ns.view.rivalCar.car.userData.model!=='ns-kestrel')throw Error('Wrong cars on the grid');
     ns.shot();
     if(ns.view.rivalCar.car.parent!==ns.view.scene)throw Error('Opponent missing from road scene');
     const before=[r.vehicle.x,r.vehicle.y,r.vehicle.z,r.vehicle.heading];ns.tick(180);
@@ -36,7 +36,7 @@ async page => {
     return {seconds:r.race.ticks/60,splits:r.race.splits,recoveries:r.driver.recoveries};
   });
   if(!/RIVAL FIN/.test(await page.locator('#race-time').textContent()))throw Error('Rival finish not shown');
-  await page.goto(base+'?scene=track&race=sound-to-sky&car=blender&freeze=1');await ready();
+  await page.goto(base+'?scene=track&race=sound-to-sky&car=cinder&freeze=1');await ready();
   const recovery=await page.evaluate(async()=>{
     const {RIVAL_RESET_TICKS}=await import('/src/sim/sim.ts');
     const r=__ns.sim.state.rival, before={...r.vehicle};
@@ -56,15 +56,15 @@ async page => {
   // Same rule from the garage: choosing a body changes the player's car and
   // nothing else, so the opponent is the Kestrel before and after the swap.
   if(await page.evaluate(()=>__ns.state().rival.model!=='ns-kestrel'))throw Error('Opponent is not the Kestrel for the Bulwark');
-  await page.locator('[data-car="blender"]').click();
-  await page.waitForFunction(()=>__ns.state().carModel==='ns-01'&&__ns.state().rival.model==='ns-kestrel');
+  await page.locator('[data-car="cinder"]').click();
+  await page.waitForFunction(()=>__ns.state().carModel==='ns-cinder'&&__ns.state().rival.model==='ns-kestrel');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   await page.waitForFunction(()=>document.body.dataset.gameScreen==='playing');
   await page.evaluate(()=>{
     __ns.shot();
     if(__ns.view.car===__ns.view.rivalCar.car)throw Error('Both racers share one mesh');
     if(__ns.view.scene.children.filter(c=>c.userData.model).length!==2)throw Error('Missing or duplicated cars after garage choice');
-    if(!__ns.link().includes('car=blender'))throw Error('Share link lost explicit player model');
+    if(!__ns.link().includes('car=cinder'))throw Error('Share link lost explicit player model');
   });
   await page.goto(base+'?scene=track&car=bulwark&freeze=1');await ready();
   if(await page.evaluate(()=>__ns.sim.state.rival!==null||!__ns.sim.state.encounter||!__ns.view.rivalCar))throw Error('Free roam must show the waiting encounter, without race AI');
