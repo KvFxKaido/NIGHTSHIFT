@@ -138,9 +138,11 @@ fixtures outside the playable bundle, and old world links redirect.
   any of the three and the HUD shows their contact card — face, name, car and
   what the challenge is (`src/ui/rival-card.ts`). Rival portraits, and the
   style that keeps them one game: `design/CHARACTERS.md`.
-- **Traffic.** About two dozen kinematic vehicles with reserved junction
+- **Traffic.** About 260 kinematic vehicles with reserved junction
   movements (`traffic.ts`); an immovable hazard, never a second handling
-  model. Shipped density 24; real ceiling about 55.
+  model. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
+  which is still sparse. The density-24 and ceiling-55 figures in
+  `design/FIELD_NOTES.md` are the retired district's 192 lanes, not this map.
 - **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), a city
   map overlay (M), named save slots, versioned browser-local settings,
   Controls remapping, performance overlay, telemetry toggle.
