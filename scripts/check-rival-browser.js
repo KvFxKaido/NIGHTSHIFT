@@ -9,7 +9,10 @@ async page => {
   const grid=await page.evaluate(()=>{
     const ns=__ns, r=ns.sim.state.rival;
     if(!r||!ns.sim.rivalBody)throw Error('No rival on the grid');
-    if(ns.view.car.userData.model!=='ns-01'||ns.view.rivalCar.car.userData.model!=='ns-bulwark')throw Error('Wrong opponent for coupe');
+    // The opponent is the Kestrel for every road race whatever the player
+    // drives. It stopped mirroring the player's body when the rivals were given
+    // their own cars; only the drag strip differs, where it is the Hammer.
+    if(ns.view.car.userData.model!=='ns-01'||ns.view.rivalCar.car.userData.model!=='ns-kestrel')throw Error('Wrong cars on the grid');
     ns.shot();
     if(ns.view.rivalCar.car.parent!==ns.view.scene)throw Error('Opponent missing from road scene');
     const before=[r.vehicle.x,r.vehicle.y,r.vehicle.z,r.vehicle.heading];ns.tick(180);
@@ -50,9 +53,11 @@ async page => {
     return {resets:r.driver.resets,resumed:true};
   });
   await page.goto(base+'?scene=garage&race=sound-to-sky&car=bulwark&freeze=1');await ready();
-  if(await page.evaluate(()=>__ns.state().rival.model!=='ns-01'))throw Error('Wrong opponent for Bulwark');
+  // Same rule from the garage: choosing a body changes the player's car and
+  // nothing else, so the opponent is the Kestrel before and after the swap.
+  if(await page.evaluate(()=>__ns.state().rival.model!=='ns-kestrel'))throw Error('Opponent is not the Kestrel for the Bulwark');
   await page.locator('[data-car="blender"]').click();
-  await page.waitForFunction(()=>__ns.state().carModel==='ns-01'&&__ns.state().rival.model==='ns-bulwark');
+  await page.waitForFunction(()=>__ns.state().carModel==='ns-01'&&__ns.state().rival.model==='ns-kestrel');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   await page.waitForFunction(()=>document.body.dataset.gameScreen==='playing');
   await page.evaluate(()=>{
@@ -64,5 +69,5 @@ async page => {
   await page.goto(base+'?scene=track&car=bulwark&freeze=1');await ready();
   if(await page.evaluate(()=>__ns.sim.state.rival!==null||!__ns.sim.state.encounter||!__ns.view.rivalCar))throw Error('Free roam must show the waiting encounter, without race AI');
   if(errors.length)throw Error(errors.join('\n'));
-  return {grid,finish,recovery,checks:'Both model pairings; garage selection; countdown; movement; pause/restart; full race; position/finish HUD; fallback reset presentation and resumption; free roam',errors};
+  return {grid,finish,recovery,checks:'One opponent body whichever car the player picks; garage selection; countdown; movement; pause/restart; full race; position/finish HUD; fallback reset presentation and resumption; free roam',errors};
 }
