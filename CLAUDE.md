@@ -126,8 +126,10 @@ fixtures outside the playable bundle, and old world links redirect.
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring
   (`drift-rules.ts`). The garage-area cruiser is **Moth** in a Kestrel rally
-  hatch (`MOTH` in `encounter.ts`; the challenge id is her id). Rival
-  portraits, and the style that keeps them one game: `design/CHARACTERS.md`.
+  hatch (`MOTH` in `encounter.ts`; the challenge id is her id). Pull alongside
+  any of the three and the HUD shows their contact card — face, name, car and
+  what the challenge is (`src/ui/rival-card.ts`). Rival portraits, and the
+  style that keeps them one game: `design/CHARACTERS.md`.
 - **Traffic.** About two dozen kinematic vehicles with reserved junction
   movements (`traffic.ts`); an immovable hazard, never a second handling
   model. Shipped density 24; real ceiling about 55.
@@ -148,7 +150,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | District machinery: footprints, surface, aprons, lanes | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
-| Rival portraits | `design/reference/characters/<id>/` | `design/CHARACTERS.md` |
+| Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
@@ -180,7 +182,9 @@ fixtures outside the playable bundle, and old world links redirect.
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
 - `#race[hidden] { display: none; }` is load-bearing; the readout's own
-  `display: flex` beats the attribute.
+  `display: flex` beats the attribute. The rival contact card is
+  the same shape: it is `display: grid`, so the rule naming `#rival-challenge[hidden]`
+  is the only thing keeping a face off the screen in free roam.
 - Never import the legacy district or Blackglass to reuse a helper; the
   production build rejects them. Shared helpers are `street-path.ts`,
   `building-footprint.ts`, `street-traffic.ts`.

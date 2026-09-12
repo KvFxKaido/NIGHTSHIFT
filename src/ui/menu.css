@@ -590,6 +590,29 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
   font: 600 12px/1.5 var(--ui-mono); padding: 12px 16px;
 }
 #rival-challenge { border-left-color: var(--ui-rival); }
+
+/* The contact card. A rival's face at the size the portrait was drawn for,
+   then their name, what they drive and where, and what you are agreeing to.
+   The silhouette carries the identity at this size (design/CHARACTERS.md), so
+   the portrait leads and the three lines are its caption. Declared after the
+   shared prompt surface above so the grid wins; #rival-challenge[hidden] is
+   more specific than both and still hides the whole card. */
+#rival-challenge {
+  display: grid; grid-template-columns: auto 1fr; gap: 14px;
+  align-items: center; text-align: left; padding: 12px 18px 12px 12px;
+}
+#rival-challenge [data-card-portrait] {
+  display: block; width: 96px; height: 96px;
+  border: 1px solid var(--ui-border); background: #05080f;
+}
+.contact-lines { display: grid; gap: 4px; }
+#rival-challenge [data-card-name] { color: var(--ui-ink); font-size: 15px; letter-spacing: .2em; text-transform: uppercase; }
+#rival-challenge [data-card-meta] { color: var(--ui-muted); font-size: 11px; letter-spacing: .1em; }
+#rival-challenge [data-card-action] { color: var(--ui-navigation); font-size: 12px; }
+@media (max-width: 640px) {
+  #rival-challenge { gap: 10px; padding: 10px 12px; }
+  #rival-challenge [data-card-portrait] { width: 64px; height: 64px; }
+}
 .menu-root[data-screen="garage"] .menu-screen,
 .menu-root[data-screen="pause"] .menu-screen,
 .menu-root[data-screen="results"] .menu-screen {

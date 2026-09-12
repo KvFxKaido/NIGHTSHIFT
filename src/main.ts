@@ -10,7 +10,8 @@ import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
-import { ALDER_CRUISE, MOTH, nearbyChallenge } from "./sim/encounter.ts";
+import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
+import { cardCopy, rivalCard, RIVAL_CARDS, type CardCopy } from "./ui/rival-card.ts";
 import type { SpotLight } from "three";
 import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
@@ -356,11 +357,30 @@ garagePrompt.addEventListener("click", () => {
 });
 
 const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElement;
+const cardPortrait = rivalPrompt.querySelector<HTMLImageElement>("[data-card-portrait]")!;
+const cardName = rivalPrompt.querySelector<HTMLElement>("[data-card-name]")!;
+const cardMeta = rivalPrompt.querySelector<HTMLElement>("[data-card-meta]")!;
+const cardAction = rivalPrompt.querySelector<HTMLElement>("[data-card-action]")!;
+const portraitUrl = (path: string) => new URL(path, document.baseURI).href;
+// Fetch every face at load. A card that appears blank the first time you pull
+// alongside somebody is worse than the line of text it replaced.
+for (const card of RIVAL_CARDS) {
+  for (const path of [card.portrait.calm, card.portrait.keen]) new Image().src = portraitUrl(path);
+}
+function showRivalCard(copy: CardCopy): void {
+  const portrait = portraitUrl(copy.portrait);
+  if (cardPortrait.src !== portrait) cardPortrait.src = portrait;
+  cardName.textContent = copy.name;
+  cardMeta.textContent = copy.meta;
+  cardAction.textContent = copy.action;
+}
 let flashRemaining = 0;
 let challengePending = false;
 let challengeRival: string | null = null;
 const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encounter, sim.state.parkedRivals, !!sim.state.race);
-const challengeAvailable = () => challengeTarget() !== null;
+const flashLabel = () => input.activeGamepadName()
+  ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName())
+  : keyLabel(input.bindings().keyboard.flash);
 function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null): void {
   const url = new URL(location.href);
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
@@ -479,9 +499,12 @@ function frame(now: number): void {
   } else if (!liveryEditor.handleBack(commands)) menu.handleCommands(commands);
   const gameplayActive = menu.isGameplayActive();
   const garageActive = menu.isGarageActive();
-  rivalPrompt.hidden = !gameplayActive || (!challengeAvailable() && !challengePending);
-  rivalPrompt.textContent = challengePending ? (challengeRival === SABLE.id ? "Sable accepted / South Wharf Drift / 90 seconds" : challengeRival === RIVET.id ? "Rivet accepted · Harbor Quarter · 402 m drag" : `${MOTH.name} accepted · Drawing a race…`)
-    : `${input.activeGamepadName() ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName()) : keyLabel(input.bindings().keyboard.flash)} · Flash headlights — challenge ${challengeTarget() === SABLE.id ? "Sable / 3,000 point drift challenge" : challengeTarget() === RIVET.id ? "Rivet / Hammer · 402 m drag" : `${MOTH.name} / ${MOTH.carName}`}`;
+  // The card is the prompt: whoever the flash would reach, or whoever it just
+  // did. A rival with no card cannot be offered, which is what the roster test
+  // in tests/rival-card.test.ts is for.
+  const contact = rivalCard(challengePending ? challengeRival : challengeTarget());
+  rivalPrompt.hidden = !gameplayActive || !contact;
+  if (contact) showRivalCard(cardCopy(contact, challengePending, flashLabel()));
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;

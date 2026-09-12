@@ -43,7 +43,7 @@ async page => {
   await page.keyboard.press('g');
   if(page.url().includes('race='))throw Error('Paused flash started race');
   await page.locator('[data-menu-screen="pause"] [data-menu-action="resume"]').click();
-  await page.waitForFunction(()=>document.querySelector('#rival-challenge').textContent.startsWith('G'));
+  await page.waitForFunction(()=>document.querySelector('#rival-challenge [data-card-action]').textContent.startsWith('G'));
   const flashedAt = await page.evaluate(()=>({x:__ns.sim.state.vehicle.x,z:__ns.sim.state.vehicle.z}));
   await page.keyboard.press('g');
   await page.waitForURL('**/*race=gen-*',{timeout:15000});await ready();
@@ -73,7 +73,7 @@ async page => {
       buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0}))};
     Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.testPad]});
   });
-  await page.waitForFunction(()=>document.querySelector('#rival-challenge').textContent.startsWith('X / Square'));
+  await page.waitForFunction(()=>document.querySelector('#rival-challenge [data-card-action]').textContent.startsWith('X / Square'));
   await page.evaluate(()=>{window.testPad.buttons[2]={pressed:true,touched:true,value:1};});
   await page.waitForURL('**/*race=gen-*',{timeout:15000});await ready();
   await page.evaluate(()=>{

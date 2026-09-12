@@ -63,6 +63,32 @@ Under `design/reference/characters/<id>/`:
 - `README.md` — who they are in one paragraph, which car, which turf, what
   the model was told, and what was rejected on the way.
 
+And, written by the same script, the two portraits the game actually serves:
+`public/assets/characters/<id>.png` (the bust) and `<id>-alley.png`, at 192 px
+for a 96 px card. They are committed derivatives of the masters above, the
+same arrangement the cars have between `assets/cars/*.blend` and
+`public/assets/cars/*.glb`.
+
+## The card
+
+The contact card is the free-roam prompt. Pull alongside a rival slowly enough
+to flash and it shows their face at 96 px, their name, what they drive and
+where, and what you would be agreeing to. Flash, and the face changes to the
+alley expression while the line stops asking and starts reporting. The roster
+and the copy are `src/ui/rival-card.ts`, which takes every name and car from
+the sim's own constants so the card cannot drift away from the game;
+`tests/rival-card.test.ts` pins that, and pins the served portraits.
+
+The accent rule above is the one part of this document the cars do not honour,
+so the card does not use it yet. The Hammer and the Kestrel are both cream; the
+Hammer's stated fallback secondary is satin black, which is invisible on the
+card's panel; and Sable's NS-01 is repainted teal in `main.ts` so it cannot be
+mistaken for the player's red one. So Sable's portrait is red for a car that is
+teal, and Moth's is teal for a car that is cream — the teal is on the wrong
+rival. The face carries the identity at this size, so the card's edge stays the
+one rival colour until the cars and the portraits are reconciled. Deciding
+which of the two moves is Shawn's call, not a flourish to make in passing.
+
 The reproducibility test is the second character, not the first. One nailed
 portrait proves the pipeline can hit a target once; a second, from a new
 sheet with the same rules, proves there is a style. Build two before calling
