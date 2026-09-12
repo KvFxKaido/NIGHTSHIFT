@@ -79,7 +79,9 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
   transfer cannot manufacture extra total grip. This is not suspension.
 - **Low speed:** regularized slip angles and effective-mass force caps prevent
   one-tick stop/reversal jitter without snapping velocity to zero.
-- **Drive:** FWD (100% front) is the default. AWD uses 45% front / 55% rear;
+- **Drive:** FWD (100% front) is the simulation default and what the regression
+  fixtures measure; in the game the body decides, and no car currently selects
+  it — the Cinder is RWD and the Bulwark AWD. AWD uses 45% front / 55% rear;
   RWD uses 100% rear. Under forward throttle without service braking, powered
   FWD/RWD tyres gradually gain longitudinal capacity from 25 to 55 m/s
   (56–123 mph), up to 1.8 times their ordinary longitudinal limit. Lateral grip,
@@ -114,13 +116,16 @@ left/right load shares, plus confirmation that auto-countersteer is off.
 
 ## Comparing layouts
 
-Start with the default FWD, or your saved layout. Then press Esc / Options,
-select AWD or RWD under **Handling comparison**, and Resume.
-Changing layout resets position, speed and physics history. Selecting the already-active layout does not restart.
-Ordinary Reset/Restart retains the selected layout. The live HUD names it.
-Your explicit layout selection saves locally and is restored next launch. This
-is still a prototype comparison, not a garage purchase or upgrade. URL overrides
-are temporary previews and do not overwrite your saved preference.
+There is no Handling comparison toggle in Pause any more. Since 2026-09-12 the
+drivetrain is a property of the car, so driving AWD means choosing the Bulwark
+and driving RWD means choosing the Cinder.
+
+To compare layouts on one body, use `?drivetrain=awd` or `__ns.drivetrain('awd')`.
+Both take the same fresh-run boundary the garage does: changing layout resets
+position, speed and physics history, while ordinary Reset/Restart retains it, and
+selecting the already-active layout does not restart. The live HUD names it.
+Neither control persists — a developer override is not a preference, so a reload
+returns the car to its own drivetrain.
 
 Engine, ordinary steering, mass, brake and handbrake parameters remain shared.
 RWD's manual recovery assistance also applies after lifting; ordinary coasting and

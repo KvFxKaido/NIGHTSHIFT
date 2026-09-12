@@ -407,16 +407,19 @@ Implemented in the browser prototype:
 - A planar rigid chassis integrated by Rapier, including contact response
 - Four virtual tire contact points with independent point velocity, slip and combined grip limits
 - Speed-dependent front steering with inside/outside Ackermann angles, not a yaw-rate command
-- AWD (45% front / 55% rear) by default, with FWD/RWD comparison options; equal left/right axle drive torque and traction limiting
+- Drive split is a property of the car: the Cinder is RWD (100% rear) and the Bulwark AWD (45% front / 55% rear), while FWD (100% front) remains the simulation default the regression fixtures measure; equal left/right axle drive torque and traction limiting
 - Progressive front-biased service brakes, limited by each tire's own remaining grip
 - Mild longitudinal/lateral load transfer, tire load sensitivity and low-speed force stabilization
 - A rear-axle handbrake and shared brake/reverse control
 - Authored road-height/pitch constraint and grade acceleration
 - Individual visual wheel angles and free-rolling distance drawn from simulation state
 
-Pause's handling comparison changes only the propulsion split and restarts the run. It is prototype tuning, not a purchased drivetrain
-swap or garage upgrade. Physics revision and drivetrain identify the simulation
-setup; ordinary restart retains that layout.
+The drivetrain belongs to the body rather than to a menu: choosing a car in the
+garage chooses its drive split, and that starts a fresh run. It is still not a
+purchased drivetrain swap or garage upgrade — further adjustments to these bases
+are what will give each car a personality. `?drivetrain=` and `__ns.drivetrain()`
+remain developer comparison controls and do not persist. Physics revision and
+drivetrain identify the simulation setup; ordinary restart retains that layout.
 
 There are no suspension raycasts, wheel inertia/spin/lockup simulation, downforce
 or airborne tire contact detection yet. Ride height customization remains visual.

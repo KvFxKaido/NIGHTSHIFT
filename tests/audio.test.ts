@@ -258,7 +258,10 @@ test("a version 1 save migrates instead of resetting the player's garage", () =>
     version: 1, drivetrain: "rwd", customization: { paint: "blackglass", wheels: "graphite", stance: "slammed" },
   });
   const { settings, status } = decodeSettings(legacy);
-  assert.equal(settings.drivetrain, "rwd");
+  // The drivetrain became a property of the body, so a v1 save that names one
+  // loses it. Dropping a field must not read as damage: "recovered" here would
+  // make decodeSaves throw, and it throws for every slot, not just the old one.
+  assert.ok(!("drivetrain" in settings), "a stored drivetrain must not survive as a setting");
   assert.equal(settings.customization.paint, "blackglass");
   assert.deepEqual(settings.audio, DEFAULT_LEVELS);
   assert.equal(status, "saved", "adding a field must not report the old save as damaged");

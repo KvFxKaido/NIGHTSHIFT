@@ -44,6 +44,8 @@ export interface DebugBridge {
   advance(ticks: number, input: Input): void;
   renderOnce(frames?: number): void;
   setFrozen(frozen: boolean): void;
+  /** Starts a fresh run on a different drivetrain, for handling comparisons. */
+  setDrivetrain(layout: Drivetrain): void;
   isFrozen(): boolean;
   setTelemetry(visible: boolean): void;
   pause(): void;
@@ -324,12 +326,9 @@ export function installDebugApi(bridge: DebugBridge): void {
     set,
     drivetrain: (layout: Drivetrain) => {
       if (!isDrivetrain(layout)) throw new RangeError(`Unknown drivetrain: ${layout}`);
-      // Use the same button and new-run boundary as the human comparison flow.
-      const previous = document.body.dataset.gameScreen;
-      go("pause");
-      click(`[data-drivetrain="${layout}"]`);
-      if (previous === "playing") click('[data-menu-action="resume"]');
-      else if (previous === "main" || previous === "garage") go(previous);
+      // The garage toggle is gone -- the body carries the drivetrain now -- so
+      // this takes the same new-run boundary without a button to press.
+      bridge.setDrivetrain(layout);
       bridge.renderOnce();
       return state();
     },

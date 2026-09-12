@@ -32,8 +32,9 @@ not yet save race progress, rival state, money or career unlocks. Invalid storag
 is reported without replacing existing data, and a slot changed by another tab
 must be selected again before replacement.
 
-Options groups audio and Controls & remapping. Drivetrain selection moves to the
-garage; Pause keeps driving, map, save and navigation actions. Controls returns
+Options groups audio and Controls & remapping. Neither menu has a drivetrain
+control — the body carries it; Pause keeps driving, map, save and navigation
+actions. Controls returns
 through Options to its original menu without resuming the simulation. Names can
 be typed with the keyboard; default slot names also allow controller-only saves.
 The list-first layout and Continue/garage emphasis draw inspiration from
@@ -413,10 +414,13 @@ and rivals learning the player's line per street.
 
 ## First racing rival
 
-Sound to Sky now starts with one AI opponent in the other garage car: NS-01
-faces Bulwark, and Bulwark faces NS-01. Both use the existing four-wheel forces
-and share one Rapier world; the rival uses FWD independently of the player's
-handling comparison setting. In free roam, the opponent starts on First Avenue S
+Sound to Sky starts with one AI opponent in Moth's Kestrel rally hatch; the drag
+event fields Rivet's Hammer instead (`raceOpponentCar` in `src/main.ts`). Both
+use the existing four-wheel forces and share one Rapier world. The rival's
+drivetrain comes from its own `RivalDefinition` and defaults to FWD when unset,
+independently of whichever car the player brings — note that this is a separate
+thing from `CAR_DRIVETRAIN`, which gives each *body* a profile and today is read
+only for the player's car. In free roam, the opponent starts on First Avenue S
 just north of Wharf Garage and repeats the local First/Holgate/Fourth freight-block
 loop defined in `src/sim/encounter.ts`. The line follows shared street geometry,
 offset into the right-hand lane, with a 10 m/s (22 mph) target ceiling. It uses the
@@ -455,7 +459,7 @@ between gates, not a predicted finishing order. A finished rival brakes to a sto
 When the player finishes a rival race, the results menu pauses the simulation,
 shows position and elapsed time, and offers **Return to free roam** or **Go to
 garage**. Both destinations reload without race parameters and retain the selected
-car, drivetrain and customization. Free roam starts outside Wharf Garage; garage
+car and customization. Free roam starts outside Wharf Garage; garage
 opens its customization view. Pause/back cannot accidentally resume the completed
 race. A rival finishing first does not interrupt the player's remaining gates.
 

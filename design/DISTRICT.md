@@ -215,7 +215,7 @@ complete an event. There is no countdown, timing, checkpoint enforcement,
 wrong-way detection, race-specific closure or payout in this study. Driving
 off the indicated route is allowed. R / Triangle resets to that route's start.
 Changing routes by URL reloads the page and discards the current session
-run/replay; saved garage/drivetrain/audio preferences remain browser-local.
+run/replay; saved garage and audio preferences remain browser-local.
 The district map is reachable from the title screen and from Pause.
 
 ## Data boundaries

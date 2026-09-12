@@ -151,8 +151,13 @@ a race and press E/Enter or Cross/A to enter; leaving resumes the same run.
 The garage uses a dedicated presentation scene and the same car mesh as the
 track. Right-stick horizontal input turns the car and platform under a fixed
 camera; R3/C resets the platform. Paint,
-wheel finish, and visual ride height carry across views and save locally alongside
-the selected drivetrain. FWD is the default; drivetrain tuning itself is unchanged.
+wheel finish, and visual ride height carry across views and save locally. The
+drivetrain saved alongside them until 2026-09-12, when the garage toggle went
+away and the drive split became a property of the body: Cinder RWD, Bulwark
+AWD, and changing car starts a fresh drive. A drivetrain stored before that is
+dropped on load rather than reported as damage, because `decodeSaves` throws on
+anything short of "saved" and its throw is outside the per-slot loop, so one
+stale slot would discard all three. Drivetrain tuning itself is unchanged.
 They do not alter simulation handling or represent purchased performance parts.
 Menu state gates fixed simulation ticks rather than living inside the renderer.
 The default car is the original NS-01 Blender asset (`assets/cars/ns-coupe-01.blend`
@@ -426,8 +431,10 @@ identity, which future saved ghosts must validate as well as physics/build.
 Automatic countersteering is off (`four-wheel-v3`). Manual catches get faster
 response and extra range only when the player requests countersteer; neutral
 input never steers itself. Ordinary turn-in keeps its speed envelope, while
-unwinding is quicker. Pause contains AWD/FWD/RWD comparison
-buttons. Changing layout resets the run; ordinary reset retains the run's drivetrain. Full countersteer can catch longer
+unwinding is quicker. Pause contained AWD/FWD/RWD comparison
+buttons until 2026-09-12, when the drivetrain became a property of the car;
+`?drivetrain=` and `__ns.drivetrain()` still reach the same boundary.
+Changing layout resets the run; ordinary reset retains the run's drivetrain. Full countersteer can catch longer
 30 m/s slides; weak/late corrections and prolonged highway-speed slides remain
 limitations. Tests distinguish manual recovery from automatic intervention.
 Garage offers NS-01 and Bulwark as selectable bodies with shared handling and

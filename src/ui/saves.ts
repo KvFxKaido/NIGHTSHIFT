@@ -1,3 +1,4 @@
+import { drivetrainFor } from "../customization/cars.ts";
 import { SAVE_IDS, loadSaveUrl, type DriveSave, type SaveId, type createSaveStore } from "../settings/saves.ts";
 
 export function createSavesPanel(store: ReturnType<typeof createSaveStore>, snapshot: () => Omit<DriveSave, "id" | "name" | "savedAt">) {
@@ -15,7 +16,7 @@ export function createSavesPanel(store: ReturnType<typeof createSaveStore>, snap
   const CAR_NAMES: Record<string, string> = { cinder: "Cinder", bulwark: "Bulwark" };
   // Falls back to the id rather than to a name: a retired body should read as
   // itself if one ever reaches here, not silently as some other car.
-  const carName = (save: DriveSave) => `${CAR_NAMES[save.build.car] ?? save.build.car} / ${save.build.drivetrain.toUpperCase()}`;
+  const carName = (save: DriveSave) => `${CAR_NAMES[save.build.car] ?? save.build.car} / ${drivetrainFor(save.build.car).toUpperCase()}`;
   const date = (save: DriveSave) => new Date(save.savedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   const load = (id: SaveId) => { location.href = loadSaveUrl(location.href, id); };
   function refreshSummary() {

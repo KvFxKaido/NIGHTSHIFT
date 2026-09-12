@@ -90,7 +90,7 @@
                 <button class="garage-option" data-car="cinder" aria-pressed="true">Cinder</button>
                 <button class="garage-option" data-car="bulwark" aria-pressed="false">Bulwark</button>
               </div>
-              <p class="handling-note" data-car-status role="status" aria-live="polite">All cars use your current handling and visual setup.</p>
+              <p class="handling-note" data-car-status role="status" aria-live="polite">Each car has its own drivetrain. Changing car starts a fresh drive; paint, wheels and stance carry over.</p>
             </fieldset>
             <fieldset class="garage-control">
               <legend>Paint</legend>
@@ -122,15 +122,6 @@
             </fieldset>
           </div>
 
-          <fieldset class="garage-control handling-comparison" aria-describedby="drivetrain-note">
-            <legend>Drivetrain</legend>
-            <div class="garage-options text-options">
-              <button class="garage-option" data-drivetrain="fwd" aria-pressed="true" aria-label="FWD: front-wheel drive (default)">FWD</button>
-              <button class="garage-option" data-drivetrain="awd" aria-pressed="false" aria-label="AWD: 45% front, 55% rear">AWD</button>
-              <button class="garage-option" data-drivetrain="rwd" aria-pressed="false" aria-label="RWD: rear-wheel drive">RWD</button>
-            </div>
-            <p id="drivetrain-note" class="handling-note">Choose your driving style. Changing drivetrain resets the current drive.</p>
-          </fieldset>
           <nav class="menu-actions garage-actions" aria-label="Garage actions">
             <button class="menu-button" data-menu-action="start">Drive out</button>
             <button class="menu-button primary" data-menu-action="back">Back</button>

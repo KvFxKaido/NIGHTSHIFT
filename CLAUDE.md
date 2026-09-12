@@ -106,15 +106,21 @@ Port Alder is the only playable map and the default at `/`. Blackglass was
 retired on 2026-09-10; its geometry and GLB are developer regression
 fixtures outside the playable bundle, and old world links redirect.
 
-- **Driving.** Four-tyre planar model, FWD default, AWD/RWD selectable in the
-  garage. Physics revision `four-wheel-v5`; see `design/HANDLING.md` for the
+- **Driving.** Four-tyre planar model. The drivetrain belongs to the body, not
+  to a menu: the Cinder is RWD and the Bulwark AWD (`CAR_DRIVETRAIN` in
+  `src/customization/cars.ts`), so changing car starts a fresh drive.
+  `createSim` still defaults to FWD, which is what the regression fixtures
+  measure, and `?drivetrain=` / `__ns.drivetrain()` stay developer controls
+  that do not persist. Physics revision `four-wheel-v5`; see
+  `design/HANDLING.md` for the
   model, executed gates and known limitations. Automatic countersteering has
   been off since v3; v5 added RWD slide-exit traction sharing and brought
   FWD/RWD to the same 140 mph governor as AWD.
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
   enter; the garage has a fixed camera and offers Cinder and Bulwark bodies,
-  paint, wheel finish, visual stance and an NS-01 livery editor (all visual
-  only; liveries are a per-car browser profile, not part of save slots).
+  paint, wheel finish, visual stance and a livery editor whose panels derive
+  from each body (all visual only; liveries are a per-car browser profile,
+  not part of save slots).
 - **Encounters and generated races.** A rival cruises a freight-block loop
   near the garage; flash it (F / Square) to race. The generator draws gates
   per seed from the route-choice arithmetic (`route-choice.ts`,

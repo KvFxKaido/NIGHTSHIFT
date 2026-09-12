@@ -6,7 +6,7 @@ import { safeSavePosition } from "../src/settings/save-position.ts";
 import { BLACKGLASS_WORLD } from "../src/sim/road-world.ts";
 
 const example: DriveSave = { id: "slot-1", name: "Hill runner", savedAt: 1234, world: "test-world",
-  build: { car: "bulwark", drivetrain: "rwd", customization: defaultSettings().customization },
+  build: { car: "bulwark", customization: defaultSettings().customization },
   position: { x: 100, z: 100, heading: .6 } };
 function disk() {
   const data = new Map<string, string>();
@@ -19,12 +19,13 @@ test("three named builds and positions round-trip independently across stores", 
   // A slot written before the NS-01 left the garage. It must migrate, not
   // throw: decodeSaves rejects a build whose status is short of "saved", and
   // that discards every slot rather than the one naming a retired car.
-  second.write({ ...example, id: "slot-2", name: "Wet streets", build: { ...example.build, car: "blender", drivetrain: "awd" } });
+  second.write({ ...example, id: "slot-2", name: "Wet streets", build: { ...example.build, car: "blender" } });
   first.write({ ...example, id: "slot-3", name: "Race save", position: null });
   first.write({ ...example, name: "Updated hill runner", savedAt: 5678 });
   const slots = second.list();
   assert.equal(slots.length, 3);
-  assert.equal(slots.find(s => s.id === "slot-2")!.build.drivetrain, "awd");
+  assert.equal(slots.find(s => s.id === "slot-2")!.build.car, "cinder",
+    "the slot naming the retired NS-01 migrated to the Cinder");
   assert.equal(slots.find(s => s.id === "slot-3")!.position, null);
   assert.deepEqual(slots.find(s => s.id === "slot-1"), { ...example, name: "Updated hill runner", savedAt: 5678 });
 });

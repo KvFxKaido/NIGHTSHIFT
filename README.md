@@ -148,9 +148,10 @@ style-to-speed economy it replaced was retired on 2026-09-12 and is kept in
 [`design/LIVE_CRED.md`](design/LIVE_CRED.md).
 
 The garage is a functional first visual-customization slice. It uses the same
-car mesh as the track and offers **NS-01** and **Bulwark** car choices, paint,
-wheel finish, and visual ride height. Both cars currently share the same handling
-and visual setup. FWD is the default drivetrain. Your car, drivetrain, paint, wheel finish and
+car mesh as the track and offers the **Cinder** and **Bulwark** bodies, paint,
+wheel finish, and visual ride height. Each body carries its own drivetrain — the
+Cinder is RWD, the Bulwark AWD — so changing car starts a fresh drive while paint,
+wheels and stance carry over. Your car, paint, wheel finish and
 stance automatically save on this browser and return after refresh/reopening.
 Options and Garage show settings status; blocked storage leaves the game usable with
 session-only choices. Performance parts, prices, race progress and saved replays
@@ -158,7 +159,7 @@ are not implemented by this settings save.
 
 **Named saved games:** the title offers **Continue** (most recently saved slot),
 **Load game**, **New drive**, **Garage**, and **Options**. Pause → **Save game**
-writes one of three named slots, including your car, drivetrain, customization,
+writes one of three named slots, including your car, customization,
 and free-roam location. These are manual saves; choosing an occupied slot requires
 **Replace save**. Loading starts the car stationary. Race saves and locations
 blocked by new scenery return to Wharf Garage; race clocks and opponents are not
@@ -174,8 +175,8 @@ render-buffer size. CPU times exclude GPU execution; resource counts are not
 memory usage in bytes. Readouts refresh four times per second and reset after
 tab or menu changes. The map hides it; on small screens it appears during driving
 only. Its on/off setting is stored separately as `nightshift.performance`.
-Handling telemetry remains a separate toggle. Drivetrain selection lives in the
-**Garage**. Pause keeps Resume, Save game, Port Alder map, Options, Main menu, and
+Handling telemetry remains a separate toggle. There is no drivetrain control in
+either menu; each car has its own. Pause keeps Resume, Save game, Port Alder map, Options, Main menu, and
 **Return to garage** (or **Restart race** / **Return to free roam** during a race).
 
 Settings use the versioned `nightshift.settings` localStorage entry. They are

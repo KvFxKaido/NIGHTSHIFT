@@ -1,6 +1,5 @@
 import type { MenuCommand } from "../input/input.ts";
 import type { CarCustomization, CustomizationCategory } from "../customization/customization.ts";
-import { isDrivetrain, type Drivetrain } from "../sim/sim.ts";
 import type { AudioLevels } from "../audio/audio-mix.ts";
 import {
   createInitialMenuState,
@@ -26,9 +25,7 @@ interface MenuCallbacks {
   returnToMain(): void;
   openSaves(mode: "load" | "save"): void;
   resumeRun(): void;
-  getDrivetrain(): Drivetrain;
   getCustomization(): CarCustomization;
-  selectDrivetrain(drivetrain: Drivetrain): void;
   customize(category: CustomizationCategory, optionId: string): void;
   screenChanged(screen: MenuScreen): void;
   getAudioLevels(): AudioLevels;
@@ -72,12 +69,6 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   });
 
   let state: MenuState = createInitialMenuState();
-
-  function renderDrivetrain(): void {
-    root.querySelectorAll<HTMLButtonElement>("[data-drivetrain]").forEach((button) => {
-      button.setAttribute("aria-pressed", String(button.dataset.drivetrain === callbacks.getDrivetrain()));
-    });
-  }
 
   function renderAudio(): void {
     const levels = callbacks.getAudioLevels();
@@ -134,7 +125,6 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   }
 
   function renderState(previousScreen?: MenuScreen): void {
-    renderDrivetrain();
     renderCustomization();
     renderAudio();
     document.body.dataset.gameScreen = state.screen;
@@ -240,15 +230,6 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       if (command === "toggle" || command === "next" || command === "previous") {
         callbacks.soundtrack(command);
         renderAudio();
-      }
-      return;
-    }
-    const drivetrainButton = event.target.closest<HTMLButtonElement>("[data-drivetrain]");
-    if (drivetrainButton) {
-      const drivetrain = drivetrainButton.dataset.drivetrain;
-      if (isDrivetrain(drivetrain)) {
-        callbacks.selectDrivetrain(drivetrain);
-        renderDrivetrain();
       }
       return;
     }

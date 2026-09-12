@@ -3,7 +3,6 @@ import {
   createDefaultCustomization, PAINT_OPTIONS, WHEEL_OPTIONS, STANCE_OPTIONS,
   type CarCustomization, type CustomizationCategory,
 } from "../customization/customization.ts";
-import { DEFAULT_DRIVETRAIN, isDrivetrain, type Drivetrain } from "../sim/sim.ts";
 import { DEFAULT_LEVELS, isLevel, type AudioLevels } from "../audio/audio-mix.ts";
 
 export const SETTINGS_KEY = "nightshift.settings";
@@ -11,18 +10,16 @@ export const SETTINGS_KEY = "nightshift.settings";
 export const SETTINGS_VERSION = 3;
 export interface PlayerSettings {
   car: PlayerCarId;
-  drivetrain: Drivetrain;
   customization: CarCustomization;
   audio: AudioLevels;
 }
 export interface SettingsPatch {
   car?: PlayerCarId;
-  drivetrain?: Drivetrain;
   customization?: Partial<CarCustomization>;
   audio?: Partial<AudioLevels>;
 }
 export type SettingsStatus = "ready" | "saved" | "recovered" | "unavailable";
-export type SettingsUrlKey = "car" | "drivetrain" | CustomizationCategory;
+export type SettingsUrlKey = "car" | CustomizationCategory;
 type SettingsStorage = Pick<Storage, "getItem" | "setItem">;
 const options = { paint: PAINT_OPTIONS, wheels: WHEEL_OPTIONS, stance: STANCE_OPTIONS };
 const categories: CustomizationCategory[] = ["paint", "wheels", "stance"];
@@ -35,7 +32,6 @@ const RETIRED_CARS: Record<string, PlayerCarId> = { blender: "cinder" };
 export function defaultSettings(): PlayerSettings {
   return {
     car: "cinder",
-    drivetrain: DEFAULT_DRIVETRAIN,
     customization: createDefaultCustomization(),
     audio: { ...DEFAULT_LEVELS },
   };
@@ -63,8 +59,8 @@ export function decodeSettings(raw: string | null): { settings: PlayerSettings; 
       if (isPlayerCarId(car)) settings.car = car;
       else recovered = true;
     }
-    if (isDrivetrain(data.drivetrain)) settings.drivetrain = data.drivetrain;
-    else recovered = true;
+    // A stored drivetrain from before it became a property of the car is
+    // ignored, not recovered: recovery would make decodeSaves discard the slot.
     const customization = record(data.customization) ? data.customization : {};
     for (const category of categories) {
       const value = customization[category];
@@ -117,9 +113,6 @@ export function createSettingsStore(storage: () => SettingsStorage) {
       if (patch.car !== undefined && !isPlayerCarId(patch.car)) {
         throw new RangeError(`Unknown car: ${patch.car}`);
       }
-      if (patch.drivetrain !== undefined && !isDrivetrain(patch.drivetrain)) {
-        throw new RangeError(`Unknown drivetrain: ${patch.drivetrain}`);
-      }
       for (const category of categories) {
         const value = patch.customization?.[category];
         if (value !== undefined && !options[category].some(option => option.id === value)) {
@@ -133,7 +126,7 @@ export function createSettingsStore(storage: () => SettingsStorage) {
         }
       }
       // Rebase this field-level edit on the latest save so an older open tab
-      // changing paint does not overwrite another tab's drivetrain preference.
+      // changing paint does not overwrite the car chosen in another tab.
       let base = settings;
       try {
         const raw = storage().getItem(SETTINGS_KEY);
@@ -141,7 +134,6 @@ export function createSettingsStore(storage: () => SettingsStorage) {
       } catch { /* Keep session choices if storage cannot be read. */ }
       settings = {
         car: patch.car ?? base.car,
-        drivetrain: patch.drivetrain ?? base.drivetrain,
         customization: { ...base.customization },
         audio: { ...base.audio },
       };
@@ -174,8 +166,8 @@ export function settingsStatusMessage(status: SettingsStatus, search: string): s
   if (status === "unavailable") return "Saving unavailable — choices last for this session only.";
   if (status === "recovered") return "Some saved settings could not be restored. Choose an option to save again.";
   const params = new URLSearchParams(search);
-  if (["car", "drivetrain", ...categories].some(key => params.has(key))) {
+  if (["car", ...categories].some(key => params.has(key))) {
     return "Preview link — choose an option to save it on this browser.";
   }
-  return status === "saved" ? "Saved on this browser." : "Drivetrain and garage choices save automatically on this browser.";
+  return status === "saved" ? "Saved on this browser." : "Garage choices save automatically on this browser.";
 }

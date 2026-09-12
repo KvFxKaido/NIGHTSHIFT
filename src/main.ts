@@ -20,6 +20,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import {
   updateCustomization,
 } from "./customization/customization.ts";
+import { drivetrainFor } from "./customization/cars.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
@@ -141,7 +142,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(restored.drivetrain, roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift", parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift", parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -254,7 +255,12 @@ async function selectCar(id: string): Promise<void> {
     selectedCar = id;
     liveryEditor.refresh();
     saveSettings({ car: id }, ["car"]);
-    carNote.textContent = "All cars use your current handling and visual setup.";
+    // The body carries the drivetrain, so a different car is a different drive.
+    if (drivetrainFor(id) !== sim.state.drivetrain) {
+      reset(drivetrainFor(id));
+      input.armDrivingInputGate();
+    }
+    carNote.textContent = `Each car has its own drivetrain; this one is ${drivetrainFor(id).toUpperCase()}.`;
   } catch {
     carNote.textContent = "Could not load that car. Your current car is still ready; select again to retry.";
   } finally {
@@ -269,7 +275,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
 
 const savePanel = createSavesPanel(saves, () => ({
   world: roadWorld.id,
-  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "cinder", drivetrain: sim.state.drivetrain, customization: { ...customization } },
+  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "cinder", customization: { ...customization } },
   position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
 }));
 const menu = createMenuController({
@@ -296,15 +302,7 @@ const menu = createMenuController({
   returnToMain: () => {},
   openSaves: mode => savePanel.open(mode),
   resumeRun: () => input.armDrivingInputGate(),
-  getDrivetrain: () => sim.state.drivetrain,
   getCustomization: () => customization,
-  selectDrivetrain: (drivetrain) => {
-    if (drivetrain !== sim.state.drivetrain) {
-      reset(drivetrain);
-      input.armDrivingInputGate();
-    }
-    saveSettings({ drivetrain }, ["drivetrain"]);
-  },
   customize: (category, optionId) => {
     customization = updateCustomization(customization, category, optionId);
     applyCarCustomization(view, customization);
@@ -582,6 +580,9 @@ function renderFrame(frameDelta: number): void {
 installDebugApi({
   view,
   sim,
+  // Drivetrain is a developer control now, not a garage choice: there is no
+  // button left to click, so the comparison flow resets the run directly.
+  setDrivetrain: layout => { reset(layout); input.armDrivingInputGate(); },
   canvas: view.renderer.domElement,
   // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {
