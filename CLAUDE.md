@@ -88,7 +88,8 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   is an option, not a decision. The Godot workshop in `godot-prototype/` is
   a reference experiment, not a migration.
 - Customization target: body parts, paint and a few simple performance
-  upgrades. Only paint, wheel finish and visual ride height exist today.
+  upgrades. Today: paint, wheel finish, visual ride height, and a layered
+  NS-01 livery editor (`src/customization/livery.ts`); all visual only.
 - Live Cred / Surge (`design/LIVE_CRED.md`, GDD §3.6, 5.1, 8.4) is the
   proposed core hook and is **not implemented**. Keep Chain Cred, Live Cred,
   Banked Cred and lifetime reputation distinct when working on it; race-time
@@ -110,7 +111,8 @@ fixtures outside the playable bundle, and old world links redirect.
   FWD/RWD to the same 140 mph governor as AWD.
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
   enter; the garage has a fixed camera and offers NS-01 and Bulwark bodies,
-  paint, wheel finish and visual stance (visual only).
+  paint, wheel finish, visual stance and an NS-01 livery editor (all visual
+  only; liveries are a per-car browser profile, not part of save slots).
 - **Encounters and generated races.** A rival cruises a freight-block loop
   near the garage; flash it (F / Square) to race. The generator draws gates
   per seed from the route-choice arithmetic (`route-choice.ts`,
@@ -146,7 +148,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
-| HUD, menus, map, saves, controls | `src/ui/`, `src/settings/`, `src/input/` | `design/EDITOR.md` for the workshop |
+| HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
 | The stories | — | `design/FIELD_NOTES.md` |
