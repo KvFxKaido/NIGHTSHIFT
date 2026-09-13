@@ -71,8 +71,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */
 /**
  * How a rival races the player (2026-09-13). Before this the player was passed
- * in with traffic, so the rival slowed to the player's speed behind them and
- * moved over beside them: it let the player past. A racing rival now wants to
+ * in with traffic, so the rival moved about 3.8 m away and braked beside them,
+ * and braked behind a player it had no room to dodge: it let the player past.
+ * With room it did pass, by dodging them as traffic. A racing rival now wants to
  * win: it goes for the pass instead of queueing, holds its line alongside,
  * covers the player's side when they close from behind, and does not lift for
  * contact. Traffic is still a hazard it slows for, and a player stopped in the
@@ -162,20 +163,52 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // Alongside (|ahead| small) nothing is added: it holds its line and does
     // not brake for them.
   }
+  // Traffic (2026-09-13). It used to slow for anything within 5 m of its line
+  // ahead, at that car's speed along the line: a car crossing a junction 80 m
+  // on has none, so it braked for cars that would be gone before it arrived,
+  // and it queued behind slower cars it could have passed. Now each car is
+  // judged by where it will be when the rival gets there.
+  const slowFor = (along: number, ahead: number, length: number) => {
+    desiredSpeed=Math.min(desiredSpeed,Math.max(0,along)+Math.max(0,ahead-length-5)*.65);
+  };
   for (const obstacle of hazards) {
     if (Math.abs(obstacle.y-car.y)>3) continue;
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*-target.uz+dz*target.ux;
     const length=(obstacle.length??4.2)/2+2.1;
-    if (ahead < -length || ahead > 15+car.speed*1.6 || Math.abs(side)>5) continue;
+    if (ahead < -length || ahead > 15+car.speed*1.6) continue;
+    const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
+    const along=obstacle.speed*(headingX*target.ux+headingZ*target.uz);
+    const across=obstacle.speed*(headingX*-target.uz+headingZ*target.ux);
+    const crossing=Math.abs(across)>2;
+    if (!crossing && Math.abs(side)>5) continue;
+    // Its offset across the line when this car reaches it, and how wide a
+    // corridor that has to miss: a crossing car sweeps its own length.
+    const arrival=Math.max(0,ahead-length)/Math.max(1,car.speed-along);
+    const sideAtArrival=side+across*arrival;
+    const inPath=Math.abs(sideAtArrival-driver.avoidance)<(crossing?length:2.6);
     const clearance=Math.min(3.8,target.width/2-2.2);
-    const candidate=side>=0?-clearance:clearance;
-    const blocked=hazards.some(other=>other!==obstacle && Math.hypot(other.x-(car.x-target.uz*candidate),other.z-(car.z+target.ux*candidate))<7);
-    if (!blocked) { offset=candidate; blocking=false; }
-    const projectedSpeed=obstacle.speed*(-Math.sin(obstacle.heading)*target.ux-Math.cos(obstacle.heading)*target.uz);
-    if (Math.abs(side-driver.avoidance)<2.8 && ahead>0) {
-      desiredSpeed=Math.min(desiredSpeed,Math.max(0,projectedSpeed)+Math.max(0,ahead-length-5)*.65);
+    const clear=(candidate: number)=>clearance>0 && !hazards.some(other=>other!==obstacle
+      && Math.hypot(other.x-(car.x-target.uz*candidate),other.z-(car.z+target.ux*candidate))<7);
+    if (crossing || along < -2) {
+      // Crossing, or oncoming: it matters only if it will be across the line
+      // when this car gets there, and then it is slowed for rather than
+      // swerved round. Swerving round oncoming cars was tried on 2026-09-13
+      // and lost time and hit more traffic (187 s, 119 contact ticks, against
+      // 182 s and 30): the rival's line runs down the middle of the street, so
+      // an oncoming car is often genuinely in its way. That is the line's
+      // problem, not this loop's.
+      if (inPath && ahead>0) slowFor(along,ahead,length);
+      continue;
     }
+    // Same direction: pass it on whichever side is clear, the way it passes
+    // the player. Only with nowhere to go, or already on its bumper, does it
+    // take that car's speed.
+    const sides=side>=0?[-clearance,clearance]:[clearance,-clearance];
+    const open=sides.find(clear);
+    if (open!==undefined) { offset=open; blocking=false; }
+    const onBumper=ahead-length<4;
+    if (ahead>0 && Math.abs(side-driver.avoidance)<2.8 && (open===undefined || onBumper)) slowFor(along,ahead,length);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;

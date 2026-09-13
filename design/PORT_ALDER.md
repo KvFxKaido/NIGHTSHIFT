@@ -470,7 +470,32 @@ grip, mass or top speed. The cruising encounter is not racing and still yields.
 checks fail against the old rival (the other two, passing with room and
 avoiding a parked player, are behaviour it already had and must keep). A bump at
 40 m/s with the player steering in launches neither car. Per-rival aggression
-(Bollard's squeeze into traffic, Deuce's commitment) is not built. Racing uses the player's shared 62.6 m/s
+(Bollard's squeeze into traffic, Deuce's commitment) is not built.
+
+**Traffic, judged by where it will be (2026-09-13).** The rival slowed for any
+car within 5 m of its line ahead, at that car's speed along the line. A car
+crossing a junction ahead has none, so it braked for cars that would be gone
+before it arrived, and it matched slower cars it had room to pass. Each car is
+now judged by its offset across the line when the rival reaches it: a crossing
+or oncoming car is slowed for only if it will be in the way then, and a
+same-direction car is passed on a clear side, queued behind only with both
+sides taken or already on its bumper. Measured on Sound to Sky with the player
+parked:
+
+| | Race time | Under 8 m/s | Contact with traffic |
+|---|---|---|---|
+| No traffic | 169.9 s | 22.6 s | 0 ticks |
+| Traffic, before | 188.7 s | 39.0 s | 118 ticks |
+| Traffic, after | 182.3 s | 28.3 s | 30 ticks |
+
+Of the slowdowns still caused by traffic, 90% are oncoming cars (513 ticks
+against 59 for crossing ones). Swerving round them instead was tried and was
+worse (187.2 s, 119 contact ticks) and is not shipped. The cause is the line:
+rival routes run down the street's centreline (`rivalLineFor`, `alder-rival.ts`),
+so an oncoming car in its own lane is often genuinely in the rival's way.
+Driving its own lane is the next fix. Separately, even on empty streets the
+rival spends 66 s of 170 braking: it plans corners at 62% of its grip and 5 m/s²
+of braking. That is corner commitment, not traffic. Racing uses the player's shared 62.6 m/s
 (140 mph) speed ceiling, with full throttle available on clear straights. The
 corner preview extends with stopping distance instead of ending at 100 metres;
 traffic, bends and recovery still lower the target speed. The 10 m/s local cruise

@@ -4,7 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
-import type { RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, type RivalDefinition } from "../src/sim/rival.ts";
 await RAPIER.init();
 
 // A racing rival wants to win (2026-09-13): it does not queue behind the
@@ -142,4 +142,37 @@ test("it stays on the throttle through contact, and contact at speed launches no
     assert.ok(fastest < HANDLING.topSpeed + 1, `contact launched a car to ${fastest.toFixed(1)} m/s`);
     assert.ok(sideways < 12, `contact threw a car sideways at ${sideways.toFixed(1)} m/s`);
   } finally { sim.world.free(); }
+});
+
+// Traffic (2026-09-13): each car is judged by where it will be when the rival
+// gets there. Measured on Sound to Sky with the player parked, the old loop
+// lost 18.8 s to traffic (169.9 s empty, 188.7 s with traffic, 118 ticks of
+// contact); this one loses 12.4 s (182.3 s, 30 ticks).
+function decide(obstacles: { x: number; z: number; speed: number; heading: number; length?: number }[], width = 24) {
+  const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "traffic-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000] };
+  const vehicle = { ...createSim("fwd").state.vehicle, x: 0, y: 0, z: -100, heading: 0, speed: 30, forwardSpeed: 30, lateralSpeed: 0 };
+  const driver = { ...createRivalDriver(), along: 100, progressMark: 100 };
+  const input = rivalInput(route, { vehicle, driver, race: null }, obstacles.map(o => ({ y: 0, ...o })));
+  return { input, driver };
+}
+const CROSSING_RIGHT = -Math.PI / 2; // travelling +X, across a line heading -Z
+
+test("a car crossing the line ahead is ignored if it will be gone, slowed for if it will not", () => {
+  // On the line now, 35 m ahead, clearing it at 10 m/s: 10 m clear by the time it arrives.
+  const gone = decide([{ x: 0, z: -135, speed: 10, heading: CROSSING_RIGHT }]);
+  assert.equal(gone.input.brake, 0, "it braked for a crossing car that will be long gone");
+  assert.ok(gone.driver.targetSpeed > 29, `target ${gone.driver.targetSpeed}`);
+  // 6.5 m off the line, 30 m ahead, arriving on it just as the rival does.
+  const arriving = decide([{ x: -6.5, z: -130, speed: 7.5, heading: CROSSING_RIGHT }]);
+  assert.ok(arriving.driver.targetSpeed < 25, `it did not slow for a car crossing into its path (target ${arriving.driver.targetSpeed})`);
+});
+
+test("a slower car ahead is passed with room, and queued behind only without it", () => {
+  const room = decide([{ x: 0, z: -130, speed: 15, heading: 0 }]);
+  assert.equal(room.input.brake, 0, "it braked behind a car it had room to pass");
+  assert.notEqual(room.driver.avoidance, 0, "it did not start moving out to pass");
+  // Both sides taken by cars beside it: nowhere to go.
+  const boxed = decide([{ x: 0, z: -130, speed: 15, heading: 0 }, { x: 3.8, z: -100, speed: 30, heading: 0 }, { x: -3.8, z: -100, speed: 30, heading: 0 }]);
+  assert.ok(boxed.driver.targetSpeed < 29, `boxed in, it kept a target of ${boxed.driver.targetSpeed}`);
 });
