@@ -126,8 +126,10 @@ Pine East past Ridge Scenic Way, with three layouts: Full (2.5 km), East (1.9 km
 flat) and Ridge (1.6 km, on the hillside). Its edges are open; the grass past the
 shoulder costs a 2WD car pace. It is open to drive in free roam, and each layout
 is a three-lap race against the rival: `?scene=track&race=arena-full`,
-`?scene=track&race=arena-east` or `?scene=track&race=arena-ridge`. It exists so
-laps can be recorded to develop the rival, before it becomes events.
+`?scene=track&race=arena-east` or `?scene=track&race=arena-ridge`. Add `-solo`
+(`?scene=track&race=arena-full-solo`) to drive it alone. Under `pnpm dev` every
+lap you complete there is recorded to `recordings/laps/`; `pnpm laps` lists them
+and `pnpm laps --verify` replays them. See [`recordings/README.md`](recordings/README.md).
 
 Crossing the finish in a rival race pauses the drive and shows your result/time,
 with **Return to free roam** or **Go to garage**. Both clear the race and retain

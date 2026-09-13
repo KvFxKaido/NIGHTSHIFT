@@ -576,8 +576,10 @@ slope is felt as grade force only, about 0.4–0.5 m/s² at 4–5%.
 
 **Races.** `?race=arena-full|arena-east|arena-ridge&scene=track` starts a
 three-lap race on the grid (`src/sim/arena-events.ts`): the player 12 m behind
-the line on the right, the rival 5 m behind on the left. City traffic is off
-for these races. The rival drives the centreline, which is a baseline and not
+the line on the right, the rival 5 m behind on the left. Add `-solo`
+(`arena-full-solo`) for the same race with nobody else on the circuit, so a
+recorded lap is the player's alone; it ends on a session summary with the best
+valid lap. City traffic is off for these races. The rival drives the centreline, which is a baseline and not
 a racing line. From a standing start, one lap with the player parked
 (`tests/arena.test.ts`): **Full 100.8 s, East 78.8 s, Ridge 66.4 s,** no
 resets, no recoveries, never on the grass. There is no way to reach these races
@@ -591,6 +593,29 @@ local meshes, so they cull on their own bounds. The outskirts ground now
 reaches 300 m past the circuit. Both maps draw it and widen to include it, and
 saved positions there are valid (`ALDER_DRIVE_BOUNDS`). The world identity
 gains `-arena-v1`, so free-roam saves from before it return to Wharf Garage once.
+
+**Lap recording (2026-09-13).** Every circuit race, solo or not, records the
+player (`src/sim/lap-recorder.ts`). It observes the sim and changes nothing: fed
+each tick's input and the state that tick left, it keeps the whole input log
+unrounded and, per lap, one rounded telemetry sample a tick (position, heading,
+speed, lateral speed, yaw, the pedals and wheel, tyres on the ground, distance
+round the centreline and offset from it). Laps end where the race's gates end
+them. A lap is invalid, and says why, with any tick fully past the paved
+shoulder, more than a second with any tyre past it, or running backwards more
+than 20 m. After each lap the session is saved through a dev-server endpoint
+(`scripts/laps-server.mjs`, like the editor's) to `recordings/laps/`, which git
+ignores: it is the player's driving, about a megabyte for three laps of Ridge.
+A reset or car change starts a new session, because it breaks the input log.
+
+The input log with the session's identity reproduces the run, and
+`src/sim/lap-replay.ts` checks it: it refuses a file from another world or
+physics revision, replays the rest and compares every lap. `pnpm laps` lists
+sessions; `--verify` replays them. Executed on 2026-09-13: a three-lap solo run
+of Ridge driven in Chrome by a scripted digital-input lap (`__ns.drive`) saved,
+showed its summary (1:15.92, 1:11.30, 1:11.35, all valid) and replayed exactly in
+Node. That is one machine and two V8 hosts, not cross-browser parity. Format:
+`recordings/README.md`. Not built: extracting braking points, corner speeds and
+lines from recordings, and the rival learning from them.
 
 `tests/arena.test.ts` pins each lap's length (a moved corner makes recorded laps
 incomparable), checks the site is clear of buildings, trees and street

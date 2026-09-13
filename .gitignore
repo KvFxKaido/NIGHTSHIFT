@@ -37,5 +37,9 @@ dist/
 /public/assets/music/*
 !/public/assets/music/README.md
 
+# Lap recordings are the player's driving, megabytes a session; the folder's README is tracked.
+/recordings/*
+!/recordings/README.md
+
 # Local Midnight Club captures for reference; Rockstar content, never committed.
 /mc inspiration/

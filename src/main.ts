@@ -33,7 +33,9 @@ import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
-import { arenaEvent, arenaLayoutForRace } from "./sim/arena-events.ts";
+import { arenaEvent, arenaRaceFor, ARENA_LAPS, type ArenaEvent } from "./sim/arena-events.ts";
+import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
+import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
 import { snapToLane, encodeStart, decodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import type { RoadWorld } from "./sim/road-world.ts";
@@ -72,8 +74,8 @@ let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
 /** Where a generated race starts: where the flash was, snapped to its lane. Null means the grid. */
 let raceStart: RoadWorld["start"] | null = null;
-/** Ridge Circuit races run on an empty site: the city's traffic never reaches it. */
-let arenaRace = false;
+/** A Ridge Circuit race, solo or not. Its laps are recorded; the city's traffic never reaches it. */
+let arena: ArenaEvent | null = null;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -94,8 +96,8 @@ try {
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
-  const arenaLayout = raceId ? arenaLayoutForRace(raceId) : null;
-  if (raceId && !generated && !arenaLayout && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
+  const arenaRace = raceId ? arenaRaceFor(raceId) : null;
+  if (raceId && !generated && !arenaRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
@@ -109,9 +111,9 @@ try {
   if (generated) {
     const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag" | "drift">);
     race = drawn.race; rival = drawn.rival;
-  } else if (arenaLayout) {
-    const event = arenaEvent(arenaLayout);
-    race = event.race; rival = event.rival; raceStart = event.start; arenaRace = true;
+  } else if (arenaRace) {
+    arena = arenaEvent(arenaRace.layout, ARENA_LAPS, arenaRace.solo);
+    race = arena.race; rival = arena.rival; raceStart = arena.start;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
   } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
@@ -130,7 +132,8 @@ try {
     : await loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model);
   {
     const opponent = raceOpponentCar();
-    rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    // A solo run has nobody to draw.
+    if (!arena?.solo) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
@@ -151,7 +154,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && !arenaRace, parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && !arena, parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -241,7 +244,35 @@ function reset(drivetrain = sim.state.drivetrain): void {
   flashRemaining = 0;
   resetSim(sim, drivetrain);
   resetViewCamera(view);
+  // A reset breaks the input log, so the run after it is a new recording.
+  newRecording();
 }
+
+// Lap recording, on Ridge Circuit races only (design/PORT_ALDER.md). Each
+// completed lap saves the whole session to recordings/laps through pnpm dev.
+let recorder: LapRecorder | null = null;
+const recording = { id: "", recordedAt: "", status: "" };
+const saveLaps = createLapSaver();
+function newRecording(): void {
+  if (!arena || !race) return;
+  recorder = createLapRecorder(arena.track);
+  const now = new Date();
+  Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
+}
+function recordStep(tickInput: Input): void {
+  if (!recorder || !arena || !race) return;
+  if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
+  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id,
+    physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: arena.layout, solo: arena.solo, laps: race.laps ?? 1,
+    car: selectedCar, drivetrain: sim.state.drivetrain, start: roadWorld.start });
+  const id = recording.id;
+  recording.status = "SAVING";
+  void saveLaps(session).then(result => {
+    if (recording.id !== id) return;
+    recording.status = result.ok ? `SAVED ${result.laps} LAP${result.laps === 1 ? "" : "S"}` : `NOT SAVED: ${result.error.toUpperCase()}`;
+  });
+}
+newRecording();
 
 // Cache each loaded body once; only the active body belongs to a scene.
 const cars = new Map<string, CarView>([[selectedCar, carParts]]);
@@ -471,12 +502,14 @@ function updateHud(): void {
   const position = race && raceState && rival ? racePosition(race,
     { race: raceState, x: car.x, z: car.z },
     { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) : null;
+  const lastLap = recorder?.laps.at(-1);
+  const lapNote = lastLap ? ` · LAST ${formatRaceTime(lastLap.endTick - lastLap.startTick, TICK_HZ)}${lastLap.valid ? "" : " OFF"}` : "";
   hud.update(car, race && raceState ? {
     progressLabel: raceProgressLabel(race, raceState), targets: race.kind === "drift" ? [race.drift!.zones[raceState.drift!.nextZone]!] : raceState.targets,
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
       : race.kind === "drift" ? `${Math.ceil(Math.max(0, race.drift!.durationTicks - raceState.ticks) / TICK_HZ)}s LEFT`
-      : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}`,
+      : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}${lapNote}`,
   } : null,
   // Every rival gets a blip, pinned to the minimap rim when off the disc, as in Midnight Club 3.
   [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle)]
@@ -493,7 +526,7 @@ function updateHud(): void {
     const bindings = input.bindings();
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
-  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`
+  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`
     + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "");
   const gamepadName = input.activeGamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
@@ -560,11 +593,19 @@ function frame(now: number): void {
     const tickInput = input.sample();
     lastInput = tickInput;
     step(sim, tickInput);
+    recordStep(tickInput);
     accumulator -= DT;
     if (sim.state.race?.finished && race?.kind === "drift") {
       const drift = sim.state.race.drift!;
       menu.finishRace(drift.won ? "Sable beaten" : "Target missed",
         `${Math.floor(drift.score)} / ${race.drift!.targetScore} points / ${drift.clips} clips / ${drift.transitions} transitions`);
+      accumulator = 0;
+      break;
+    }
+    if (sim.state.race?.finished && !sim.state.rival && arena && race) {
+      const best = bestLap(recorder?.laps ?? []);
+      const valid = recorder?.laps.filter(lap => lap.valid).length ?? 0;
+      menu.finishRace("Session complete", `${race.name} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ)} · best lap ${best ? formatRaceTime(best.endTick - best.startTick, TICK_HZ, 2) : "none valid"} · ${valid}/${race.laps} laps valid`);
       accumulator = 0;
       break;
     }
@@ -619,7 +660,7 @@ installDebugApi({
   canvas: view.renderer.domElement,
   // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {
-    for (let index = 0; index < ticks; index++) step(sim, tickInput);
+    for (let index = 0; index < ticks; index++) { step(sim, tickInput); recordStep(tickInput); }
     // A scripted run should sound like a driven one as well.
     lastInput = tickInput;
   },

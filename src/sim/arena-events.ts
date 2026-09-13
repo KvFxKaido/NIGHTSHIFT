@@ -4,12 +4,13 @@
  * it is the baseline the rival starts from, and laps recorded here are what
  * teach it better (design/PORT_ALDER.md, "Ridge Circuit").
  */
-import { alderHeight } from "./alder.ts";
+import { ARENA_ROADS, alderHeight } from "./alder.ts";
 import { ARENA, ARENA_LAYOUT_IDS, arenaLap, type ArenaLayoutId } from "./arena.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
+import type { LapTrack } from "./lap-recorder.ts";
 
 export const ARENA_LAPS = 3;
 /** Gates are on the track: the racing width is 14 m, so a gate this wide is missed only by leaving it. */
@@ -23,20 +24,30 @@ const GRID = { player: { back: 12, right: 3.5 }, rival: { back: 5, right: -3.5 }
 
 export interface ArenaEvent {
   readonly layout: ArenaLayoutId;
+  /** Solo runs the same race with nobody else on the circuit, so a recorded lap is the player's alone. */
+  readonly solo: boolean;
   readonly race: RaceDefinition;
-  readonly rival: RivalDefinition;
+  /** Null when solo. */
+  readonly rival: RivalDefinition | null;
+  /** What a lap recorder measures laps against: the layout's closed centreline. */
+  readonly track: LapTrack;
   /** The player's grid slot. */
   readonly start: RoadWorld["start"];
 }
 
-export const arenaRaceId = (layout: ArenaLayoutId) => `arena-${layout}`;
-export function arenaLayoutForRace(raceId: string): ArenaLayoutId | null {
-  return ARENA_LAYOUT_IDS.find(layout => arenaRaceId(layout) === raceId) ?? null;
+/** `arena-<layout>`, or `arena-<layout>-solo` for the same race with no rival. */
+export const arenaRaceId = (layout: ArenaLayoutId, solo = false) => `arena-${layout}${solo ? "-solo" : ""}`;
+export function arenaRaceFor(raceId: string): { layout: ArenaLayoutId; solo: boolean } | null {
+  for (const layout of ARENA_LAYOUT_IDS) for (const solo of [false, true]) {
+    if (arenaRaceId(layout, solo) === raceId) return { layout, solo };
+  }
+  return null;
 }
+export const arenaLayoutForRace = (raceId: string): ArenaLayoutId | null => arenaRaceFor(raceId)?.layout ?? null;
 
 const point = (x: number, z: number): CoursePoint => ({ x, z, y: alderHeight(x, z), width: ARENA.width, zone: "boulevard" });
 
-export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS): ArenaEvent {
+export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = false): ArenaEvent {
   if (!Number.isInteger(laps) || laps < 1) throw new RangeError(`An arena race needs whole laps, not ${laps}`);
   const lap = arenaLap(layout);
   const line = lap.points[0]!, next = lap.points[1]!;
@@ -64,16 +75,18 @@ export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS): ArenaEvent
     return along[1 + l * n + i]!;
   })).flat();
   const checkpoints: Checkpoint[] = Array.from({ length: laps }, () => lap.gates.map(gate => ({
-    id: `${arenaRaceId(layout)}-${gate.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    id: `${arenaRaceId(layout, solo)}-${gate.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
     name: gate.name, x: gate.x, z: gate.z, radius: ARENA_GATE_RADIUS,
   }))).flat();
-  const id = arenaRaceId(layout);
+  const id = arenaRaceId(layout, solo);
+  const road = ARENA_ROADS.find(candidate => candidate.id === `arena-${layout}`)!;
   return {
-    layout, start,
-    race: { id, name: `${ARENA.name} / ${lap.layout.name}`, kind: "circuit", laps, gatesPerLap: lap.gates.length,
+    layout, solo, start, track: { points: road.points, gatesPerLap: lap.gates.length },
+    race: { id, name: `${ARENA.name} / ${lap.layout.name}${solo ? " / Solo" : ""}`, kind: "circuit", laps, gatesPerLap: lap.gates.length,
       countdownTicks: COUNTDOWN_TICKS, checkpoints },
     // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), so the
-    // line is driven all-wheel, as the generated races declare it.
-    rival: { id: `${id}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates },
+    // line is driven all-wheel, as the generated races declare it. The line's
+    // checkpoint ids come from the race id, so they are the rival race's either way.
+    rival: solo ? null : { id: `${id}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates },
   };
 }

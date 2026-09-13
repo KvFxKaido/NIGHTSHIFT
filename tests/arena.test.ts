@@ -147,26 +147,27 @@ test("each layout is a lapped race whose rival line passes through every gate", 
     assert.equal(event.race.laps, ARENA_LAPS);
     assert.equal(event.race.checkpoints.length, ARENA_LAPS * arenaLap(id).gates.length);
     createRace(event.race);
-    const race = withExits(event.race, event.rival);
+    const rival = event.rival!;
+    const race = withExits(event.race, rival);
     assert.equal(race.checkpoints.filter(g => !g.exit).length, 1, "only the finish has no arrow");
-    const { along, gates, points } = event.rival;
+    const { along, gates, points } = rival;
     for (let i = 1; i < along.length; i++) assert.ok(along[i]! > along[i - 1]!, `${id}: the line doubles back at ${i}`);
     for (let i = 1; i < points.length; i++) {
       assert.ok(Math.abs(Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z) - (along[i]! - along[i - 1]!)) < 1e-6);
     }
     gates.forEach((distance, i) => {
-      const at = sampleRivalPath(event.rival, distance), gate = event.race.checkpoints[i]!;
+      const at = sampleRivalPath(rival, distance), gate = event.race.checkpoints[i]!;
       assert.ok(Math.hypot(at.x - gate.x, at.z - gate.z) < 1e-6, `${id}: gate ${i} (${gate.name}) is off the line`);
     });
     assert.ok(along.at(-1)! - gates.at(-1)! >= 145, "no run-off past the flag");
     // Both grid slots are on the asphalt, side by side, behind the line and facing along the track.
     const line = arenaLap(id).points[0]!;
-    for (const slot of [event.start, event.rival.start]) {
+    for (const slot of [event.start, rival.start]) {
       assert.equal(alderGround(slot.x, slot.z), false);
       assert.ok(Math.hypot(slot.x - line.x, slot.z - line.z) < 14);
       assert.ok(Math.abs(slot.y - alderHeight(slot.x, slot.z)) < 1e-9);
     }
-    assert.ok(Math.hypot(event.start.x - event.rival.start.x, event.start.z - event.rival.start.z) > 7);
+    assert.ok(Math.hypot(event.start.x - rival.start.x, event.start.z - rival.start.z) > 7);
   }
   assert.equal(arenaLayoutForRace("arena-nope"), null);
   assert.throws(() => arenaEvent("full", 0));
@@ -180,7 +181,7 @@ test("the rival laps every layout cleanly on the centreline", () => {
   const limits: Record<ArenaLayoutId, number> = { full: 106, east: 83, ridge: 70 };
   for (const id of ARENA_LAYOUT_IDS) {
     const event = arenaEvent(id, 1);
-    const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival, traffic: false });
+    const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: false });
     try {
       let groundTicks = 0;
       for (let tick = 0; tick < TICK_HZ * 150 && !sim.state.rival!.race.finished; tick++) {

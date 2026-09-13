@@ -2,8 +2,10 @@ import { defineConfig } from "vite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { layoutMiddleware } from "./scripts/layout-server.mjs";
+import { lapsMiddleware } from "./scripts/laps-server.mjs";
 
 const layoutFile = fileURLToPath(new URL("./src/sim/alder-layout.json", import.meta.url));
+const lapsDir = fileURLToPath(new URL("./recordings/laps", import.meta.url));
 const validatorRevision = Date.now();
 
 // Vite does not read PORT by itself, and the dev script passes no --port flag,
@@ -24,6 +26,10 @@ export default defineConfig({
         if (retired) this.error(`Retired map entered the demo bundle: ${retired}`);
       }
     },
+  }, {
+    // Lap recordings from Ridge Circuit races land in recordings/laps (design/PORT_ALDER.md).
+    name: "lap-recordings",
+    configureServer(server) { server.middlewares.use(lapsMiddleware(lapsDir)); },
   }, {
     name: "alder-layout-editor",
     configureServer(server) {
@@ -51,6 +57,6 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     // Browser downloads can briefly lock files on Windows. They are evidence,
     // never source modules, and must not bring down the dev server's watcher.
-    watch: { ignored: ["**/artifacts/**", "**/.playwright-cli/**"] },
+    watch: { ignored: ["**/artifacts/**", "**/.playwright-cli/**", "**/recordings/**"] },
   },
 });
