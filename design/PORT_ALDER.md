@@ -445,7 +445,32 @@ Sound to Sky remains available as the authored menu race.
 `src/sim/alder-rival.ts` defines a continuous preferred line through all four
 gates. The player remains free to choose any route. `src/sim/rival.ts` controls
 throttle, brake and steering with corner-speed previews, local traffic offsets,
-and reversing/rejoining after a stall. Racing uses the player's shared 62.6 m/s
+and reversing/rejoining after a stall.
+
+**It races the player (2026-09-13).** Until then the player was handed to the
+rival as one more obstacle, the same as traffic: alongside, it moved about 3.8 m
+away and braked to let the player through, and on a street too narrow to dodge
+it braked behind a player holding the middle. Shawn's read of MC3 and NFS:
+Underground was that the missing piece is a desire to win. A racing rival now
+takes the player as its opponent (`RIVAL_RACING` in `src/sim/rival.ts`):
+
+- **Behind:** it takes the side the player is not covering and does not brake
+  for them; if the gap shuts, that is contact.
+- **Alongside:** it holds its line and stays on the throttle.
+- **Ahead and being caught** within 25 m: it eases across to cover the
+  player's side, at most 0.8 of the room there and 1.8 m/s laterally, and not
+  while braking for a corner.
+- **Contact:** it does not lift.
+
+A player stopped or crawling below 4 m/s is in the way rather than racing, and
+is still avoided and slowed for, as traffic always is. Nothing reads race
+position, so it does not drive harder when losing, and nothing changes its
+grip, mass or top speed. The cruising encounter is not racing and still yields.
+`tests/rival-racing.test.ts` covers each case on a straight road; four of its six
+checks fail against the old rival (the other two, passing with room and
+avoiding a parked player, are behaviour it already had and must keep). A bump at
+40 m/s with the player steering in launches neither car. Per-rival aggression
+(Bollard's squeeze into traffic, Deuce's commitment) is not built. Racing uses the player's shared 62.6 m/s
 (140 mph) speed ceiling, with full throttle available on clear straights. The
 corner preview extends with stopping distance instead of ending at 100 metres;
 traffic, bends and recovery still lower the target speed. The 10 m/s local cruise

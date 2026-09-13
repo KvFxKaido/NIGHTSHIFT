@@ -69,7 +69,30 @@ export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDef
 }
 interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number }
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */
-export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[]): Input {
+/**
+ * How a rival races the player (2026-09-13). Before this the player was passed
+ * in with traffic, so the rival slowed to the player's speed behind them and
+ * moved over beside them: it let the player past. A racing rival now wants to
+ * win: it goes for the pass instead of queueing, holds its line alongside,
+ * covers the player's side when they close from behind, and does not lift for
+ * contact. Traffic is still a hazard it slows for, and a player stopped in the
+ * road still is too. Nothing here reads race position, and nothing changes
+ * grip, mass or top speed: the same car, driven like it means it.
+ */
+export const RIVAL_RACING = {
+  /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
+  passReach: 15,
+  passReachPerClosing: 1.6,
+  /** A player slower than this is parked in the road, not racing: slow for them. */
+  racingSpeed: 4,
+  /** How far behind, in metres, a closing player gets blocked. */
+  blockReach: 25,
+  /** Share of the room available that a block uses, and its lateral rate in metres per tick. */
+  blockShare: 0.8,
+  blockRate: 0.03,
+} as const;
+
+export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
@@ -113,7 +136,33 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
   let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : 0;
-  for (const obstacle of obstacles) {
+  let blocking = false;
+  // A parked or crawling player is in the way, not in the race: that one is
+  // avoided and slowed for like any other obstacle. A racing player is raced.
+  const hazards = opponent && opponent.speed < RIVAL_RACING.racingSpeed ? [...obstacles, opponent] : obstacles;
+  if (opponent && opponent.speed >= RIVAL_RACING.racingSpeed && state.race && driver.along >= driver.bypassUntil
+    && Math.abs(opponent.y - car.y) <= 3) {
+    const dx = opponent.x - car.x, dz = opponent.z - car.z;
+    const ahead = dx * target.ux + dz * target.uz, side = dx * -target.uz + dz * target.ux;
+    const room = Math.min(3.8, target.width / 2 - 2.2);
+    const opponentAlong = opponent.speed * (-Math.sin(opponent.heading) * target.ux - Math.cos(opponent.heading) * target.uz);
+    const closing = car.speed - opponentAlong;
+    const reach = RIVAL_RACING.passReach + Math.max(0, closing) * RIVAL_RACING.passReachPerClosing;
+    if (ahead > 0 && ahead < reach && Math.abs(side) < 4 && room > 0) {
+      // Behind them: take the side they are not covering. It does not queue,
+      // so there is no speed match here; if the gap shuts, it is contact.
+      offset = side >= 0 ? -room : room;
+    } else if (ahead < -2.5 && ahead > -RIVAL_RACING.blockReach && Math.abs(side) < 6 && closing < 1 && room > 0
+      // Not while braking for a corner: a block there throws the car wide.
+      && desiredSpeed >= car.speed - 2) {
+      // Ahead of them and being caught: cover their side of the road.
+      offset = clamp(side, -room, room) * RIVAL_RACING.blockShare;
+      blocking = true;
+    }
+    // Alongside (|ahead| small) nothing is added: it holds its line and does
+    // not brake for them.
+  }
+  for (const obstacle of hazards) {
     if (Math.abs(obstacle.y-car.y)>3) continue;
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*-target.uz+dz*target.ux;
@@ -121,14 +170,16 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     if (ahead < -length || ahead > 15+car.speed*1.6 || Math.abs(side)>5) continue;
     const clearance=Math.min(3.8,target.width/2-2.2);
     const candidate=side>=0?-clearance:clearance;
-    const blocked=obstacles.some(other=>other!==obstacle && Math.hypot(other.x-(car.x-target.uz*candidate),other.z-(car.z+target.ux*candidate))<7);
-    if (!blocked) offset=candidate;
+    const blocked=hazards.some(other=>other!==obstacle && Math.hypot(other.x-(car.x-target.uz*candidate),other.z-(car.z+target.ux*candidate))<7);
+    if (!blocked) { offset=candidate; blocking=false; }
     const projectedSpeed=obstacle.speed*(-Math.sin(obstacle.heading)*target.ux-Math.cos(obstacle.heading)*target.uz);
     if (Math.abs(side-driver.avoidance)<2.8 && ahead>0) {
       desiredSpeed=Math.min(desiredSpeed,Math.max(0,projectedSpeed)+Math.max(0,ahead-length-5)*.65);
     }
   }
-  driver.avoidance += clamp(offset-driver.avoidance,-.07,.07);
+  // A block eases across; dodging a hazard or taking a pass does not wait.
+  const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
+  driver.avoidance += clamp(offset-driver.avoidance,-lateralRate,lateralRate);
   const tx=target.x-target.uz*driver.avoidance, tz=target.z+target.ux*driver.avoidance;
   const error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);

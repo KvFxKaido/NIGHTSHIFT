@@ -796,8 +796,11 @@ export function step(sim: Sim, rawInput: Input): void {
   const rival = sim.state.rival;
   const rig: VehicleRig | null = rival && sim.rivalBody ? { roadWorld: sim.roadWorld, body: sim.rivalBody, state: rival } : null;
   if (rival && sim.rivalDefinition && !sim.race?.drag) {
-    rival.input = rivalInput(sim.rivalDefinition, rival, [sim.state.vehicle,
-      ...(sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }))]);
+    // The player is the rival's opponent, not one more obstacle: it races them
+    // (RIVAL_RACING in rival.ts) and slows only for traffic, or a stopped player.
+    rival.input = rivalInput(sim.rivalDefinition, rival,
+      (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
+      sim.state.vehicle);
   }
   if (sim.race?.drag && sim.state.race) {
     rawInput = dragLaneInput(sim.race.drag, sim.state.race, sim.state.vehicle, rawInput);
