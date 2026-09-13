@@ -172,11 +172,13 @@ Reputation does not.
 
 **The opening** is a short rendered cutscene with text dialogue and character
 portraits, not a playable race. In it the player loses the red NS-01, the
-original hero car, to #1, and the loss is honest: no sabotage. The player then
-starts from a garage body and climbs the list to win the NS-01 back from #1.
-That is also the story of why the NS-01 left the garage. The cutscene is
-presentation only (§17.2); the sim never models the opening race, so there is
-no outcome in which the player wins it.
+original hero car, and the loss is honest: no sabotage. The player then starts
+from a garage body. The cutscene is presentation only (§17.2); the sim never
+models the opening race, so there is no outcome in which the player wins it.
+
+The NS-01 is not the summit of the list the way Most Wanted's BMW was, and #1
+does not hold it. Sable keeps it, as today (`design/CHARACTERS.md`,
+`src/sim/drift-yard.ts`).
 
 **Beating a name** means earning a shot, then winning their challenge. Every
 name's signature car is the player's when they are beaten, guaranteed. Ten
@@ -185,14 +187,15 @@ rivals included.
 
 Open, and unresolved in these documents:
 
-- **#1 has not been created.** #1 holds the NS-01 and needs a portrait
-  before the opening can exist. Sable drives the red NS-01 today
-  (`design/CHARACTERS.md`, `src/sim/drift-yard.ts`), so creating #1 also
-  means settling Sable's car.
+- **#1 has not been created**, and needs a portrait and a signature car.
 - **Whether the player has a portrait** in the opening's dialogue.
 
 Proposed, not decided:
 
+- The player loses the NS-01 to Sable in the opening, which is also the story
+  of why it left the garage, and wins it back as Sable's guaranteed signature
+  car. That returns the car partway up the list, while there is still racing
+  to use it in, rather than after the last race.
 - A shot is earned by racing, not by police heat (§21): wins on that name's
   home turf, so the player has learned their streets before racing them there.
 - A name's challenge can be their discipline, such as Rivet's drag or Sable's
