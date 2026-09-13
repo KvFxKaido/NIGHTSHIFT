@@ -187,11 +187,19 @@ rivals included.
 
 Open, and unresolved in these documents:
 
-- **#1 has not been created**, and needs a portrait and a signature car.
+- **#1's signature car** is not designed. #1 is **Tally** (2026-09-12,
+  `design/reference/characters/tally/`): Moth's student, who outgrew her, and
+  the one who keeps the list. Her car has to carry her violet.
 - **Whether the player has a portrait** in the opening's dialogue.
 
 Proposed, not decided:
 
+- Tally's characteristic mistake (§10): she is the fastest driver on every
+  line she knows and never takes a line she has not driven, so the way past
+  her is a route she does not know. Rivals learn only from races the player
+  wins, so each such route works once.
+- A shot at the next name arrives as a text from Tally, and the opening's last
+  line is Tally writing the player's name onto the list.
 - The player loses the NS-01 to Sable in the opening, which is also the story
   of why it left the garage, and wins it back as Sable's guaranteed signature
   car. That returns the car partway up the list, while there is still racing
