@@ -513,3 +513,102 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     absorbHandoff(network, vehicle, vehicle.speed * dt);
   }
 }
+
+/**
+ * Where a vehicle will be `seconds` from now if it keeps its speed and its plan
+ * (2026-09-13). It drives the same lanes, takes the movements it holds and then
+ * the ones `movementAt` has already decided, makes the same handoff slide onto
+ * each new lane, and stops at the entry line of any junction it holds no claim
+ * for, because that is the rule it drives by. A forecast, not a promise: a car
+ * granted a junction in the meantime pulls out, and one that brakes for a queue
+ * is further back than this says.
+ *
+ * Not read by the rival yet. Reading it where the rival would reach each car cut
+ * circling and strays over 42 races in traffic, but on one pinned seed it passed a
+ * truck at 100 mph as the truck turned across, and every narrower fix moved the
+ * failure to another seed (design/PORT_ALDER.md). It is exact against traffic
+ * (`tests/traffic-intent.test.ts`) and is the plan the indicators show, so a rival
+ * that reads it knows no more than a driver watching them.
+ */
+export function forecastTraffic(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, seconds: number, step = 0.1, fine = 1 / 60): { x: number; z: number; heading: number } {
+  const ghost: TrafficVehicleState = { ...vehicle, holds: [...vehicle.holds] };
+  let left = seconds;
+  while (left > 1e-9) {
+    // Coarse steps on a lane, the tick's own step across a lane change: the slide
+    // onto the new lane starts from where the car was the step before, and a coarse
+    // step starts it from the wrong place (1.2 m off after two seconds at 0.1 s).
+    const coarse = Math.min(step, left);
+    const crossing = ghost.holds.length > 0 && ghost.distance + ghost.speed * coarse >= network.lanes[ghost.lane]!.length;
+    const dt = crossing ? Math.min(fine, coarse) : coarse;
+    left -= dt;
+    const before = ghost.distance;
+    ghost.distance += ghost.speed * dt;
+    const line = network.lanes[ghost.lane]!.length - network.lanes[ghost.lane]!.entry;
+    if (!ghost.holds.length && before <= line && ghost.distance > line) ghost.distance = line;
+    const held = { x: ghost.x, z: ghost.z, heading: ghost.heading };
+    const laneBefore = ghost.lane;
+    let current = network.lanes[ghost.lane]!;
+    while (ghost.distance >= current.length && ghost.holds.length) {
+      ghost.distance -= current.length;
+      ghost.turns++;
+      ghost.lane = network.movements[ghost.holds[0]!]!.to;
+      current = network.lanes[ghost.lane]!;
+      if (ghost.holds.length > 1) ghost.holds.shift();
+      else ghost.holds = [];
+      ghost.movement = ghost.holds.length ? ghost.holds[0]! : chooseMovement(network, ghost);
+    }
+    if (ghost.distance >= current.length) ghost.distance = current.length;
+    place(network, ghost);
+    if (ghost.lane !== laneBefore) beginHandoff(ghost, held);
+    absorbHandoff(network, ghost, ghost.speed * dt);
+  }
+  return { x: ghost.x, z: ghost.z, heading: ghost.heading };
+}
+
+/** Metres before its junction's entry line a vehicle starts showing the turn it has already decided. */
+export const SIGNAL_RANGE = 45;
+/** A movement turning less than this is straight on and shows nothing. */
+const SIGNAL_DEGREES = 30;
+const movementTurns = new WeakMap<TrafficNetwork, Map<number, "left" | "right" | null>>();
+
+/** Metres before the entry line the approach is read from: some lanes already bend at the line. */
+const APPROACH_READ = 15;
+
+/**
+ * Which way a movement turns: the approach heading, read before the junction,
+ * against the leaving lane's heading where the movement is clear. Whether that is
+ * left or right is which side of the approach the exit lies, not the sign of the
+ * heading change, which flips near a U-turn.
+ */
+export function movementTurn(network: TrafficNetwork, id: number): "left" | "right" | null {
+  let cache = movementTurns.get(network);
+  if (!cache) movementTurns.set(network, cache = new Map());
+  const known = cache.get(id);
+  if (known !== undefined) return known;
+  const movement = network.movements[id]!, from = network.lanes[movement.from]!, to = network.lanes[movement.to]!;
+  const approach = network.pose(movement.from, Math.max(0, from.length - from.entry - APPROACH_READ));
+  const exit = network.pose(movement.to, Math.min(to.length, movement.clear));
+  const turn = Math.atan2(Math.sin(exit.heading - approach.heading), Math.cos(exit.heading - approach.heading));
+  // Forward is (-sin h, -cos h), so the left is (-cos h, sin h).
+  const leftward = (exit.x - approach.x) * -Math.cos(approach.heading) + (exit.z - approach.z) * Math.sin(approach.heading);
+  const result = Math.abs(turn) < SIGNAL_DEGREES * Math.PI / 180 ? null : leftward > 0 ? "left" : "right";
+  cache.set(id, result);
+  return result;
+}
+
+/**
+ * The indicator a vehicle shows (2026-09-13): the turn at its next junction,
+ * from `SIGNAL_RANGE` metres before the entry line until it is clear on the far
+ * side. The turn was decided when it entered the lane (`movementAt`), so this is
+ * a fact about the plan, not a guess at it, and the same plan `forecastTraffic`
+ * drives forward.
+ */
+export function trafficSignal(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): "left" | "right" | null {
+  const id = vehicle.holds.length ? vehicle.holds[0]! : vehicle.movement;
+  if (id < 0) return null;
+  const movement = network.movements[id]!;
+  if (vehicle.lane === movement.to) return movementTurn(network, id);
+  if (vehicle.lane !== movement.from) return null;
+  const lane = network.lanes[vehicle.lane]!;
+  return lane.length - lane.entry - vehicle.distance <= SIGNAL_RANGE ? movementTurn(network, id) : null;
+}

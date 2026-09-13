@@ -890,3 +890,121 @@ Inference, to be checked against Uptown recordings: junction turns are the
 biggest street pace limit, traffic the second, and the lost/circling modes cause
 the failures. Nothing here says how much faster than the rival a player takes
 those turns; that is what the recordings are for.
+
+**First recorded laps (2026-09-13).** Shawn, clear streets, solo, RWD Cinder:
+86.83 s standing, then 80.73 and 81.07 s, both invalid for cutting junction corners
+past the pavement (up to seven of the ten turns, twice with all four wheels off).
+The rival alone, AWD Kestrel: 99.08 s. Averaged over the two flying laps, the
+160 m round each turn is 16.1 s of the 18.2 s gap. At every turn the rival is
+slowest 5 m short of the junction at 18-25 mph on a 9-20 m radius, usually
+already braking 250 m out; Shawn is slowest at 41-58 mph through the square
+turns on 35-95 m radii and 79-86 mph through the two open ones, using 4-9 m of
+the junction and the handbrake in eight turns. Top speeds on the straights are
+within a few mph. Cutting did not buy consistent time: at most turns a clean
+pass was his fastest or a cut one his slowest; only Broadway & Market Arcade
+shows a clear gain (about 0.5 s). Track limits on streets stay as they are; laps
+invalid for cutting are still read, with the cutting noted. Next: laps against
+the rival and in traffic, before any tuning.
+
+**Against the rival, and in traffic (2026-09-13).** One session each, all
+replaying exactly. Shawn (RWD Cinder): clear against the rival 86.83 / 83.72 /
+84.97 s; traffic solo 90.23 / 88.38 / 84.92 s (the last invalid); traffic against
+the rival 85.80 / 85.10 (invalid) / 82.10 s. Traffic cost him little: 19 ticks of
+contact in one session, none in the other, 1-3 s under 8 m/s a race, and his best
+valid lap came in traffic. He passed the rival at the first turn of both races
+(82 mph to its 30 on clear streets) and finished 1.2 km ahead on clear streets
+and 2.6 km ahead in traffic.
+
+The rival in traffic: 107.02 s, then 138.97 s, 2,619 ticks of contact with
+traffic, 2,522 of them with cars going its way. Traced:
+
+- **Pinned behind a truck for 42 s.** Out of the hairpin on lap 1 it came up behind
+  a 7.2 m vehicle doing 11 m/s in the inner lane and pushed it at full throttle,
+  its target speed never lowered, until a turn 42 s later. The traffic loop in
+  `rivalInput` measures `side` from the car but compares it with
+  `driver.avoidance`, an offset from the route. Already 3.8 m right of its route
+  to pass, the rival saw the truck 1.2 m to its left as 5.0 m out of its path, so
+  it neither slowed nor moved. The passing offset is capped at 3.8 m from the
+  centreline, which cannot clear a car in the inner lane (2.7 m) on the kerb
+  side, and the clear-side check measures candidates from the car too.
+- **The hairpin.** Every lap, clear or not, the 129° hairpin puts its aim more than
+  1 rad off its heading, which holds it to 6 m/s for about 97 ticks: its slowest
+  there is 14 mph to Shawn's 27.
+- **After traffic contact at 12th Avenue & Thomas Street** it spent 284 ticks held
+  to 6 m/s at full lock.
+
+**The truck, traffic's plan and indicators (2026-09-13).** Shawn's read of
+traffic: turns you cannot predict, and stop-start hesitation at junctions. His
+suggestion was to give the rival traffic's driving line. Traffic has one: which
+way a car turns is decided by `movementAt` when it enters a lane, and a car with
+no claim on a junction stops at its line. A plan only the rival could read would
+be an edge over a player who cannot, so the plan is drawn as indicators first.
+
+Shipped:
+
+- **The truck (a bug).** `rivalInput`'s traffic loop compared `side`, measured
+  from the car, with `driver.avoidance`, an offset from the route, and chose
+  passing sides and checked them for other cars from the car too. Offsets are
+  now all from the route (`side + nearestSide`). A pass goes to a gap beside the
+  car, 3.2 m centre to centre and no more than 3.8 m off the route (`PASS`); free
+  to reach the road's edge it strayed 31.5 m in twelve races.
+  `tests/rival-racing.test.ts` has the pinned shape, failing on the old loop.
+- **The orbit.** More than a radian off, the rival aimed at a point on its route
+  about 10 m ahead; at a right-angle corner that point is inside the tightest
+  circle the car can turn (8.4 m at 0.34 rad of lock on a 2.96 m wheelbase), so
+  at full lock it circled it, and the point never moved because the car made no
+  progress. It now aims 2.5 turning radii along the route. Ridge Circuit's laps
+  are unchanged to the tenth: it never triggers there.
+- **Indicators (`trafficSignal`).** From 45 m before a junction's line until clear
+  of it, a car shows the turn it will make; straight on shows nothing. Left or
+  right is which side of the approach the exit lies, read 15 m before the line:
+  reading the heading at the line itself, where some lanes already bend, flipped
+  a 145° left into a right. `tests/traffic-intent.test.ts` watches two minutes of
+  the city's traffic and every car turns the way it signalled. Drawn as amber
+  lamps at the corners (`render/traffic.ts`); the sim decides, the renderer
+  flashes. Hesitation is not addressed: a car waits at a line because it has no
+  reservation yet, and nothing shows that.
+
+Measured over 42 races in traffic (Sound to Sky, the Queen Anne Climb start,
+generated seeds 1-40), rival alone:
+
+| Rival | Time | Traffic contact | Circling | Lost | Past 16 m |
+|---|---|---|---|---|---|
+| Before | 4,211.6 s | 894 ticks | 84.4 s | 61.7 s | 5 races, worst 23.0 m |
+| **Shipped** | 4,218.4 s | 630 ticks | 65.1 s | 43.6 s | 3 races, worst 22.9 m |
+| + the plan, read on arrival | 4,175.1 s | 1,216 ticks | 56.2 s | 30.5 s | 1 race (seed 3), 21.1 m |
+| + not passing a car turning across | 4,269.9 s | 766 ticks | 62.1 s | 29.8 s | 1 race (seed 12), 46.5 m, a reset |
+
+On empty streets the shipped rival is 0.9 s quicker over the 42, worst 6.1 m. On
+Uptown Circuit it is mixed: in Shawn's recorded traffic race it no longer pins
+itself (320 ticks of traffic contact, laps 103.8 and 99.0 s, against 2,619 and
+107.0 and 139.0), and the hairpin holds it 73-79 ticks rather than 97; alone for
+three laps in traffic its third lap still leaves the road, as before (16.3 m,
+461 ticks of contact, against 15.2 m and 75).
+
+Not shipped, and why:
+
+- **The plan (`forecastTraffic`).** A copy of the car driven forward on its lanes,
+  through the movements it holds and then the ones already decided, with the same
+  handoff slide, stopping at the line of any junction it has no claim to. It steps
+  0.1 s on a lane and a tick across a lane change (0.1 s throughout started the
+  slide from the wrong place, 1.2 m off after two seconds), and the test holds it
+  to real traffic: every car that kept its speed within 0.25 m after 2 s, turns
+  included, and a car with no claim stopped at its line. Read where the rival
+  would reach each car it was best over the 42 races, but on seed 3, which
+  `tests/race-generator.test.ts` pins, it caught a box truck at 100 mph just as
+  the truck reached its junction, read it as clear, and hit it as it swung left
+  across the street. Not passing a car forecast to turn across fixed seed 3 and
+  cost 58 s over the 42 and a 46.5 m stray on seed 12; sweeping the whole
+  approach and braking for every predicted crossing hit more traffic, leaving the
+  rival slow in junctions traffic does not yield in. The code and its test stay
+  in `traffic.ts`; the rival does not read it.
+- **Traffic sees neither car.** On seed 15 a rival slowed to turn into a one-lane
+  street was pushed 604 ticks by the sedan behind. Traffic that reacts to cars in
+  its lane is a traffic design change, not made.
+
+Single races in traffic are chaotic: two runs that should behave alike differed by
+20 s over twelve races. No variant was judged on fewer than twelve, and the
+choice on these 42. Still open: the block and pass against the player
+(`RIVAL_RACING`) take `side` from the car; it shaped Ridge Circuit's racing and
+is left for a measured change of its own.

@@ -167,7 +167,10 @@ fixtures outside the playable bundle, and old world links redirect.
   length is pinned (`design/PORT_ALDER.md`, "Uptown Circuit").
 - **Traffic.** About 260 kinematic vehicles with reserved junction
   movements (`traffic.ts`); an immovable hazard, never a second handling
-  model. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
+  model. Each car's turns are decided in advance and it shows the next one on
+  amber indicators (`trafficSignal`). `forecastTraffic` drives that plan
+  forward exactly; the rival does not read it yet (`design/PORT_ALDER.md`), and
+  if it does, it reads no more than the indicators show the player. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
   which is still sparse. The density-24 and ceiling-55 figures in
   `design/FIELD_NOTES.md` are the retired district's 192 lanes, not this map.
 - **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), a city
@@ -270,6 +273,12 @@ fixtures outside the playable bundle, and old world links redirect.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
   Traffic has no revision: changing how it drives silently breaks replay of
   every street session recorded in traffic.
+- In `rivalInput`, `side` is measured from the car and `driver.avoidance` from
+  the route; compare them only after adding the car's own offset (`nearestSide`).
+  Mixing them pinned the rival on a truck's bumper for 42 s. The player-racing
+  block above the traffic loop still mixes them.
+- Traffic sees neither the rival nor the player. A car slow in a one-lane street
+  gets pushed by the one behind; slowing harder for traffic makes that worse.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
   that breaks the tests is green on GitHub. Run `pnpm test` yourself.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not

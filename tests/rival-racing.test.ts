@@ -148,11 +148,12 @@ test("it stays on the throttle through contact, and contact at speed launches no
 // gets there. Measured on Sound to Sky with the player parked, the old loop
 // lost 18.8 s to traffic (169.9 s empty, 188.7 s with traffic, 118 ticks of
 // contact); this one loses 12.4 s (182.3 s, 30 ticks).
-function decide(obstacles: { x: number; z: number; speed: number; heading: number; length?: number }[], width = 24) {
+function decide(obstacles: { x: number; z: number; speed: number; heading: number; length?: number }[], width = 24, rivalX = 0) {
   const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
   const route: RivalDefinition = { id: "traffic-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000] };
-  const vehicle = { ...createSim("fwd").state.vehicle, x: 0, y: 0, z: -100, heading: 0, speed: 30, forwardSpeed: 30, lateralSpeed: 0 };
-  const driver = { ...createRivalDriver(), along: 100, progressMark: 100 };
+  const vehicle = { ...createSim("fwd").state.vehicle, x: rivalX, y: 0, z: -100, heading: 0, speed: 30, forwardSpeed: 30, lateralSpeed: 0 };
+  // Out wide already, as it would be while passing: its avoidance says where it is.
+  const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: rivalX };
   const input = rivalInput(route, { vehicle, driver, race: null }, obstacles.map(o => ({ y: 0, ...o })));
   return { input, driver };
 }
@@ -175,6 +176,22 @@ test("a slower car ahead is passed with room, and queued behind only without it"
   // Both sides taken by cars beside it: nowhere to go.
   const boxed = decide([{ x: 0, z: -130, speed: 15, heading: 0 }, { x: 3.8, z: -100, speed: 30, heading: 0 }, { x: -3.8, z: -100, speed: 30, heading: 0 }]);
   assert.ok(boxed.driver.targetSpeed < 29, `boxed in, it kept a target of ${boxed.driver.targetSpeed}`);
+});
+
+// Pinned behind a truck (2026-09-13). On Uptown Circuit in traffic the rival,
+// already 3.8 m right of its route, came up behind a box truck in the inner lane
+// (2.6 m right, 11 m/s) and pushed it at full throttle for 42 s: the loop measured
+// the truck from the car but compared it with an offset from the route, so it saw
+// the truck 5 m out of its path. Here, the same shape on a 20 m street.
+test("a slower car in its way is slowed for and passed even when the rival is already out wide", () => {
+  const truck = { x: 2.6, z: -106.2, speed: 11, heading: 0, length: 7.2 };
+  const pinned = decide([truck], 20, 3.8);
+  assert.ok(pinned.driver.targetSpeed < 15, `on the truck's bumper it kept a target of ${pinned.driver.targetSpeed.toFixed(1)} m/s`);
+  assert.ok(Math.abs(pinned.driver.avoidance - 3.8) > 0.01, "it did not move to pass");
+  // With the truck well ahead, it moves over to a gap beside it rather than following.
+  const room = decide([{ ...truck, z: -140 }], 20, 3.8);
+  assert.ok(room.driver.targetSpeed > 29, `with room to pass it slowed to ${room.driver.targetSpeed.toFixed(1)} m/s`);
+  assert.ok(Math.abs(room.driver.avoidance - 3.8) > 0.01, "with room to pass it did not move over");
 });
 
 // The lost-car cap (2026-09-13). A rival is held to 10 m/s until it is back

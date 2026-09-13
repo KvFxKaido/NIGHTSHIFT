@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { TRAFFIC_KINDS, type TrafficKind, type TrafficState } from "../sim/traffic.ts";
+import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, type TrafficState } from "../sim/traffic.ts";
 
 /**
  * Traffic, drawn. The sim decides where every vehicle is and which way it
@@ -15,9 +15,18 @@ export interface TrafficView {
   readonly root: THREE.Group;
   readonly bodies: Map<TrafficKind, THREE.InstancedMesh>;
   readonly lamps: Map<TrafficKind, THREE.InstancedMesh>;
+  /** Amber indicators, one set per side, shown per vehicle by `trafficSignal`. */
+  readonly indicators: Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>;
   /** Where each vehicle sits in its kind's instance buffer. */
   readonly slots: number[];
+  readonly network: TrafficNetwork | null;
+  /** Seconds into the indicators' flash. Presentation only. */
+  blink: number;
 }
+
+/** Indicator rate: about 90 flashes a minute, lit a little over half of each. */
+const BLINK_PERIOD = 0.66, BLINK_LIT = 0.38;
+const AMBER = new THREE.Color(0xffa21a);
 
 // Muted on purpose. Traffic has to be legible as a hazard without reading as
 // brighter than the buildings behind it; the lamps do the announcing.
@@ -71,11 +80,24 @@ function lampGeometry(kind: TrafficKind): THREE.BufferGeometry {
   return merged;
 }
 
-export function addTraffic(scene: THREE.Scene, traffic: TrafficState): TrafficView {
+/** One side's indicators, front and rear at the outer corners. Forward is -Z, so the left is -X. */
+function indicatorGeometry(kind: TrafficKind, side: "left" | "right"): THREE.BufferGeometry {
+  const spec = TRAFFIC_KINDS[kind], x = (side === "left" ? -1 : 1) * spec.width * 0.44;
+  const front = new THREE.BoxGeometry(spec.width * 0.14, 0.14, 0.1);
+  front.translate(x, spec.height * 0.42, -spec.length / 2 - 0.04);
+  const rear = new THREE.BoxGeometry(spec.width * 0.14, 0.14, 0.1);
+  rear.translate(x, spec.height * 0.45, spec.length / 2 + 0.04);
+  const merged = mergeGeometries([front, rear])!;
+  front.dispose(); rear.dispose();
+  return merged;
+}
+
+export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: TrafficNetwork | null = null): TrafficView {
   const root = new THREE.Group();
   root.name = "district-traffic";
   const bodies = new Map<TrafficKind, THREE.InstancedMesh>();
   const lamps = new Map<TrafficKind, THREE.InstancedMesh>();
+  const indicators = new Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>();
   const counts = new Map<TrafficKind, number>();
   const slots: number[] = [];
   for (const vehicle of traffic.vehicles) {
@@ -100,6 +122,17 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState): TrafficVi
     lamp.frustumCulled = false;
     lamps.set(kind, lamp);
     root.add(lamp);
+
+    const sides = {} as Record<"left" | "right", THREE.InstancedMesh>;
+    for (const side of ["left", "right"] as const) {
+      const indicator = new THREE.InstancedMesh(indicatorGeometry(kind, side),
+        new THREE.MeshBasicMaterial({ color: AMBER, toneMapped: false }), count);
+      indicator.name = `traffic-indicators-${kind}-${side}`;
+      indicator.frustumCulled = false;
+      root.add(indicator);
+      sides[side] = indicator;
+    }
+    indicators.set(kind, sides);
   }
   // Paint is per vehicle and never changes, so it is written once. Taxis are a
   // fixed colour: a taxi you cannot pick out of the queue is just a car.
@@ -111,12 +144,16 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState): TrafficVi
   for (const body of bodies.values()) if (body.instanceColor) body.instanceColor.needsUpdate = true;
 
   scene.add(root);
-  return { root, bodies, lamps, slots };
+  return { root, bodies, lamps, indicators, slots, network, blink: 0 };
 }
 
 const placement = new THREE.Object3D();
+const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 
-export function updateTraffic(view: TrafficView, traffic: TrafficState): void {
+/** `elapsed` is the frame's seconds, for the indicators' flash; where cars are is the tick's alone. */
+export function updateTraffic(view: TrafficView, traffic: TrafficState, elapsed = 0): void {
+  view.blink = (view.blink + elapsed) % BLINK_PERIOD;
+  const lit = view.blink < BLINK_LIT;
   traffic.vehicles.forEach((vehicle, index) => {
     placement.position.set(vehicle.x, vehicle.y, vehicle.z);
     placement.rotation.set(0, vehicle.heading, 0);
@@ -124,8 +161,13 @@ export function updateTraffic(view: TrafficView, traffic: TrafficState): void {
     const slot = view.slots[index]!;
     view.bodies.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);
     view.lamps.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);
+    const signal = lit && view.network ? trafficSignal(view.network, vehicle) : null;
+    const sides = view.indicators.get(vehicle.kind)!;
+    sides.left.setMatrixAt(slot, signal === "left" ? placement.matrix : hidden);
+    sides.right.setMatrixAt(slot, signal === "right" ? placement.matrix : hidden);
   });
-  for (const mesh of [...view.bodies.values(), ...view.lamps.values()]) {
+  const indicatorMeshes = [...view.indicators.values()].flatMap(sides => [sides.left, sides.right]);
+  for (const mesh of [...view.bodies.values(), ...view.lamps.values(), ...indicatorMeshes]) {
     mesh.instanceMatrix.needsUpdate = true;
   }
 }

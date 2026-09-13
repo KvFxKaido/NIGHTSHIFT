@@ -162,7 +162,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     mode: "track",
     rivalCar: null, parkedRivalCars: new Map(),
     sky: null,
-    traffic: traffic ? addTraffic(scene, traffic) : null,
+    traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null) : null,
     race: addRaceBeacon(scene, gateRadius),
     surface: (x, z) => roadWorld.project(x, z).height,
   };
@@ -275,7 +275,7 @@ export function render(
   if (view.sky) view.sky.position.set(car.x, 0, car.z);
   // Traffic is drawn from the state the tick left behind, never interpolated or
   // guessed at: the renderer still only draws what a tick decided.
-  if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic);
+  if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic, frameDelta);
   placeCar(view, car);
   for (const rival of state.parkedRivals) {
     const parts = view.parkedRivalCars.get(rival.id);

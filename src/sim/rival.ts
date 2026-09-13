@@ -101,9 +101,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * smoothed line on Ridge Circuit. "full-line-v1": braking while turning, steering
  * feedforward and the full racing line. "full-line-v2": on a racing line the
  * lost-car speed cap means off the road, not off the line. "full-line-v3": it
- * brakes later and harder on a racing line (RIVAL_BRAKING).
+ * brakes later and harder on a racing line (RIVAL_BRAKING). "full-line-v4": traffic
+ * judged in the route's frame and passed to a gap beside it, and an aim more than
+ * a radian off moved outside the turning circle.
  */
-export const RIVAL_REVISION = "full-line-v3";
+export const RIVAL_REVISION = "full-line-v4";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -170,6 +172,16 @@ export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3 } as cons
 
 /** Metres past the carriageway's edge a rival on a racing line may be before it counts as lost: a paved shoulder's worth. */
 export const OFF_ROAD_MARGIN = 1.5;
+
+/**
+ * Passing traffic (2026-09-13): a gap `gap` metres centre to centre beside the car
+ * being passed (half of each car and room between), never more than `reach`
+ * metres off the route. Passes free to swing to the road's edge were measured
+ * and hit more traffic and strayed further (a 31.5 m stray in twelve races).
+ */
+const PASS = { gap: 3.2, reach: 3.8 } as const;
+/** Metres along the route aimed at when the aim is more than a radian off: well outside the tightest circle the car can turn. */
+const orbitReach = () => 2.5 * (HANDLING.frontAxleDistance + HANDLING.rearAxleDistance) / Math.tan(HANDLING.maxSteeringAngle);
 
 /**
  * Braking on a racing line: later and harder (2026-09-13). The brake answers
@@ -309,25 +321,33 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const slowFor = (along: number, ahead: number, length: number) => {
     desiredSpeed=Math.min(desiredSpeed,Math.max(0,along)+Math.max(0,ahead-length-5)*.65);
   };
+  // Every lateral position below is an offset from the route, the frame
+  // `driver.avoidance` is in (2026-09-13). `side` is measured from the car, so a
+  // car's offset from the route is `side` plus the car's own, `nearestSide`.
+  // Comparing `side` with `driver.avoidance` directly, as this loop did, was
+  // right only while the rival was on its route: 3.8 m out to pass a truck on
+  // Uptown Circuit, it saw the truck 1.2 m to its left as 5 m out of its path,
+  // neither slowed nor moved, and pushed it at full throttle for 42 s.
+  const edge = Math.max(0, target.width / 2 - 2.2);
+  const lowest = -edge - target.lateral, highest = edge - target.lateral;
+  const normalX = -target.uz, normalZ = target.ux;
   for (const obstacle of hazards) {
     if (Math.abs(obstacle.y-car.y)>3) continue;
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
-    const ahead=dx*target.ux+dz*target.uz, side=dx*-target.uz+dz*target.ux;
+    const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
+    const offRoute=side+nearestSide;
     const length=(obstacle.length??4.2)/2+2.1;
     if (ahead < -length || ahead > 15+car.speed*1.6) continue;
     const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
     const along=obstacle.speed*(headingX*target.ux+headingZ*target.uz);
-    const across=obstacle.speed*(headingX*-target.uz+headingZ*target.ux);
+    const across=obstacle.speed*(headingX*normalX+headingZ*normalZ);
     const crossing=Math.abs(across)>2;
     if (!crossing && Math.abs(side)>5) continue;
-    // Its offset across the line when this car reaches it, and how wide a
+    // Its offset from the route when this car reaches it, and how wide a
     // corridor that has to miss: a crossing car sweeps its own length.
     const arrival=Math.max(0,ahead-length)/Math.max(1,car.speed-along);
-    const sideAtArrival=side+across*arrival;
+    const sideAtArrival=offRoute+across*arrival;
     const inPath=Math.abs(sideAtArrival-driver.avoidance)<(crossing?length:2.6);
-    const clearance=Math.min(3.8,target.width/2-2.2);
-    const clear=(candidate: number)=>clearance>0 && !hazards.some(other=>other!==obstacle
-      && Math.hypot(other.x-(car.x-target.uz*candidate),other.z-(car.z+target.ux*candidate))<7);
     if (crossing || along < -2) {
       // Crossing, or oncoming: it matters only if it will be across the line
       // when this car gets there, and then it is slowed for rather than
@@ -339,24 +359,39 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       if (inPath && ahead>0) slowFor(along,ahead,length);
       continue;
     }
-    // Same direction: pass it on whichever side is clear, the way it passes
-    // the player. Only with nowhere to go, or already on its bumper, does it
-    // take that car's speed.
-    const sides=side>=0?[-clearance,clearance]:[clearance,-clearance];
+    // Same direction: pass it on whichever side is clear, the way it passes the
+    // player, to a gap beside it (`PASS`), the nearer side first. A side that
+    // would not clear the car is no side. Only with nowhere to go, or already on
+    // its bumper, does it take that car's speed.
+    const clear=(candidate: number)=>!hazards.some(other=>other!==obstacle && (
+      Math.hypot(other.x-(car.x+normalX*(candidate-nearestSide)),other.z-(car.z+normalZ*(candidate-nearestSide)))<7
+      || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7));
+    const reach=Math.min(PASS.reach, edge);
+    const sides=[offRoute-PASS.gap,offRoute+PASS.gap].map(c=>clamp(c,Math.max(lowest,-reach),Math.min(highest,reach)))
+      .filter(c=>Math.abs(c-offRoute)>=2.6).sort((a,b)=>Math.abs(a-driver.avoidance)-Math.abs(b-driver.avoidance));
     const open=sides.find(clear);
     if (open!==undefined) { offset=open; blocking=false; }
     const onBumper=ahead-length<4;
-    if (ahead>0 && Math.abs(side-driver.avoidance)<2.8 && (open===undefined || onBumper)) slowFor(along,ahead,length);
+    if (ahead>0 && Math.abs(offRoute-driver.avoidance)<2.8 && (open===undefined || onBumper)) slowFor(along,ahead,length);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
   driver.avoidance += clamp(offset-driver.avoidance,-lateralRate,lateralRate);
   // However far a pass, block or dodge moves it, the car stays on the road: on a
   // racing line the room each side is measured from where the line already is.
-  const edge = Math.max(0, target.width / 2 - 2.2);
-  driver.avoidance = clamp(driver.avoidance, -edge - target.lateral, edge - target.lateral);
-  const tx=target.x-target.uz*driver.avoidance, tz=target.z+target.ux*driver.avoidance;
-  const error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
+  driver.avoidance = clamp(driver.avoidance, lowest, highest);
+  let tx=target.x-target.uz*driver.avoidance, tz=target.z+target.ux*driver.avoidance;
+  let error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
+  if (Math.abs(error)>1) {
+    // More than a radian off, at a sharp corner or after a shove, the aim can be
+    // inside the tightest circle the car can turn (8.4 m at full lock): steering
+    // for it at full lock orbits it, and the aim does not move because the car
+    // makes no progress. Seed 5 circled a junction corner for 3.5 s that way.
+    // Aim further along the route instead, outside that circle.
+    const wide = sampleRivalPath(route, Math.min(gate, driver.along + Math.max(lookAhead, orbitReach())));
+    tx=wide.x-wide.uz*driver.avoidance; tz=wide.z+wide.ux*driver.avoidance;
+    error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
+  }
   if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);
   // Lost: held to 10 m/s until it is back. On a street centreline that is more
   // than 5 m from it. On a racing line it is off the road: the line and any pass
