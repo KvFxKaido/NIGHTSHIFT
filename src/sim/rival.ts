@@ -106,9 +106,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * brakes later and harder on a racing line (RIVAL_BRAKING). "full-line-v4": traffic
  * judged in the route's frame and passed to a gap beside it, and an aim more than
  * a radian off moved outside the turning circle. "full-line-v5": recovery out of
- * the player's sight (UNSEEN_RECOVERY in sim.ts).
+ * the player's sight (UNSEEN_RECOVERY in sim.ts). "full-line-v6": a passing side is
+ * checked for an oncoming car where it will be when the rival is alongside.
  */
-export const RIVAL_REVISION = "full-line-v5";
+export const RIVAL_REVISION = "full-line-v6";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -366,9 +367,17 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // player, to a gap beside it (`PASS`), the nearer side first. A side that
     // would not clear the car is no side. Only with nowhere to go, or already on
     // its bumper, does it take that car's speed.
+    // A side is clear if nobody is beside this car there now, beside the car being
+    // passed there now, or there when this car gets alongside it. The last is for an
+    // oncoming car: on Uptown the rival pulled out round a queue at the hairpin into
+    // the path of a car 41 m away and closing at 35 m/s, clear by the first two.
+    const alongside=Math.min(4,arrival);
+    const passAt=(candidate: number)=>({ x: obstacle.x-Math.sin(obstacle.heading)*obstacle.speed*alongside+normalX*(candidate-offRoute),
+      z: obstacle.z-Math.cos(obstacle.heading)*obstacle.speed*alongside+normalZ*(candidate-offRoute) });
     const clear=(candidate: number)=>!hazards.some(other=>other!==obstacle && (
       Math.hypot(other.x-(car.x+normalX*(candidate-nearestSide)),other.z-(car.z+normalZ*(candidate-nearestSide)))<7
-      || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7));
+      || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7
+      || Math.hypot(other.x-Math.sin(other.heading)*other.speed*alongside-passAt(candidate).x,other.z-Math.cos(other.heading)*other.speed*alongside-passAt(candidate).z)<7));
     const reach=Math.min(PASS.reach, edge);
     const sides=[offRoute-PASS.gap,offRoute+PASS.gap].map(c=>clamp(c,Math.max(lowest,-reach),Math.min(highest,reach)))
       .filter(c=>Math.abs(c-offRoute)>=2.6).sort((a,b)=>Math.abs(a-driver.avoidance)-Math.abs(b-driver.avoidance));

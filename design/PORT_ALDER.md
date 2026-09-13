@@ -1129,3 +1129,31 @@ test, which fails with either undone.
 Faster in 22 races, slower in 4 (2.6 s at most); clear streets unchanged; the
 pinned seeds all within 3.3 m (Freight Cut's from 12.4). Uptown in traffic, the
 rival alone: 6 ticks of contact, 6.6 m worst.
+
+**Slowing traffic for turns: tried, not shipped (2026-09-13).** Traffic takes
+junctions at its cruise, and its turns look wide because a car does not drive an
+arc: it jumps to its next lane and slides onto it over up to 48 m. Slowing for
+turns was tried (18 mph through 80° or more, eased at 2.5 m/s²) and came out:
+
+- **Traffic overlapped itself.** Junction conflicts are computed offline on the
+  lanes' own paths, and a car physically follows its slide. At cruise two cars on
+  non-conflicting movements never meet in the slide; turning slowly, they did (a
+  box truck and a sedan 1.42 m into each other, 5 times in six minutes, which
+  `tests/alder.test.ts` catches). Slowing only on the approach still overlapped
+  once. Slowing on the approach and closing the slide over the offset rather than
+  twice it did not, and made turns visibly tighter.
+- **Queues exposed the rival.** Slow turns queue traffic at sharp junctions. Over
+  the 42 races that version was the best yet (98 ticks of contact, nothing past
+  16 m), but on Uptown the rival pulled out round a queue at the hairpin into an
+  oncoming car, and after another turn stopped in an oncoming car's path while
+  moving over to pass: it rides the street's centreline, and on streets it has no
+  lane discipline.
+
+The first of those is fixed and kept (`rivalInput`, "full-line-v6"): a side to
+pass on is checked for other cars where they will be when the rival is alongside
+the car it passes, not only where they are, so an oncoming car closing on that
+side rules it out. On today's traffic it changes nothing measurable over the 42
+races; `tests/rival-racing.test.ts` holds it and fails without it. The second is
+the street rival's clearest remaining problem. Turn slowing needs the junction
+conflicts to include the slide, and a rival that keeps its side of the street,
+before it is worth trying again.

@@ -194,6 +194,21 @@ test("a slower car in its way is slowed for and passed even when the rival is al
   assert.ok(Math.abs(room.driver.avoidance - 3.8) > 0.01, "with room to pass it did not move over");
 });
 
+// Pulling out into an oncoming car (2026-09-13). On Uptown, queued behind traffic
+// crawling to a hairpin, the rival pulled out to pass into the path of a car 41 m
+// away closing at 35 m/s: the side was clear where that car was, not where it
+// would be once the rival was alongside the queue.
+test("it does not pull out to pass into the path of an oncoming car", () => {
+  const slow = { x: 0, z: -140, speed: 5, heading: 0 };
+  const beside = { x: 5.5, z: -100, speed: 30, heading: 0 };
+  const passing = decide([slow, beside]);
+  assert.ok(passing.driver.avoidance < -0.01, "with the left clear it did not move out to pass; the test proves nothing");
+  const oncoming = { x: -3.2, z: -170, speed: 15, heading: Math.PI };
+  const held = decide([slow, beside, oncoming]);
+  assert.ok(held.driver.avoidance > -0.01, `it pulled out ${held.driver.avoidance.toFixed(2)} m into an oncoming car's path`);
+  assert.ok(held.driver.targetSpeed < 29, `with nowhere to pass it kept a target of ${held.driver.targetSpeed.toFixed(1)} m/s`);
+});
+
 // The lost-car cap (2026-09-13). A rival is held to 10 m/s until it is back
 // where it should be. It used to mean more than 5 m from its route. On a racing
 // line that fired in a recorded race: abandoning a re-pass at 95 mph, the rival
