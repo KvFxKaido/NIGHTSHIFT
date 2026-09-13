@@ -113,11 +113,13 @@ fixtures outside the playable bundle, and old world links redirect.
   `src/customization/cars.ts`), so changing car starts a fresh drive.
   `createSim` still defaults to FWD, which is what the regression fixtures
   measure, and `?drivetrain=` / `__ns.drivetrain()` stay developer controls
-  that do not persist. Physics revision `four-wheel-v5`; see
+  that do not persist. Physics revision `four-wheel-v6`; see
   `design/HANDLING.md` for the
   model, executed gates and known limitations. Automatic countersteering has
   been off since v3; v5 added RWD slide-exit traction sharing and brought
-  FWD/RWD to the same 140 mph governor as AWD.
+  FWD/RWD to the same 140 mph governor as AWD; v6 makes grass and bare ground
+  past the pavement cost a 2WD car grip and pace (AWD exempt), wherever the
+  world reports ground (`RoadWorld.ground`, `alderGround`).
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
   enter; the garage has a fixed camera and offers Cinder and Bulwark bodies,
   paint, wheel finish, visual stance and a livery editor whose panels derive

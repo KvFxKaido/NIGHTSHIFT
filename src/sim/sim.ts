@@ -10,7 +10,7 @@ import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState 
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
-export const PHYSICS_VERSION = "four-wheel-v5";
+export const PHYSICS_VERSION = "four-wheel-v6";
 
 export interface Input {
   shiftUp?: boolean;
@@ -61,6 +61,9 @@ export interface VehicleState {
   lateralAcceleration: number;
   frontLoadFraction: number;
   rightLoadFraction: number;
+  /** Share of the four tyres (0..1) that were off the paved surface on the last
+   *  tick, whatever the drivetrain. AWD reads it but pays nothing for it. */
+  groundContact: number;
   wheels: Record<WheelId, WheelState>;
   // Derived diagnostics retained for existing tools, never force generators.
   frontAxle: AxleState;
@@ -202,6 +205,14 @@ export const HANDLING = {
   reverseEngageSpeed: 0.5,
   gravityAlongGrade: 9.81,
   pitchResponse: 7.5,
+  // Off the paved road (grass and bare ground past the pavement, where the world
+  // reports ground) each tyre on it loses some grip, and the car loses some pace:
+  // a lower governor and a little drag, both scaled by how many tyres are on it.
+  // AWD pays none of it (2026-09-13). Every shortcut has a cost; this is the cost
+  // of the ones across a lot. A world without ground drives exactly as before.
+  groundGripScale: 0.85,
+  groundTopSpeedScale: 0.85, // ~119 mph with all four tyres on the ground
+  groundRollingResistance: 0.6,
 } as const;
 
 export type Drivetrain = keyof typeof HANDLING.frontDriveFraction;
@@ -364,7 +375,7 @@ function initialVehicle(roadWorld: RoadWorld): VehicleState {
     speed: 0, forwardSpeed: 0, lateralSpeed: 0, yawRate: 0,
     steering: 0, steeringAngle: 0, driveDirection: 1, slipAngle: 0,
     longitudinalAcceleration: 0, lateralAcceleration: 0,
-    frontLoadFraction: STATIC_FRONT_LOAD, rightLoadFraction: 0.5, wheels: initialWheels(),
+    frontLoadFraction: STATIC_FRONT_LOAD, rightLoadFraction: 0.5, groundContact: 0, wheels: initialWheels(),
     frontAxle: emptyAxle(), rearAxle: emptyAxle(),
   };
 }
@@ -639,6 +650,14 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const heading = headingFromRotation(body.rotation());
   const forwardX = -Math.sin(heading);
   const forwardZ = -Math.cos(heading);
+  // Which tyres are on the ground, sampled where each tyre patch is (the same
+  // offsets the tyre forces use). AWD is exempt from the cost, not from the reading.
+  const onGround = WHEEL_LAYOUT.map(wheel => sim.roadWorld.ground?.(
+    position.x + forwardX * wheel.forward + Math.cos(heading) * wheel.right,
+    position.z + forwardZ * wheel.forward - Math.sin(heading) * wheel.right) ?? false);
+  car.groundContact = onGround.filter(Boolean).length / onGround.length;
+  const groundPenalty = sim.state.drivetrain === "awd" ? 0 : car.groundContact;
+  const governedTopSpeed = HANDLING.topSpeed * (1 - groundPenalty * (1 - HANDLING.groundTopSpeedScale));
   const velocity = body.linvel();
   const forwardSpeed = velocity.x * forwardX + velocity.z * forwardZ;
   const speed = Math.hypot(velocity.x, velocity.z);
@@ -680,13 +699,17 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
     effectiveThrottle === 0 && input.handbrake < 0.05;
   const gradeAcceleration = gradeAccelerationFor(road.pitch, forwardX * road.ux + forwardZ * road.uz);
   const dragAcceleration = -Math.sign(forwardSpeed) * HANDLING.aerodynamicDrag * forwardSpeed ** 2;
+  // Ground drag is not compensated by the governor, so it costs acceleration as
+  // well as top speed. It fades out below 2 m/s so a car at rest cannot chatter.
+  const groundDragAcceleration = -Math.sign(forwardSpeed) * HANDLING.groundRollingResistance * groundPenalty *
+    clamp(Math.abs(forwardSpeed) / 2, 0, 1);
   let driveAcceleration = reversing
     ? -HANDLING.reverseAcceleration * input.brake
     : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed)) * effectiveThrottle;
   // Govern propulsion instead of hard-clamping impact/downhill velocity.
   if (driveAcceleration > 0) {
     driveAcceleration = Math.min(driveAcceleration,
-      Math.max(0, (HANDLING.topSpeed - forwardSpeed) / DT - dragAcceleration - gradeAcceleration));
+      Math.max(0, (governedTopSpeed - forwardSpeed) / DT - dragAcceleration - gradeAcceleration));
   } else if (driveAcceleration < 0) {
     driveAcceleration = Math.max(driveAcceleration,
       Math.min(0, (-HANDLING.reverseSpeed - forwardSpeed) / DT - dragAcceleration - gradeAcceleration));
@@ -702,7 +725,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const angles = frontWheelAngles(car.steeringAngle);
   let forceX = 0;
   let forceZ = 0;
-  const patches = WHEEL_LAYOUT.map(wheel => {
+  const patches = WHEEL_LAYOUT.map((wheel, index) => {
     const frontShare = wheel.front ? car.frontLoadFraction : 1 - car.frontLoadFraction;
     const sideShare = wheel.right > 0 ? car.rightLoadFraction : 1 - car.rightLoadFraction;
     const frontDriveShare = HANDLING.frontDriveFraction[sim.state.drivetrain];
@@ -724,7 +747,8 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
         HANDLING.handbrakeDrag * HANDLING.mass * handbrake) * 0.5,
       stiffness: wheel.front ? HANDLING.frontCorneringStiffness :
         HANDLING.rearCorneringStiffness * (1 - handbrake * (1 - HANDLING.handbrakeRearStiffness)),
-      gripScale: 1 - handbrake * (1 - HANDLING.handbrakeRearGrip),
+      gripScale: (1 - handbrake * (1 - HANDLING.handbrakeRearGrip)) *
+        (onGround[index] && groundPenalty > 0 ? HANDLING.groundGripScale : 1),
     }, car.wheels[wheel.id]);
   });
   for (const [left, right] of [[patches[0]!, patches[1]!], [patches[2]!, patches[3]!]] as const) {
@@ -746,8 +770,8 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   summarizeAxle(car.wheels["rear-left"], car.wheels["rear-right"], car.rearAxle);
   car.longitudinalAcceleration = (forceX * forwardX + forceZ * forwardZ) / HANDLING.mass;
   car.lateralAcceleration = (forceX * Math.cos(heading) - forceZ * Math.sin(heading)) / HANDLING.mass;
-  body.addForce({ x: forwardX * (dragAcceleration + gradeAcceleration) * HANDLING.mass,
-    y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration) * HANDLING.mass }, true);
+  body.addForce({ x: forwardX * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * HANDLING.mass,
+    y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * HANDLING.mass }, true);
 }
 
 export function step(sim: Sim, rawInput: Input): void {

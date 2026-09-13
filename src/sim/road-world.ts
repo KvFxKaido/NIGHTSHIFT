@@ -35,6 +35,11 @@ export interface RoadWorld {
    *  rails removed needs this, or the first gap a car drives through leaves it
    *  floating on the nearest road's height. */
   surface?(x: number, z: number): CourseProjection;
+  /** True where a tyre is off the paved surface: past the road and its
+   *  pavement, on grass or bare ground. The sim charges some grip and pace
+   *  there (`HANDLING.ground*`). Absent on a world with no ground to leave
+   *  onto, which then drives exactly as it did before ground existed. */
+  ground?(x: number, z: number): boolean;
 }
 
 export const BLACKGLASS_WORLD: RoadWorld = {

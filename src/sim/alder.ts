@@ -1,4 +1,4 @@
-import { YARD_RESERVE, YARD_STRUCTURES } from "./drift-yard.ts";
+import { DRIFT_YARD, YARD_RESERVE, YARD_STRUCTURES } from "./drift-yard.ts";
 import landmarks from "./alder-landmarks.json" with { type: "json" };
 import terrain from "./alder-terrain.json" with { type: "json" };
 import data from "./alder-data.json" with { type: "json" };
@@ -23,6 +23,8 @@ const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,ba
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
   entrance:{x:17,y:2,z:910,heading:0,pitch:0}};
 export const GARAGE_PLOT_ID = buildingId(garageBuilding);
+/** The paved apron in front of Wharf Garage (drawn as `garage-forecourt`). */
+export const ALDER_FORECOURT: BuildingBlock = {x:6.5,z:910,width:31,depth:40,height:1,base:2,rotation:0};
 export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...data.buildings,garageBuilding];
 export const ALDER_LAYOUT_BASELINE = layoutFingerprint(GENERATED_ALDER_BLOCKS.map(block=>
   Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000]))));
@@ -100,7 +102,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
   const retired=new Set(layout.retired);
   if(retired.has(GARAGE_PLOT_ID))throw Error("Wharf Garage is fixed in this editor version");
   const authored=layout.authored.map(({id:_id,...placement})=>groundBuilding(placement));
-  const forecourt:BuildingBlock={x:6.5,z:910,width:31,depth:40,height:1,base:2,rotation:0};
+  const forecourt=ALDER_FORECOURT;
   const entries:{id:string;source:"generated"|"authored";block:BuildingBlock}[]=[];
   const displaced:string[]=[];
   for(const block of generated){
@@ -143,6 +145,35 @@ export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS, ALDER_BINS,
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
+/** Metres of pavement past each carriageway edge. build-alder.py draws the
+ *  pavement as `asphalt.buffer(2.8)`, so the paved ribbon the player sees and
+ *  the paved ribbon the tyres feel are the same width. */
+export const ALDER_PAVEMENT = 2.8;
+/** Paved ground that is not a street: drawn as asphalt, so it drives as asphalt. */
+const PAVED_AREAS = [DRIFT_YARD.bounds, DRIFT_YARD.driveway, {
+  minX: ALDER_FORECOURT.x - ALDER_FORECOURT.width / 2, maxX: ALDER_FORECOURT.x + ALDER_FORECOURT.width / 2,
+  minZ: ALDER_FORECOURT.z - ALDER_FORECOURT.depth / 2, maxZ: ALDER_FORECOURT.z + ALDER_FORECOURT.depth / 2 }];
+const GROUND_REACH = Math.max(...ALDER_STREETS.flatMap(street => street.points.map(point => point.width))) / 2 + ALDER_PAVEMENT;
+/**
+ * True off the paved surface: past every street's carriageway and pavement,
+ * and outside the drift yard and the garage forecourt. Every street is asked,
+ * not just the nearest centreline: at a junction a point can sit on a wide
+ * arterial's asphalt while an alley's centreline is closer, and nearest-path
+ * selection would call that ground.
+ */
+export function alderGround(x: number, z: number): boolean {
+  for (const area of PAVED_AREAS) {
+    if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
+  }
+  for (const box of bounds) {
+    const dx = Math.max(box.minX - x, 0, x - box.maxX), dz = Math.max(box.minZ - z, 0, z - box.maxZ);
+    if (dx * dx + dz * dz > GROUND_REACH * GROUND_REACH) continue;
+    const on = projectOntoPath(box.street.points, x, z);
+    if (on.distance <= on.width / 2 + ALDER_PAVEMENT) return false;
+  }
+  return true;
+}
+
 /** `from` is where a race starts: the grid unless the flash said otherwise. */
 export function createAlderWorld(racing = false, from: RoadWorld["start"] = start): RoadWorld {
   return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE.entrance,
@@ -150,7 +181,7 @@ export function createAlderWorld(racing = false, from: RoadWorld["start"] = star
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],
-    project: projectOntoAlder, surface: projectOntoAlder,
+    project: projectOntoAlder, surface: projectOntoAlder, ground: alderGround,
     get traffic() { return network ??= buildStreetTrafficNetwork(ALDER_STREETS, alderHeight); } };
 }
 

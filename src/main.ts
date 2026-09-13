@@ -500,6 +500,7 @@ function updateHud(): void {
     `load L/R ${Math.round((1 - car.rightLoadFraction) * 100)}/${Math.round(car.rightLoadFraction * 100)}%\n` +
     `altitude ${car.y.toFixed(1)} m\n` +
     `grade ${(Math.tan(car.pitch) * 100).toFixed(1)}%\n` +
+    `ground ${Math.round(car.groundContact * 4)}/4 tyres${car.groundContact > 0 && sim.state.drivetrain === "awd" ? " (AWD: no cost)" : ""}\n` +
     `tick ${sim.state.tick}`;
   telemetryElement.classList.toggle("visible", debugVisible);
 }

@@ -5,8 +5,12 @@ the handling tune. Blackglass course mentions and reference-lap
 measurements below describe retained regression fixtures, not the demo's
 playable map. See [PORT_ALDER.md](PORT_ALDER.md) for current world behavior.
 
-Physics revision: `four-wheel-v5` (replaces `four-wheel-v4`). Rapier: **0.19.3**,
-pinned in the manifest and lockfile. RWD's throttle-induced rotation now tapers
+Physics revision: `four-wheel-v6` (replaces `four-wheel-v5`). Rapier: **0.19.3**,
+pinned in the manifest and lockfile. v6 adds a cost for leaving the paved road
+(below): on grass and bare ground a 2WD car loses some grip and pace; AWD pays
+nothing. On the road, and on any world without ground, every v5 number stands.
+
+v5: RWD's throttle-induced rotation now tapers
 at highway speeds, and FWD/RWD receive a high-speed longitudinal traction assist
 to approach the same 140 mph governor as AWD. AWD motion is unchanged. Manual
 countersteering retains v3's response rates and steering limits. RWD anticipates
@@ -105,6 +109,37 @@ user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/u
   manual range helps catch an earlier slide, but weak/late countersteer or long
   highway holds can still overwhelm it. No yaw/velocity correction was added.
 
+- **Ground (v6, 2026-09-13):** past the carriageway and its 2.8 m pavement, on
+  grass and bare ground, each tyre on it has **85%** of its grip
+  (`groundGripScale`), and the car is governed at **85%** of top speed
+  (`groundTopSpeedScale`, about 119 mph) with **0.6 m/s²** of extra rolling drag
+  (`groundRollingResistance`). The governor and drag scale with the share of
+  tyres on ground, sampled at each tyre patch, so two wheels over the verge is
+  half the pace cost and a lopsided grip. The drag is not compensated by the
+  governor, so it costs acceleration too, and it fades out below 2 m/s so a car
+  at rest cannot chatter. **AWD pays none of it**; it still reports
+  `groundContact`. Car parts that change this come later. The point is GDD
+  §6.3's "no wrong ways, just slower ways": a cut across an empty lot now costs
+  something, where before it cost nothing and neither the race generator nor
+  the rival could see it. The world decides where ground is
+  (`RoadWorld.ground`); Port Alder's (`alderGround`) is past every street's
+  paving, not just the nearest centreline's, and treats the drift yard, its
+  driveway and the garage forecourt as paved. Blackglass and the legacy district
+  have no ground and are unchanged.
+  Measured on an unlimited flat world, full throttle from rest:
+
+  | | Top speed, road → ground | 0–60 mph, road → ground | Peak lateral, half-lock corner |
+  |---|---|---|---|
+  | FWD | 140.0 → 119.0 mph | 4.35 → 5.88 s | 14.12 → 12.25 m/s² |
+  | RWD | 140.0 → 119.0 mph | 3.85 → 5.20 s | 14.18 → 12.06 m/s² |
+  | AWD | 140.0 → 140.0 mph | 2.05 → 2.05 s | 13.30 → 13.30 m/s² |
+
+  The corner is 6 s at full steer and 35% throttle from 22 m/s. These are
+  starting values for a pad, not a finished tune: the 0–60 cost is mostly
+  traction, since a 2WD launch is grip-limited and ground takes 15% of it. A
+  first pass at 80% grip and 2 m/s² drag more than doubled 2WD 0–60 times
+  (FWD 9.65 s), which was not the small cost asked for.
+
 Tune in `HANDLING` in `src/sim/sim.ts`, not in the renderer. Start with brake
 response/bias, front/rear cornering stiffness, steering assistance and handbrake
 rear stiffness. Re-run the behavioral tests after changes. The prototype tune
@@ -200,6 +235,17 @@ Debug entry points: `__ns.drivetrain('rwd')`, `__ns.state().drivetrain`, or
 - Historical AWD level-ground full throttle reaches **140 mph** in approximately
   **8.93 s**; this fixture now names AWD explicitly so a default change cannot
   silently change which car is being measured.
+- Ground (`tests/ground.test.ts`): FWD and RWD reach the ground governor over
+  60 s and take at least 15% longer to 60 mph; a tyre on ground carries
+  `groundGripScale` of its grip; two tyres over an edge read half contact; AWD
+  drives identically on ground and road through 1,200 ticks of mixed input with
+  the handbrake; a world reporting no ground matches a world with none; the cost
+  replays tick for tick. On Port Alder, centrelines and pavement are never
+  ground, open verges past the pavement are, Sable's yard line and the garage
+  entrance are paved, and the rival and Moth's cruise routes never touch
+  ground. Every-street selection is pinned by 8 junction points where a wide
+  street's asphalt is nearer a narrow street's centreline; with nearest-
+  centreline selection that assertion fails (checked 2026-09-13).
 - A **1,200-tick** run replays identically after reset for every layout,
   including every state field and the final Rapier world snapshot. Original
   runs contain **153 AWD / 678 FWD / 486 RWD contact ticks**.
