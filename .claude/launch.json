@@ -7,6 +7,12 @@
       "runtimeArgs": ["dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "nightshift-lan",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--host", "0.0.0.0"],
+      "port": 5173
     }
   ]
 }
