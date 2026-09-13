@@ -6,8 +6,8 @@ drive and what each one teaches.
 
 **Status.** A sketch. None of the career is implemented. Four of the ten
 exist as characters with portraits and cars: Moth, Rivet and Sable are in the
-game as rivals, and Tally has a portrait and a car but no encounter. The other
-six are names on this page and nothing else. Every placement, mistake and car
+game as rivals, and Tally has a portrait and a car but no encounter. Stray has
+a portrait and nothing else. The other five are names on this page. Every placement, mistake and car
 below is a proposal until Shawn says otherwise.
 
 ## How the list is built
@@ -57,7 +57,8 @@ Exists: `design/reference/characters/moth/`, `MOTH` in `src/sim/encounter.ts`.
 Nineteen, grew up in the downtown service lanes. *Silhouette:* a cap worn
 backwards. *Mistake:* he takes the alley even where the avenue is faster.
 *Teaches:* that alleys exist, and that one is not always worth it. His race is
-unordered checkpoints, so the order is a route decision too. Not created.
+unordered checkpoints, so the order is a route decision too. Portrait:
+`design/reference/characters/stray/`; no car, no encounter.
 
 ### #8 Rivet
 

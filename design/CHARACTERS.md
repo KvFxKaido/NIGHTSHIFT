@@ -118,6 +118,7 @@ in under three minutes. Rivet's README has the exact briefs.
 | `sable` | Sable | NS-01 | The South Wharf drift yard |
 | `moth` | Moth | Kestrel | The freight block by Wharf Garage; the first rival anyone meets |
 | `tally` | Tally | Vesper | #1 on the Blacklist, and the one who keeps it; not in the game yet |
+| `stray` | Stray | Not built | #9 on the Blacklist, the Alder Center alleys; not in the game yet |
 
 Rivet was first, Sable proved the style, Moth was named for the thing that
 is always there when the lamps come on, and Tally, Moth's student, is the
