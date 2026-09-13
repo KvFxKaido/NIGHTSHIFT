@@ -99,9 +99,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * replays only against the same driver, so any change to how the rival drives
  * bumps this. "racing-line-v1" (2026-09-13): cornering tuned to recorded laps and a
  * smoothed line on Ridge Circuit. "full-line-v1": braking while turning, steering
- * feedforward and the full racing line.
+ * feedforward and the full racing line. "full-line-v2": on a racing line the
+ * lost-car speed cap means off the road, not off the line.
  */
-export const RIVAL_REVISION = "full-line-v1";
+export const RIVAL_REVISION = "full-line-v2";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -166,6 +167,9 @@ export const RIVAL_CORNERING = {
  */
 export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3 } as const;
 
+/** Metres past the carriageway's edge a rival on a racing line may be before it counts as lost: a paved shoulder's worth. */
+export const OFF_ROAD_MARGIN = 1.5;
+
 export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
@@ -173,7 +177,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   if (route.loop && driver.along > gate - 12 && Math.hypot(car.x - route.points[0]!.x, car.z - route.points[0]!.z) < 8) {
     Object.assign(driver, createRivalDriver(), { recoveries: driver.recoveries, resets: driver.resets });
   }
-  let nearest = Infinity, along = driver.along;
+  // `nearestSide` is the car's offset across that nearest segment, positive to the
+  // right; `nearestRoad` is where that puts it across the road, and the road's width.
+  let nearest = Infinity, nearestSide = 0, nearestRoad = 0, nearestWidth = Infinity, along = driver.along;
   // Local progress prevents jumping between the outward and return legs.
   // The window's segments, in order: the first ending past its start, until one begins past its end.
   const windowEnd = Math.min(gate + 8, driver.along + 100);
@@ -183,7 +189,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const dx = b.x-a.x, dz=b.z-a.z, length = Math.hypot(dx,dz);
     const t = clamp(((car.x-a.x)*dx+(car.z-a.z)*dz)/(length*length),0,1);
     const distance = Math.hypot(car.x-a.x-dx*t,car.z-a.z-dz*t);
-    if (distance < nearest) { nearest=distance; along=route.along[i]!+t*length; }
+    if (distance < nearest) {
+      nearest=distance; nearestSide=((car.x-a.x-dx*t)*-dz+(car.z-a.z-dz*t)*dx)/length; along=route.along[i]!+t*length;
+      nearestRoad = nearestSide + (route.lateral ? route.lateral[i]! + (route.lateral[i + 1]! - route.lateral[i]!) * t : 0);
+      nearestWidth = a.width + (b.width - a.width) * t;
+    }
   }
   driver.along = Math.min(gate + 8, along);
   // A high-water mark prevents reversing or circling over the same few metres
@@ -309,7 +319,13 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const tx=target.x-target.uz*driver.avoidance, tz=target.z+target.ux*driver.avoidance;
   const error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);
-  if (nearest>5) desiredSpeed=Math.min(desiredSpeed,10);
+  // Lost: held to 10 m/s until it is back. On a street centreline that is more
+  // than 5 m from it. On a racing line it is off the road: the line and any pass
+  // already use most of the width, and in a recorded race (2026-09-13) the rival
+  // abandoning a re-pass at 95 mph drifted 6.5 m from its line, still 4 m inside
+  // the edge, read as lost, and braked to 59 mph in the kink after the Drop.
+  const lost = route.lateral ? Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN : nearest > 5;
+  if (lost) desiredSpeed=Math.min(desiredSpeed,10);
   if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
   driver.targetSpeed=desiredSpeed;
   if (car.speed<1.2) driver.stuckTicks++; else driver.stuckTicks=0;

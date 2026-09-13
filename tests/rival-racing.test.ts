@@ -4,7 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
-import { createRivalDriver, rivalInput, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, OFF_ROAD_MARGIN, type RivalDefinition } from "../src/sim/rival.ts";
 await RAPIER.init();
 
 // A racing rival wants to win (2026-09-13): it does not queue behind the
@@ -175,4 +175,32 @@ test("a slower car ahead is passed with room, and queued behind only without it"
   // Both sides taken by cars beside it: nowhere to go.
   const boxed = decide([{ x: 0, z: -130, speed: 15, heading: 0 }, { x: 3.8, z: -100, speed: 30, heading: 0 }, { x: -3.8, z: -100, speed: 30, heading: 0 }]);
   assert.ok(boxed.driver.targetSpeed < 29, `boxed in, it kept a target of ${boxed.driver.targetSpeed}`);
+});
+
+// The lost-car cap (2026-09-13). A rival is held to 10 m/s until it is back
+// where it should be. It used to mean more than 5 m from its route. On a racing
+// line that fired in a recorded race: abandoning a re-pass at 95 mph, the rival
+// drifted 6.5 m from its line (still 4 m inside a 14 m road's edge) and braked
+// to 59 mph in the kink after the Drop. On a line it now means off the road.
+test("a rival wide of its racing line but on the road is not treated as lost", () => {
+  const line = -2.5, width = 14;
+  const points: CoursePoint[] = [[line, 0], [line, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "line-check", start: { x: line, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000], lateral: [line, line] };
+  const race = { checkpoint: 0, collected: [], targetIndex: 0, countdown: 0, ticks: 1, splits: [], finished: false, next: null };
+  const at = (x: number) => {
+    const vehicle = { ...createSim("awd").state.vehicle, x, y: 0, z: -1000, heading: 0, speed: 42, forwardSpeed: 42, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 1000, progressMark: 1000 };
+    rivalInput(route, { vehicle, driver, race }, []);
+    return driver.targetSpeed;
+  };
+  // 6.5 m right of the line is 4 m right of the road's centre: wide, on the asphalt.
+  assert.ok(at(line + 6.5) > 30, `a rival on the road was treated as lost (target ${at(line + 6.5)} m/s)`);
+  // Past the carriageway and its shoulder is lost, and still held back.
+  assert.ok(at(width / 2 + OFF_ROAD_MARGIN + 0.5) <= 10, "a rival off the road kept its speed");
+  // A street centreline keeps its 5 m rule.
+  const street: RivalDefinition = { ...route, id: "street-check", lateral: undefined };
+  const vehicle = { ...createSim("awd").state.vehicle, x: line + 5.5, y: 0, z: -1000, heading: 0, speed: 42, forwardSpeed: 42, lateralSpeed: 0 };
+  const driver = { ...createRivalDriver(), along: 1000, progressMark: 1000 };
+  rivalInput(street, { vehicle, driver, race }, []);
+  assert.ok(driver.targetSpeed <= 10, `5.5 m off a street centreline, it kept a target of ${driver.targetSpeed} m/s`);
 });

@@ -723,6 +723,19 @@ with it on a generated race put the rival 31 m off the street. Sound to Sky, sti
 on its centreline and now braking before curves: 144.8 s (from 143.1), no traffic
 contact. The rival no longer needs the player to make a
 mistake to win on the circuit; it is within half a second of Shawn's best lap.
+
+**Lost, or just wide (2026-09-13).** In the first race against the full line
+(Shawn won by about 2 s after taking nearly all of lap 2 to get past), the
+replay showed the rival losing 1.5 s in one moment. Shawn passed it at the
+Drop; it went for the re-pass, gave it up when Shawn pulled ahead, and swung its
+aim back to the line at about 4 m/s across. At 95 mph the car could not follow,
+drifted 6.5 m from its line (still 4 m inside the edge), and the old rule that a
+rival more than 5 m from its route is lost held it to 10 m/s: full brake at full
+lock, 95 to 59 mph into the kink. On a racing line, lost now means off the road,
+more than `OFF_ROAD_MARGIN` (1.5 m) past the carriageway; street centrelines keep
+the 5 m rule. Re-running Shawn's recorded inputs against the fixed rival, the cap
+never fires and it is 1.0 s behind after lap 2 instead of 2.0, but that re-run is
+only a hint: recorded inputs do not react to a rival in a different place.
 Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
 refuses another. Not built: extracting features from recordings automatically,
 and the rival learning from them per street.
