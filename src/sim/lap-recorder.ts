@@ -151,6 +151,8 @@ export interface LapSession {
   /** Wall-clock time the session began, from the browser. Metadata only; nothing replays from it. */
   recordedAt: string;
   world: string;
+  /** `ARENA_IDENTITY`: the circuit's layout revision. The world id does not change when only the circuit does. */
+  arena: string;
   physics: string;
   tickHz: number;
   race: string;

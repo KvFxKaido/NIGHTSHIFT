@@ -135,7 +135,9 @@ fixtures outside the playable bundle, and old world links redirect.
 - **Rival.** One AI driver in the same physics world, routed line, no
   rubber-banding, reversing recovery and a local reset after 12 s stuck. It
   races the player rather than yielding: passes, holds its line, blocks and
-  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`).
+  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Its
+  cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
+  grip-limited speed its centreline tracking, not grip, puts it on the grass.
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring

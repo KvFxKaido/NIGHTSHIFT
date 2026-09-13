@@ -7,6 +7,7 @@
  */
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
 import { arenaEvent, arenaRaceFor } from "./arena-events.ts";
+import { ARENA_IDENTITY } from "./arena.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
 import { createSim, step, PHYSICS_VERSION, TICK_HZ, type Drivetrain } from "./sim.ts";
 
@@ -18,6 +19,7 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.format !== LAP_RECORDING_FORMAT) return { ok: false, reason: `format ${session.format}, expected ${LAP_RECORDING_FORMAT}` };
   // A recording from another world or physics revision cannot be expected to match, so it is refused, not compared.
   if (session.world !== ALDER_VERSION) return { ok: false, reason: `recorded on world ${session.world}, this build is ${ALDER_VERSION}` };
+  if (session.arena !== ARENA_IDENTITY) return { ok: false, reason: `recorded on circuit ${session.arena ?? "ridge-circuit-v1"}, this build is ${ARENA_IDENTITY}` };
   if (session.physics !== PHYSICS_VERSION) return { ok: false, reason: `recorded on physics ${session.physics}, this build is ${PHYSICS_VERSION}` };
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
   const arena = arenaRaceFor(session.race);

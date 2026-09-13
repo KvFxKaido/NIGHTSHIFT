@@ -494,8 +494,9 @@ worse (187.2 s, 119 contact ticks) and is not shipped. The cause is the line:
 rival routes run down the street's centreline (`rivalLineFor`, `alder-rival.ts`),
 so an oncoming car in its own lane is often genuinely in the rival's way.
 Driving its own lane is the next fix. Separately, even on empty streets the
-rival spends 66 s of 170 braking: it plans corners at 62% of its grip and 5 m/s²
-of braking. That is corner commitment, not traffic. Racing uses the player's shared 62.6 m/s
+rival spent 66 s of 170 braking: it planned corners at 62% of its grip and 5 m/s²
+of braking. That was corner commitment, not traffic, and it was tuned from
+recorded laps the same day (below: **Cornering, tuned to recorded laps**). Racing uses the player's shared 62.6 m/s
 (140 mph) speed ceiling, with full throttle available on clear straights. The
 corner preview extends with stopping distance instead of ending at 100 metres;
 traffic, bends and recovery still lower the target speed. The 10 m/s local cruise
@@ -544,14 +545,14 @@ Ridge's slope.
 
 | Layout | Race id | Lap | Height | Gates per lap |
 |---|---|---|---|---|
-| Full | `arena-full` | 2,529 m | 36–53 m | 7 |
-| East | `arena-east` | 1,907 m | flat | 5 |
+| Full | `arena-full` | 2,546 m | 36–53 m | 7 |
+| East | `arena-east` | 1,924 m | flat | 5 |
 | Ridge | `arena-ridge` | 1,612 m | 36–53 m | 5 |
 
 What each corner is for, as data:
 
 - **T1 hairpin** (two 90s, r22) at the end of the 600 m main straight: the braking point from top speed, on the flat.
-- **T2** (r26) and the **esses** (r30): exit onto a short straight, then a change of direction.
+- **T2** (r26), then 150 m of straight into the **esses**: a chicane 40 m across in 60 m (r20, r18, r20), a braking point and a change of direction. Revision 1's esses, 18 m across straight after T2, were taken flat on the first recorded laps while the rival braked to 30 mph for them; circuit revision 2 (`ARENA.revision`) replaced them.
 - **Ridge 90** (T5, r55): a medium-speed corner at the top of a 4% climb.
 - **The Jog** (r16, back to back): the city problem, where the exit of one 90 is the entry to the next.
 - **The Drop** (r120): fast, with the road falling away through the exit, then a flat-or-not **kink** (r250).
@@ -581,8 +582,9 @@ the line on the right, the rival 5 m behind on the left. Add `-solo`
 recorded lap is the player's alone; it ends on a session summary with the best
 valid lap. City traffic is off for these races. The rival drives the centreline, which is a baseline and not
 a racing line. From a standing start, one lap with the player parked
-(`tests/arena.test.ts`): **Full 100.8 s, East 78.8 s, Ridge 66.4 s,** no
-resets, no recoveries, never on the grass. There is no way to reach these races
+(`tests/arena.test.ts`): **Full 86.0 s, East 66.0 s, Ridge 54.3 s,** no
+resets, no recoveries, never on the grass (as first built, before the chicane
+and the cornering below: 100.8, 78.8 and 66.4 s). There is no way to reach these races
 from free roam yet; the circuit itself is open to drive.
 
 **Drawn** by `src/render/arena.ts`: asphalt to the shoulder, edge lines that stop
@@ -608,14 +610,55 @@ ignores: it is the player's driving, about a megabyte for three laps of Ridge.
 A reset or car change starts a new session, because it breaks the input log.
 
 The input log with the session's identity reproduces the run, and
-`src/sim/lap-replay.ts` checks it: it refuses a file from another world or
-physics revision, replays the rest and compares every lap. `pnpm laps` lists
+`src/sim/lap-replay.ts` checks it: it refuses a file from another world,
+circuit revision (`ARENA_IDENTITY`; the world id does not change when only the
+circuit does) or physics revision, replays the rest and compares every lap. `pnpm laps` lists
 sessions; `--verify` replays them. Executed on 2026-09-13: a three-lap solo run
 of Ridge driven in Chrome by a scripted digital-input lap (`__ns.drive`) saved,
 showed its summary (1:15.92, 1:11.30, 1:11.35, all valid) and replayed exactly in
 Node. That is one machine and two V8 hosts, not cross-browser parity. Format:
-`recordings/README.md`. Not built: extracting braking points, corner speeds and
-lines from recordings, and the rival learning from them.
+`recordings/README.md`.
+
+**Cornering, tuned to recorded laps (2026-09-13).** Shawn's first session, three
+laps of Full in the RWD Cinder (best 1:07.17, revision 1), set against a flying
+lap by the rival on the same layout (1:37.98), corner by corner:
+
+| | Player | Rival, before | Rival, after |
+|---|---|---|---|
+| Lateral grip used at the apexes | 74–82% | 19–43% | 60–64% |
+| Braking into T1 | 9.6 m/s², from 106 m | 4.8 m/s², lifting 320 m out | 9.3 m/s², from 164 m |
+| Apex speed, T1 / T5 / Jog / T9 | 33 / 54 / 37 / 71 mph | 26 / 39 / 22 / 34 | 31 / 48 / 27 / 41 |
+| Path radius, T2 / Jog / T9 | 39 / 25 / 84 m | centreline 26 / 16 / 37 | centreline |
+
+`RIVAL_CORNERING` in `src/sim/rival.ts` was 0.62 of the line's grip-limited
+speed, 5 m/s² of planned braking and a 12 m margin; it is now 0.76, 10 and 6.
+Swept on all three layouts (flying laps) and Sound to Sky in traffic:
+
+| Setting | Full | East | Ridge | Sound to Sky | Worst excursion |
+|---|---|---|---|---|---|
+| 0.62, 5, 12 (before) | 102.2 s | 78.6 s | 63.9 s | 182.3 s | 6.1 m off the street |
+| braking only: 0.62, 10, 12 | 95.3 | 72.2 | 58.8 | 161.8 | clean |
+| 0.76, 10, 6 (shipped) | 83.1 | 63.1 | 51.5 | 143.1 | clean; 6.3 m off Full's centreline |
+| 0.80, 10, 12 | 83.3 | 63.6 | 51.7 | 153.9 | 7.1 m, on the edge line |
+| 0.82, 10, 12 | 82.3 | 63.0 | 51.1 | 164.0 | grass on Full, 19.8 m wide in the city |
+| 0.85, 8, 12 | 82.7 | 63.5 | 51.6 | 161.3 | grass on Full |
+
+Braking was safe to match in full. Corner speed was not: past about 0.8 the
+rival overshoots the reverse bend after Full's south junction and a city corner,
+because it steers a centreline with a lagging controller. 0.74, 0.76 and 0.78
+were all clean, so 0.76 keeps a margin below the failure. Sound to Sky also lost
+its traffic contact (0 ticks, from 30) at the new speed. The sharp-corner check
+in `tests/rival-speed.test.ts` now enters at 20.4 m/s where it entered at 15.7,
+braking from 179 m and never more than 2.9 m off the centreline.
+
+What is left is the line, not commitment: where the player's path and the
+centreline have the same radius (T1, T5) the rival is within 6–11% of the
+player's apex speed; where the player widens the corner (T2, the Jog, T9) it is
+27–42% slower. A racing line that uses the road's width, and steering that
+tracks at speed, are the next gains. Not built: extracting features from
+recordings automatically, and the rival learning from them per street. One
+session of one driver in one car is thin evidence; more sessions, the other
+layouts and an AWD car would show whether 0.76 generalises.
 
 `tests/arena.test.ts` pins each lap's length (a moved corner makes recorded laps
 incomparable), checks the site is clear of buildings, trees and street

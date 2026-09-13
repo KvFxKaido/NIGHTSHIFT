@@ -7,6 +7,7 @@ import { join } from "node:path";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { arenaEvent, arenaRaceFor } from "../src/sim/arena-events.ts";
 import { ALDER_VERSION, createAlderWorld } from "../src/sim/alder.ts";
+import { ARENA_IDENTITY } from "../src/sim/arena.ts";
 import { createLapRecorder, lapSession, recordTick, TRACK_LIMITS, LAP_CHANNELS, type LapSession, type LapTrack } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { createRivalDriver, rivalInput } from "../src/sim/rival.ts";
@@ -45,7 +46,7 @@ function drive(laps = 2) {
     if (lap) completed.push(tick);
   }
   const session = lapSession(recorder, { id: "2026-09-13-120000-arena-ridge-solo", recordedAt: "2026-09-13T12:00:00.000Z",
-    world: sim.roadWorld.id, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
+    world: sim.roadWorld.id, arena: ARENA_IDENTITY, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
     laps, car: "kestrel", drivetrain: "awd", start: event.start });
   const result = { event, sim, recorder, completed, session: JSON.parse(JSON.stringify(session)) as LapSession };
   sim.world.free();
@@ -93,6 +94,9 @@ test("a recording replays exactly, and one changed input or another build is cau
   assert.match((result as { reason: string }).reason, /lap 1/);
   assert.match((replayLapSession({ ...session, physics: "four-wheel-v0" }) as { reason: string }).reason, /physics four-wheel-v0/);
   assert.match((replayLapSession({ ...session, world: "alder-old" }) as { reason: string }).reason, new RegExp(ALDER_VERSION));
+  // A recording from before the circuit's current layout names no revision, or an older one.
+  const { arena: _arena, ...unnamed } = session;
+  assert.match((replayLapSession(unnamed as LapSession) as { reason: string }).reason, /circuit ridge-circuit-v1/);
   assert.equal(session.physics, PHYSICS_VERSION);
 });
 

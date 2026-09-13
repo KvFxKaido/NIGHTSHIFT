@@ -16,11 +16,12 @@ replays each session against the current build; `pnpm laps --json` is for tools.
 
 **The file** (`nightshift-laps-v1`, `src/sim/lap-recorder.ts`):
 
-- Identity: `world`, `physics`, `tickHz`, `race`, `layout`, `solo`, `laps`,
+- Identity: `world`, `arena` (the circuit's layout revision), `physics`, `tickHz`, `race`, `layout`, `solo`, `laps`,
   `car`, `drivetrain`, `start`, and `recordedAt` (wall clock, metadata only).
 - `inputs`: throttle, brake, steer and handbrake for every sim tick from the
   first, unrounded. With the identity this reproduces the run exactly; a file
-  from another world or physics revision is refused rather than compared.
+  from another world, circuit revision or physics revision is refused rather
+  than compared.
 - `recorded`: completed laps. Each has `seconds` (timed by the race's gates; the
   finish gate is a 12 m circle round the line), `valid` and `reasons`,
   `standingStart` (lap 1 starts from the grid), `gateTicks`, `topSpeed`, and

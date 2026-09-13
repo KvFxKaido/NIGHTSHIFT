@@ -20,11 +20,21 @@
 export const ARENA = {
   id: "ridge-circuit",
   name: "Ridge Circuit",
+  /**
+   * The layout's revision. Anything that moves the asphalt bumps it, and a lap
+   * recording names the revision it was driven on, so an old recording is
+   * refused instead of compared against a circuit it never saw. 2 (2026-09-13):
+   * the esses became a chicane, because the first ones were flat for the player.
+   */
+  revision: 2,
   /** Racing width: the edge lines are this far apart. */
   width: 14,
   /** Paved shoulder past each edge line, where the kerbs sit. Beyond it is ground. */
   shoulder: 1.5,
 } as const;
+
+/** The circuit as a recording names it: which layout revision a lap was driven on. */
+export const ARENA_IDENTITY = `${ARENA.id}-v${ARENA.revision}`;
 
 /** Corner positions in world metres (x east, z south). */
 export const ARENA_CORNERS = {
@@ -32,9 +42,12 @@ export const ARENA_CORNERS = {
   "t1-entry": { x: 3290, z: -1450 },
   "t1-exit": { x: 3240, z: -1450 },
   t2: { x: 3240, z: -1300 },
-  "esses-in": { x: 3150, z: -1300 },
-  "esses-mid": { x: 3120, z: -1318 },
-  "esses-out": { x: 3090, z: -1300 },
+  // A chicane, 40 m across in 60 m, with 150 m of straight from T2 to brake in.
+  // The first esses (18 m across in 60 m, right after T2) were taken flat on
+  // the recorded laps while the rival braked to 30 mph for them.
+  "esses-in": { x: 3070, z: -1300 },
+  "esses-mid": { x: 3040, z: -1340 },
+  "esses-out": { x: 3010, z: -1300 },
   "north-junction": { x: 2950, z: -1300 },
   t5: { x: 2620, z: -1300 },
   "jog-in": { x: 2620, z: -1130 },
@@ -59,7 +72,7 @@ export interface ArenaLayout {
 }
 
 const T1_EXIT = { name: "T1 hairpin", x: 3240, z: -1380 };
-const ESSES_EXIT = { name: "Esses", x: 3030, z: -1300 };
+const ESSES_EXIT = { name: "Esses", x: 2985, z: -1300 };
 const T5_EXIT = { name: "Ridge 90", x: 2620, z: -1200 };
 const JOG_EXIT = { name: "The Jog", x: 2680, z: -1060 };
 const DROP_EXIT = { name: "The Drop", x: 2803, z: -760 };
@@ -68,16 +81,16 @@ const SOUTH_STRAIGHT = { name: "South straight", x: 3060, z: -790 };
 export const ARENA_LAYOUTS: Readonly<Record<ArenaLayoutId, ArenaLayout>> = {
   full: {
     id: "full", name: "Full",
-    corners: [["main-straight", 40], ["t1-entry", 22], ["t1-exit", 22], ["t2", 26], ["esses-in", 30], ["esses-mid", 30],
-      ["esses-out", 30], ["north-junction", 0], ["t5", 55], ["jog-in", 16], ["jog-out", 16], ["drop", 120], ["kink", 250],
+    corners: [["main-straight", 40], ["t1-entry", 22], ["t1-exit", 22], ["t2", 26], ["esses-in", 20], ["esses-mid", 18],
+      ["esses-out", 20], ["north-junction", 0], ["t5", 55], ["jog-in", 16], ["jog-out", 16], ["drop", 120], ["kink", 250],
       ["south-junction", 250], ["t9", 150]],
     line: { x: 3290, z: -1000 },
     gates: [T1_EXIT, ESSES_EXIT, T5_EXIT, JOG_EXIT, DROP_EXIT, SOUTH_STRAIGHT],
   },
   east: {
     id: "east", name: "East",
-    corners: [["main-straight", 40], ["t1-entry", 22], ["t1-exit", 22], ["t2", 26], ["esses-in", 30], ["esses-mid", 30],
-      ["esses-out", 30], ["north-junction", 20], ["south-junction", 20], ["t9", 150]],
+    corners: [["main-straight", 40], ["t1-entry", 22], ["t1-exit", 22], ["t2", 26], ["esses-in", 20], ["esses-mid", 18],
+      ["esses-out", 20], ["north-junction", 20], ["south-junction", 20], ["t9", 150]],
     line: { x: 3290, z: -1000 },
     gates: [T1_EXIT, ESSES_EXIT, { name: "Link road", x: 2950, z: -1050 }, SOUTH_STRAIGHT],
   },

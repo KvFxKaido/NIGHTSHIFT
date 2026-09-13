@@ -37,16 +37,21 @@ test("high-speed rival brakes for a sharp corner beyond the old 100 m preview", 
     const rival = sim.state.rival!;
     sim.rivalBody!.setLinvel({ x: 0, y: 0, z: -HANDLING.topSpeed }, true);
     rival.vehicle.speed = rival.vehicle.forwardSpeed = HANDLING.topSpeed;
-    let furthest = 0, cornerSpeed = 0, reachedExit = false;
+    let furthest = 0, cornerSpeed = 0, reachedExit = false, brakingFrom = 0;
     for (let tick = 0; tick < 2400 && !rival.race.finished; tick++) {
       step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
       const car = rival.vehicle;
       furthest = Math.max(furthest, sim.roadWorld.project(car.x, car.z).distance);
       if (Math.hypot(car.x, car.z + 500) < 20) cornerSpeed = Math.max(cornerSpeed, car.speed);
+      if (!brakingFrom && rival.input.brake > 0) brakingFrom = 500 + car.z;
       reachedExit ||= car.x > 80;
     }
     assert.ok(reachedExit, "rival never drove through the corner");
-    assert.ok(cornerSpeed > 0 && cornerSpeed < 16, `corner entry ${cornerSpeed} m/s`);
+    // It must start braking beyond what a 100 m preview could see.
+    assert.ok(brakingFrom > 100, `braking began ${brakingFrom.toFixed(0)} m before the corner`);
+    // 15.7 m/s at the 2026-09-12 cornering; 20.4 m/s since it was tuned to recorded
+    // laps (RIVAL_CORNERING, 2026-09-13), still 2.9 m from the centreline at most.
+    assert.ok(cornerSpeed > 0 && cornerSpeed < 23, `corner entry ${cornerSpeed} m/s`);
     assert.ok(furthest < 12, `left the carriageway by ${furthest} m`);
     assert.equal(rival.driver.resets, 0);
   } finally { sim.world.free(); }

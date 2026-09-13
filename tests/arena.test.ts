@@ -22,7 +22,7 @@ const closedLap = (id: ArenaLayoutId) => { const lap = arenaLap(id); return [...
 // only on purpose, with the recordings in mind.
 test("each layout closes, keeps its length and runs its corners in order", () => {
   const expected: Record<ArenaLayoutId, { length: number; gates: number }> = {
-    full: { length: 2529.0, gates: 7 }, east: { length: 1907.4, gates: 5 }, ridge: { length: 1611.7, gates: 5 },
+    full: { length: 2545.9, gates: 7 }, east: { length: 1924.3, gates: 5 }, ridge: { length: 1611.7, gates: 5 },
   };
   for (const id of ARENA_LAYOUT_IDS) {
     const lap = arenaLap(id), points = closedLap(id);
@@ -40,9 +40,10 @@ test("each layout closes, keeps its length and runs its corners in order", () =>
     assert.deepEqual(lap.gates.map(g => g.along), [...lap.gates.map(g => g.along)].sort((a, b) => a - b));
     assert.equal(lap.gates.at(-1)!.along, lap.length);
     for (const gate of lap.gates) assert.ok(lap.points.some(p => p.x === gate.x && p.z === gate.z), `${id}: ${gate.name} is not a sample`);
-    // Every rounded corner turns the way the polygon does, by less than a hairpin's half.
+    // Every rounded corner is a single arc well short of a U-turn: hairpins are two corners,
+    // and the chicane's middle (106 degrees) is the sharpest.
     for (const corner of lap.corners) {
-      assert.ok(corner.to > corner.from && Math.abs(corner.turn) < Math.PI / 2 + 1e-9, `${id}: ${corner.id}`);
+      assert.ok(corner.to > corner.from && Math.abs(corner.turn) < Math.PI * 2 / 3, `${id}: ${corner.id}`);
     }
     // A layout never runs over itself away from where it is: 2x the paved width apart at least.
     for (let i = 0; i < lap.points.length; i += 2) {
@@ -175,10 +176,12 @@ test("each layout is a lapped race whose rival line passes through every gate", 
 
 // Executed, not inferred: the rival drives a lap of every layout on the
 // centreline, never needs a reset or a recovery, and never puts a tyre on the
-// grass. The times are the centreline baseline recorded laps are to beat
-// (2026-09-13: Full 100.8 s, East 78.8 s, Ridge 66.4 s from a standing start).
+// grass. The times are the centreline baseline recorded laps are to beat, from
+// a standing start: Full 100.8 s, East 78.8 s, Ridge 66.4 s on 2026-09-13 as
+// first built; Full 86.0 s, East 66.0 s, Ridge 54.3 s with the chicane (circuit
+// revision 2) and cornering tuned to recorded laps (RIVAL_CORNERING).
 test("the rival laps every layout cleanly on the centreline", () => {
-  const limits: Record<ArenaLayoutId, number> = { full: 106, east: 83, ridge: 70 };
+  const limits: Record<ArenaLayoutId, number> = { full: 90, east: 70, ridge: 58 };
   for (const id of ARENA_LAYOUT_IDS) {
     const event = arenaEvent(id, 1);
     const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: false });

@@ -32,8 +32,9 @@ test("rival shares the countdown and completes Sound to Sky with normal traffic"
     assert.equal(sim.state.rival!.vehicle.z,start.z);
     assert.equal(sim.state.race!.countdown,0);
     finish(sim);
-    // 188.7 s before traffic was judged by where it will be (2026-09-13), 182.3 s after.
-    assert.ok(sim.state.rival!.race.ticks < 185*60, `Sound to Sky took ${(sim.state.rival!.race.ticks/60).toFixed(1)} s with traffic`);
+    // 188.7 s before traffic was judged by where it will be (2026-09-13), 182.3 s after,
+    // 143.1 s once its cornering was tuned to recorded laps (RIVAL_CORNERING).
+    assert.ok(sim.state.rival!.race.ticks < 150*60, `Sound to Sky took ${(sim.state.rival!.race.ticks/60).toFixed(1)} s with traffic`);
     assert.equal(sim.state.rival!.driver.recoveries,0);
     assert.equal(sim.state.rival!.driver.resets,0,"normal racing should never use fallback resets");
     for(let tick=0;tick<600;tick++)step(sim,parked);

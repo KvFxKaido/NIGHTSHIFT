@@ -93,6 +93,28 @@ export const RIVAL_RACING = {
   blockRate: 0.03,
 } as const;
 
+/**
+ * How hard the rival plans corners: its target speed is `speedFactor` of the
+ * line's grip-limited speed, never below `minimumSpeed`, braked for at
+ * `planningDeceleration` from `brakingMargin` metres before the corner.
+ *
+ * Tuned 2026-09-13 against Shawn's recorded laps of Ridge Circuit (Full, RWD
+ * Cinder). At the apexes he used 74-82% of the car's lateral grip and braked at
+ * 7-10 m/s² into the big stops; the rival, at 0.62, 5 and 12, used 19-43% and
+ * braked at 3-5, lifting 320 m before T1. Braking was safe to match in full.
+ * Corner speed was not: the rival follows the centreline with a lagging
+ * steering controller, and at 0.82 it overshot the reverse bend after the
+ * south junction onto the grass and ran 19.8 m wide on Sound to Sky. 0.74,
+ * 0.76 and 0.78 were all clean, so 0.76 keeps a margin. Its tracking at speed,
+ * not its grip, is the ceiling now (design/PORT_ALDER.md).
+ */
+export const RIVAL_CORNERING = {
+  speedFactor: 0.76,
+  minimumSpeed: 7,
+  planningDeceleration: 10,
+  brakingMargin: 6,
+} as const;
+
 export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
@@ -121,9 +143,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const lookAhead = 8 + car.speed * .35;
   const target = sampleRivalPath(route, Math.min(gate, driver.along + lookAhead));
   let desiredSpeed = route.speedLimit ?? HANDLING.topSpeed;
-  // At highway speed, a 100 m preview cannot see a corner early enough to stop.
-  // Keep the existing conservative braking envelope, but look through its full distance.
-  const planningDeceleration = 5;
+  // At highway speed, a 100 m preview cannot see a corner early enough to stop,
+  // so the preview looks through the whole braking envelope.
+  const { planningDeceleration } = RIVAL_CORNERING;
   const previewDistance = Math.max(100, car.speed ** 2 / (2 * planningDeceleration) + 24);
   for (let d = 0; d <= previewDistance; d += 4) {
     const at = driver.along + d;
@@ -131,8 +153,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
-    const cornerSpeed=Math.max(7, maxCorneringSpeed(radius)*.62);
-    desiredSpeed=Math.min(desiredSpeed,Math.sqrt(cornerSpeed**2+2*planningDeceleration*Math.max(0,d-12)));
+    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius)*RIVAL_CORNERING.speedFactor);
+    desiredSpeed=Math.min(desiredSpeed,Math.sqrt(cornerSpeed**2+2*planningDeceleration*Math.max(0,d-RIVAL_CORNERING.brakingMargin)));
   }
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
