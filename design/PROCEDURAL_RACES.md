@@ -43,6 +43,12 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   routed centreline where it does not. Learning per edge is what survives
   generated races: streets recur even when routes do not. The moment it is
   felt: he takes your alley.
+- **A rival learns only from races the player won against it** (2026-09-12).
+  The bank takes the player's trace from a win, never from a loss. Rivals are
+  also the career ladder (GDD §5), and a boss that learned from every failed
+  attempt would get harder with each retry, the loss spiral GDD §5.1 rules
+  out. Studying the line that beat them makes a rematch harder and a retry
+  not.
 - **The shortcut rule is the generator's constraint.** Risk per street is
   computed from the map (width, bends, grade, blind corners); reward per leg
   is the time the real alternative costs; the draw weights legs whose fast
@@ -80,4 +86,5 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   already, and it stays the rule for a rival that has learned.
 - Learned lines and playlists carry physics/build identity and are rejected
   when it changes, as future saved ghosts must be.
-- Only flashed rivals learn. The field in a race is not a learner.
+- Only flashed rivals learn, and only from races the player won against them.
+  The field in a race is not a learner.

@@ -163,27 +163,37 @@ Each chapter introduces:
 - A new section or layer of the district
 - A mechanical or environmental complication
 
-Progress is driven by reputation rather than a traditional tournament bracket.
+Progress is a ladder of named racers (2026-09-12), after Midnight Club 3's
+city ladders rather than a tournament bracket. Each rung is a small group of
+named racers, and the player advances by beating enough of them, not all of
+them, so one racer the player keeps losing to never stalls the career. A major
+rival closes each chapter as its boss; defeating them opens the next level of
+the local racing scene. The ladder gates chapters. Reputation does not.
 
-Players earn reputation by:
+Reputation unlocks performance parts (§5.1). Players earn it from results:
 
 - Winning races
 - Defeating rivals
 - Discovering shortcuts
 - Completing optional challenges
-- Performing clean or stylish driving
 - Winning while using lower-tier equipment
 
-Major rivals act as chapter bosses. Defeating one unlocks the next level of the local racing scene.
+Style earns no reputation. None of this is implemented.
 
 ### 5.1 Garage Economy
 
 Race payouts are cash. Cash buys performance parts and Surge capacity, and there
 is no second race-time currency to track.
 
-Reputation and lifetime style remain non-spendable progression records. They
-gate chapters and decide what the scene offers the player, never what the player
-can afford. Style is reputation only: it does not convert into speed or parts.
+Reputation is a non-spendable record. Crossing its thresholds unlocks
+performance parts for purchase; cash still buys them, and nothing spends
+reputation down. Because the ladder gates chapters and reputation does not,
+grinding generated races earns parts, never a way past a named racer: a player
+stuck on a boss can build the car up and try again.
+
+Lifetime style is a separate record. It earns no reputation and converts into
+nothing: not speed, not parts, not access. When reputation began unlocking
+parts (2026-09-12), style stopped counting toward it so that this stayed true.
 
 Base event payouts must guarantee forward progress even for weaker players.
 There are no repair bills or other loss spirals in the first slice.
@@ -347,7 +357,8 @@ race's identity: the same seed draws the same gates and the same rival line,
 which with its variant (sprint, circuit, unordered) and the start pose the
 flash was made from is all a saved playlist or a ghost needs to carry. A race repeats only
 if the player keeps it. Rivals biasing the draw towards their own streets,
-and rivals learning the player's lines per street, are the next two steps;
+and rivals learning the player's lines per street from races the player won
+against them (never from the player's losses), are the next two steps;
 `design/PROCEDURAL_RACES.md` is the long form and the order of work.
 
 ### 7.4 Drag
@@ -495,10 +506,10 @@ braking. They should change how the car feels without asking the player to
 understand transmissions, differentials or detailed engine builds. Purchased
 performance upgrades are not implemented yet.
 
-The proposed economy buys these parts with cash. Base event payouts must keep
-progress moving on their own; there is no style bonus accelerating them, because
-style is reputation and buys nothing. This is an economy design target rather
-than current behavior.
+The proposed economy unlocks these parts with reputation and buys them with
+cash (§5.1). Base event payouts must keep progress moving on their own; there is
+no style bonus accelerating them, because style earns no reputation and buys
+nothing. This is an economy design target rather than current behavior.
 
 ### 9.3 Tuning
 

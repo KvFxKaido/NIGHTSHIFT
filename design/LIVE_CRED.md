@@ -2,8 +2,8 @@
 
 Status: **Retired 2026-09-12. Never implemented.** Superseded by finite Surge
 tanks: a small number per car, capacity bought in the garage, full at the start
-of every event, no mid-race refill and no passive recharge. Style is reputation
-only and buys nothing.
+of every event, no mid-race refill and no passive recharge. Style buys nothing,
+and since reputation began unlocking parts it earns no reputation either (GDD §5.1).
 
 Cred existed to stop nitrous becoming a crutch. It answered that with three
 currencies, chain rules, a guard against Surge feeding the style that fuels it,

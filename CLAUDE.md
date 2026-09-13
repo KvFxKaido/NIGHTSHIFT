@@ -92,8 +92,10 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   NS-01 livery editor (`src/customization/livery.ts`); all visual only.
 - **Surge** (GDD §3.6, 5.1, 8.4) is the proposed nitrous verb and is **not
   implemented**: a few finite tanks, capacity bought in the garage, full at
-  every event start, no mid-race refill and no passive recharge. Style is
-  reputation only — it converts into nothing. The Live Cred style-to-speed
+  every event start, no mid-race refill and no passive recharge. Style earns
+  no reputation and converts into nothing; reputation unlocks performance
+  parts, and a ladder of named racers gates chapters (GDD §5, 5.1; none of
+  it implemented). The Live Cred style-to-speed
   economy it replaced was dropped on 2026-09-12 and kept, superseded, in
   `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
 - Procedural races are the direction (`design/PROCEDURAL_RACES.md`): every
