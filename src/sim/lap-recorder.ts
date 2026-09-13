@@ -162,6 +162,8 @@ export interface LapSession {
   solo: boolean;
   /** City traffic was on. Absent in sessions from before street circuits, which had none. */
   traffic?: boolean;
+  /** `TRAFFIC_REVISION` when traffic was on: a session in traffic replays only on the traffic that drove it. */
+  trafficRevision?: string;
   laps: number;
   car: string;
   drivetrain: string;

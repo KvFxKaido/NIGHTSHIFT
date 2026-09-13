@@ -8,6 +8,7 @@
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
 import { circuitEvent } from "./circuits.ts";
 import { RIVAL_REVISION } from "./rival.ts";
+import { TRAFFIC_REVISION } from "./traffic.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
 import { createSim, step, PHYSICS_VERSION, TICK_HZ, type Drivetrain } from "./sim.ts";
 
@@ -25,8 +26,8 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.physics !== PHYSICS_VERSION) return { ok: false, reason: `recorded on physics ${session.physics}, this build is ${PHYSICS_VERSION}` };
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
   if (!event.solo && session.rival !== RIVAL_REVISION) return { ok: false, reason: `raced rival ${session.rival ?? "from before rival revisions"}, this build's is ${RIVAL_REVISION}` };
-  // Traffic is part of the world and replays with it; there is no traffic revision, so a
-  // change to traffic shows up as a session that no longer reproduces, not a refusal.
+  if (event.traffic && session.trafficRevision !== TRAFFIC_REVISION) return { ok: false, reason: `recorded in traffic ${session.trafficRevision ?? "from before traffic revisions"}, this build's is ${TRAFFIC_REVISION}` };
+  // Traffic is part of the world and replays with it, by its revision.
   const sim = createSim(session.drivetrain as Drivetrain, createAlderWorld(true, event.start),
     { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic });
   try {

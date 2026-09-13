@@ -819,7 +819,10 @@ export function step(sim: Sim, rawInput: Input): void {
   // Traffic advances before the solver runs, so the player's contact this tick
   // is against where the traffic actually is rather than where it was.
   if (sim.state.traffic && sim.roadWorld.traffic) {
-    stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT);
+    // Traffic yields to the cars it does not drive (TrafficRacer in traffic.ts).
+    const racers = [sim.state.vehicle, ...(sim.state.rival ? [sim.state.rival.vehicle] : []),
+      ...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.parkedRivals.map(r => r.vehicle)];
+    stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT, racers);
     sim.state.traffic.vehicles.forEach((vehicle, i) => {
       const trafficBody = sim.trafficBodies[i]!;
       const spec = TRAFFIC_KINDS[vehicle.kind];

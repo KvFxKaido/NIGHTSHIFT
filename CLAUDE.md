@@ -166,8 +166,10 @@ fixtures outside the playable bundle, and old world links redirect.
   Authored, not generated, so recordings survive generator changes; its lap
   length is pinned (`design/PORT_ALDER.md`, "Uptown Circuit").
 - **Traffic.** About 260 kinematic vehicles with reserved junction
-  movements (`traffic.ts`); an immovable hazard, never a second handling
-  model. Each car's turns are decided in advance and it shows the next one on
+  movements (`traffic.ts`); a solid hazard nothing can push, never a second
+  handling model. It yields to the player and rival (`TrafficRacer`): follows
+  one going its way and holds a junction for one crossing it. Brake lights and
+  indicators show what it will do. Each car's turns are decided in advance and it shows the next one on
   amber indicators (`trafficSignal`). `forecastTraffic` drives that plan
   forward exactly; the rival does not read it yet (`design/PORT_ALDER.md`), and
   if it does, it reads no more than the indicators show the player. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
@@ -271,14 +273,16 @@ fixtures outside the playable bundle, and old world links redirect.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
-  Traffic has no revision: changing how it drives silently breaks replay of
-  every street session recorded in traffic.
 - In `rivalInput`, `side` is measured from the car and `driver.avoidance` from
   the route; compare them only after adding the car's own offset (`nearestSide`).
   Mixing them pinned the rival on a truck's bumper for 42 s. The player-racing
   block above the traffic loop still mixes them.
-- Traffic sees neither the rival nor the player. A car slow in a one-lane street
-  gets pushed by the one behind; slowing harder for traffic makes that worse.
+- Yielding between traffic and racers runs one way per situation. The rival
+  waits for traffic in its path, so traffic follows only racers going its way and
+  holds junctions only for racers moving over 3 m/s; every other way traffic also
+  waited for the rival made a standoff where neither moved.
+- Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
+  recorded in traffic name it, and replay refuses another.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
   that breaks the tests is green on GitHub. Run `pnpm test` yourself.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not

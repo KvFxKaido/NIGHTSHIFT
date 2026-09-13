@@ -17,6 +17,8 @@ export interface TrafficView {
   readonly lamps: Map<TrafficKind, THREE.InstancedMesh>;
   /** Amber indicators, one set per side, shown per vehicle by `trafficSignal`. */
   readonly indicators: Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>;
+  /** Brake lamps, shown per vehicle while it is `braking`. */
+  readonly brakes: Map<TrafficKind, THREE.InstancedMesh>;
   /** Where each vehicle sits in its kind's instance buffer. */
   readonly slots: number[];
   readonly network: TrafficNetwork | null;
@@ -27,6 +29,7 @@ export interface TrafficView {
 /** Indicator rate: about 90 flashes a minute, lit a little over half of each. */
 const BLINK_PERIOD = 0.66, BLINK_LIT = 0.38;
 const AMBER = new THREE.Color(0xffa21a);
+const BRAKE_RED = new THREE.Color(0xff3322);
 
 // Muted on purpose. Traffic has to be legible as a hazard without reading as
 // brighter than the buildings behind it; the lamps do the announcing.
@@ -80,6 +83,22 @@ function lampGeometry(kind: TrafficKind): THREE.BufferGeometry {
   return merged;
 }
 
+/** Brake lamps: over the tail lamps, larger and brighter, and a third high in the middle. */
+function brakeGeometry(kind: TrafficKind): THREE.BufferGeometry {
+  const spec = TRAFFIC_KINDS[kind];
+  const parts = [-1, 1].map(side => {
+    const lamp = new THREE.BoxGeometry(spec.width * 0.24, 0.2, 0.1);
+    lamp.translate(side * spec.width * 0.33, spec.height * 0.45, spec.length / 2 + 0.06);
+    return lamp;
+  });
+  const high = new THREE.BoxGeometry(spec.width * 0.3, 0.08, 0.08);
+  high.translate(0, spec.height * 0.96, spec.length / 2 * (kind === "van" || kind === "box-truck" ? 0.42 : 0.1) + 0.06);
+  parts.push(high);
+  const merged = mergeGeometries(parts)!;
+  parts.forEach(part => part.dispose());
+  return merged;
+}
+
 /** One side's indicators, front and rear at the outer corners. Forward is -Z, so the left is -X. */
 function indicatorGeometry(kind: TrafficKind, side: "left" | "right"): THREE.BufferGeometry {
   const spec = TRAFFIC_KINDS[kind], x = (side === "left" ? -1 : 1) * spec.width * 0.44;
@@ -98,6 +117,7 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
   const bodies = new Map<TrafficKind, THREE.InstancedMesh>();
   const lamps = new Map<TrafficKind, THREE.InstancedMesh>();
   const indicators = new Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>();
+  const brakes = new Map<TrafficKind, THREE.InstancedMesh>();
   const counts = new Map<TrafficKind, number>();
   const slots: number[] = [];
   for (const vehicle of traffic.vehicles) {
@@ -133,6 +153,12 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
       sides[side] = indicator;
     }
     indicators.set(kind, sides);
+
+    const brake = new THREE.InstancedMesh(brakeGeometry(kind), new THREE.MeshBasicMaterial({ color: BRAKE_RED, toneMapped: false }), count);
+    brake.name = `traffic-brakes-${kind}`;
+    brake.frustumCulled = false;
+    root.add(brake);
+    brakes.set(kind, brake);
   }
   // Paint is per vehicle and never changes, so it is written once. Taxis are a
   // fixed colour: a taxi you cannot pick out of the queue is just a car.
@@ -144,7 +170,7 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
   for (const body of bodies.values()) if (body.instanceColor) body.instanceColor.needsUpdate = true;
 
   scene.add(root);
-  return { root, bodies, lamps, indicators, slots, network, blink: 0 };
+  return { root, bodies, lamps, indicators, brakes, slots, network, blink: 0 };
 }
 
 const placement = new THREE.Object3D();
@@ -165,9 +191,10 @@ export function updateTraffic(view: TrafficView, traffic: TrafficState, elapsed 
     const sides = view.indicators.get(vehicle.kind)!;
     sides.left.setMatrixAt(slot, signal === "left" ? placement.matrix : hidden);
     sides.right.setMatrixAt(slot, signal === "right" ? placement.matrix : hidden);
+    view.brakes.get(vehicle.kind)!.setMatrixAt(slot, vehicle.braking ? placement.matrix : hidden);
   });
   const indicatorMeshes = [...view.indicators.values()].flatMap(sides => [sides.left, sides.right]);
-  for (const mesh of [...view.bodies.values(), ...view.lamps.values(), ...indicatorMeshes]) {
+  for (const mesh of [...view.bodies.values(), ...view.lamps.values(), ...indicatorMeshes, ...view.brakes.values()]) {
     mesh.instanceMatrix.needsUpdate = true;
   }
 }

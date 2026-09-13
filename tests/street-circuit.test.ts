@@ -9,7 +9,7 @@ import { laneOffset } from "../src/sim/lanes.ts";
 import { createRivalDriver, rivalInput, RIVAL_REVISION, sampleRivalPath } from "../src/sim/rival.ts";
 import { STREET_CIRCUIT_IDENTITY, STREET_GATE_RADIUS, streetCircuitEvent, streetCircuitRaceFor, streetCircuitRaceId, UPTOWN, uptownLap } from "../src/sim/street-circuit.ts";
 import { createSim, step, TICK_HZ } from "../src/sim/sim.ts";
-import { TRAFFIC_KINDS } from "../src/sim/traffic.ts";
+import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
 await RAPIER.init();
 
 // Recordings are compared lap against lap, so the lap cannot move. If this fails
@@ -94,11 +94,14 @@ test("a lap driven through traffic replays exactly, and a changed input is caugh
     assert.ok(sim.state.race!.finished, "the lap was not finished");
     session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-13-120000-street-uptown-solo", recordedAt: "2026-09-13T12:00:00.000Z",
       world: sim.roadWorld.id, arena: event.identity, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id,
-      layout: event.layout, solo: true, traffic: true, laps: 1, car: "kestrel", drivetrain: "awd", start: event.start }))) as LapSession;
+      layout: event.layout, solo: true, traffic: true, trafficRevision: TRAFFIC_REVISION, laps: 1, car: "kestrel", drivetrain: "awd", start: event.start }))) as LapSession;
   } finally { sim.world.free(); }
   assert.deepEqual(replayLapSession(session), { ok: true, laps: 1 });
   const nudged = structuredClone(session);
   nudged.inputs.steer[TICK_HZ * 30] = nudged.inputs.steer[TICK_HZ * 30]! > 0 ? -1 : 1;
   assert.equal(replayLapSession(nudged).ok, false, "a changed input replayed identically");
   assert.match((replayLapSession({ ...session, arena: "uptown-v0" }) as { reason: string }).reason, /circuit uptown-v0/);
+  // A session in traffic replays only on the traffic that drove it, and says so.
+  const { trafficRevision: _revision, ...older } = session;
+  assert.match((replayLapSession(older as LapSession) as { reason: string }).reason, /from before traffic revisions/);
 });

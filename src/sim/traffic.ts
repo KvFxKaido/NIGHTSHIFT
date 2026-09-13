@@ -35,6 +35,33 @@ export function mix(n: number): number {
 
 export type TrafficKind = "sedan" | "taxi" | "van" | "box-truck";
 
+/**
+ * How traffic drives, for anything replayed through it: a recording made in
+ * traffic reproduces only on the traffic that drove it. "traffic-v2"
+ * (2026-09-13): traffic yields to the cars it does not drive (`TrafficRacer`).
+ */
+export const TRAFFIC_REVISION = "traffic-v2";
+
+/**
+ * A car traffic does not drive but must not drive into (2026-09-13): the player,
+ * the rival, a parked rival. Traffic used to be blind to them. It stays a solid,
+ * kinematic hazard that no racer can push, but it follows a racer in its lane as
+ * it follows its own kind, and it does not claim a junction a racer is in or is
+ * about to cross. Blind, it shoved a rival slowed into a one-lane street for ten
+ * seconds and turned a truck across a rival passing it at 100 mph.
+ */
+export interface TrafficRacer { readonly x: number; readonly z: number; readonly heading: number; readonly speed: number }
+/** A racer's length, for gaps: the longest car a racer drives, with some to spare. */
+const RACER_LENGTH = 4.8;
+/** Metres either side of a lane a racer counts as in it: half a lane, and half a car. */
+const RACER_IN_LANE = 2.6;
+/** Metres from a movement's path a racer counts as in its way: half of each car and room. */
+const RACER_IN_JUNCTION = 5;
+/** Seconds of a racer's course checked against a junction: long enough to cross one from the line. */
+const RACER_HORIZON = 4;
+/** A racer slower than this, m/s, holds no junction: it is waiting, not crossing. */
+const RACER_MOVING = 3;
+
 export interface TrafficKindSpec {
   readonly length: number;
   readonly width: number;
@@ -167,6 +194,8 @@ export interface TrafficVehicleState {
   blendLeft: number;
   /** What blendLeft started at, so the blend has a fraction to interpolate. */
   blendSpan: number;
+  /** Slowing, or held at a standstill: what its brake lights show. */
+  braking: boolean;
 }
 
 export interface TrafficState {
@@ -332,7 +361,7 @@ export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING
         id, kind, lane: lane.id, distance: first + (next - travelled),
         speed: TRAFFIC_KINDS[kind].cruise,
         movement: -1, holds: [], turns: 0, x: 0, y: 0, z: 0, heading: 0,
-        blendX: 0, blendZ: 0, blendHeading: 0, blendLeft: 0, blendSpan: 0,
+        blendX: 0, blendZ: 0, blendHeading: 0, blendLeft: 0, blendSpan: 0, braking: false,
       };
       vehicle.movement = chooseMovement(network, vehicle);
       place(network, vehicle);
@@ -414,7 +443,79 @@ function mayEnter(network: TrafficNetwork, byLane: Map<number, TrafficVehicleSta
     > TRAFFIC_KINDS[first.kind].length * 0.5 + TRAFFIC_KINDS[vehicle.kind].length + MIN_GAP;
 }
 
-export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: number): void {
+/**
+ * Clear distance to a racer in this vehicle's lane ahead, along the lane and on
+ * into the exit it will take, or `LOOKAHEAD` if none. Along the lane rather than
+ * straight ahead, so a racer round a bend is still in the lane it is in.
+ */
+function racerGap(network: TrafficNetwork, vehicle: TrafficVehicleState, racers: readonly TrafficRacer[]): number {
+  let best = LOOKAHEAD;
+  if (!racers.length) return best;
+  const lane = network.lanes[vehicle.lane]!;
+  const exit = vehicle.holds.length ? vehicle.holds[0]! : vehicle.movement;
+  const forward = -Math.sin(vehicle.heading), forwardZ = -Math.cos(vehicle.heading);
+  for (const racer of racers) {
+    const dx = racer.x - vehicle.x, dz = racer.z - vehicle.z;
+    if (dx * dx + dz * dz > (LOOKAHEAD + 10) ** 2) continue;
+    const straight = dx * forward + dz * forwardZ;
+    if (straight <= 0) continue;
+    // Where the lane is that far along, and how far off it the racer is.
+    const along = vehicle.distance + straight;
+    const pose = along <= lane.length || exit < 0 ? network.pose(vehicle.lane, Math.min(along, lane.length))
+      : network.pose(network.movements[exit]!.to, Math.min(along - lane.length, network.lanes[network.movements[exit]!.to]!.length));
+    const off = Math.abs((racer.x - pose.x) * -Math.cos(pose.heading) + (racer.z - pose.z) * Math.sin(pose.heading));
+    if (off >= RACER_IN_LANE) continue;
+    // Followed only going this way. Yielding has to run one way: the rival already
+    // waits for traffic in its path, so traffic that also waited for a racer facing
+    // it, or crossing its lane, waited on a rival that was waiting on it. Stopped
+    // inside a junction for a crossing rival (seed 13), and stopped head-on to a
+    // rival sitting on the centreline (seeds 2 and 5), neither moved.
+    if (Math.cos(racer.heading - pose.heading) <= 0.5) continue;
+    best = Math.min(best, straight - (TRAFFIC_KINDS[vehicle.kind].length + RACER_LENGTH) / 2);
+  }
+  return best;
+}
+
+const movementPaths = new WeakMap<TrafficNetwork, Map<number, LanePose[]>>();
+/** A movement's path as a polyline: its lane from the entry line, the handoff, the far lane to where it is clear. */
+function movementPath(network: TrafficNetwork, id: number): LanePose[] {
+  let cache = movementPaths.get(network);
+  if (!cache) movementPaths.set(network, cache = new Map());
+  let path = cache.get(id);
+  if (!path) {
+    const movement = network.movements[id]!, from = network.lanes[movement.from]!, to = network.lanes[movement.to]!;
+    path = [network.pose(movement.from, Math.max(0, from.length - from.entry)), network.pose(movement.from, from.length),
+      network.pose(movement.to, 0), network.pose(movement.to, Math.min(to.length, movement.clear))];
+    cache.set(id, path);
+  }
+  return path;
+}
+
+/** Whether a racer is in a movement's path now, or will be within `seconds` on its present course. */
+function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[], seconds: number): boolean {
+  for (const racer of racers) {
+    // Only a racer on the move. One stopped or crawling at a junction is waiting
+    // for traffic itself, and holding traffic for it made them wait on each other
+    // (seeds 2 and 5): traffic goes, as it always did, and the racer goes after.
+    if (racer.speed < RACER_MOVING) continue;
+    const vx = -Math.sin(racer.heading) * racer.speed, vz = -Math.cos(racer.heading) * racer.speed;
+    for (const id of chain) {
+      const path = movementPath(network, id);
+      for (let t = 0; t <= seconds; t += 0.25) {
+        const x = racer.x + vx * t, z = racer.z + vz * t;
+        for (let i = 1; i < path.length; i++) {
+          const a = path[i - 1]!, b = path[i]!;
+          const abx = b.x - a.x, abz = b.z - a.z, l2 = abx * abx + abz * abz;
+          const u = l2 > 1e-9 ? Math.max(0, Math.min(1, ((x - a.x) * abx + (z - a.z) * abz) / l2)) : 0;
+          if (Math.hypot(x - a.x - abx * u, z - a.z - abz * u) < RACER_IN_JUNCTION) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: number, racers: readonly TrafficRacer[] = []): void {
   const byLane = occupancy(state);
   // A vehicle claims its movements when it is granted, not when it reaches the
   // junction, and keeps them until it is clear on the far side.
@@ -455,13 +556,16 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     const chain = chainFor(network, vehicle);
     if (chain.some(id => holders.has(id) || crossingBusy(network, holders, id))) continue;
     if (!mayEnter(network, byLane, vehicle, chain)) continue;
+    // A racer in the junction, or crossing it before this vehicle could be clear, has it.
+    const clearIn = Math.min(RACER_HORIZON, (toEntry(vehicle) + 30) / Math.max(3, vehicle.speed));
+    if (racerCrossing(network, chain, racers, clearIn)) continue;
     vehicle.holds = chain;
     for (const id of chain) holders.set(id, [...(holders.get(id) ?? []), vehicle]);
   }
 
   for (const vehicle of state.vehicles) {
     const spec = TRAFFIC_KINDS[vehicle.kind];
-    let gap = gapAhead(network, byLane, vehicle);
+    let gap = Math.min(gapAhead(network, byLane, vehicle), racerGap(network, vehicle, racers));
     if (!vehicle.holds.length) {
       // Aim to stop short of the line rather than on it: a vehicle with no
       // claim has no right to any part of the junction.
@@ -470,8 +574,11 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     // Linear follower: full cruise at a comfortable gap, stopped at the bumper.
     const target = Math.max(0, Math.min(spec.cruise, (gap - MIN_GAP) / HEADWAY));
     const rate = target > vehicle.speed ? ACCELERATION : BRAKING;
+    const was = vehicle.speed;
     vehicle.speed += Math.max(-rate * dt, Math.min(rate * dt, target - vehicle.speed));
     vehicle.speed = Math.max(0, vehicle.speed);
+    // Brake lights: slowing by more than 1 m/s², or held at a standstill.
+    vehicle.braking = vehicle.speed < was - dt * 1 || (target < 0.5 && vehicle.speed < 0.5);
     vehicle.distance += vehicle.speed * dt;
 
     // The entry line is a hard barrier, not a target to aim at. Everything here

@@ -1008,3 +1008,56 @@ Single races in traffic are chaotic: two runs that should behave alike differed 
 choice on these 42. Still open: the block and pass against the player
 (`RIVAL_RACING`) take `side` from the car; it shaped Ridge Circuit's racing and
 is left for a measured change of its own.
+
+**Traffic that sees racers, and brake lights (2026-09-13).** Every rival failure
+traced in traffic came back to traffic being blind to it: shoved down a one-lane
+street, a truck turning across it, a crossing car into it. So traffic now yields
+to the cars it does not drive, the player, the rival and the parked rivals
+(`TrafficRacer`, `TRAFFIC_REVISION` "traffic-v2"), and stays a solid kinematic
+hazard nothing can push:
+
+- **It follows a racer going its way** in its lane or the exit it will take, as
+  it follows its own kind, measured along the lane.
+- **It does not claim a junction** a racer on the move is in, or will cross on
+  its present course before the car could be clear.
+- **Brake lights**: a car slowing by more than 1 m/s², or held at a standstill,
+  lights brighter tail lamps and a high third lamp (`braking`). That is the
+  readable half of the stop-start hesitation: a car waiting at a line for its
+  turn shows brakes, and its indicator if it is turning.
+
+Yielding has to run one way. The rival already waits for traffic in its path, and
+every way traffic also waited for the rival made a standoff somewhere: stopping
+for a racer crossing its lane put a car inside a junction in the rival's path
+while it waited for the rival (seed 13); stopping head-on to a rival on the
+centreline, or holding a junction for a rival stopped in it, left both waiting
+(seeds 2 and 5). So traffic follows only racers going its way, and holds
+junctions only for racers moving faster than 3 m/s.
+
+Measured, rival alone, over the same 42 races, each part alone and together:
+
+| Traffic | Time | Contact | Circling | Lost | Past 16 m | Reversals | Uptown |
+|---|---|---|---|---|---|---|---|
+| Blind (before) | 4,218.4 s | 630 | 65.1 s | 43.6 s | 3 | 0 | 441 contact, 16.3 m |
+| Follows racers | 4,195.2 s | 616 | 56.4 s | 36.9 s | 3 | 0 | 46, 17.9 m |
+| Holds junctions | 4,209.3 s | 530 | 51.2 s | 31.1 s | 4 | 3 | 0, 6.6 m |
+| **Both (shipped)** | 4,200.1 s | 564 | 53.3 s | 32.2 s | 4 | 3 | 47, 6.6 m |
+| Both, and gives a claim back short of the line | 4,182.8 s | 946 | 31.0 s | 15.7 s | 3 | 7 | 4, 6.6 m |
+
+Uptown here is the rival alone for five minutes; for three laps it ran 102.7 /
+100.5 / 105.7 s in traffic, never off the pavement, 6.6 m worst (it left the
+road on lap 3 before). Clear streets are unchanged. A reversal is the rival
+stuck beside or behind a waiting car for two seconds, then backing out (seeds 1,
+20 and 37): a standoff these rules have not removed. Giving a claim back short
+of the line when a racer is about to cross halved circling and lost time again,
+because checked only when claiming, a car at 10 m/s holds a junction six seconds
+and a rival arriving in that time is never seen (seed 10). It also made more
+standoffs and put seed 3, which `tests/race-generator.test.ts` pins, 29.8 m off
+the street, so it is not shipped.
+
+`tests/traffic-intent.test.ts` holds both rules (a car stops behind a racer
+stopped in its lane and drives straight through that spot without one; a car
+does not claim a junction a racer is crossing and claims it once the racer is
+through), each failing with its rule removed. A session recorded in traffic
+names its traffic revision, and replay refuses another: Shawn's two Uptown
+sessions in traffic no longer reproduce, because the traffic they met has
+changed.

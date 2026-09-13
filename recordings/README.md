@@ -43,6 +43,6 @@ replays each session against the current build; `pnpm laps --json` is for tools.
 Anything that moves the car outside the fixed tick (debug placement through
 `__ns.sim.body`) makes the rest of a session unreplayable, and `--verify` says so.
 
-Traffic replays with the world, but it has no revision of its own: a change to
-how traffic drives makes an earlier session in traffic stop reproducing, and
-`--verify` reports it as a lap that differs rather than refusing it by name.
+A session in traffic names the traffic that drove it (`trafficRevision`,
+`TRAFFIC_REVISION` in `src/sim/traffic.ts`), and replay refuses another by name.
+Sessions in traffic from before traffic revisions are refused the same way.
