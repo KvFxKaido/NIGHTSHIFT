@@ -164,6 +164,37 @@ the player wins (`design/PROCEDURAL_RACES.md`), so each route that beats her
 works once. Exists: `design/reference/characters/tally/`, Vesper in
 `assets/cars/ns-vesper-01.blend`; no encounter.
 
+*Proposed:* Vesper is the one car on the list without the 140 mph cap (see
+"The 140 mph cap" below). If she cannot be caught on a straight, a route she
+has not driven is the only way past her, which is the lesson the list has been
+teaching; on an equal car the last race could be won by driving cleaner.
+
+## The 140 mph cap (proposed, 2026-09-13)
+
+Every body shares one handling model, and `HANDLING.topSpeed` in
+`src/sim/sim.ts` governs all of them at about 140 mph. Shawn thinks of that as
+a beginner cap: it holds while per-car handling models are worked out and it is
+decided which cars should be faster than which. The first car to lose it would
+be #1's Vesper.
+
+- **It is allowed.** GDD §11 has difficulty come from "better route selection,
+  cleaner driving, greater aggression, and stronger cars". A faster car is a
+  stronger car, not an AI advantage; the rival rules forbid catch-up,
+  rubber-banding and grip changes, and none of those is a car's top speed.
+  Vesper is also Tally's guaranteed reward, so the player ends the list with
+  the uncapped car.
+- **It is handling work, not a constant.** Top speed is one value for every
+  body today; only the drivetrain differs (`CAR_DRIVETRAIN`). A faster car
+  needs per-car handling, which is Phase 1 work: its own commit with
+  `design/HANDLING.md`, under the determinism rules.
+- **It changes the pace model.** Route choice and the race generator price
+  shortcuts at one assumed speed (`design/PROCEDURAL_RACES.md`); a much faster
+  car can make a priced alley not worth taking. Measure before tuning.
+- **The HUD is ready for it.** The speedometer is a fixed 0-250 mph face for
+  every car, as Midnight Club 3's appears to be (a mid-class Esprit shows the
+  full 250 face; no second car has been checked), so a faster car reads as
+  more needle rather than a rescaled dial.
+
 ## An ending worth keeping
 
 If #1 keeps the list, beating Tally means the player keeps it. The last thing
@@ -200,6 +231,8 @@ the career gives the player is the pen.
   roadster but RWD, which would leave Stray as the only FWD car.
 - Whether Wake's GT-R reads as a different silhouette from Sable's NS-01 once
   built.
+- Which cars sit above the 140 mph cap, and by how much; whether it lifts for
+  the player's own car through upgrades or only through won cars.
 - Where the player's shots come from for each name (GDD §5 proposes wins on
   that name's home turf).
 - Whether the player has a portrait in the opening's dialogue (GDD §5).
