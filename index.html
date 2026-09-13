@@ -32,21 +32,52 @@
         <span id="race-gate">GATE 1/3</span><span id="race-time">3</span>
       </div>
       <div id="telemetry"></div>
+      <!-- Midnight Club 3's layout in NIGHTSHIFT's style: minimap bottom left,
+           a tachometer riding the speedometer bottom right, and a long meter
+           arc rising from each. The arcs are reserved for nitrous, slipstream
+           and abilities; nothing feeds them yet, so they stay hidden. -->
       <div id="minimap-frame" aria-hidden="true">
         <canvas id="minimap" width="336" height="336"></canvas>
-        <span id="minimap-heading"></span>
       </div>
+      <svg id="meter-left" class="hud-meter" viewBox="0 0 120 480" aria-hidden="true" hidden>
+        <path class="meter-track" d="M80 10 Q -10 230 58 440" />
+        <path id="meter-left-fill" class="meter-fill" d="M80 10 Q -10 230 58 440" pathLength="100" stroke-dasharray="0 100" />
+      </svg>
+      <svg id="meter-right" class="hud-meter" viewBox="0 0 120 480" aria-hidden="true" hidden>
+        <path class="meter-track" d="M36 10 Q 112 230 58 440" />
+        <path id="meter-right-fill" class="meter-fill" d="M36 10 Q 112 230 58 440" pathLength="100" stroke-dasharray="0 100" />
+        <g id="meter-right-segments">
+          <path class="meter-segment" d="M62 180 Q 120 300 76 432" pathLength="100" stroke-dasharray="31 3.5 31 3.5 31 100" />
+        </g>
+        <circle class="meter-badge" cx="66" cy="458" r="16" />
+        <text id="meter-right-count" class="meter-count" x="66" y="459">0</text>
+      </svg>
       <div id="cluster" aria-label="Vehicle speed">
-        <svg id="gauge" viewBox="0 0 200 200" aria-hidden="true">
-          <circle class="gauge-shell" cx="100" cy="100" r="88" />
-          <circle class="gauge-track" cx="100" cy="100" r="78" stroke-dasharray="381.2 490.1" />
-          <circle id="gauge-sweep" class="gauge-sweep" cx="100" cy="100" r="78" stroke-dasharray="0 490.1" />
-          <g id="gauge-ticks"></g>
-        </svg>
-        <div id="cluster-readout">
-          <span id="speed">000</span><span id="unit">MPH</span>
+        <div id="tacho" aria-hidden="true">
+          <svg id="tacho-dial" viewBox="0 0 200 200">
+            <circle class="gauge-shell" cx="100" cy="100" r="88" />
+            <circle class="gauge-track" cx="100" cy="100" r="78" stroke-dasharray="381.2 490.1" />
+            <circle id="tacho-red" class="tacho-red" cx="100" cy="100" r="78" stroke-dasharray="0 490.1" />
+            <g id="tacho-ticks"></g>
+            <g id="tacho-needle" class="gauge-needle"><path d="M88 100 L100 97 L166 100 L100 103 Z" /></g>
+            <circle class="gauge-hub" cx="100" cy="100" r="6" />
+          </svg>
+          <span id="gear">N</span>
+          <span id="tacho-label">RPM</span>
         </div>
-        <span id="gear">N</span>
+        <div id="speedo">
+          <svg id="gauge" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="gauge-shell" cx="100" cy="100" r="88" />
+            <circle class="gauge-track" cx="100" cy="100" r="78" stroke-dasharray="381.2 490.1" />
+            <circle id="gauge-sweep" class="gauge-sweep" cx="100" cy="100" r="78" stroke-dasharray="0 490.1" />
+            <g id="gauge-ticks"></g>
+            <g id="gauge-needle" class="gauge-needle"><path d="M86 100 L100 96.5 L174 100 L100 103.5 Z" /></g>
+            <circle class="gauge-hub" cx="100" cy="100" r="7" />
+          </svg>
+          <div id="cluster-readout">
+            <span id="speed">000</span><span id="unit">MPH</span>
+          </div>
+        </div>
         <div id="drift-instruments" class="event-instruments" hidden>
           <span class="instrument-label">Drift / Unbanked chain</span><strong id="drift-chain"></strong><div id="drift-feedback"></div>
           <div id="drift-zone"></div><div id="drift-help"></div>

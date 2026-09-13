@@ -60,97 +60,132 @@ canvas { display: block; width: 100%; height: 100%; }
   #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
 }
 
-/* The driving cluster. Embedded in the scene rather than a dashboard bolted on
-   top of it (GDD §15.2): a dark disc, one accent colour, and nothing that moves
-   unless the car does. */
+/* The driving cluster, laid out after Midnight Club 3 and drawn in NIGHTSHIFT's
+   own style: dark glass faces, cream numerals, one navigation accent. A needle
+   speedometer bottom right with the tachometer riding its shoulder, the
+   minimap bottom left, and a long meter arc rising from each (hidden until
+   something real feeds them). Sizes follow the viewport height, like MC3's. */
+
+:root {
+  --speedo-size: clamp(170px, 31vh, 280px);
+  --tacho-size: calc(var(--speedo-size) * .58);
+  --minimap-size: clamp(160px, 28vh, 252px);
+}
 
 #cluster {
   position: fixed;
-  right: 24px;
-  bottom: 20px;
-  width: 172px;
-  height: 172px;
+  right: 22px;
+  bottom: 18px;
+  width: calc(var(--speedo-size) + var(--tacho-size) * .18);
+  height: calc(var(--speedo-size) + var(--tacho-size) * .72);
   pointer-events: none;
   filter: drop-shadow(0 6px 22px rgba(0, 0, 0, .75));
 }
+#speedo { position: absolute; right: 0; bottom: 0; width: var(--speedo-size); height: var(--speedo-size); }
+#tacho { position: absolute; left: 0; top: 0; width: var(--tacho-size); height: var(--tacho-size); }
+#gauge, #tacho-dial { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
-#gauge { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.gauge-shell { fill: rgba(4, 8, 14, .62); stroke: rgba(255, 255, 255, .07); stroke-width: 1; }
+.gauge-shell { fill: rgba(4, 8, 14, .74); stroke: rgba(242, 238, 227, .22); stroke-width: 1.4; }
 .gauge-track, .gauge-sweep {
   fill: none;
-  stroke-width: 7;
+  stroke-width: 5;
   stroke-linecap: butt;
   transform: rotate(130deg);
   transform-origin: 100px 100px;
 }
-.gauge-track { stroke: rgba(140, 175, 200, .16); }
+.gauge-track { stroke: rgba(140, 175, 200, .14); }
 .gauge-sweep {
   stroke: var(--ui-navigation);
-  filter: drop-shadow(0 0 6px rgba(89, 216, 255, .85));
+  filter: drop-shadow(0 0 5px rgba(89, 216, 255, .8));
   transition: stroke 160ms linear;
 }
-.gauge-sweep.redline { stroke: var(--ui-danger); filter: drop-shadow(0 0 8px rgba(255, 49, 88, .9)); }
-.gauge-tick { stroke: rgba(190, 220, 235, .28); stroke-width: 2; }
-.gauge-tick.major { stroke: rgba(210, 235, 245, .55); stroke-width: 2.6; }
+.gauge-sweep.redline { stroke: var(--ui-danger); filter: drop-shadow(0 0 7px rgba(255, 49, 88, .9)); }
+.tacho-red { fill: none; stroke: var(--ui-danger); stroke-width: 5; opacity: .8; }
+.gauge-tick { stroke: rgba(190, 220, 235, .3); stroke-width: 1.6; }
+.gauge-tick.major { stroke: rgba(242, 238, 227, .75); stroke-width: 2.6; }
+.gauge-numeral {
+  fill: rgba(242, 238, 227, .92);
+  font: 800 15px/1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-variant-numeric: tabular-nums;
+}
+#tacho .gauge-numeral { font-size: 19px; }
+.gauge-needle path { fill: var(--ui-ink); filter: drop-shadow(0 0 4px rgba(0, 0, 0, .9)); }
+#gauge-needle path { fill: #ff6a3d; }
+.gauge-needle.redline path { fill: var(--ui-danger); }
+.gauge-hub { fill: #0b1119; stroke: rgba(242, 238, 227, .6); stroke-width: 2; }
 
+/* The digital readout sits under the hub, above the dial's open bottom, the
+   way MC3's odometer does; the gear rides in the tachometer. */
 #cluster-readout {
   position: absolute;
-  inset: 0;
+  left: 0; right: 0; top: 60%;
   display: grid;
-  place-content: center;
   justify-items: center;
-  gap: 1px;
+  gap: 2px;
 }
 #speed {
-  font-size: 46px;
+  font-size: calc(var(--speedo-size) * .12);
   font-weight: 900;
   line-height: .84;
-  letter-spacing: -.045em;
+  letter-spacing: -.03em;
   font-variant-numeric: tabular-nums;
 }
 #unit { color: rgba(242, 238, 227, .5); font: 9px/1 ui-monospace, monospace; letter-spacing: .22em; }
 #gear {
   position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: 20px;
+  left: 0; right: 0; top: 60%;
   color: var(--ui-danger);
-  font-size: 21px;
+  font-size: calc(var(--tacho-size) * .17);
   font-weight: 900;
+  line-height: 1;
   text-align: center;
+}
+#tacho-label {
+  position: absolute; left: 0; right: 0; bottom: 12%;
+  text-align: center; color: rgba(242, 238, 227, .55);
+  font: 8px/1 ui-monospace, monospace; letter-spacing: .16em;
 }
 
 #minimap-frame {
   position: fixed;
-  left: 24px;
-  bottom: 20px;
-  width: 168px;
-  height: 168px;
+  left: 22px;
+  bottom: 18px;
+  width: var(--minimap-size);
+  height: var(--minimap-size);
   border-radius: 50%;
   pointer-events: none;
-  border: 1px solid rgba(89, 216, 255, .34);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, .7), inset 0 0 22px rgba(6, 22, 32, .8);
+  filter: drop-shadow(0 6px 22px rgba(0, 0, 0, .7));
 }
-#minimap { display: block; width: 100%; height: 100%; border-radius: 50%; }
-/* The forward marker: the map is heading-up, so the notch at the top is where
-   the car is pointing, and there is no compass rose to misread. */
-#minimap-heading {
-  position: absolute;
-  left: 50%;
-  top: -5px;
-  width: 0;
-  height: 0;
-  border: 5px solid transparent;
-  border-top-color: rgba(89, 216, 255, .85);
-  transform: translateX(-50%);
+#minimap { display: block; width: 100%; height: 100%; }
+
+/* The meter arcs: MC3's long curves rising from the minimap and the gauges.
+   Reserved for nitrous, slipstream and abilities; hidden until one exists.
+   An author display beats [hidden], so say display:none outright. They are
+   SVG, which has no .hidden property: toggle the attribute, not the property. */
+.hud-meter {
+  position: fixed;
+  height: 46vh;
+  aspect-ratio: 120 / 480;
+  pointer-events: none;
+  overflow: visible;
 }
+.hud-meter[hidden] { display: none; }
+#meter-left { left: calc(22px + var(--minimap-size) * .12); bottom: calc(18px + var(--minimap-size) * .9); }
+#meter-right { right: calc(22px + var(--speedo-size) * .02); bottom: calc(18px + var(--speedo-size) * .95); }
+.meter-track { fill: none; stroke: rgba(242, 238, 227, .5); stroke-width: 4; stroke-linecap: round; }
+.meter-fill { fill: none; stroke: var(--ui-navigation); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(89, 216, 255, .8)); }
+.meter-segment { fill: none; stroke: var(--ui-objective); stroke-width: 6; }
+.meter-segment.spent { stroke: rgba(255, 179, 71, .18); }
+.meter-badge { fill: rgba(4, 8, 14, .85); stroke: var(--ui-objective); stroke-width: 2; }
+.meter-count { fill: var(--ui-ink); font: 800 16px/1 "Arial Narrow", Arial, sans-serif; text-anchor: middle; dominant-baseline: central; }
 
 @media (max-width: 640px) {
-  #cluster { width: 124px; height: 124px; right: 14px; bottom: 14px; }
-  #speed { font-size: 32px; }
-  #gear { right: 8px; font-size: 15px; }
-  #minimap-frame { width: 116px; height: 116px; left: 14px; bottom: 14px; }
+  :root { --speedo-size: 132px; --minimap-size: 118px; }
+  #cluster { right: 12px; bottom: 12px; }
+  #minimap-frame { left: 12px; bottom: 12px; }
+  .gauge-numeral { font-size: 17px; }
 }
 
 /* Event types share one instrument slot above the speed dial. */
@@ -169,7 +204,7 @@ canvas { display: block; width: 100%; height: 100%; }
 #drag-shift.limit { color: var(--ui-danger); }
 #drift-zone { color: var(--ui-objective); margin-top: 4px; }
 #drag-controls, #drift-help { border-top: 1px solid var(--ui-border); padding-top: 8px; margin-top: 8px; color: var(--ui-muted); font-size: 10px; }
-#gear.manual { font-size: 28px; color: var(--ui-ink); }
+#gear.manual { color: var(--ui-ink); }
 #race { padding: 10px 16px; background: var(--ui-panel); border-top: 2px solid var(--ui-objective); box-shadow: var(--ui-shadow); max-width: calc(100vw - 32px); text-align: center; }
 #race-gate { color: var(--ui-objective); }
 #race-time { font-family: var(--ui-mono); text-shadow: none; }
@@ -183,4 +218,5 @@ canvas { display: block; width: 100%; height: 100%; }
 @media (max-height: 500px) and (min-width: 641px) {
   #race { top: 12px; }
   .event-instruments { bottom: 0; right: calc(100% + 12px); width: 230px; }
+  :root { --speedo-size: clamp(130px, 38vh, 200px); --minimap-size: clamp(120px, 34vh, 180px); }
 }

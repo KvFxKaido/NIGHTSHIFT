@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
-  gaugeReading, minimapPixel, segmentWithinMinimap, withinMinimap,
-  GAUGE_REDLINE, GAUGE_SWEEP_DEGREES, GAUGE_CIRCUMFERENCE,
+  dialAngle, gaugeReading, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
+  SPEED_DIAL_MAX_MPH, SPEED_DIAL_STEP_MPH,
+  GAUGE_REDLINE, GAUGE_START_DEGREES, GAUGE_SWEEP_DEGREES, GAUGE_CIRCUMFERENCE,
 } from "../src/ui/hud-state.ts";
+import { HANDLING } from "../src/sim/sim.ts";
+import { REDLINE_RPM } from "../src/audio/audio-mix.ts";
+import { TRANSMISSION } from "../src/sim/transmission.ts";
 
 test("the dial reports transmission state and clamps its sweep", () => {
   assert.deepEqual(gaugeReading(0, 0, 70), { mph: 0, ratio: 0, gear: "N", redline: false });
@@ -18,6 +22,29 @@ test("the dial reports transmission state and clamps its sweep", () => {
   assert.equal(gaugeReading(70 * GAUGE_REDLINE - 0.01, 30, 70).redline, false);
   // The sweep never exceeds the drawn arc, whatever the dash offset is set to.
   assert.ok(GAUGE_CIRCUMFERENCE * (GAUGE_SWEEP_DEGREES / 360) * over.ratio < GAUGE_CIRCUMFERENCE);
+});
+
+// Like MC3's, the dial is one 0-250 face for every car: a faster car is more
+// needle, not a rescaled scale.
+test("the speedometer is a fixed 0-250 face and the needle follows it", () => {
+  assert.equal(SPEED_DIAL_MAX_MPH, 250);
+  assert.equal(SPEED_DIAL_MAX_MPH % SPEED_DIAL_STEP_MPH, 0, "the numerals land on the end stop");
+  assert.ok(SPEED_DIAL_MAX_MPH > HANDLING.topSpeed * 2.237, "no car in the game pins the needle");
+  assert.equal(dialAngle(0), GAUGE_START_DEGREES);
+  assert.equal(dialAngle(1), GAUGE_START_DEGREES + GAUGE_SWEEP_DEGREES);
+  assert.equal(dialAngle(-1), dialAngle(0), "reverse cannot swing the needle below zero");
+  assert.equal(dialAngle(3), dialAngle(1), "overspeed cannot wrap the needle past the end");
+});
+
+test("the tachometer ends one mark past the redline, so the red zone is a visible band", () => {
+  for (const redline of [REDLINE_RPM, TRANSMISSION.redline]) {
+    const idle = tachReading(900, redline);
+    assert.equal(idle.maxThousands, 9, "8,200 rpm prints 0-9");
+    assert.ok(idle.redlineRatio > 0.85 && idle.redlineRatio < 1, "the red band starts before the end stop");
+    assert.equal(idle.redline, false);
+    assert.equal(tachReading(redline, redline).redline, true);
+    assert.equal(tachReading(20000, redline).ratio, 1, "the limiter cannot wrap the needle");
+  }
 });
 
 // A heading-up map that puts the road behind you at the top is worse than no
@@ -70,7 +97,8 @@ test("a street segment is drawn whenever any part of it crosses the disc", () =>
 // arithmetic above would catch.
 test("index.html carries every element the cluster binds to", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "minimap", "race", "race-gate", "race-time"]) {
+  for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "gauge-needle", "tacho-ticks", "tacho-needle",
+    "tacho-red", "minimap", "race", "race-gate", "race-time", "meter-left", "meter-right"]) {
     assert.ok(html.includes(`id="${id}"`), `index.html is missing #${id}`);
   }
   assert.ok(html.includes('href="/src/ui/hud.css"'), "the cluster stylesheet is not linked");
@@ -79,6 +107,13 @@ test("index.html carries every element the cluster binds to", async () => {
   // in free roam on every screen, including three of Shawn's screenshots.
   const css = await readFile(new URL("../src/ui/hud.css", import.meta.url), "utf8");
   assert.ok(css.includes("#race[hidden] { display: none; }"), "the race readout cannot hide");
+  // The meter arcs are reserved for nitrous, slipstream and abilities. Nothing
+  // feeds them yet, so they ship hidden, and the rule has to be able to hide them.
+  assert.ok(css.includes(".hud-meter[hidden] { display: none; }"), "the reserved meters cannot hide");
+  for (const id of ["meter-left", "meter-right"]) {
+    // A bare hidden attribute, not the aria-hidden it sits beside.
+    assert.match(html, new RegExp(`<svg id="${id}"[^>]*\\shidden[\\s>]`), `#${id} ships visible with nothing feeding it`);
+  }
   // The dial's static track has to match the arc the module sweeps along it.
   const arc = (GAUGE_CIRCUMFERENCE * GAUGE_SWEEP_DEGREES / 360).toFixed(1);
   assert.ok(html.includes(`stroke-dasharray="${arc} `), `the drawn track is not a ${arc} arc`);

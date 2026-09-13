@@ -25,6 +25,46 @@ export interface GaugeReading {
   redline: boolean;
 }
 
+/**
+ * The speedometer prints 0-250 mph for every car, as Midnight Club 3's does
+ * (a mid-class Esprit shows the full 250 dial in both captured frames), so a
+ * faster car is read as more needle, not a rescaled face. Numbered every 25.
+ */
+export const SPEED_DIAL_MAX_MPH = 250;
+export const SPEED_DIAL_STEP_MPH = 25;
+
+/** Clockwise from three o'clock, where a 0..1 reading sits on a dial. */
+export function dialAngle(ratio: number): number {
+  return GAUGE_START_DEGREES + Math.max(0, Math.min(1, ratio)) * GAUGE_SWEEP_DEGREES;
+}
+
+export interface TachReading {
+  /** 0..1 of the printed range, clamped. */
+  ratio: number;
+  /** Printed range in thousands of rpm: 0 to this. */
+  maxThousands: number;
+  /** Where the red zone begins, 0..1 of the printed range. */
+  redlineRatio: number;
+  redline: boolean;
+}
+
+/**
+ * The tachometer prints whole thousands to the first mark past the redline, so
+ * the red zone is always a visible band rather than a line at the end stop.
+ * The rpm it is given is presentation (the engine you hear, or the drag gearbox);
+ * the simulation outside drag races has no gears.
+ */
+export function tachReading(rpm: number, redlineRpm: number): TachReading {
+  const maxThousands = Math.floor(redlineRpm / 1000) + 1;
+  const max = maxThousands * 1000;
+  return {
+    ratio: Math.max(0, Math.min(1, rpm / max)),
+    maxThousands,
+    redlineRatio: redlineRpm / max,
+    redline: rpm >= redlineRpm,
+  };
+}
+
 export function gaugeReading(speed: number, forwardSpeed: number, topSpeed: number): GaugeReading {
   const ratio = Math.max(0, Math.min(1, speed / topSpeed));
   return {

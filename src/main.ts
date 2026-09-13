@@ -43,7 +43,7 @@ import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { formatRaceTime, racePosition, raceProgressLabel, type RaceKind, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
-import { engineTone, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
+import { engineTone, REDLINE_RPM, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
 import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
   type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
 
@@ -469,7 +469,12 @@ function updateHud(): void {
     label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
       : race.kind === "drift" ? `${Math.ceil(Math.max(0, race.drift!.durationTicks - raceState.ticks) / TICK_HZ)}s LEFT`
       : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}`,
-  } : null, rival?.vehicle ?? (sim.state.parkedRivals.find(r => r.id === challengeTarget())?.vehicle ?? sim.state.encounter));
+  } : null,
+  // Every rival gets a blip, pinned to the minimap rim when off the disc, as in Midnight Club 3.
+  [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle)]
+    .filter((vehicle): vehicle is NonNullable<typeof vehicle> => !!vehicle),
+  // The tachometer follows the engine you hear; the sim has no gears outside drag races.
+  { rpm: engineTone(car, lastInput).rpm, redlineRpm: REDLINE_RPM });
   const driftPanel = document.getElementById("drift-instruments")!;
   driftPanel.hidden = !raceState?.drift;
   if (raceState?.drift) {
