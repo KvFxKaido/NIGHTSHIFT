@@ -7,8 +7,8 @@ drive and what each one teaches.
 **Status.** A sketch. None of the career is implemented. Four of the ten
 exist as characters with portraits and cars: Moth, Rivet and Sable are in the
 game as rivals, and Tally has a portrait and a car but no encounter. Stray has
-a portrait and nothing else. The other five are names on this page. Every placement, mistake and car
-below is a proposal until Shawn says otherwise.
+a portrait and nothing else, and so do Bollard, Deuce, Plumb, Crest and Wake.
+Every placement, mistake and car below is a proposal until Shawn says otherwise.
 
 ## How the list is built
 
@@ -74,7 +74,8 @@ Forties, a crane operator on the waterfront. *Silhouette:* ear defenders and a
 hi-vis collar. *Mistake:* she commits to a block early, so a feint one way
 opens the other. *Teaches:* racing through traffic and through contact. Every
 body shares one mass (`HANDLING.mass`), so her menace is aggression and line,
-never weight or grip. Not created.
+never weight or grip. Portrait: `design/reference/characters/bollard/`; no
+car, no encounter.
 
 ### #6 Deuce
 
@@ -82,7 +83,8 @@ Thirties. *Silhouette:* a tall, hard-edged pompadour. *Mistake:* he takes the
 risky line even when he is leading, and half his races end in a wall.
 *Teaches:* the generator's rule that every shortcut has a cost, as a person;
 the player beats him by staying clean and letting the gamble fail. His turf is
-the Broadcast Tower loop and its open plaza. Not created.
+the Broadcast Tower loop and its open plaza. Portrait:
+`design/reference/characters/deuce/`; no car, no encounter.
 
 ### #5 Sable
 
@@ -96,17 +98,21 @@ in. Exists: `design/reference/characters/sable/`, `SABLE` in
 ### #4 Plumb
 
 Fifties, a former rally co-driver; optionally Moth's, which gives the list a
-second old friendship. *Silhouette:* a race engineer's headset with a boom mic.
+second old friendship. *Silhouette:* a straight-cut silver bob with a
+microphone arm across the cheek; she was redrawn once, because her first
+version read as an older Moth and her headset as Bollard's ear defenders.
 *Mistake:* she never leaves the arterials: no alleys, no crashes, no surprises.
 *Teaches:* parallel routes. Madrona Ridge's broad scenic loop is hers, and its
-inner parallel streets are where she loses. Not created.
+inner parallel streets are where she loses. Portrait:
+`design/reference/characters/plumb/`; no car, no encounter.
 
 ### #3 Crest
 
 Late twenties, the hill racer. *Silhouette:* a hard-edged topknot. *Mistake:*
 he takes blind crests flat and lands wide. *Teaches:* grade, crests and blind
 corners, the risk factors the route-choice model already prices. His race
-climbs Queen Anne towards Kerry Overlook. Not created.
+climbs Queen Anne towards Kerry Overlook. Portrait:
+`design/reference/characters/crest/`; no car, no encounter.
 
 ### #2 Wake
 
@@ -114,8 +120,8 @@ Mid thirties, the former #1. Tally took the list from him, and he has spent
 every night since driving her lines, and driving them better than she does.
 *Silhouette:* a low-crowned, wide-brimmed hat. *Mistake:* he only drives Tally's
 lines, so he is beaten exactly where she is: off her map. *Teaches:* the last
-lesson, in his words: "I drove every line she drives. It's not enough." Not
-created.
+lesson, in his words: "I drove every line she drives. It's not enough."
+Portrait: `design/reference/characters/wake/`; no car, no encounter.
 
 ### #1 Tally
 

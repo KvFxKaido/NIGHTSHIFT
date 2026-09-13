@@ -1,0 +1,30 @@
+{
+  "id": "deuce",
+  "source": "deuce-bust.png",
+  "swatches": [
+    {
+      "hex": "#cc8640",
+      "share": 0.104
+    },
+    {
+      "hex": "#1e2220",
+      "share": 0.102
+    },
+    {
+      "hex": "#690d61",
+      "share": 0.076
+    },
+    {
+      "hex": "#6d4828",
+      "share": 0.058
+    },
+    {
+      "hex": "#82806c",
+      "share": 0.031
+    },
+    {
+      "hex": "#380233",
+      "share": 0.009
+    }
+  ]
+}

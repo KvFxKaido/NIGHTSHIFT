@@ -1,0 +1,34 @@
+{
+  "id": "bollard",
+  "source": "bollard-bust.png",
+  "swatches": [
+    {
+      "hex": "#e1af1a",
+      "share": 0.119
+    },
+    {
+      "hex": "#9e9460",
+      "share": 0.098
+    },
+    {
+      "hex": "#9d652f",
+      "share": 0.082
+    },
+    {
+      "hex": "#efc919",
+      "share": 0.066
+    },
+    {
+      "hex": "#504b42",
+      "share": 0.054
+    },
+    {
+      "hex": "#b1834c",
+      "share": 0.045
+    },
+    {
+      "hex": "#afaf51",
+      "share": 0.003
+    }
+  ]
+}

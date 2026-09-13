@@ -1,0 +1,34 @@
+{
+  "id": "wake",
+  "source": "wake-bust.png",
+  "swatches": [
+    {
+      "hex": "#f2f0ec",
+      "share": 0.105
+    },
+    {
+      "hex": "#b2ccd0",
+      "share": 0.078
+    },
+    {
+      "hex": "#31261e",
+      "share": 0.076
+    },
+    {
+      "hex": "#d7d6d4",
+      "share": 0.073
+    },
+    {
+      "hex": "#cc9865",
+      "share": 0.058
+    },
+    {
+      "hex": "#83837b",
+      "share": 0.043
+    },
+    {
+      "hex": "#f3dfb8",
+      "share": 0.026
+    }
+  ]
+}
