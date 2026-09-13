@@ -35,6 +35,7 @@ import { createAlderWorld, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS,
 import { seedFromTick } from "./sim/race-generator.ts";
 import { arenaEvent, arenaRaceFor, ARENA_LAPS, type ArenaEvent } from "./sim/arena-events.ts";
 import { ARENA_IDENTITY } from "./sim/arena.ts";
+import { RIVAL_REVISION } from "./sim/rival.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
 import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
 import { snapToLane, encodeStart, decodeStart } from "./sim/race-start.ts";
@@ -263,7 +264,7 @@ function newRecording(): void {
 function recordStep(tickInput: Input): void {
   if (!recorder || !arena || !race) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
-  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: ARENA_IDENTITY,
+  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: ARENA_IDENTITY, rival: RIVAL_REVISION,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: arena.layout, solo: arena.solo, laps: race.laps ?? 1,
     car: selectedCar, drivetrain: sim.state.drivetrain, start: roadWorld.start });
   const id = recording.id;

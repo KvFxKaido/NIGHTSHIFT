@@ -11,6 +11,7 @@ import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import type { LapTrack } from "./lap-recorder.ts";
+import { withRacingLine } from "./racing-line.ts";
 
 export const ARENA_LAPS = 3;
 /** Gates are on the track: the racing width is 14 m, so a gate this wide is missed only by leaving it. */
@@ -85,8 +86,8 @@ export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = fals
     race: { id, name: `${ARENA.name} / ${lap.layout.name}${solo ? " / Solo" : ""}`, kind: "circuit", laps, gatesPerLap: lap.gates.length,
       countdownTicks: COUNTDOWN_TICKS, checkpoints },
     // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), so the
-    // line is driven all-wheel, as the generated races declare it. The line's
-    // checkpoint ids come from the race id, so they are the rival race's either way.
-    rival: solo ? null : { id: `${id}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates },
+    // line is driven all-wheel, as the generated races declare it. On the circuit,
+    // with no traffic, it drives a racing line rather than the centreline.
+    rival: solo ? null : withRacingLine({ id: `${id}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates }),
   };
 }

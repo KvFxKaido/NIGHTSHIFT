@@ -212,7 +212,9 @@ Open **Options → Controls & remapping** from the main or pause menu for the dr
 The guide is no longer overlaid while driving. Select a keyboard/controller binding,
 then press its replacement; Escape cancels, and **Restore defaults** resets all
 bindings. Conflicts are rejected. Menu navigation, arrow-key driving and stick axes
-stay fixed. Controller button remapping preserves analog trigger values.
+stay fixed. Controller button remapping preserves analog trigger values. A trigger
+reads exactly up to half travel and past 88% counts as fully pressed, so a pad whose
+trigger stops short of its maximum still reaches full throttle.
 Bindings save separately in `nightshift.controls` on this browser; blocked storage
 keeps changes usable for the session.
 

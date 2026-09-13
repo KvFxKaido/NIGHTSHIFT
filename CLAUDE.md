@@ -137,7 +137,9 @@ fixtures outside the playable bundle, and old world links redirect.
   races the player rather than yielding: passes, holds its line, blocks and
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Its
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
-  grip-limited speed its centreline tracking, not grip, puts it on the grass.
+  grip-limited speed its centreline tracking, not grip, puts it on the grass. On
+  Ridge Circuit it drives a racing line (`racing-line.ts`); a truer line was
+  faster and left the road, so braking while turning is its limit.
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring
@@ -211,7 +213,9 @@ fixtures outside the playable bundle, and old world links redirect.
   width the road actually has there, never corners and never the narrowest
   width.
 - `lanePose` distance is arc length along the lane's own path. Two lanes at
-  equal distance are not abreast through a bend; routes stay centreline.
+  equal distance are not abreast through a bend; routes stay centreline. The one
+  exception is Ridge Circuit's racing line, which has its own `along` and never
+  compares distances with a lane; streets stay centreline (lines hit traffic).
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.

@@ -55,6 +55,21 @@ const DRIVING_GATE_ANALOG_NEUTRAL = 0.12;
 // per fixed tick and a wall clock here would make replays depend on frame rate.
 const DRIVING_GATE_MAX_SAMPLES = 30;
 
+// Triggers that never reach 1. Shawn's pad tops out at 231-232/255 (0.906-0.910)
+// on the throttle trigger while the brake trigger reaches 255/255, so two
+// recorded sessions of Ridge Circuit (2026-09-13) never had full throttle and the
+// rival always did. The top of the travel is stretched: a pull past TRIGGER_FULL
+// is full, and between TRIGGER_KNEE and it the value is scaled up to meet it.
+// Below the knee a trigger delivers exactly what it reads, so resting offsets and
+// light pulls are unchanged, and the mapping stays continuous and increasing.
+export const TRIGGER_KNEE = 0.5;
+export const TRIGGER_FULL = 0.88;
+export function triggerValue(value: number): number {
+  if (value <= TRIGGER_KNEE) return value;
+  if (value >= TRIGGER_FULL) return 1;
+  return TRIGGER_KNEE + (value - TRIGGER_KNEE) * (1 - TRIGGER_KNEE) / (TRIGGER_FULL - TRIGGER_KNEE);
+}
+
 function deadzone(value: number, threshold: number): number {
   if (Math.abs(value) <= threshold) return 0;
   return Math.sign(value) * (Math.abs(value) - threshold) / (1 - threshold);
@@ -75,10 +90,10 @@ export function mapGamepad(gamepad: Gamepad | null, bindings = DEFAULT_BINDINGS.
   const dpadSteer = (dpadLeft ? -1 : 0) + (dpadRight ? 1 : 0);
 
   return {
-    throttle: buttonValue(gamepad, bindings.throttle),
-    brake: buttonValue(gamepad, bindings.brake),
+    throttle: triggerValue(buttonValue(gamepad, bindings.throttle)),
+    brake: triggerValue(buttonValue(gamepad, bindings.brake)),
     steer: dpadLeft || dpadRight ? dpadSteer : analogSteer,
-    handbrake: buttonValue(gamepad, bindings.handbrake),
+    handbrake: triggerValue(buttonValue(gamepad, bindings.handbrake)),
     ...(buttonPressed(gamepad, bindings.shiftUp) ? { shiftUp: true } : {}),
     ...(buttonPressed(gamepad, bindings.shiftDown) ? { shiftDown: true } : {}),
   };

@@ -8,6 +8,7 @@
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
 import { arenaEvent, arenaRaceFor } from "./arena-events.ts";
 import { ARENA_IDENTITY } from "./arena.ts";
+import { RIVAL_REVISION } from "./rival.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
 import { createSim, step, PHYSICS_VERSION, TICK_HZ, type Drivetrain } from "./sim.ts";
 
@@ -24,6 +25,7 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
   const arena = arenaRaceFor(session.race);
   if (!arena) return { ok: false, reason: `unknown race ${session.race}` };
+  if (!arena.solo && session.rival !== RIVAL_REVISION) return { ok: false, reason: `raced rival ${session.rival ?? "from before rival revisions"}, this build's is ${RIVAL_REVISION}` };
   const event = arenaEvent(arena.layout, session.laps, arena.solo);
   const sim = createSim(session.drivetrain as Drivetrain, createAlderWorld(true, event.start),
     { race: event.race, rival: event.rival ?? undefined, traffic: false });

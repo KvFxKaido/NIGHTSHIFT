@@ -153,6 +153,8 @@ export interface LapSession {
   world: string;
   /** `ARENA_IDENTITY`: the circuit's layout revision. The world id does not change when only the circuit does. */
   arena: string;
+  /** `RIVAL_REVISION`: the rival driver raced. Only a session with a rival depends on it. */
+  rival: string;
   physics: string;
   tickHz: number;
   race: string;

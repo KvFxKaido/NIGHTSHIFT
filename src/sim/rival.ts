@@ -12,6 +12,9 @@ export interface RivalDefinition {
   readonly gates: readonly number[];
   readonly loop?: boolean;
   readonly speedLimit?: number;
+  /** Each point's offset from the road's centre, positive to the right, when the
+   *  route is a racing line (`racing-line.ts`). Absent means the points are the centre. */
+  readonly lateral?: readonly number[];
 }
 export interface RivalDriver {
   along: number;
@@ -32,15 +35,26 @@ export function createRivalDriver(): RivalDriver {
 }
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const angle = (value: number) => Math.atan2(Math.sin(value), Math.cos(value));
+/** The segment a distance falls in: the first whose end is at or past it, as a
+ *  linear scan from the start would find, by binary search so a densely sampled
+ *  racing line costs the same as a street's few points. */
+function segmentAt(along: readonly number[], distance: number): number {
+  let low = 0, high = along.length - 2;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (along[mid + 1]! < distance) low = mid + 1; else high = mid;
+  }
+  return low;
+}
 export function sampleRivalPath(route: RivalDefinition, distance: number) {
   distance = clamp(distance, 0, route.along.at(-1)!);
-  let i = 0;
-  while (i < route.points.length - 2 && route.along[i + 1]! < distance) i++;
+  const i = segmentAt(route.along, distance);
   const a = route.points[i]!, b = route.points[i + 1]!;
   const length = route.along[i + 1]! - route.along[i]!;
   const t = length ? (distance - route.along[i]!) / length : 0;
+  const lateral = route.lateral ? route.lateral[i]! + (route.lateral[i + 1]! - route.lateral[i]!) * t : 0;
   return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t,
-    ux: (b.x - a.x) / length, uz: (b.z - a.z) / length, width: Math.min(a.width,b.width), index: i };
+    ux: (b.x - a.x) / length, uz: (b.z - a.z) / length, width: Math.min(a.width,b.width), lateral, index: i };
 }
 
 /** Metres past a gate the exit direction is read at: past any kerb mitre, well short of the next junction. */
@@ -80,6 +94,14 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * road still is too. Nothing here reads race position, and nothing changes
  * grip, mass or top speed: the same car, driven like it means it.
  */
+/**
+ * Which rival driver a recording was raced against. A recording with a rival
+ * replays only against the same driver, so any change to how the rival drives
+ * bumps this. 2026-09-13: cornering tuned to recorded laps, and a racing line on
+ * Ridge Circuit.
+ */
+export const RIVAL_REVISION = "racing-line-v1";
+
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
   passReach: 15,
@@ -124,8 +146,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   let nearest = Infinity, along = driver.along;
   // Local progress prevents jumping between the outward and return legs.
-  for (let i = 0; i < route.points.length - 1; i++) {
-    if (route.along[i + 1]! < driver.along - 65 || route.along[i]! > Math.min(gate + 8, driver.along + 100)) continue;
+  // The window's segments, in order: the first ending past its start, until one begins past its end.
+  const windowEnd = Math.min(gate + 8, driver.along + 100);
+  for (let i = segmentAt(route.along, driver.along - 65); i < route.points.length - 1 && route.along[i]! <= windowEnd; i++) {
+    if (route.along[i + 1]! < driver.along - 65) continue;
     const a = route.points[i]!, b = route.points[i + 1]!;
     const dx = b.x-a.x, dz=b.z-a.z, length = Math.hypot(dx,dz);
     const t = clamp(((car.x-a.x)*dx+(car.z-a.z)*dz)/(length*length),0,1);
@@ -235,6 +259,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
   driver.avoidance += clamp(offset-driver.avoidance,-lateralRate,lateralRate);
+  // However far a pass, block or dodge moves it, the car stays on the road: on a
+  // racing line the room each side is measured from where the line already is.
+  const edge = Math.max(0, target.width / 2 - 2.2);
+  driver.avoidance = clamp(driver.avoidance, -edge - target.lateral, edge - target.lateral);
   const tx=target.x-target.uz*driver.avoidance, tz=target.z+target.ux*driver.avoidance;
   const error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);

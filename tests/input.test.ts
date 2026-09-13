@@ -4,6 +4,9 @@ import {
   createInputController,
   mapCameraGamepad,
   mapGamepad,
+  triggerValue,
+  TRIGGER_FULL,
+  TRIGGER_KNEE,
   mapMenuHorizontal,
   mapMenuVertical,
 } from "../src/input/input.ts";
@@ -57,13 +60,33 @@ test("shift taps survive between ticks, holds never repeat, and pause entry disc
 
 test("standard triggers map to analog throttle and brake", () => {
   const input = mapGamepad(gamepad([0], { 6: 0.35, 7: 0.8 }));
-  assert.equal(input.throttle, 0.8);
+  assert.equal(input.throttle, triggerValue(0.8));
   assert.equal(input.brake, 0.35);
-  for (const value of [0, 0.01, 0.25, 0.5, 0.75, 1]) {
+  // Up to the knee a trigger delivers what it reads.
+  for (const value of [0, 0.01, 0.25, 0.5]) {
     const partialPull = mapGamepad(gamepad([0], { 6: value, 7: value }));
     assert.equal(partialPull.throttle, value);
     assert.equal(partialPull.brake, value);
   }
+  assert.equal(mapGamepad(gamepad([0], { 6: 1, 7: 1 })).throttle, 1);
+});
+
+// Recorded on 2026-09-13: this pad's throttle trigger never read more than
+// 231/255 or 232/255 in two sessions, so the car never had full throttle.
+test("a trigger that tops out short of 1 still reaches full, and the curve stays continuous", () => {
+  for (const raw of [231 / 255, 232 / 255, TRIGGER_FULL, 0.95, 1]) {
+    assert.equal(mapGamepad(gamepad([0], { 6: raw, 7: raw, 0: raw })).throttle, 1, `${raw} is not full throttle`);
+    assert.equal(mapGamepad(gamepad([0], { 6: raw })).brake, 1);
+  }
+  let previous = -1;
+  for (let i = 0; i <= 1000; i++) {
+    const value = triggerValue(i / 1000);
+    assert.ok(value >= previous, `the curve falls at ${i / 1000}`);
+    assert.ok(value - previous < 0.01 || previous < 0, `the curve jumps at ${i / 1000}`);
+    assert.ok(value >= i / 1000 && value <= 1);
+    previous = value;
+  }
+  assert.ok(Math.abs(triggerValue(TRIGGER_KNEE + 1e-9) - TRIGGER_KNEE) < 1e-6);
 });
 
 test("left stick steering filters the inner five percent", () => {

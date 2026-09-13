@@ -62,7 +62,8 @@ test("old control saves gain a change-camera key without losing a remap already 
 
 test("remapped triggers keep analog pressure and the original button stops driving", () => {
   const bindings = rebind(copyBindings(), "gamepad", "throttle", 1);
-  assert.equal(mapGamepad(pad({1:.73,7:1}), bindings.gamepad).throttle, .73);
+  // Below the trigger curve's knee (input.ts, TRIGGER_KNEE) the pressure passes through exactly.
+  assert.equal(mapGamepad(pad({1:.43,7:1}), bindings.gamepad).throttle, .43);
   assert.equal(mapGamepad(pad({7:1}), bindings.gamepad).throttle, 0);
 });
 

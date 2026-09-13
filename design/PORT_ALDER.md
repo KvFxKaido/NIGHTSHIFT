@@ -580,11 +580,12 @@ three-lap race on the grid (`src/sim/arena-events.ts`): the player 12 m behind
 the line on the right, the rival 5 m behind on the left. Add `-solo`
 (`arena-full-solo`) for the same race with nobody else on the circuit, so a
 recorded lap is the player's alone; it ends on a session summary with the best
-valid lap. City traffic is off for these races. The rival drives the centreline, which is a baseline and not
-a racing line. From a standing start, one lap with the player parked
-(`tests/arena.test.ts`): **Full 86.0 s, East 66.0 s, Ridge 54.3 s,** no
-resets, no recoveries, never on the grass (as first built, before the chicane
-and the cornering below: 100.8, 78.8 and 66.4 s). There is no way to reach these races
+valid lap. City traffic is off for these races. The rival drives a racing line
+(below). From a standing start, one lap with the player parked
+(`tests/arena.test.ts`): **Full 80.0 s, East 61.5 s, Ridge 51.2 s,** no
+resets, no recoveries, never on the grass (on the centreline as first built:
+100.8, 78.8 and 66.4 s; with the chicane and tuned cornering: 86.0, 66.0 and
+54.3 s). There is no way to reach these races
 from free roam yet; the circuit itself is open to drive.
 
 **Drawn** by `src/render/arena.ts`: asphalt to the shoulder, edge lines that stop
@@ -651,14 +652,45 @@ its traffic contact (0 ticks, from 30) at the new speed. The sharp-corner check
 in `tests/rival-speed.test.ts` now enters at 20.4 m/s where it entered at 15.7,
 braking from 179 m and never more than 2.9 m off the centreline.
 
-What is left is the line, not commitment: where the player's path and the
-centreline have the same radius (T1, T5) the rival is within 6–11% of the
-player's apex speed; where the player widens the corner (T2, the Jog, T9) it is
-27–42% slower. A racing line that uses the road's width, and steering that
-tracks at speed, are the next gains. Not built: extracting features from
-recordings automatically, and the rival learning from them per street. One
-session of one driver in one car is thin evidence; more sessions, the other
-layouts and an AWD car would show whether 0.76 generalises.
+What was left was the line, not commitment: where the player's path and the
+centreline have the same radius (T1, T5) the rival was within 6–11% of the
+player's apex speed; where the player widens the corner (T2, the Jog, T9) it was
+27–42% slower. One session of one driver in one car is thin evidence; more
+sessions, the other layouts and an AWD car would show whether 0.76 generalises.
+
+**The racing line and the trigger (2026-09-13).** A second session on circuit
+revision 2 (1:16.15, 1:13.37, 1:12.43, all valid, replaying exactly) agreed with
+the first at every unchanged corner to within 3 mph, braking for T1 at 106 m
+both times, so the numbers are repeatable. It also showed the throttle trigger
+never read above 231–232/255 in either session while the brake reached 255/255:
+the car had never had full throttle. `triggerValue` in `src/input/input.ts` now
+passes a trigger through unchanged up to 0.5 and stretches the rest so 0.88 and
+above is full. What that cost the recorded laps is unmeasured: replaying them
+with more throttle changes every braking point after it and leaves the road.
+
+On Ridge Circuit the rival now drives a line through the road instead of its
+centreline (`src/sim/racing-line.ts`, applied in `arena-events.ts`). Flying laps:
+
+| | Centreline | Line (shipped) | Player, best |
+|---|---|---|---|
+| Full | 83.1 s | 78.5 s | 72.4 s |
+| East | 63.1 s | 59.8 s | — |
+| Ridge | 51.5 s | 48.6 s | — |
+
+The line is a smoothed path kept 2.5 m inside the edge lines; 4.0 to 5.0 m of
+margin were all clean, 3.5 spun the rival out of T9 and 2.2 put it on the grass.
+It widens the corners less than the player does (the rival's driven radius at
+T2 32 m, the Jog 20, T9 53, to the player's 41, 26, 83), because it also leans
+inside. A true minimum-curvature line (Coulom's K1999) matched the player's
+corners and lapped Full in 69–75 s, but the rival could not stay on the asphalt
+on it at any setting tried: the line holds an edge through braking, and the
+rival carries 2–3 m of error braking into corners and 5–6 m where T9 tightens.
+Braking while turning is its limit now. Every line tried on Sound to Sky ran into
+traffic (143 to 1,862 ticks of contact against none), so streets keep the
+centreline until a line knows the lanes. The details are in the module's header.
+Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
+refuses another. Not built: extracting features from recordings automatically,
+and the rival learning from them per street.
 
 `tests/arena.test.ts` pins each lap's length (a moved corner makes recorded laps
 incomparable), checks the site is clear of buildings, trees and street

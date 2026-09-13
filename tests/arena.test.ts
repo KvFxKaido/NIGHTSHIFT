@@ -156,9 +156,12 @@ test("each layout is a lapped race whose rival line passes through every gate", 
     for (let i = 1; i < points.length; i++) {
       assert.ok(Math.abs(Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z) - (along[i]! - along[i - 1]!)) < 1e-6);
     }
+    // The rival drives a racing line, so a gate's place on it sits beside the
+    // centreline point by the line's offset there, well inside the gate.
     gates.forEach((distance, i) => {
       const at = sampleRivalPath(rival, distance), gate = event.race.checkpoints[i]!;
-      assert.ok(Math.hypot(at.x - gate.x, at.z - gate.z) < 1e-6, `${id}: gate ${i} (${gate.name}) is off the line`);
+      assert.ok(Math.hypot(at.x - gate.x, at.z - gate.z) <= ARENA.width / 2 - 4.5 + 1e-6, `${id}: gate ${i} (${gate.name}) is ${Math.hypot(at.x - gate.x, at.z - gate.z).toFixed(2)} m off the line`);
+      assert.ok(Math.abs(at.lateral) <= ARENA.width / 2 - 4.5 + 1e-6);
     });
     assert.ok(along.at(-1)! - gates.at(-1)! >= 145, "no run-off past the flag");
     // Both grid slots are on the asphalt, side by side, behind the line and facing along the track.
@@ -179,9 +182,10 @@ test("each layout is a lapped race whose rival line passes through every gate", 
 // grass. The times are the centreline baseline recorded laps are to beat, from
 // a standing start: Full 100.8 s, East 78.8 s, Ridge 66.4 s on 2026-09-13 as
 // first built; Full 86.0 s, East 66.0 s, Ridge 54.3 s with the chicane (circuit
-// revision 2) and cornering tuned to recorded laps (RIVAL_CORNERING).
-test("the rival laps every layout cleanly on the centreline", () => {
-  const limits: Record<ArenaLayoutId, number> = { full: 90, east: 70, ridge: 58 };
+// revision 2) and cornering tuned to recorded laps (RIVAL_CORNERING); Full 80.0 s,
+// East 61.5 s, Ridge 51.2 s on its racing line (racing-line.ts).
+test("the rival laps every layout cleanly on its racing line", () => {
+  const limits: Record<ArenaLayoutId, number> = { full: 84, east: 65, ridge: 55 };
   for (const id of ARENA_LAYOUT_IDS) {
     const event = arenaEvent(id, 1);
     const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: false });
