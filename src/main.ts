@@ -31,8 +31,9 @@ import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createAlderWorld, ALDER_DATA, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
+import { createAlderWorld, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
+import { arenaEvent, arenaLayoutForRace } from "./sim/arena-events.ts";
 import { snapToLane, encodeStart, decodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import type { RoadWorld } from "./sim/road-world.ts";
@@ -71,6 +72,8 @@ let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
 /** Where a generated race starts: where the flash was, snapped to its lane. Null means the grid. */
 let raceStart: RoadWorld["start"] | null = null;
+/** Ridge Circuit races run on an empty site: the city's traffic never reaches it. */
+let arenaRace = false;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -91,7 +94,8 @@ try {
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
-  if (raceId && !generated && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
+  const arenaLayout = raceId ? arenaLayoutForRace(raceId) : null;
+  if (raceId && !generated && !arenaLayout && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
@@ -105,6 +109,9 @@ try {
   if (generated) {
     const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag" | "drift">);
     race = drawn.race; rival = drawn.rival;
+  } else if (arenaLayout) {
+    const event = arenaEvent(arenaLayout);
+    race = event.race; rival = event.rival; raceStart = event.start; arenaRace = true;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
   } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
@@ -142,9 +149,9 @@ const controls = createControlsPanel(input);
 const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
 const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
-let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DATA.bounds) : null;
+let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift", parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && !arenaRace, parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -174,6 +181,7 @@ const telemetryElement = document.getElementById("telemetry")!;
 const performanceOverlay = createPerformanceOverlay();
 const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
+for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
 const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);

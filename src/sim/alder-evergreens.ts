@@ -38,7 +38,7 @@ function patchDensity(x: number, z: number): number {
   const b = hash(ix, iz + 1, 53) * (1 - u) + hash(ix + 1, iz + 1, 53) * u;
   return a * (1 - v) + b * v;
 }
-export function createEvergreens(streets: readonly Street[], buildings: readonly BuildingBlock[],
+export function createEvergreens(streets: readonly Pick<Street, "points">[], buildings: readonly BuildingBlock[],
   heightAt: (x: number, z: number) => number): Evergreen[] {
   const segments = streets.flatMap(street => street.points.slice(1).map((b, i) => ({ a: street.points[i]!, b })));
   const nearbyRoads = spatialIndex(segments, ({ a, b }) => {

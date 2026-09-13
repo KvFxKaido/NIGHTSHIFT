@@ -525,3 +525,74 @@ garage changes, countdown, pause/restart, full-race completion and free-roam
 isolation. This is the first driver, not general city navigation: aggressive
 player blocking, repeated pileups and unusual off-route recoveries need driving
 feedback. Moving encounters and rival personalities remain future work.
+
+
+## Ridge Circuit (2026-09-13)
+
+An official circuit on the open ground east of Ridge Scenic Way, reached by
+continuing Pine East about 200 m (`src/sim/arena.ts`; the name is a working
+one and lives in `ARENA.name`). It exists to be driven the same way many
+times: laps the player records here are to teach the rival corner speeds,
+braking points and lines, and the circuit becomes events and progression
+afterwards. The code handle is `arena`, so a rename is a display change.
+
+**One facility, three layouts,** all run anticlockwise. Each layout is a closed
+polygon of named corners rounded to a radius, so a layout closes by
+construction and a corner two layouts share is the same asphalt in both. A link
+road down the middle splits a flat east half from a west half on Madrona
+Ridge's slope.
+
+| Layout | Race id | Lap | Height | Gates per lap |
+|---|---|---|---|---|
+| Full | `arena-full` | 2,529 m | 36–53 m | 7 |
+| East | `arena-east` | 1,907 m | flat | 5 |
+| Ridge | `arena-ridge` | 1,612 m | 36–53 m | 5 |
+
+What each corner is for, as data:
+
+- **T1 hairpin** (two 90s, r22) at the end of the 600 m main straight: the braking point from top speed, on the flat.
+- **T2** (r26) and the **esses** (r30): exit onto a short straight, then a change of direction.
+- **Ridge 90** (T5, r55): a medium-speed corner at the top of a 4% climb.
+- **The Jog** (r16, back to back): the city problem, where the exit of one 90 is the entry to the next.
+- **The Drop** (r120): fast, with the road falling away through the exit, then a flat-or-not **kink** (r250).
+- **T9**: tightens from r150 to r40 onto the main straight, so braking carries into the turn.
+- **The link road's junctions** (r20): flat street-style 90s, for the East and Ridge layouts.
+
+**Open edges, as the product direction says.** No barriers and no colliders.
+The racing width is 14 m between white edge lines, with a 1.5 m paved shoulder
+beyond each (where the kerbs sit); past the shoulder is ground, which costs a
+2WD car grip and pace as it does anywhere (`alderGround`). Gates sit on the
+track (radius 12 m) and are spaced so cutting the infield skips one. Lap
+invalidation for a recorder, if a lap leaves the track for too long, belongs to
+the recorder and is not built.
+
+**Surface.** The laps and the access road are `ARENA_ROADS` in `alder.ts`:
+not streets, so no traffic, no routing and no kerb props, but part of
+`projectOntoAlder`, so a slope pulls along the track rather than along
+whichever street is nearest. Height is the city's own `alderHeight`; nothing
+was added to `alder-data.json`. A crest was considered and dropped: the car is
+held to the surface every tick, so a crest would be drawn and never felt. The
+slope is felt as grade force only, about 0.4–0.5 m/s² at 4–5%.
+
+**Races.** `?race=arena-full|arena-east|arena-ridge&scene=track` starts a
+three-lap race on the grid (`src/sim/arena-events.ts`): the player 12 m behind
+the line on the right, the rival 5 m behind on the left. City traffic is off
+for these races. The rival drives the centreline, which is a baseline and not
+a racing line. From a standing start, one lap with the player parked
+(`tests/arena.test.ts`): **Full 100.8 s, East 78.8 s, Ridge 66.4 s,** no
+resets, no recoveries, never on the grass. There is no way to reach these races
+from free roam yet; the circuit itself is open to drive.
+
+**Drawn** by `src/render/arena.ts`: asphalt to the shoulder, edge lines that stop
+at junction mouths, red and white kerbs on corners of r60 or tighter (none on a
+side that crosses another road), a chequered line at each start, lamps every
+55 m with pools of light, and a gantry at the main line. About 16k triangles in
+local meshes, so they cull on their own bounds. The outskirts ground now
+reaches 300 m past the circuit. Both maps draw it and widen to include it, and
+saved positions there are valid (`ALDER_DRIVE_BOUNDS`). The world identity
+gains `-arena-v1`, so free-roam saves from before it return to Wharf Garage once.
+
+`tests/arena.test.ts` pins each lap's length (a moved corner makes recorded laps
+incomparable), checks the site is clear of buildings, trees and street
+pavements, that the drawn asphalt is the paved width the tyres feel, that every
+gate lies on the rival's line, and drives the rival round all three layouts.

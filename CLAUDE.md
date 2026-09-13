@@ -144,6 +144,11 @@ fixtures outside the playable bundle, and old world links redirect.
   any of the three and the HUD shows their contact card — face, name, car and
   what the challenge is (`src/ui/rival-card.ts`). Rival portraits, and the
   style that keeps them one game: `design/CHARACTERS.md`.
+- **Ridge Circuit** (working name) east of Madrona Ridge, off Pine East: one
+  facility, three layouts (`arena.ts`), open edges, three-lap races with the
+  rival on the centreline (`?race=arena-full|arena-east|arena-ridge`). Built to
+  record laps for developing the AI; lap lengths are pinned because recordings
+  depend on them (`design/PORT_ALDER.md`, "Ridge Circuit").
 - **Traffic.** About 260 kinematic vehicles with reserved junction
   movements (`traffic.ts`); an immovable hazard, never a second handling
   model. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
@@ -166,6 +171,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
+| Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: the ten career names (sketch) | — | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |

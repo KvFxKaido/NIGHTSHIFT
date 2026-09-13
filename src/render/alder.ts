@@ -4,6 +4,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
   ALDER_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
 import { addEvergreens } from "./evergreens.ts";
+import { addArena } from "./arena.ts";
+import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
@@ -38,12 +40,14 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   });
   trunks.name="alder-park-trunks";crowns.name="alder-park-canopies";trunks.castShadow=crowns.castShadow=true;scene.add(trunks,crowns);
   addEvergreens(scene, ALDER_EVERGREENS, night);
+  addArena(scene, night);
   const water=new THREE.Mesh(new THREE.PlaneGeometry(2200,data.bounds[3]!-data.bounds[1]!+1000),new THREE.MeshStandardMaterial({color:0x123142,metalness:.55,roughness:.24}));
   water.rotation.x=-Math.PI/2;water.position.set(data.shore-1100,.1,(data.bounds[3]!+data.bounds[1]!)/2);water.name="elliott-bay";scene.add(water);
   // Continue the landform beyond the authored parcels so leaving the streets
   // does not put the car above a flat backdrop. Subdivide only curved bands.
   const grid=(low:number,high:number)=>Array.from({length:Math.ceil((high-low)/20)+1},(_,i)=>low+i*20);
-  const xs=[...new Set([data.shore,data.bounds[2]!,...grid(data.shore,Math.max(3300,data.bounds[2]!+300))])].sort((a,b)=>a-b);
+  // Far enough east to carry Ridge Circuit and the open ground around it.
+  const xs=[...new Set([data.shore,data.bounds[2]!,...grid(data.shore,Math.max(3300,data.bounds[2]!+300,ARENA_BOUNDS.maxX+300))])].sort((a,b)=>a-b);
   const zs=[...new Set([data.bounds[1]!,data.bounds[3]!,...grid(data.bounds[1]!-300,data.bounds[3]!+300)])].sort((a,b)=>a-b);
   const outskirts:number[]=[];
   for(let i=1;i<xs.length;i++)for(let j=1;j<zs.length;j++){

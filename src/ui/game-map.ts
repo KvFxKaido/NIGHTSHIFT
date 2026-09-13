@@ -1,7 +1,8 @@
 import { uiColor } from "./theme.ts";
 import { DRIFT_YARD, YARD_STRUCTURES, SABLE } from "../sim/drift-yard.ts";
 import { raceProgressLabel } from "../sim/race.ts";
-import { ALDER_DATA, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE } from "../sim/alder.ts";
+import { ALDER_DATA, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ARENA_ROADS, ALDER_DRIVE_BOUNDS } from "../sim/alder.ts";
+import { ARENA, ARENA_BOUNDS } from "../sim/arena.ts";
 import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 import type { Sim } from "../sim/sim.ts";
 
@@ -30,13 +31,19 @@ export function createGameMap(sim: Sim) {
       stroke:street.added?"#bca879":"#66858e","stroke-width":street.points[0]!.width,"stroke-linejoin":"round"});
     shape(path,"title",{},street.name);
   }
+  for (const road of ARENA_ROADS) {
+    const path=shape(svg,"polyline",{points:road.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
+      stroke:"#7c8f99","stroke-width":road.points[0]!.width+3,"stroke-linejoin":"round"});
+    shape(path,"title",{},road.name);
+  }
+  shape(svg,"text",{x:(ARENA_BOUNDS.minX+ARENA_BOUNDS.maxX)/2+80,y:ARENA_BOUNDS.minZ-40,"font-size":30,fill:"#d8d2bd","text-anchor":"middle"},ARENA.name);
   const garage=ALDER_GARAGE.entrance, tower=landmarks.broadcastTower;
   for (const area of ALDER_DATA.neighborhoods) shape(svg,"text",{x:area.x,y:area.z,"font-size":30,fill:"#b9bda9","text-anchor":"middle"},area.name);
   shape(svg,"text",{x:garage.x,y:garage.z+10,fill:uiColor("navigation"),"font-size":40,"text-anchor":"middle"},"G");
   shape(svg,"circle",{cx:tower.x,cy:tower.z,r:16,fill:"#b6c9ff"});
   shape(svg,"text",{x:tower.x+25,y:tower.z+8,fill:"#c9d5ff","font-size":28},"Broadcast Tower");
   const markers=shape(svg,"g",{"data-map-markers":""});
-  const [minX,minZ,maxX,maxZ]=ALDER_DATA.bounds as [number,number,number,number];
+  const [minX,minZ,maxX,maxZ]=ALDER_DRIVE_BOUNDS;
   let cx=(minX+maxX)/2, cz=(minZ+maxZ)/2, zoom=1;
   function view() {
     const w=(maxX-minX)/zoom, h=(maxZ-minZ)/zoom;

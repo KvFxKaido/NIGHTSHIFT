@@ -121,6 +121,14 @@ chain and shows the result. Restart gives a fresh timed attempt.
 `?scene=track&visit=sable` starts beside Sable;
 `?scene=track&race=sable-yard-drift` starts on the yard grid.
 
+**Ridge Circuit** is an official circuit east of Madrona Ridge, at the end of
+Pine East past Ridge Scenic Way, with three layouts: Full (2.5 km), East (1.9 km,
+flat) and Ridge (1.6 km, on the hillside). Its edges are open; the grass past the
+shoulder costs a 2WD car pace. It is open to drive in free roam, and each layout
+is a three-lap race against the rival: `?scene=track&race=arena-full`,
+`?scene=track&race=arena-east` or `?scene=track&race=arena-ridge`. It exists so
+laps can be recorded to develop the rival, before it becomes events.
+
 Crossing the finish in a rival race pauses the drive and shows your result/time,
 with **Return to free roam** or **Go to garage**. Both clear the race and retain
 your car/setup; free roam restarts outside Wharf Garage, while garage opens the

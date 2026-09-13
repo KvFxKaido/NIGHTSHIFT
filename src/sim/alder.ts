@@ -16,8 +16,10 @@ import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
 import { kerbPoses, ALDER_LAMPS, ALDER_BINS } from "./kerb-props.ts";
+import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
+import type { CoursePoint } from "./track.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -46,7 +48,28 @@ export const ALDER_STREETS: readonly Street[] = data.roads.map(road => ({
   points: road.points.map(([x, z]) => ({ x: x!, z: z!, y: alderHeight(x!, z!), width: road.width,
     zone: z! > 250 ? "freight" : x! < -270 ? "waterfront" : "old-quarter" })),
 }));
-const bounds = ALDER_STREETS.map(street => ({ street,
+/**
+ * The circuit's paved paths with their height: each layout's lap as a closed
+ * polyline, and the access road. They are not streets: no traffic, no routing,
+ * no kerb props. They are surface, so the car rides them, and they are paved,
+ * so they are not ground.
+ */
+export const ARENA_ROADS: readonly { readonly id: string; readonly name: string; readonly points: readonly CoursePoint[] }[] = [
+  ...ARENA_LAYOUT_IDS.map(id => {
+    const lap = arenaLap(id);
+    return { id: `arena-${id}`, name: `${ARENA.name} / ${lap.layout.name}`,
+      points: [...lap.points, lap.points[0]!].map(p => ({ x: p.x, z: p.z, y: alderHeight(p.x, p.z), width: ARENA.width, zone: "boulevard" as const })) };
+  }),
+  { id: "arena-access", name: `${ARENA.name} access`, points: Array.from({ length: 22 }, (_, i) => {
+    const x = ARENA_ACCESS.from.x + (ARENA_ACCESS.to.x - ARENA_ACCESS.from.x) * i / 21, z = ARENA_ACCESS.from.z + (ARENA_ACCESS.to.z - ARENA_ACCESS.from.z) * i / 21;
+    return { x, z, y: alderHeight(x, z), width: ARENA_ACCESS.width, zone: "boulevard" as const };
+  }) },
+];
+/** Where a car can be and still be in Port Alder: the building area, widened to take in the circuit.
+ *  [minX, minZ, maxX, maxZ], the order `ALDER_DATA.bounds` uses. */
+export const ALDER_DRIVE_BOUNDS: readonly [number, number, number, number] = [data.bounds[0]!, Math.min(data.bounds[1]!, ARENA_BOUNDS.minZ - 60),
+  Math.max(data.bounds[2]!, ARENA_BOUNDS.maxX + 60), Math.max(data.bounds[3]!, ARENA_BOUNDS.maxZ + 60)];
+const bounds = [...ALDER_STREETS, ...ARENA_ROADS].map(street => ({ street,
   minX: Math.min(...street.points.map(p=>p.x)), maxX: Math.max(...street.points.map(p=>p.x)),
   minZ: Math.min(...street.points.map(p=>p.z)), maxZ: Math.max(...street.points.map(p=>p.z)) }));
 export function projectOntoAlder(x: number, z: number): CourseProjection {
@@ -131,7 +154,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
 const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
-export const ALDER_EVERGREENS = createEvergreens(ALDER_STREETS,
+export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
   [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
 /** Props that belong to the street rather than to a parcel. The lamps are the
@@ -154,6 +177,9 @@ const PAVED_AREAS = [DRIFT_YARD.bounds, DRIFT_YARD.driveway, {
   minX: ALDER_FORECOURT.x - ALDER_FORECOURT.width / 2, maxX: ALDER_FORECOURT.x + ALDER_FORECOURT.width / 2,
   minZ: ALDER_FORECOURT.z - ALDER_FORECOURT.depth / 2, maxZ: ALDER_FORECOURT.z + ALDER_FORECOURT.depth / 2 }];
 const GROUND_REACH = Math.max(...ALDER_STREETS.flatMap(street => street.points.map(point => point.width))) / 2 + ALDER_PAVEMENT;
+const ARENA_REACH = ARENA.width / 2 + ARENA.shoulder;
+/** Streets only: the circuit's paths are paved to their shoulder, not to a city pavement. */
+const streetBounds = bounds.slice(0, ALDER_STREETS.length);
 /**
  * True off the paved surface: past every street's carriageway and pavement,
  * and outside the drift yard and the garage forecourt. Every street is asked,
@@ -165,7 +191,12 @@ export function alderGround(x: number, z: number): boolean {
   for (const area of PAVED_AREAS) {
     if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
   }
-  for (const box of bounds) {
+  // The circuit's shoulder is paved to the same width everywhere, the access road included.
+  if (nearArena(x, z, ARENA_REACH) && ARENA_ROADS.some(road => {
+    const on = projectOntoPath(road.points, x, z);
+    return on.distance <= on.width / 2 + ARENA.shoulder;
+  })) return false;
+  for (const box of streetBounds) {
     const dx = Math.max(box.minX - x, 0, x - box.maxX), dz = Math.max(box.minZ - z, 0, z - box.maxZ);
     if (dx * dx + dz * dz > GROUND_REACH * GROUND_REACH) continue;
     const on = projectOntoPath(box.street.points, x, z);
