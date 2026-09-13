@@ -13,7 +13,7 @@
 async page => {
   page.setDefaultTimeout(30000);
   const base = 'http://localhost:5173/';
-  const cars = ['blender', 'bulwark', 'kestrel', 'hammer'];
+  const cars = ['blender', 'bulwark', 'kestrel', 'hammer', 'vesper'];
   const views = { front: -Math.PI / 4, rear: Math.PI * 0.75 };
   const clip = { x: 40, y: 120, width: 660, height: 440 };
   const errors = [];

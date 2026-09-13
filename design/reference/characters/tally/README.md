@@ -8,12 +8,12 @@ piping, a tall stand collar closed around the neck in deep violet, and a violet
 tally mark on her left chest: two groups of five, ten strokes, one for each
 name on the list. Level and unreadable; she watches you the way she would watch
 a lap time. Her accent is violet, the one colour the city's sodium and cyan
-light never makes, and her car, which does not exist yet, has to carry it. Her
-silhouette is a bare dome on a violet column, chosen to be nothing like Rivet's
+light never makes, and her Vesper coupe carries it in thin shoulder piping
+and a self-lit full-width tail band. Her silhouette is a bare dome on a violet column, chosen to be nothing like Rivet's
 goggles, Sable's beanie or Moth's hood at a hundred pixels.
 
-She is not in the game yet: no sim constant, no car, no contact card. The two
-served portraits (`public/assets/characters/tally.png`, `tally-alley.png`)
+She is not in the game yet: no sim constant or contact card. Her car asset is
+built. The two served portraits (`public/assets/characters/tally.png`, `tally-alley.png`)
 exist ahead of the card, for the opening cutscene.
 
 ## Files
@@ -62,3 +62,38 @@ was named in words.
    portraits.
 
 Rejected on the way: candidate B, the open V collar, and the glare.
+
+## Vesper
+
+Her signature car is `ns-vesper-01`: an original charcoal, cab-forward coupe
+inspired by the first-generation NSX's proportions. The short low nose and
+forward canopy leave a long, flat engine deck. Its shallow horizontal flank
+intakes, six-spoke wheels and unadorned tail are original; no badges or wing.
+Violet shoulder piping and two groups of five tally strokes on each flank
+carry her identity, with a self-lit violet band across the full rear width.
+
+Shawn chose the NSX-inspired replacement and RWD on 2026-09-12. RWD uses the
+existing profile, with no HANDLING changes. The mid-engine layout is visual:
+the simulation still gives every body a 50/50 static load. Her encounter,
+reward unlock and individual performance tuning remain future work. Vesper
+is registered for rendering, not an unlocked or saved player garage choice.
+
+Slim fixed lamps are the driving lights. `popup-left` and `popup-right` are
+closed, hinge-mounted pods with cut pockets; rotating local X by +60 degrees
+opens them. No animation or gameplay hook is wired. The shared runtime
+headlight and red tail PointLight remain unchanged.
+
+The regenerated 660 x 440 garage captures pass the supplied violet gate:
+**rear 4,410 pixels** (minimum 1,500), **front 54 pixels**, measured with
+`scripts/count-vesper-violet.py`. These are game captures, with the red tail
+light on, not studio measurements. The front carries only subtle accents.
+
+Source: `assets/cars/ns-vesper-01.blend`. Rebuild with Blender using
+`scripts/build-vesper.py`; export hand edits with `scripts/export-vesper.py`,
+then run `node scripts/optimize-car.mjs --car=ns-vesper-01`.
+Garage references: `design/reference/cars/vesper-front.png` and `vesper-rear.png`.
+Studio views: `vesper-studio.png` and `vesper-studio-open.png` in the same folder.
+
+The rejected notchback is preserved as `assets/cars/ns-notchback-01.blend`
+and `scripts/build-notchback.py`. It is unregistered and has no public GLB;
+its future use is undecided. Its builder only regenerates the archived source.

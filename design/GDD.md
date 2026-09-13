@@ -185,11 +185,16 @@ name's signature car is the player's when they are beaten, guaranteed. Ten
 names therefore account for half of the internal target of 20 drivable cars,
 rivals included.
 
+**#1 Tally's signature car is Vesper** (2026-09-12): an original NSX-inspired,
+cab-forward charcoal coupe with a short nose, long engine deck, closed pop-up
+pods and fixed driving lamps. A self-lit violet tail band and her ten-stroke
+flank marks carry her identity. Shawn chose RWD; the mid-engine layout is
+visual only, with no handling tuning. The source and runtime asset exist;
+her encounter and reward unlock do not. The rejected notchback is preserved
+as an unregistered source body for a later decision.
+
 Open, and unresolved in these documents:
 
-- **#1's signature car** is not designed. #1 is **Tally** (2026-09-12,
-  `design/reference/characters/tally/`): Moth's student, who outgrew her, and
-  the one who keeps the list. Her car has to carry her violet.
 - **Whether the player has a portrait** in the opening's dialogue.
 
 Proposed, not decided:

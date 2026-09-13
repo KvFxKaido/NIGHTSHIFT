@@ -23,6 +23,7 @@ export const CAR_DRIVETRAIN: Record<string, Drivetrain> = {
   bulwark: "awd",  // heavy, planted
   blender: "rwd",  // the NS-01 Sable slides around his own yard
   kestrel: "awd",  // Moth runs a rally hatch
+  vesper: "rwd",  // Tally: cab-forward coupe; visual mid-engine layout
   hammer: "rwd",   // Rivet drag races; drag-event.ts already declared this
 };
 

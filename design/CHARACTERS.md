@@ -117,10 +117,10 @@ in under three minutes. Rivet's README has the exact briefs.
 | `rivet` | Rivet | Hammer | The Harbor Quarter drag strip |
 | `sable` | Sable | NS-01 | The South Wharf drift yard |
 | `moth` | Moth | Kestrel | The freight block by Wharf Garage; the first rival anyone meets |
-| `tally` | Tally | Not built; must carry her violet | #1 on the Blacklist, and the one who keeps it; not in the game yet |
+| `tally` | Tally | Vesper | #1 on the Blacklist, and the one who keeps it; not in the game yet |
 
 Rivet was first, Sable proved the style, Moth was named for the thing that
 is always there when the lamps come on, and Tally, Moth's student, is the
-first drawn before her car, so her accent was chosen first and the car will
-have to follow it. The name in the code is the name on
+first drawn before her car: her accent was chosen first, and Vesper now
+carries it. The name in the code is the name on
 the card: `RIVET`, `SABLE` and `MOTH` in the sim are what the prompts say.
