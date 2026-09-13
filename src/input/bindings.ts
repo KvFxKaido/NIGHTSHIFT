@@ -1,15 +1,18 @@
 export const ACTIONS = {
   throttle: "Accelerate", brake: "Brake / reverse", left: "Steer left", right: "Steer right",
   shiftUp: "Shift up (drag)", shiftDown: "Shift down (drag)", handbrake: "Handbrake", reset: "Reset car", camera: "Recenter camera / platform",
+  cameraView: "Change camera",
   telemetry: "Toggle telemetry", flash: "Flash headlights / challenge rival", interact: "Enter garage", map: "Open / close city map",
 } as const;
 export type Action = keyof typeof ACTIONS;
-export type PadAction = Exclude<Action, "left" | "right" | "interact">;
+/** Every remappable pad button is taken, so the camera cycle is fixed to D-pad Up on a controller. */
+export const CAMERA_VIEW_PAD_BUTTON = 12;
+export type PadAction = Exclude<Action, "left" | "right" | "interact" | "cameraView">;
 export interface Bindings { keyboard: Record<Action, string>; gamepad: Record<PadAction, number> }
 export type BindingDevice = keyof Bindings;
 export const DEFAULT_BINDINGS: Bindings = {
   keyboard: { throttle: "KeyW", brake: "KeyS", left: "KeyA", right: "KeyD", handbrake: "Space",
-    shiftUp: "ShiftLeft", shiftDown: "ControlLeft", reset: "KeyR", camera: "KeyC", telemetry: "KeyH", flash: "KeyF", interact: "KeyE", map: "KeyM" },
+    shiftUp: "ShiftLeft", shiftDown: "ControlLeft", reset: "KeyR", camera: "KeyC", cameraView: "KeyV", telemetry: "KeyH", flash: "KeyF", interact: "KeyE", map: "KeyM" },
   gamepad: { throttle: 7, brake: 6, handbrake: 0, reset: 3, camera: 11, telemetry: 10, flash: 2, map: 8, shiftUp: 5, shiftDown: 4 },
 };
 export const PAD_LABELS: Record<number, string> = {
@@ -57,9 +60,9 @@ export function decodeBindings(raw: string | null): Bindings {
     const seen = new Set();
     for (const action of Object.keys(result[device])) {
       let value = data[device]?.[action];
-      // Older saves predate flash, map or manual shifts. Preserve their remaps and give the new action
-      // an unused control instead of resetting the player's entire setup.
-      if ((["flash", "map", "shiftUp", "shiftDown"].includes(action)) && value === undefined) {
+      // Older saves predate flash, map, manual shifts or the camera cycle. Preserve their remaps and
+      // give the new action an unused control instead of resetting the player's entire setup.
+      if ((["flash", "map", "shiftUp", "shiftDown", "cameraView"].includes(action)) && value === undefined) {
         const used = [...Object.values(data[device] ?? {}), ...seen];
         const choices = device === "keyboard" ? [DEFAULT_BINDINGS.keyboard[action as Action], ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(letter => `Key${letter}`)]
           : [DEFAULT_BINDINGS.gamepad[action as PadAction], ...Object.keys(PAD_LABELS).map(Number)];

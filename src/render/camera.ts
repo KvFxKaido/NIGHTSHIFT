@@ -14,6 +14,55 @@ export const CAMERA_ORBIT = {
   stationaryThreshold: 1.5,
 } as const;
 
+/**
+ * A chase camera is a framing, not a physics setting: it decides where the
+ * renderer stands, never what the car does. Distances are metres behind the
+ * car, heights metres above its origin (the ground under it), and every
+ * "atSpeed" term is added in full at top speed. Standard is the camera the
+ * game has always had; near and far are fitted to Midnight Club 3's close
+ * and zoomed-out chase cameras (2026-09-12, frames read by eye).
+ */
+export interface ChaseCamera {
+  label: string;
+  distance: number;
+  distanceAtSpeed: number;
+  height: number;
+  heightAtSpeed: number;
+  lookHeight: number;
+  lookAhead: number;
+  lookAheadAtSpeed: number;
+  fov: number;
+  fovAtSpeed: number;
+}
+
+export const CHASE_CAMERAS = {
+  near: {
+    label: "Near", distance: 4.4, distanceAtSpeed: 1.6, height: 1.6, heightAtSpeed: 0.4,
+    lookHeight: 1.7, lookAhead: 2.6, lookAheadAtSpeed: 4.8, fov: 62, fovAtSpeed: 15,
+  },
+  standard: {
+    label: "Standard", distance: 7.2, distanceAtSpeed: 2.7, height: 3.15, heightAtSpeed: 1.05,
+    lookHeight: 0.82, lookAhead: 2.6, lookAheadAtSpeed: 4.8, fov: 62, fovAtSpeed: 15,
+  },
+  far: {
+    label: "Far", distance: 6.8, distanceAtSpeed: 2.7, height: 3.35, heightAtSpeed: 1.05,
+    lookHeight: 2.3, lookAhead: 2.6, lookAheadAtSpeed: 4.8, fov: 62, fovAtSpeed: 15,
+  },
+} as const satisfies Record<string, ChaseCamera>;
+
+export type ChaseCameraId = keyof typeof CHASE_CAMERAS;
+export const DEFAULT_CHASE_CAMERA: ChaseCameraId = "standard";
+
+export function isChaseCameraId(value: unknown): value is ChaseCameraId {
+  return typeof value === "string" && Object.hasOwn(CHASE_CAMERAS, value);
+}
+
+/** The change-camera control steps through the table in order and wraps: near, standard, far. */
+export function nextChaseCamera(current: ChaseCameraId): ChaseCameraId {
+  const ids = Object.keys(CHASE_CAMERAS) as ChaseCameraId[];
+  return ids[(ids.indexOf(current) + 1) % ids.length]!;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

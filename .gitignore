@@ -36,3 +36,6 @@ dist/
 # Only the folder's README is tracked. See public/assets/music/README.md.
 /public/assets/music/*
 !/public/assets/music/README.md
+
+# Local Midnight Club captures for reference; Rockstar content, never committed.
+/mc inspiration/

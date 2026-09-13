@@ -44,6 +44,22 @@ test("old control saves retain remaps and allocate an unused headlight control",
   assert.deepEqual(decodeBindings(JSON.stringify({ version: 1, ...migrated })), migrated);
 });
 
+test("old control saves gain a change-camera key without losing a remap already using V", () => {
+  const legacy = JSON.parse(JSON.stringify({ version: 1, ...copyBindings() }));
+  delete legacy.keyboard.cameraView;
+  legacy.keyboard.telemetry = "KeyV";
+  const migrated = decodeBindings(JSON.stringify(legacy));
+  assert.equal(migrated.keyboard.telemetry, "KeyV", "the old remap survives");
+  assert.notEqual(migrated.keyboard.cameraView, "KeyV");
+  assert.ok(!Object.values({ ...migrated.keyboard, cameraView: undefined }).includes(migrated.keyboard.cameraView));
+  assert.ok(!("cameraView" in migrated.gamepad), "the pad camera cycle is fixed to D-pad Up, not a binding");
+  assert.deepEqual(decodeBindings(JSON.stringify({ version: 1, ...migrated })), migrated);
+  // A save that never touched V gets the default.
+  const untouched = JSON.parse(JSON.stringify({ version: 1, ...copyBindings() }));
+  delete untouched.keyboard.cameraView;
+  assert.equal(decodeBindings(JSON.stringify(untouched)).keyboard.cameraView, "KeyV");
+});
+
 test("remapped triggers keep analog pressure and the original button stops driving", () => {
   const bindings = rebind(copyBindings(), "gamepad", "throttle", 1);
   assert.equal(mapGamepad(pad({1:.73,7:1}), bindings.gamepad).throttle, .73);
@@ -111,6 +127,14 @@ test("capture consumes input, waits for controller release, and keeps menu confi
     current = pad({8:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["map"]);
     input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held Select must not repeatedly toggle the map");
     current = pad(); input.update();
+    key("KeyV"); assert.equal(input.consumeCameraCycle(), true);
+    assert.equal(input.consumeCameraCycle(), false, "one press is one camera change");
+    current = pad({12:1}); input.update(); assert.equal(input.consumeCameraCycle(), true, "D-pad Up changes camera");
+    input.update(); assert.equal(input.consumeCameraCycle(), false, "a held D-pad must not keep cycling");
+    current = pad(); input.update(); input.consumeMenuCommands();
+    current = { ...pad(), axes: [0, -1, 0, 0] } as Gamepad; input.update();
+    assert.equal(input.consumeCameraCycle(), false, "the left stick is steering and menu up, never the camera");
+    current = pad(); input.update(); input.consumeMenuCommands();
     key("KeyF"); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
     current = pad({2:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
     input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held headlights must not retrigger");

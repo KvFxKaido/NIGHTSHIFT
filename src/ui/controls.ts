@@ -23,7 +23,7 @@ export function createControlsPanel(input: InputController) {
     for (const device of ["keyboard", "gamepad"] as const) {
       const cell = document.createElement("td");
       if (device === "gamepad" && !Object.hasOwn(input.bindings().gamepad, id)) {
-        cell.textContent = id === "interact" ? "A / Cross" : "Left stick / D-pad";
+        cell.textContent = id === "interact" ? "A / Cross" : id === "cameraView" ? "D-pad Up" : "Left stick / D-pad";
       } else {
         const button = document.createElement("button");
         button.className = "garage-option binding-button";

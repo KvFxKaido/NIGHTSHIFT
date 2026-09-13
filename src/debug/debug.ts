@@ -8,6 +8,7 @@ import * as THREE from "three";
 import type { View } from "../render/scene.ts";
 import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
 import { BLENDER_CARS } from "../render/blender-car.ts";
+import { CHASE_CAMERAS, isChaseCameraId, type ChaseCameraId } from "../render/camera.ts";
 
 export type DebugScreen = "main" | "garage" | "track" | "pause";
 
@@ -332,6 +333,15 @@ export function installDebugApi(bridge: DebugBridge): void {
       bridge.renderOnce();
       return state();
     },
+    /** Preview a chase framing. Not saved: a URL or console choice lasts the session. */
+    camera: (id?: ChaseCameraId) => {
+      if (id !== undefined) {
+        if (!isChaseCameraId(id)) throw new RangeError(`Unknown camera: ${id}; try ${Object.keys(CHASE_CAMERAS).join(", ")}`);
+        view.chaseCamera = id;
+        bridge.renderOnce();
+      }
+      return view.chaseCamera;
+    },
     tick,
     drive,
     shot,
@@ -348,6 +358,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause'",
       "__ns.set({paint:'ice', stance:'slammed', wheels:'alloy'})",
       "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
+      "__ns.camera('near')    'near' | 'standard' | 'far' chase framing; a preview, never saved",
       "__ns.tick(60)          advance 60 fixed ticks (works in a hidden tab)",
       "__ns.drive('W600,WD90') hold throttle 600 ticks, then throttle+right 90",
       "Drag script: U shifts up, J shifts down; A/D request lanes",
@@ -358,6 +369,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.link()            a URL that reproduces the current state",
       "url: ?scene=garage&paint=blackglass&stance=slammed&telemetry=1",
       "url: ?scene=track&drivetrain=rwd&drive=W600,WD90&freeze=1",
+      "url: ?scene=track&camera=far  preview a chase framing",
       "url: ?car=bulwark  preview the Bulwark garage car; ?car=classic the original procedural coupe",
     ].join("\n"),
     audio: (): AudioReport => bridge.audioReport(),
@@ -374,11 +386,15 @@ export function applyDeepLink(api: {
   freeze(frozen?: boolean): boolean;
   telemetry(visible?: boolean): void;
   drivetrain(layout: Drivetrain): unknown;
+  camera(id?: ChaseCameraId): ChaseCameraId;
 }, search: string): void {
   const params = new URLSearchParams(search);
   if (params.size === 0) return;
 
   const scene = params.get("scene");
+  // Validate before anything moves, like the drivetrain; apply after the scene.
+  const camera = params.get("camera");
+  if (camera !== null && !isChaseCameraId(camera)) throw new RangeError(`Unknown camera: ${camera}`);
   const drivetrain = params.get("drivetrain");
   if (drivetrain !== null) {
     if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
@@ -397,6 +413,7 @@ export function applyDeepLink(api: {
   if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause") {
     api.go(scene);
   }
+  if (camera !== null) api.camera(camera);
   if (params.get("telemetry") === "1") api.telemetry(true);
   const script = params.get("drive");
   if (script) api.drive(script);

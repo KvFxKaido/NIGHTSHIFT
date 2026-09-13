@@ -27,6 +27,8 @@ import { applyCarCustomization, createCar, type CarView } from "./render/car.ts"
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
 import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setParkedRivalCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
+import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
+import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_DATA, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
@@ -146,6 +148,8 @@ const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, riva
   : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
+// A ?camera= link previews over this after boot (debug.ts) without saving.
+view.chaseCamera = loadCameraPreference(() => window.localStorage);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
 if (sableParts) {
@@ -397,6 +401,16 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
   for (const key of ["drive", "freeze", "rival", "visit"]) url.searchParams.delete(key);
   location.href = url.href;
 }
+/** Seconds the brand line keeps naming the camera after a change. */
+let cameraNoticeRemaining = 0;
+function cycleCamera(): void {
+  view.chaseCamera = nextChaseCamera(view.chaseCamera);
+  saveCameraPreference(() => window.localStorage, view.chaseCamera);
+  // A deliberate choice beats a ?camera= preview on refresh, like garage choices.
+  const url = new URL(location.href);
+  if (url.searchParams.has("camera")) { url.searchParams.delete("camera"); history.replaceState(history.state, "", url); }
+  cameraNoticeRemaining = 1.6;
+}
 function flashHeadlights(): void {
   if (!menu.isGameplayActive() || flashRemaining > 0) return;
   flashRemaining = .8;
@@ -466,7 +480,8 @@ function updateHud(): void {
     const bindings = input.bindings();
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
-  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`;
+  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`
+    + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "");
   const gamepadName = input.activeGamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "Keyboard controls active";
@@ -513,9 +528,13 @@ function frame(now: number): void {
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
+  const cameraCycleRequested = input.consumeCameraCycle();
   const debugToggleRequested = input.consumeDebugToggle();
   if (gameplayActive && resetRequested) reset();
   if ((gameplayActive || garageActive) && cameraResetRequested) resetViewCamera(view);
+  // The garage camera is fixed, so the cycle only means something on the street.
+  if (gameplayActive && cameraCycleRequested) cycleCamera();
+  cameraNoticeRemaining = Math.max(0, cameraNoticeRemaining - frameDelta);
   if (gameplayActive && debugToggleRequested) debugVisible = !debugVisible;
 
   if (gameplayActive && !frozen) accumulator += frameDelta;

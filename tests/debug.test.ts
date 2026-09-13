@@ -11,6 +11,7 @@ function captureDeepLink(search: string): string[] {
     drive: (script) => { calls.push(`drive:${script}`); },
     freeze: (frozen = true) => { calls.push(`freeze:${frozen}`); return frozen; },
     telemetry: (visible = true) => { calls.push(`telemetry:${visible}`); },
+    camera: (id = "standard") => { calls.push(`camera:${id}`); return id; },
   }, search);
   return calls;
 }
@@ -26,6 +27,15 @@ test("comparison deep links choose the drivetrain before starting or recording a
 test("invalid comparison layouts fail before changing scenes or driving", () => {
   for (const layout of ["4wd", "__proto__", ""]) {
     assert.throws(() => captureDeepLink(`?scene=track&drivetrain=${layout}&drive=W120`), RangeError);
+  }
+});
+
+test("a camera link previews its framing after the scene, and a bad one fails before anything moves", () => {
+  assert.deepEqual(captureDeepLink("?scene=track&camera=far&drive=W120&freeze=1"), [
+    "go:track", "camera:far", "drive:W120", "freeze:true",
+  ]);
+  for (const camera of ["closest", "__proto__", ""]) {
+    assert.throws(() => captureDeepLink(`?scene=track&camera=${camera}&drive=W120`), RangeError);
   }
 });
 

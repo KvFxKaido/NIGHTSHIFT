@@ -6,10 +6,13 @@ import { addTraffic, updateTraffic, type TrafficView } from "./traffic.ts";
 import { addRaceBeacon, updateRaceBeacon, type RaceView } from "./race.ts";
 import type { RoadWorld } from "../sim/road-world.ts";
 import {
+  CHASE_CAMERAS,
   createCameraOrbitState,
+  DEFAULT_CHASE_CAMERA,
   resetCameraOrbit,
   updateCameraOrbit,
   type CameraOrbitState,
+  type ChaseCameraId,
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
 import { createGarageScene } from "./garage.ts";
@@ -29,6 +32,8 @@ export interface View extends CarView {
   cameraPosition: THREE.Vector3;
   cameraTarget: THREE.Vector3;
   cameraOrbit: CameraOrbitState;
+  /** Which chase framing the track camera uses (`CHASE_CAMERAS`). */
+  chaseCamera: ChaseCameraId;
   mode: ViewMode;
   rivalCar: CarView | null;
   parkedRivalCars: Map<string, CarView>;
@@ -153,6 +158,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     cameraPosition: initialBehind,
     cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
+    chaseCamera: DEFAULT_CHASE_CAMERA,
     mode: "track",
     rivalCar: null, parkedRivalCars: new Map(),
     sky: null,
@@ -284,7 +290,8 @@ export function render(
   const forwardX = -Math.sin(car.heading);
   const forwardZ = -Math.cos(car.heading);
   updateCameraOrbit(view.cameraOrbit, cameraLook, car.speed, frameDelta);
-  const distance = 7.2 + speedRatio * 2.7;
+  const chase = CHASE_CAMERAS[view.chaseCamera];
+  const distance = chase.distance + speedRatio * chase.distanceAtSpeed;
   // Follow where the car is travelling, not where it is pointing. Locked to the
   // heading, a slide rotates the camera with the body: the car sits square in
   // frame and the whole world swings, so slip reads as the car translating
@@ -301,14 +308,14 @@ export function render(
   const horizontalDistance = distance * Math.cos(view.cameraOrbit.pitchOffset);
   const targetPosition = new THREE.Vector3(
     car.x + Math.sin(orbitHeading) * horizontalDistance,
-    car.y + 3.15 + speedRatio * 1.05 + Math.sin(view.cameraOrbit.pitchOffset) * distance,
+    car.y + chase.height + speedRatio * chase.heightAtSpeed + Math.sin(view.cameraOrbit.pitchOffset) * distance,
     car.z + Math.cos(orbitHeading) * horizontalDistance,
   );
-  const lookAhead = 2.6 + speedRatio * 4.8;
+  const lookAhead = chase.lookAhead + speedRatio * chase.lookAheadAtSpeed;
   const forwardFocus = Math.max(0, Math.cos(view.cameraOrbit.yawOffset));
   const targetLook = new THREE.Vector3(
     car.x + forwardX * lookAhead * forwardFocus,
-    car.y + 0.82 + Math.sin(car.pitch) * lookAhead * forwardFocus,
+    car.y + chase.lookHeight + Math.sin(car.pitch) * lookAhead * forwardFocus,
     car.z + forwardZ * lookAhead * forwardFocus,
   );
   const positionBlend = 1 - Math.exp(-6.8 * frameDelta);
@@ -318,7 +325,7 @@ export function render(
   view.camera.position.copy(view.cameraPosition);
   view.camera.lookAt(view.cameraTarget);
   view.camera.clearViewOffset();
-  view.camera.fov = 62 + speedRatio * 15;
+  view.camera.fov = chase.fov + speedRatio * chase.fovAtSpeed;
   view.camera.updateProjectionMatrix();
   // After the camera: the beacon's sign faces it and points the exit its way.
   updateRaceBeacon(view.race, state.race, view.surface, view.camera);

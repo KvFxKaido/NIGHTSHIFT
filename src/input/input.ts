@@ -1,4 +1,4 @@
-import { copyBindings, DEFAULT_BINDINGS, type Bindings, type BindingDevice } from "./bindings.ts";
+import { CAMERA_VIEW_PAD_BUTTON, copyBindings, DEFAULT_BINDINGS, type Bindings, type BindingDevice } from "./bindings.ts";
 import type { Input } from "../sim/sim.ts";
 
 export interface CameraLook {
@@ -22,6 +22,8 @@ export interface InputController {
   isDrivingGated(): boolean;
   consumeReset(): boolean;
   consumeCameraReset(): boolean;
+  /** One press of the change-camera control (keyboard binding or D-pad Up). */
+  consumeCameraCycle(): boolean;
   consumeDebugToggle(): boolean;
   gamepadName(): string | null;
   activeGamepadName(): string | null;
@@ -110,6 +112,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
   let shiftUpRequested = false, shiftDownRequested = false;
   let resetRequested = false;
   let cameraResetRequested = false;
+  let cameraCycleRequested = false;
   let debugToggleRequested = false;
   let gamepad: Gamepad | null = null;
   let previousButtons: readonly boolean[] = [];
@@ -125,7 +128,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     capture = null;
     held.clear(); shiftUpRequested = shiftDownRequested = false;
     menuCommands.length = 0;
-    resetRequested = cameraResetRequested = debugToggleRequested = false;
+    resetRequested = cameraResetRequested = cameraCycleRequested = debugToggleRequested = false;
     drivingInputGated = true;
     drivingGateSamples = 0;
     done?.(value);
@@ -165,6 +168,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     if (event.code === "ArrowRight") menuCommands.push("right");
     if (event.code === bindings.keyboard.reset) resetRequested = true;
     if (event.code === bindings.keyboard.camera) cameraResetRequested = true;
+    if (event.code === bindings.keyboard.cameraView) cameraCycleRequested = true;
     if (event.code === bindings.keyboard.telemetry) debugToggleRequested = true;
   });
   addEventListener("keyup", (event) => held.delete(event.code));
@@ -197,6 +201,9 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     if (justPressed(bindings.gamepad.reset)) resetRequested = true;
     if (justPressed(bindings.gamepad.telemetry)) debugToggleRequested = true;
     if (justPressed(bindings.gamepad.camera)) cameraResetRequested = true;
+    // The D-pad button itself, never the stick: menu "up" also reads the left
+    // stick, and steering must not change the camera.
+    if (justPressed(CAMERA_VIEW_PAD_BUTTON)) cameraCycleRequested = true;
     if (justPressed(bindings.gamepad.map)) menuCommands.push("map");
     if (justPressed(bindings.gamepad.flash)) menuCommands.push("flash");
     if (justPressed(9)) menuCommands.push("pause");    // Menu / Options
@@ -256,14 +263,17 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     return nextInput;
   }
 
-  function consume(flag: "reset" | "camera" | "debug"): boolean {
+  function consume(flag: "reset" | "camera" | "cycle" | "debug"): boolean {
     const value = flag === "reset"
       ? resetRequested
       : flag === "camera"
         ? cameraResetRequested
-        : debugToggleRequested;
+        : flag === "cycle"
+          ? cameraCycleRequested
+          : debugToggleRequested;
     if (flag === "reset") resetRequested = false;
     if (flag === "camera") cameraResetRequested = false;
+    if (flag === "cycle") cameraCycleRequested = false;
     if (flag === "debug") debugToggleRequested = false;
     return value;
   }
@@ -285,6 +295,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     isDrivingGated: () => drivingInputGated,
     consumeReset: () => consume("reset"),
     consumeCameraReset: () => consume("camera"),
+    consumeCameraCycle: () => consume("cycle"),
     consumeDebugToggle: () => consume("debug"),
     gamepadName: () => gamepad?.id ?? null,
     activeGamepadName: () => activeDevice === "gamepad" ? gamepad?.id ?? null : null,
