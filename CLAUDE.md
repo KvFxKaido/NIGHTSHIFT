@@ -257,7 +257,11 @@ fixtures outside the playable bundle, and old world links redirect.
   `--try`, draw one, measure again. Do not go crazy with them.
 - The rival gets its own forces, then ONE `world.step()` for both bodies.
   Never a second physics world. No catch-up, no rubber-banding, no grip
-  change for AI, learned or not.
+  change for AI, learned or not. The one place it may be helped (Shawn,
+  2026-09-13): recovery out of the player's sight. A stuck rival may be put
+  back on its line at its own route position, sooner than the 12 s reset,
+  when the player is far enough away not to see it. Never further along,
+  never faster, never a different car. The handling is what is sacred.
 - `SimOptions.encounter` is a handbraked vehicle with no race state; never
   add race clock or checkpoint progress to it.
 - Settings never persist physics snapshots, replays, camera poses or debug

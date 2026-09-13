@@ -83,7 +83,9 @@ These arrived as a possible "more elegant solution" to the shortcut rule
 - Deterministic: the draw and the bank use the integer hash, never
   `Math.random`; a replay of the cruise draws the same race.
 - No rubber-banding, no catch-up boost, no grip change — the rival's rule
-  already, and it stays the rule for a rival that has learned.
+  already, and it stays the rule for a rival that has learned. Recovery out
+  of the player's sight is allowed (2026-09-13): a stuck rival put back on
+  its line where it already was, never further along.
 - Learned lines and playlists carry physics/build identity and are rejected
   when it changes, as future saved ghosts must be.
 - Only flashed rivals learn, and only from races the player won against them.
