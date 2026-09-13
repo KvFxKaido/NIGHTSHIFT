@@ -5,7 +5,7 @@
  * teach it better (design/PORT_ALDER.md, "Ridge Circuit").
  */
 import { ARENA_ROADS, alderHeight } from "./alder.ts";
-import { ARENA, ARENA_LAYOUT_IDS, arenaLap, type ArenaLayoutId } from "./arena.ts";
+import { ARENA, ARENA_IDENTITY, ARENA_LAYOUT_IDS, arenaLap, type ArenaLayoutId } from "./arena.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
@@ -25,6 +25,10 @@ const GRID = { player: { back: 12, right: 3.5 }, rival: { back: 5, right: -3.5 }
 
 export interface ArenaEvent {
   readonly layout: ArenaLayoutId;
+  /** `ARENA_IDENTITY`, which a recording names. */
+  readonly identity: string;
+  /** City traffic never reaches the circuit. */
+  readonly traffic: false;
   /** Solo runs the same race with nobody else on the circuit, so a recorded lap is the player's alone. */
   readonly solo: boolean;
   readonly race: RaceDefinition;
@@ -90,7 +94,7 @@ export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = fals
   const id = arenaRaceId(layout, solo);
   const road = ARENA_ROADS.find(candidate => candidate.id === `arena-${layout}`)!;
   return {
-    layout, solo, start, track: { points: road.points, gatesPerLap: lap.gates.length },
+    layout, identity: ARENA_IDENTITY, traffic: false, solo, start, track: { points: road.points, gatesPerLap: lap.gates.length },
     race: { id, name: `${ARENA.name} / ${lap.layout.name}${solo ? " / Solo" : ""}`, kind: "circuit", laps, gatesPerLap: lap.gates.length,
       countdownTicks: COUNTDOWN_TICKS, checkpoints },
     // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), so the

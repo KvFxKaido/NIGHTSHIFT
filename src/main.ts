@@ -33,8 +33,7 @@ import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { seedFromTick } from "./sim/race-generator.ts";
-import { arenaEvent, arenaRaceFor, ARENA_LAPS, type ArenaEvent } from "./sim/arena-events.ts";
-import { ARENA_IDENTITY } from "./sim/arena.ts";
+import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION } from "./sim/rival.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
 import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
@@ -76,8 +75,8 @@ let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
 /** Where a generated race starts: where the flash was, snapped to its lane. Null means the grid. */
 let raceStart: RoadWorld["start"] | null = null;
-/** A Ridge Circuit race, solo or not. Its laps are recorded; the city's traffic never reaches it. */
-let arena: ArenaEvent | null = null;
+/** A lapped circuit race, Ridge Circuit or a street circuit, solo or not. Its laps are recorded. */
+let circuit: CircuitEvent | null = null;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -98,8 +97,8 @@ try {
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
   // the same rival line every time, which is all a playlist needs to keep.
   const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
-  const arenaRace = raceId ? arenaRaceFor(raceId) : null;
-  if (raceId && !generated && !arenaRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
+  const circuitRace = raceId ? circuitEvent(raceId) : null;
+  if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
@@ -113,9 +112,9 @@ try {
   if (generated) {
     const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag" | "drift">);
     race = drawn.race; rival = drawn.rival;
-  } else if (arenaRace) {
-    arena = arenaEvent(arenaRace.layout, ARENA_LAPS, arenaRace.solo);
-    race = arena.race; rival = arena.rival; raceStart = arena.start;
+  } else if (circuitRace) {
+    circuit = circuitRace;
+    race = circuit.race; rival = circuit.rival; raceStart = circuit.start;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
   } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
@@ -135,7 +134,7 @@ try {
   {
     const opponent = raceOpponentCar();
     // A solo run has nobody to draw.
-    if (!arena?.solo) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    if (!circuit?.solo) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
@@ -156,7 +155,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && !arena, parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -250,22 +249,22 @@ function reset(drivetrain = sim.state.drivetrain): void {
   newRecording();
 }
 
-// Lap recording, on Ridge Circuit races only (design/PORT_ALDER.md). Each
+// Lap recording, on circuit races only: Ridge Circuit and the street circuit (design/PORT_ALDER.md). Each
 // completed lap saves the whole session to recordings/laps through pnpm dev.
 let recorder: LapRecorder | null = null;
 const recording = { id: "", recordedAt: "", status: "" };
 const saveLaps = createLapSaver();
 function newRecording(): void {
-  if (!arena || !race) return;
-  recorder = createLapRecorder(arena.track);
+  if (!circuit || !race) return;
+  recorder = createLapRecorder(circuit.track);
   const now = new Date();
   Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
 }
 function recordStep(tickInput: Input): void {
-  if (!recorder || !arena || !race) return;
+  if (!recorder || !circuit || !race) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
-  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: ARENA_IDENTITY, rival: RIVAL_REVISION,
-    physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: arena.layout, solo: arena.solo, laps: race.laps ?? 1,
+  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: circuit.identity, rival: RIVAL_REVISION,
+    physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: circuit.layout, solo: circuit.solo, traffic: circuit.traffic, laps: race.laps ?? 1,
     car: selectedCar, drivetrain: sim.state.drivetrain, start: roadWorld.start });
   const id = recording.id;
   recording.status = "SAVING";
@@ -604,7 +603,7 @@ function frame(now: number): void {
       accumulator = 0;
       break;
     }
-    if (sim.state.race?.finished && !sim.state.rival && arena && race) {
+    if (sim.state.race?.finished && !sim.state.rival && circuit && race) {
       const best = bestLap(recorder?.laps ?? []);
       const valid = recorder?.laps.filter(lap => lap.valid).length ?? 0;
       menu.finishRace("Session complete", `${race.name} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ)} · best lap ${best ? formatRaceTime(best.endTick - best.startTick, TICK_HZ, 2) : "none valid"} · ${valid}/${race.laps} laps valid`);

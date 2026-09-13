@@ -151,7 +151,7 @@ export interface LapSession {
   /** Wall-clock time the session began, from the browser. Metadata only; nothing replays from it. */
   recordedAt: string;
   world: string;
-  /** `ARENA_IDENTITY`: the circuit's layout revision. The world id does not change when only the circuit does. */
+  /** The circuit's revision: `ARENA_IDENTITY` on Ridge Circuit, `STREET_CIRCUIT_IDENTITY` on a street circuit. The world id does not change when only the circuit does. */
   arena: string;
   /** `RIVAL_REVISION`: the rival driver raced. Only a session with a rival depends on it. */
   rival: string;
@@ -160,6 +160,8 @@ export interface LapSession {
   race: string;
   layout: string;
   solo: boolean;
+  /** City traffic was on. Absent in sessions from before street circuits, which had none. */
+  traffic?: boolean;
   laps: number;
   car: string;
   drivetrain: string;

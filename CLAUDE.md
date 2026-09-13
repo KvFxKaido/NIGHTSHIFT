@@ -160,6 +160,11 @@ fixtures outside the playable bundle, and old world links redirect.
   `pnpm dev` to the git-ignored `recordings/laps/`; the input log replays exactly
   (`lap-replay.ts`, `pnpm laps --verify`). Lap lengths are pinned because
   recordings depend on them (`design/PORT_ALDER.md`, "Ridge Circuit").
+- **Uptown Circuit** (working name): an authored three-lap loop of Uptown's
+  streets, a gate at every turn, recorded the same way, in traffic or clear, with
+  or without the rival (`street-circuit.ts`, `?race=street-uptown[-clear][-solo]`).
+  Authored, not generated, so recordings survive generator changes; its lap
+  length is pinned (`design/PORT_ALDER.md`, "Uptown Circuit").
 - **Traffic.** About 260 kinematic vehicles with reserved junction
   movements (`traffic.ts`); an immovable hazard, never a second handling
   model. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
@@ -183,6 +188,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
+| Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
 | Lap recording, replay check, save endpoint | `lap-recorder.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: the ten career names (sketch) | — | `design/BLACKLIST.md` |
@@ -262,6 +268,8 @@ fixtures outside the playable bundle, and old world links redirect.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
+  Traffic has no revision: changing how it drives silently breaks replay of
+  every street session recorded in traffic.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
   that breaks the tests is green on GitHub. Run `pnpm test` yourself.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not

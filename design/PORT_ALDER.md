@@ -782,6 +782,28 @@ on Freight Cut it stopped where it was hit and looped off the street, and from
 Queen Anne Climb it ended on full lock circling its target. Three of the four
 reached exactly 16.9 m, which looks like one spot (not traced). Streets keep the
 old plan and brake. `tests/arena.test.ts` holds T1's braking point on Full and East.
+
+**A known trait: T9 (2026-09-13).** Left in on purpose. In the first race
+against `full-line-v3` Shawn trailed for 205 of 218 s, made two passes with
+contact that the rival undid within 3 s (the last bend on lap 2, T1 on lap 3),
+and won by about 0.4 s with a clean pass into T9 on the last lap, braking about
+100 m later than the rival. Driving alone, the rival brakes the same way every
+lap:
+
+| T9 into the last bend, Full | Starts braking | Peak pedal | Slowest |
+|---|---|---|---|
+| Rival, alone, laps 1–3 | 57 m before T9 | 0.82–0.85 | 58 mph |
+| Shawn, best lap (70.67 s) | 23 m before | 1.00 | 71 mph |
+| Shawn, the passing lap | 14 m into T9 | 1.00 | 65 mph |
+
+Likely cause, not traced: T9 into the last bend is a braked-in-a-curve zone that
+slows at under `RIVAL_BRAKING.zone` (12 m/s²), so the old reactive brake drives
+it, and the last bend's corner speed is `speedFactor` 0.76. It is not fixed
+because the race was close with it (Shawn a second a lap quicker at his best,
+the rival 71.7 s), it is the one clean passing place found so far with no
+slipstream, and a rival that is weaker in medium braking zones is a difficulty
+knob the Blacklist will need, not a bug. Fixing it means lowering the zone or
+tuning medium zones separately, re-sweeping the layouts and the street batch.
 Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
 refuses another. Not built: extracting features from recordings automatically,
 and the rival learning from them per street.
@@ -790,3 +812,81 @@ and the rival learning from them per street.
 incomparable), checks the site is clear of buildings, trees and street
 pavements, that the drawn asphalt is the paved width the tyres feel, that every
 gate lies on the rival's line, and drives the rival round all three layouts.
+
+
+## Uptown Circuit (2026-09-13)
+
+Working name. A three-lap race round 3 km of Uptown's own streets, recorded lap
+by lap the way Ridge Circuit is, so the street rival can be measured against laps
+Shawn drove rather than guessed at (`src/sim/street-circuit.ts`).
+
+**Why a new race.** Ridge Circuit got the rival to Shawn's pace, but the rival's
+weakness is the street (below), and there were no recorded street laps to tune
+from. Sound to Sky was the obvious race and was ruled out: its markers sit at the
+middle vertex of whichever street segment comes first in the data with that name,
+not where anyone chose (Harbor Way's is mid-block, 677 m from a junction; the
+finish is 367 m after the gate before it), and it is the rival tests' fixture. A
+generated circuit was ruled out too: near the grid they run 6-7 km a lap, and a
+generated race is only as stable as the generator. The flow rule changed the race
+every seed draws, which would have orphaned every recording made on one. So the
+loop is authored, a list of streets in driven order, and pinned.
+
+**Chosen from every loop.** A search of the routing graph found 101,597 loops of
+1.8-3 km that obey the generator's turn rule (135°), scored for variety (turn
+count, sharp and open turns, street classes, climb, a long straight), with a
+diversity pass so candidates did not share a quarter of their streets. Shawn
+picked from four drawn on a map. Uptown:
+
+- Uptown Link's 520 m straight climbing 28 m, the line 120 m along it.
+- Broadway, Market Arcade (12 m, local), 12th Avenue, Thomas Street, 23rd Avenue,
+  Harrison Terrace, Broadway, then Highland Drive and Dexter Way descending into a
+  129° hairpin back onto Uptown Link.
+- Ten turns: 58, 72, 64, 80, 67, 84, 98, 79, 52 and 129°. Streets 12-20 m wide.
+
+**Gates.** One at every turn, 20 m radius as generated races use, and the line.
+Between turns the city has other ways round (Thomas Street runs straight from
+Uptown Link to 23rd Avenue), and a lap through one is not a lap of this circuit.
+Only the next gate shows, with its arrow; the arrows come from the route even
+solo, since on streets a solo lap needs to know where to turn.
+
+**Races.** `?scene=track&race=street-uptown` in traffic; `-clear` for empty
+streets, `-solo` for no rival (`street-uptown-clear-solo`). The grid is 12 m
+behind the line in the kerb lane going the circuit's way, the rival 7 m ahead in
+the inner lane. Recording, saving, `pnpm laps` and `--verify` are Ridge Circuit's
+(`circuits.ts` resolves either); a session names the circuit (`uptown-v1`) and
+whether traffic was on, and replay rebuilds the traffic with the world. Traffic
+has no revision of its own, so a change to traffic makes an old session in
+traffic stop reproducing rather than be refused by name.
+
+**The rival there, first measured** (its centreline, AWD, player out of the way):
+
+| | Lap 1 | Lap 2 | Lap 3 | |
+|---|---|---|---|---|
+| Clear streets | 101.2 s | 99.1 s | 99.1 s | no grass, no resets |
+| Traffic | 100.9 s | 100.0 s | 124.9 s, invalid | 75 ticks of contact, 15.2 m off the street |
+
+`tests/street-circuit.test.ts` pins the lap (2,977.24 m), the turns and gates, the
+four variants and their grid, and replays a lap driven through traffic exactly.
+
+**The street rival, measured before any of it** (twelve races in traffic: Sound
+to Sky, the Queen Anne Climb start, generated seeds 1-10; each also run on empty
+streets). Where the time goes:
+
+- **Junction turns.** 74 turns of more than 50°. The rival's slowest speed through
+  them averages 17-22 mph in every race. Likely why (not traced): the centreline
+  turns at a vertex, and the rival plans from its curvature sampled 8 m either
+  side, which for a right angle is a 5.7 m radius; 0.76 of what holds that is
+  15 mph, under the 7 m/s (16 mph) floor. The plan comes from the vertex, not the
+  road's width. The 120 m around each turn adds up to 404 s of the 1,141 s the
+  races take on empty streets (an overstatement: close turns' windows overlap).
+- **Traffic** adds 61.5 s over the twelve (5%), mostly in two races (Queen Anne
+  +17.5 s, seed 10 +11.0 s). Contact with traffic, 281 ticks: 134 with oncoming
+  cars, 81 same-direction, 66 crossing.
+- **Losing it.** 14.4 s in the heading-error mode (held to 6 m/s, circling at full
+  lock) and 8.3 s held to 10 m/s as lost, concentrated in the same two races. The
+  new braking made this worse and was kept off streets ("Not on streets", above).
+
+Inference, to be checked against Uptown recordings: junction turns are the
+biggest street pace limit, traffic the second, and the lost/circling modes cause
+the failures. Nothing here says how much faster than the rival a player takes
+those turns; that is what the recordings are for.
