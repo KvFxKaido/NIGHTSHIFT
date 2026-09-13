@@ -163,6 +163,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
+| The Blacklist: the ten career names (sketch) | — | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |

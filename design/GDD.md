@@ -218,6 +218,9 @@ Proposed, not decided:
 - Beaten names stay in the city as rivals to flash, having learned from the
   races the player won against them (`design/PROCEDURAL_RACES.md`).
 - Moth, who already cruises by the garage, is #10.
+- The full list, #10 to #1, with turf, car, accent, challenge and each name's
+  characteristic mistake: `design/BLACKLIST.md` (a sketch; six of the ten are
+  not created).
 
 Reputation unlocks performance parts (§5.1). Players earn it from results:
 
