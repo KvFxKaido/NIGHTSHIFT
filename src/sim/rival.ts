@@ -22,6 +22,8 @@ export interface RivalDriver {
   noProgressTicks: number;
   resetCheckIn: number;
   resets: number;
+  /** Put back on its line out of the player's sight (`UNSEEN_RECOVERY` in sim.ts), counted apart from the 12 s fallback. */
+  unseenResets: number;
   stuckTicks: number;
   reverseTicks: number;
   recoveries: number;
@@ -31,7 +33,7 @@ export interface RivalDriver {
   targetSpeed: number;
 }
 export function createRivalDriver(): RivalDriver {
-  return { along: 0, progressMark: 0, noProgressTicks: 0, resetCheckIn: 0, resets: 0, stuckTicks: 0, reverseTicks: 0, recoveries: 0, recoverySide: 0, bypassUntil: 0, avoidance: 0, targetSpeed: 0 };
+  return { along: 0, progressMark: 0, noProgressTicks: 0, resetCheckIn: 0, resets: 0, unseenResets: 0, stuckTicks: 0, reverseTicks: 0, recoveries: 0, recoverySide: 0, bypassUntil: 0, avoidance: 0, targetSpeed: 0 };
 }
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const angle = (value: number) => Math.atan2(Math.sin(value), Math.cos(value));
@@ -103,9 +105,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * lost-car speed cap means off the road, not off the line. "full-line-v3": it
  * brakes later and harder on a racing line (RIVAL_BRAKING). "full-line-v4": traffic
  * judged in the route's frame and passed to a gap beside it, and an aim more than
- * a radian off moved outside the turning circle.
+ * a radian off moved outside the turning circle. "full-line-v5": recovery out of
+ * the player's sight (UNSEEN_RECOVERY in sim.ts).
  */
-export const RIVAL_REVISION = "full-line-v4";
+export const RIVAL_REVISION = "full-line-v5";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -220,7 +223,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
   if (route.loop && driver.along > gate - 12 && Math.hypot(car.x - route.points[0]!.x, car.z - route.points[0]!.z) < 8) {
-    Object.assign(driver, createRivalDriver(), { recoveries: driver.recoveries, resets: driver.resets });
+    Object.assign(driver, createRivalDriver(), { recoveries: driver.recoveries, resets: driver.resets, unseenResets: driver.unseenResets });
   }
   // `nearestSide` is the car's offset across that nearest segment, positive to the
   // right; `nearestRoad` is where that puts it across the road, and the road's width.

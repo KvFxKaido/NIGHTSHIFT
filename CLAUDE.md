@@ -133,7 +133,8 @@ fixtures outside the playable bundle, and old world links redirect.
   `?race=gen-<seed>[-circuit|-unordered]`. Sound to Sky is the authored race
   and the rival tests' fixture.
 - **Rival.** One AI driver in the same physics world, routed line, no
-  rubber-banding, reversing recovery and a local reset after 12 s stuck. It
+  rubber-banding, reversing recovery and a local reset after 12 s stuck, or
+  after 2.5 s out of the player's sight (`UNSEEN_RECOVERY`), never further along. It
   races the player rather than yielding: passes, holds its line, blocks and
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Its
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the

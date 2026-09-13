@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, resetSim, step, RIVAL_RESET_TICKS, type Sim } from "../src/sim/sim.ts";
-import { createAlderWorld, ALDER_RACE, projectOntoAlder } from "../src/sim/alder.ts";
+import { createSim, resetSim, step, RIVAL_RESET_TICKS, TICK_HZ, UNSEEN_RECOVERY, type Sim } from "../src/sim/sim.ts";
+import { sampleRivalPath } from "../src/sim/rival.ts";
+import { createAlderWorld, ALDER_RACE, alderHeight, projectOntoAlder } from "../src/sim/alder.ts";
 import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 await RAPIER.init();
 const parked={throttle:0,brake:0,steer:0,handbrake:1};
@@ -189,4 +190,53 @@ test("fallback reset repeats deterministically with the same obstruction",()=>{
   };
   const first=run(),second=run();
   assert.deepEqual(second,first);
+});
+
+// Recovery out of the player's sight (2026-09-13): the one help the rival gets.
+// Trapped 600 m along Sound to Sky, a stuck rival is put back on its line within
+// seconds when the player is far away, at rest and never further along; with the
+// player close by it waits for the twelve-second fallback like before.
+function trapAlong(sim: Sim, along: number, player: { x: number; z: number }) {
+  sim.state.race!.countdown = sim.state.rival!.race.countdown = 0;
+  const path = sampleRivalPath(ALDER_RIVAL, along), point = { ...path, y: alderHeight(path.x, path.z) };
+  sim.rivalBody!.setTranslation({ x: point.x, y: point.y + 2.5, z: point.z }, true);
+  Object.assign(sim.state.rival!.driver, { along, progressMark: along });
+  for (const [dx, dz, width, depth] of [[-5, 0, 1, 10], [5, 0, 1, 10], [0, -5, 10, 1], [0, 5, 10, 1]]) {
+    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(width! / 2, 2, depth! / 2).setTranslation(point.x + dx!, point.y + 2, point.z + dz!));
+  }
+  sim.body.setTranslation({ x: player.x, y: alderHeight(player.x, player.z) + 1, z: player.z }, true);
+  return point;
+}
+
+test("a rival stuck out of the player's sight is put back on its line within seconds, at rest, never further along", () => {
+  const sim = create(false);
+  try {
+    const along = 600, start = ALDER_RIVAL.start;
+    const point = trapAlong(sim, along, { x: start.x, z: start.z });
+    const rival = sim.state.rival!;
+    assert.ok(Math.hypot(point.x - start.x, point.z - start.z) > UNSEEN_RECOVERY.sight + 50, "the trap is not out of the player's sight");
+    let resetAt = -1, alongAtReset = 0, speedAtReset = -1;
+    for (let tick = 0; tick < TICK_HZ * 8 && resetAt < 0; tick++) {
+      step(sim, parked);
+      if (rival.driver.unseenResets > 0) { resetAt = tick; alongAtReset = rival.driver.along; speedAtReset = rival.vehicle.speed; }
+    }
+    assert.ok(resetAt >= 0, "a stuck rival out of sight was never put back");
+    assert.ok(resetAt <= (UNSEEN_RECOVERY.seconds + 1.5) * TICK_HZ, `it took ${(resetAt / TICK_HZ).toFixed(1)} s`);
+    assert.ok(alongAtReset <= along + 1e-6, `it was put ${(alongAtReset - along).toFixed(1)} m further along its route`);
+    assert.equal(speedAtReset, 0);
+    assert.equal(rival.driver.resets, 0, "the twelve-second fallback fired instead");
+    assert.equal(rival.race.checkpoint, 0);
+  } finally { sim.world.free(); }
+});
+
+test("a rival stuck in the player's sight gets no early help", () => {
+  const sim = create(false);
+  try {
+    const point = trapAlong(sim, 600, { x: 0, z: 0 });
+    sim.body.setTranslation({ x: point.x + 30, y: point.y + 1, z: point.z }, true);
+    for (let tick = 0; tick < TICK_HZ * 8; tick++) step(sim, parked);
+    assert.ok(sim.state.rival!.driver.noProgressTicks > UNSEEN_RECOVERY.seconds * TICK_HZ * 2, "the rival was not stuck; the test proves nothing");
+    assert.equal(sim.state.rival!.driver.unseenResets, 0, "it was put back with the player 30 m away");
+    assert.equal(sim.state.rival!.driver.resets, 0);
+  } finally { sim.world.free(); }
 });

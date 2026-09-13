@@ -856,18 +856,35 @@ export function step(sim: Sim, rawInput: Input): void {
 
 /** Give normal recovery twelve seconds, then rejoin locally without gaining a gate. */
 export const RIVAL_RESET_TICKS = 12 * TICK_HZ;
+
+/**
+ * Recovery out of the player's sight (2026-09-13). Where NightShift may lie for
+ * the AI, by Shawn's call: not in the handling, which the rival drives exactly as
+ * the player does, but in getting unstuck where nobody is watching. A rival that
+ * has made no progress for `seconds`, more than `sight` metres from the player,
+ * is put back on its line at rest, where it already was or behind it, never
+ * further along: a reset costs it time and never gains it any. Distance stands in
+ * for sight because the sim cannot ask the camera and a replay cannot either.
+ */
+export const UNSEEN_RECOVERY = { seconds: 2.5, sight: 120 } as const;
+
 function resetStalledRival(sim: Sim): void {
   const rival = sim.state.rival, body = sim.rivalBody, route = sim.rivalDefinition;
   if (!rival || !body || !route || !sim.race || sim.race.kind === "drag" || rival.race.countdown > 0 || rival.race.finished) return;
-  resetStalledDriver(sim, body, route, rival.driver, rival.race, (vehicle, driver) => {
+  const place = (vehicle: VehicleState, driver: RivalDriver) => {
     rival.vehicle = vehicle; rival.driver = driver;
     rival.input = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-  });
+  };
+  const unseen = Math.hypot(rival.vehicle.x - sim.state.vehicle.x, rival.vehicle.z - sim.state.vehicle.z) > UNSEEN_RECOVERY.sight;
+  if (unseen && rival.driver.noProgressTicks < RIVAL_RESET_TICKS) {
+    resetStalledDriver(sim, body, route, rival.driver, rival.race, place, Math.round(UNSEEN_RECOVERY.seconds * TICK_HZ), true);
+  } else resetStalledDriver(sim, body, route, rival.driver, rival.race, place);
 }
 
 function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefinition, driver: RivalDriver,
-  race: RaceState | null, reset: (vehicle: VehicleState, driver: RivalDriver) => void): void {
-  if (driver.noProgressTicks < RIVAL_RESET_TICKS || driver.resetCheckIn > 0) return;
+  race: RaceState | null, reset: (vehicle: VehicleState, driver: RivalDriver) => void,
+  after = RIVAL_RESET_TICKS, unseen = false): void {
+  if (driver.noProgressTicks < after || driver.resetCheckIn > 0) return;
   driver.resetCheckIn = TICK_HZ;
   const gate = race ? sim.race!.checkpoints[race.targetIndex]! : null;
   const minimum = race && race.targetIndex > 0 ? route.gates[race.targetIndex - 1]! : 0;
@@ -875,7 +892,8 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
   if (maximum < minimum) return;
   const center = Math.max(minimum, Math.min(maximum, driver.along));
   const shape = new RAPIER.Cuboid(1.4, .65, 2.7);
-  for (const delta of [8, -8, 16, -16, 24, -24, 0]) {
+  // Unseen, only where it was or behind: never further along.
+  for (const delta of unseen ? [0, -8, -16, -24] : [8, -8, 16, -16, 24, -24, 0]) {
     const along = Math.max(minimum, Math.min(maximum, center + delta));
     const point = sampleRivalPath(route, along);
     for (const side of [0, 3, -3]) {
@@ -905,7 +923,8 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
       body.resetTorques(true);
       reset(initialVehicle({ ...sim.roadWorld, start: { x, y: surface.height, z,
         heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } }),
-        { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries, resets: driver.resets + 1 });
+        { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries,
+          resets: driver.resets + (unseen ? 0 : 1), unseenResets: driver.unseenResets + (unseen ? 1 : 0) });
       return;
     }
   }

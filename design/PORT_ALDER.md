@@ -1061,3 +1061,29 @@ through), each failing with its rule removed. A session recorded in traffic
 names its traffic revision, and replay refuses another: Shawn's two Uptown
 sessions in traffic no longer reproduce, because the traffic they met has
 changed.
+
+**Recovery out of the player's sight (2026-09-13).** Where NightShift may lie for
+the AI, by Shawn's call after comparing notes on how Rockstar and EA fake it: not
+in the handling, which the rival drives exactly as the player does, but in getting
+unstuck where nobody is watching (`UNSEEN_RECOVERY` in `sim.ts`). A rival that has
+made no progress for 2.5 s, more than 120 m from the player, is put back on its
+line at rest, where it already was or behind it, never further along, with the
+twelve-second fallback's clearance checks. Distance stands in for sight because the
+sim cannot ask the camera. It is counted apart (`driver.unseenResets`), so a test
+that says the fallback reset never fired still means it.
+
+Over the same 42 races in traffic, rival alone and the player parked on the grid,
+so almost always out of sight:
+
+| | Time | Contact | Circling | Lost | Past 16 m | Reversals | Unseen resets |
+|---|---|---|---|---|---|---|---|
+| Before | 4,200.1 s | 564 | 53.3 s | 32.2 s | 4 | 3 | — |
+| **With it** | 4,165.0 s | 497 | 31.5 s | 8.0 s | 2 | 0 | 21, in 16 races |
+
+Clear streets are unchanged to the tenth (no reset fires there), and Uptown in
+traffic needs none. The two strays left (seeds 21, 22.2 m, and 10, 16.4 m) happen
+in the seconds before a rival counts as stuck. In a race the player is usually
+within 120 m and none of this applies. `tests/rival.test.ts` traps the rival 600 m
+along Sound to Sky: out of sight it is put back within four seconds, at rest and
+never further along; with the player 30 m away it waits, each failing with its
+rule broken.
