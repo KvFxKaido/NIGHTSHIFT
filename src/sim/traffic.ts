@@ -39,9 +39,10 @@ export type TrafficKind = "sedan" | "taxi" | "van" | "box-truck";
  * How traffic drives, for anything replayed through it: a recording made in
  * traffic reproduces only on the traffic that drove it. "traffic-v2"
  * (2026-09-13): traffic yields to the cars it does not drive (`TrafficRacer`).
- * "traffic-v3": nothing slower than 35 mph.
+ * "traffic-v3": nothing slower than 35 mph. "traffic-v4":
+ * junctions held for a racer that could not stop before reaching them.
  */
-export const TRAFFIC_REVISION = "traffic-v3";
+export const TRAFFIC_REVISION = "traffic-v4";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -58,8 +59,14 @@ const RACER_LENGTH = 4.8;
 const RACER_IN_LANE = 2.6;
 /** Metres from a movement's path a racer counts as in its way: half of each car and room. */
 const RACER_IN_JUNCTION = 5;
-/** Seconds of a racer's course checked against a junction: long enough to cross one from the line. */
-const RACER_HORIZON = 4;
+/**
+ * How far along a racer's course a junction is checked (2026-09-13): the longer
+ * of the time the waiting car needs to clear it and the time the racer needs to
+ * stop, never more than `max` seconds. A flat four seconds is 217 m at 122 mph:
+ * on seed 5 a car claimed its junction with the rival about 250 m out, turned
+ * across it, and the rival, unable to stop, hit it at 113 mph.
+ */
+export const RACER_HORIZON = { braking: 9, reaction: 0.5, max: 8 } as const;
 /** A racer slower than this, m/s, holds no junction: it is waiting, not crossing. */
 const RACER_MOVING = 3;
 
@@ -494,17 +501,21 @@ function movementPath(network: TrafficNetwork, id: number): LanePose[] {
   return path;
 }
 
-/** Whether a racer is in a movement's path now, or will be within `seconds` on its present course. */
-function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[], seconds: number): boolean {
+/** Whether a racer is in a movement's path now, or will be before the car could clear it (`clearing` seconds) or the racer could stop. */
+function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[], clearing: number): boolean {
   for (const racer of racers) {
     // Only a racer on the move. One stopped or crawling at a junction is waiting
     // for traffic itself, and holding traffic for it made them wait on each other
     // (seeds 2 and 5): traffic goes, as it always did, and the racer goes after.
     if (racer.speed < RACER_MOVING) continue;
     const vx = -Math.sin(racer.heading) * racer.speed, vz = -Math.cos(racer.heading) * racer.speed;
+    const seconds = Math.min(RACER_HORIZON.max, Math.max(clearing, racer.speed / RACER_HORIZON.braking + RACER_HORIZON.reaction));
     for (const id of chain) {
       const path = movementPath(network, id);
-      for (let t = 0; t <= seconds; t += 0.25) {
+      // At most 4 m of the racer's travel between looks: at 0.25 s a racer at 55 m/s
+      // stepped 13.75 m, straight over the 10 m band a junction's path is checked in.
+      const every = Math.min(0.25, 4 / racer.speed);
+      for (let t = 0; t <= seconds; t += every) {
         const x = racer.x + vx * t, z = racer.z + vz * t;
         for (let i = 1; i < path.length; i++) {
           const a = path[i - 1]!, b = path[i]!;
@@ -560,7 +571,7 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     if (chain.some(id => holders.has(id) || crossingBusy(network, holders, id))) continue;
     if (!mayEnter(network, byLane, vehicle, chain)) continue;
     // A racer in the junction, or crossing it before this vehicle could be clear, has it.
-    const clearIn = Math.min(RACER_HORIZON, (toEntry(vehicle) + 30) / Math.max(3, vehicle.speed));
+    const clearIn = Math.min(RACER_HORIZON.max, (toEntry(vehicle) + 30) / Math.max(3, vehicle.speed));
     if (racerCrossing(network, chain, racers, clearIn)) continue;
     vehicle.holds = chain;
     for (const id of chain) holders.set(id, [...(holders.get(id) ?? []), vehicle]);

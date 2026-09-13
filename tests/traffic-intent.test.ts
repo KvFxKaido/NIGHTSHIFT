@@ -114,8 +114,7 @@ test("traffic stops behind a racer in its lane, braking, and without one drives 
   assert.ok(run(false).closest < 0, "without a racer it never reached that spot; the test proves nothing");
 });
 
-test("traffic does not claim a junction a racer is driving through, and claims it once the racer is past", () => {
-  const run = (withRacer: boolean, arriveTick = 0, pick = 0) => {
+function junctionRun(withRacer: boolean, arriveTick = 0, pick = 0, speed = 20) {
     const traffic = createTraffic(network);
     for (let tick = 0; tick < 60 * 20; tick++) stepTraffic(network, traffic, DT);
     const vehicle = traffic.vehicles.filter(v => {
@@ -124,28 +123,46 @@ test("traffic does not claim a junction a racer is driving through, and claims i
     })[pick]!;
     const movement = network.movements[vehicle.movement]!, lane = network.lanes[movement.from]!;
     const point = network.pose(movement.from, lane.length);
-    // A racer crossing the junction square to the approach at 20 m/s, timed to reach
-    // it just as the vehicle would claim it with nobody there.
+    // A racer crossing the junction square to the approach, timed to reach it
+    // `arriveTick` ticks after the run starts.
     const left = { x: -Math.cos(point.heading), z: Math.sin(point.heading) };
-    const out = 20 * arriveTick * DT;
-    const racer = { x: point.x + left.x * out, z: point.z + left.z * out, heading: Math.atan2(left.x, left.z), speed: 20 };
+    const out = speed * arriveTick * DT;
+    const racer = { x: point.x + left.x * out, z: point.z + left.z * out, heading: Math.atan2(left.x, left.z), speed };
     let claimedAt = -1, passedAt = -1;
-    for (let tick = 0; tick < 60 * 12 && claimedAt < 0; tick++) {
-      if (withRacer) { racer.x -= left.x * 20 * DT; racer.z -= left.z * 20 * DT; }
+    // Run on past the claim, so a claim made too early still sees when the racer crossed.
+    for (let tick = 0; tick < 60 * 12 && (claimedAt < 0 || passedAt < 0); tick++) {
+      if (withRacer) { racer.x -= left.x * speed * DT; racer.z -= left.z * speed * DT; }
       const beyond = -((racer.x - point.x) * left.x + (racer.z - point.z) * left.z);
       if (passedAt < 0 && beyond > 0) passedAt = tick;
       stepTraffic(network, traffic, DT, withRacer ? [racer] : []);
-      if (vehicle.holds.includes(movement.id)) claimedAt = tick;
+      if (claimedAt < 0 && vehicle.holds.includes(movement.id)) claimedAt = tick;
     }
     return { claimedAt, passedAt, found: !!vehicle };
-  };
-  // "Past" is the racer through the crossing point; the rule lets a claim go once it is clear of the path.
-  // The first approaching car that, with nobody crossing, claims its junction within four seconds.
-  let pick = 0, clear = run(false, 0, pick);
-  while (!(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60) && pick < 10) clear = run(false, 0, ++pick);
+}
+/** The first approaching car that, with nobody crossing, claims its junction within four seconds. */
+function unhindered() {
+  let pick = 0, clear = junctionRun(false, 0, pick);
+  while (!(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60) && pick < 10) clear = junctionRun(false, 0, ++pick);
   assert.ok(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60, `no approaching car claimed its junction within four seconds with nobody crossing; the test proves nothing`);
-  const crossed = run(true, clear.claimedAt + 20, pick);
+  return { pick, clear };
+}
+
+test("traffic does not claim a junction a racer is driving through, and claims it once the racer is past", () => {
+  // "Past" is the racer through the crossing point; the rule lets a claim go once it is clear of the path.
+  const { pick, clear } = unhindered();
+  const crossed = junctionRun(true, clear.claimedAt + 20, pick);
   assert.ok(crossed.passedAt > clear.claimedAt, "the racer was past before the junction would have been claimed anyway; the test proves nothing");
   assert.ok(crossed.claimedAt >= crossed.passedAt, `it claimed the junction at tick ${crossed.claimedAt}, before the racer crossing it got there at ${crossed.passedAt}`);
   assert.ok(crossed.claimedAt >= 0, "it never claimed the junction after the racer had gone");
+});
+
+// A flat four-second look along a racer's course is 217 m at 122 mph. On seed 5 a
+// car claimed its junction with the rival about 250 m out, turned across it, and
+// the rival hit it at 113 mph. A junction is held for a racer that could not stop.
+test("traffic does not claim a junction a racer at 123 mph could not stop short of", () => {
+  const { pick, clear } = unhindered();
+  const arrive = clear.claimedAt + Math.round(4.5 / DT);
+  const crossed = junctionRun(true, arrive, pick, 55);
+  assert.ok(crossed.passedAt > clear.claimedAt, "the racer was through before the junction would have been claimed; the test proves nothing");
+  assert.ok(crossed.claimedAt < 0 || crossed.claimedAt >= crossed.passedAt, `it claimed the junction at tick ${crossed.claimedAt}, with a racer at 55 m/s arriving at ${crossed.passedAt}`);
 });

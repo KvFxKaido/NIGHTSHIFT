@@ -1108,3 +1108,24 @@ Uptown in traffic, the rival alone: no contact, 7.2 m worst. Two traffic tests
 were tightened on the way: a car granted its junction during the forecast's
 window changed its plan (reaching claim range sooner, more cars now do), and the
 junction test now picks a car that claims its junction unhindered.
+
+**Junctions held for a racer that could not stop (2026-09-13).** Traced on seed 5
+after the speed floor: a car turning left claimed its junction while the rival
+was about 250 m out at 122 mph, beyond the four seconds of the racer's course the
+claim check looked along (217 m). The rival, reading the turning car in a straight
+line, saw the conflict 21 m out and hit it at 113 mph; the circling was the
+aftermath, not indecision. A waiting car now looks along a racer's course for the
+longer of the time it needs to clear the junction and the time the racer needs to
+stop (speed / 9 m/s² + 0.5 s), up to 8 s (`RACER_HORIZON`, "traffic-v4"). The look
+also steps at most 4 m of the racer's travel: at 0.25 s a racer at 55 m/s stepped
+13.75 m, over the 10 m band a junction's path is checked in. Both were found by the
+test, which fails with either undone.
+
+| Over 42 races | Time | Contact | Circling | Lost | Past 16 m | Unseen resets |
+|---|---|---|---|---|---|---|
+| Flat 4 s | 4,182.3 s | 261 | 64.0 s | 19.5 s | 3 | 27 |
+| **Racer's stopping time** | 4,069.0 s | 151 | 16.8 s | 8.0 s | 3 (same seeds, 18.6 m) | 6 |
+
+Faster in 22 races, slower in 4 (2.6 s at most); clear streets unchanged; the
+pinned seeds all within 3.3 m (Freight Cut's from 12.4). Uptown in traffic, the
+rival alone: 6 ticks of contact, 6.6 m worst.
