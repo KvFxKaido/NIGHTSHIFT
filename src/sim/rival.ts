@@ -1,4 +1,4 @@
-import { HANDLING, maxCorneringSpeed, type Input, type RivalState } from "./sim.ts";
+import { HANDLING, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import type { RaceDefinition } from "./race.ts";
@@ -97,10 +97,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
 /**
  * Which rival driver a recording was raced against. A recording with a rival
  * replays only against the same driver, so any change to how the rival drives
- * bumps this. 2026-09-13: cornering tuned to recorded laps, and a racing line on
- * Ridge Circuit.
+ * bumps this. "racing-line-v1" (2026-09-13): cornering tuned to recorded laps and a
+ * smoothed line on Ridge Circuit. "full-line-v1": braking while turning, steering
+ * feedforward and the full racing line.
  */
-export const RIVAL_REVISION = "racing-line-v1";
+export const RIVAL_REVISION = "full-line-v1";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -127,15 +128,43 @@ export const RIVAL_RACING = {
  * Corner speed was not: the rival follows the centreline with a lagging
  * steering controller, and at 0.82 it overshot the reverse bend after the
  * south junction onto the grass and ran 19.8 m wide on Sound to Sky. 0.74,
- * 0.76 and 0.78 were all clean, so 0.76 keeps a margin. Its tracking at speed,
- * not its grip, is the ceiling now (design/PORT_ALDER.md).
+ * 0.76 and 0.78 were all clean, so 0.76 keeps a margin.
+ *
+ * Braking while turning (2026-09-13). The braking plan used to assume a
+ * straight: from any corner back to the car, `planningDeceleration` the whole
+ * way. It is now a speed profile worked back from the far end of the preview,
+ * and at each sample the braking available is what cornering at that speed
+ * leaves of `frictionShare` of the grip (a friction ellipse), so it brakes
+ * before a curve rather than in it. On the full racing line it is what kept a
+ * line 2.2 m from the edges clean on East; at the shipped 2.6 m the laps were
+ * clean without it and 0.3 s faster, so it widens the margin rather than being
+ * the fix. The fix was steering (RIVAL_STEERING; design/PORT_ALDER.md, "Braking
+ * while turning").
  */
 export const RIVAL_CORNERING = {
   speedFactor: 0.76,
   minimumSpeed: 7,
   planningDeceleration: 10,
   brakingMargin: 6,
+  /** Share of lateral grip at which cornering leaves the braking plan nothing. */
+  frictionShare: 0.9,
 } as const;
+
+/**
+ * Steering feedforward (2026-09-13). The rival steered on heading error alone,
+ * and an error-only controller holds a steady curve only by being off the line:
+ * the steering a bend needs comes from the error that produces it. At 100 mph
+ * round T9 that was 3-6 m outward, enough to put a racing line's outside wheel
+ * on the grass. It now steers for the line's own curvature first, the wheel angle
+ * `atan(wheelbase × curvature)` as a share of the lock allowed at this speed,
+ * read `feedforwardLead` seconds ahead for the steering's lag, and the error only
+ * corrects. Swept 0.6 to 0.9 on Ridge Circuit's full line, all clean with the
+ * braking plan above; 0.8 is the middle. Racing lines only (routes with
+ * `lateral`): a street centreline's curvature at its polyline corners is an
+ * artefact of sampling, and steering for it put a generated race's rival 31 m
+ * off the street.
+ */
+export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3 } as const;
 
 export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
   const car = state.vehicle, driver = state.driver;
@@ -171,6 +200,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // so the preview looks through the whole braking envelope.
   const { planningDeceleration } = RIVAL_CORNERING;
   const previewDistance = Math.max(100, car.speed ** 2 / (2 * planningDeceleration) + 24);
+  const limits: number[] = [], curvatures: number[] = [];
   for (let d = 0; d <= previewDistance; d += 4) {
     const at = driver.along + d;
     const a=sampleRivalPath(route,at-8), b=sampleRivalPath(route,at), c=sampleRivalPath(route,at+8);
@@ -178,8 +208,21 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
     const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius)*RIVAL_CORNERING.speedFactor);
-    desiredSpeed=Math.min(desiredSpeed,Math.sqrt(cornerSpeed**2+2*planningDeceleration*Math.max(0,d-RIVAL_CORNERING.brakingMargin)));
+    // A straight's limit is infinite; the profile works in finite speeds.
+    limits.push(Math.min(cornerSpeed, HANDLING.topSpeed)); curvatures.push(1 / radius);
   }
+  // The fastest speed profile the line allows, worked back from the far end:
+  // at each sample the braking left is what cornering at that speed does not use.
+  const grip = RIVAL_CORNERING.frictionShare * HANDLING.maxLateralAcceleration;
+  const profile = new Array<number>(limits.length);
+  let v = profile[limits.length - 1] = limits.at(-1)!;
+  for (let k = limits.length - 2; k >= 0; k--) {
+    const share = v * v * curvatures[k]! / grip;
+    v = Math.min(limits[k]!, Math.sqrt(v * v + 2 * planningDeceleration * Math.sqrt(Math.max(0, 1 - share * share)) * 4));
+    profile[k] = v;
+  }
+  // Brake as if every corner were `brakingMargin` metres nearer.
+  desiredSpeed = Math.min(desiredSpeed, profile[Math.min(profile.length - 1, Math.round(RIVAL_CORNERING.brakingMargin / 4))]!);
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
   let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : 0;
@@ -281,7 +324,19 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // Heading feedback plus lateral-slip correction. The same steering envelope
   // and tyre forces that constrain the player constrain this request.
-  const steer=clamp(-error*3.5 + car.lateralSpeed*.025,-1,1);
+  // Feedforward: the wheel angle the line's curvature needs, as a share of the
+  // lock the car allows at this speed, read a little ahead for the steering's lag.
+  const ahead = Math.min(gate, driver.along + car.speed * RIVAL_STEERING.feedforwardLead);
+  const p = sampleRivalPath(route, ahead - 8), q = sampleRivalPath(route, ahead), r = sampleRivalPath(route, ahead + 8);
+  const pq = Math.hypot(q.x - p.x, q.z - p.z), qr = Math.hypot(r.x - q.x, r.z - q.z), pr = Math.hypot(r.x - p.x, r.z - p.z);
+  // Signed, positive for a right-hand bend, which positive steer turns into.
+  const lineCurvature = pq * qr * pr > 1e-6 ? 2 * ((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x)) / (pq * qr * pr) : 0;
+  const wheelbase = HANDLING.frontAxleDistance + HANDLING.rearAxleDistance;
+  // Only on a racing line: a street centreline turns at its polyline's corners, where
+  // this curvature is an artefact of the sampling, and steering for it put the rival
+  // 31 m off the street in a generated race.
+  const feedforward = route.lateral ? RIVAL_STEERING.feedforward * Math.atan(wheelbase * lineCurvature) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed)) : 0;
+  const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.
   const throttle = desiredSpeed >= HANDLING.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);

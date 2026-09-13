@@ -138,8 +138,11 @@ fixtures outside the playable bundle, and old world links redirect.
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Its
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
   grip-limited speed its centreline tracking, not grip, puts it on the grass. On
-  Ridge Circuit it drives a racing line (`racing-line.ts`); a truer line was
-  faster and left the road, so braking while turning is its limit.
+  Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
+  pace, held by steering feedforward (`RIVAL_STEERING`, racing lines only: street
+  centrelines' polyline corners fool it) and a braking plan that leaves grip for
+  cornering. A route must get its line once: drawing a line
+  through a route that already carries one doubles the offsets.
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring

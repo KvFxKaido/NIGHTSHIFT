@@ -3,7 +3,8 @@ import test from "node:test";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { ARENA, ARENA_ACCESS, ARENA_CORNERS, ARENA_LAYOUT_IDS, ARENA_LAYOUTS, arenaLap, type ArenaLayoutId } from "../src/sim/arena.ts";
-import { arenaEvent, arenaLayoutForRace, arenaRaceId, ARENA_LAPS } from "../src/sim/arena-events.ts";
+import { arenaEvent, arenaLayoutForRace, arenaRaceId, ARENA_GATE_RADIUS, ARENA_LAPS } from "../src/sim/arena-events.ts";
+import { RACING_LINE } from "../src/sim/racing-line.ts";
 import { ALDER_DRIVE_BOUNDS, ALDER_EVERGREENS, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, alderGround, alderHeight, createAlderWorld } from "../src/sim/alder.ts";
 import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
 import { createRace } from "../src/sim/race.ts";
@@ -158,10 +159,11 @@ test("each layout is a lapped race whose rival line passes through every gate", 
     }
     // The rival drives a racing line, so a gate's place on it sits beside the
     // centreline point by the line's offset there, well inside the gate.
+    const reach = ARENA.width / 2 - RACING_LINE.edgeMargin;
     gates.forEach((distance, i) => {
       const at = sampleRivalPath(rival, distance), gate = event.race.checkpoints[i]!;
-      assert.ok(Math.hypot(at.x - gate.x, at.z - gate.z) <= ARENA.width / 2 - 4.5 + 1e-6, `${id}: gate ${i} (${gate.name}) is ${Math.hypot(at.x - gate.x, at.z - gate.z).toFixed(2)} m off the line`);
-      assert.ok(Math.abs(at.lateral) <= ARENA.width / 2 - 4.5 + 1e-6);
+      assert.ok(Math.hypot(at.x - gate.x, at.z - gate.z) <= reach + 1e-6, `${id}: gate ${i} (${gate.name}) is ${Math.hypot(at.x - gate.x, at.z - gate.z).toFixed(2)} m off the line`);
+      assert.ok(Math.abs(at.lateral) <= reach + 1e-6 && reach < ARENA_GATE_RADIUS);
     });
     assert.ok(along.at(-1)! - gates.at(-1)! >= 145, "no run-off past the flag");
     // Both grid slots are on the asphalt, side by side, behind the line and facing along the track.
@@ -177,28 +179,37 @@ test("each layout is a lapped race whose rival line passes through every gate", 
   assert.throws(() => arenaEvent("full", 0));
 });
 
-// Executed, not inferred: the rival drives a lap of every layout on the
-// centreline, never needs a reset or a recovery, and never puts a tyre on the
-// grass. The times are the centreline baseline recorded laps are to beat, from
-// a standing start: Full 100.8 s, East 78.8 s, Ridge 66.4 s on 2026-09-13 as
-// first built; Full 86.0 s, East 66.0 s, Ridge 54.3 s with the chicane (circuit
-// revision 2) and cornering tuned to recorded laps (RIVAL_CORNERING); Full 80.0 s,
-// East 61.5 s, Ridge 51.2 s on its racing line (racing-line.ts).
+// Executed, not inferred: the rival drives two laps of every layout on its
+// racing line, never needs a reset or a recovery, and never puts a tyre on the
+// grass. Two laps, because the flying lap is the fast one: with the steering
+// feedforward removed one standing lap stayed clean and the flying lap put
+// wheels on the grass on Full and East (2026-09-13). The player waits in the
+// infield, because a wide line passes through the grid on the second lap.
+//
+// Flying laps: Full 102.2 s, East 78.6 s, Ridge 63.9 s on the centreline with
+// the chicane; 83.1, 63.1 and 51.5 s with cornering tuned to recorded laps;
+// 78.5, 59.8 and 48.6 s on the first, smoothed line; 72.8, 55.2 and 46.3 s on the
+// full line with braking while turning and steering feedforward. The player's
+// best on Full is 72.4 s.
 test("the rival laps every layout cleanly on its racing line", () => {
-  const limits: Record<ArenaLayoutId, number> = { full: 84, east: 65, ridge: 55 };
+  const limits: Record<ArenaLayoutId, number> = { full: 76, east: 58, ridge: 49 };
+  const infield: Record<ArenaLayoutId, { x: number; z: number }> = { full: { x: 3120, z: -1050 }, east: { x: 3120, z: -1050 }, ridge: { x: 2820, z: -1000 } };
   for (const id of ARENA_LAYOUT_IDS) {
-    const event = arenaEvent(id, 1);
+    const event = arenaEvent(id, 2);
     const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: false });
     try {
+      for (const layout of ARENA_ROADS) assert.ok(distanceTo(layout.points, infield[id].x, infield[id].z) > 30, `${id}: the waiting spot is on ${layout.id}`);
+      sim.body.setTranslation({ x: infield[id].x, y: alderHeight(infield[id].x, infield[id].z) + 1, z: infield[id].z }, true);
       let groundTicks = 0;
-      for (let tick = 0; tick < TICK_HZ * 150 && !sim.state.rival!.race.finished; tick++) {
+      for (let tick = 0; tick < TICK_HZ * 300 && !sim.state.rival!.race.finished; tick++) {
         step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
         if (sim.state.rival!.vehicle.groundContact > 0) groundTicks++;
       }
       const rival = sim.state.rival!;
       assert.ok(rival.race.finished, `${id}: the rival did not finish (gate ${rival.race.checkpoint})`);
-      const seconds = rival.race.ticks / TICK_HZ;
-      assert.ok(seconds < limits[id], `${id}: ${seconds.toFixed(1)} s`);
+      const gatesPerLap = event.race.gatesPerLap!;
+      const flying = (rival.race.splits[gatesPerLap * 2 - 1]! - rival.race.splits[gatesPerLap - 1]!) / TICK_HZ;
+      assert.ok(flying < limits[id], `${id}: flying lap ${flying.toFixed(1)} s`);
       assert.equal(rival.driver.resets, 0, `${id}: resets`);
       assert.equal(rival.driver.recoveries, 0, `${id}: recoveries`);
       assert.equal(groundTicks, 0, `${id}: on the grass for ${groundTicks} ticks`);

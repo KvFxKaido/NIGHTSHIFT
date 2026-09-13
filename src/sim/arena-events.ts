@@ -48,6 +48,14 @@ export const arenaLayoutForRace = (raceId: string): ArenaLayoutId | null => aren
 
 const point = (x: number, z: number): CoursePoint => ({ x, z, y: alderHeight(x, z), width: ARENA.width, zone: "boulevard" });
 
+/** A layout's line takes a few hundred milliseconds to draw and never changes, so each (layout, laps) is drawn once. */
+const lines = new Map<string, RivalDefinition>();
+function rivalLine(key: string, draw: () => RivalDefinition): RivalDefinition {
+  let line = lines.get(key);
+  if (!line) lines.set(key, line = draw());
+  return line;
+}
+
 export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = false): ArenaEvent {
   if (!Number.isInteger(laps) || laps < 1) throw new RangeError(`An arena race needs whole laps, not ${laps}`);
   const lap = arenaLap(layout);
@@ -88,6 +96,6 @@ export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = fals
     // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), so the
     // line is driven all-wheel, as the generated races declare it. On the circuit,
     // with no traffic, it drives a racing line rather than the centreline.
-    rival: solo ? null : withRacingLine({ id: `${id}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates }),
+    rival: solo ? null : rivalLine(`${layout}:${laps}`, () => withRacingLine({ id: `${arenaRaceId(layout)}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates })),
   };
 }

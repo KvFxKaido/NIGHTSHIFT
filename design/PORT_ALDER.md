@@ -668,26 +668,61 @@ passes a trigger through unchanged up to 0.5 and stretches the rest so 0.88 and
 above is full. What that cost the recorded laps is unmeasured: replaying them
 with more throttle changes every braking point after it and leaves the road.
 
-On Ridge Circuit the rival now drives a line through the road instead of its
-centreline (`src/sim/racing-line.ts`, applied in `arena-events.ts`). Flying laps:
+On Ridge Circuit the rival drives a racing line instead of its centreline
+(`src/sim/racing-line.ts`, applied in `arena-events.ts`). The first version was
+a smoothed path 2.5 m inside the edge lines. Every line tried on Sound to Sky ran
+into traffic (143 to 1,862 ticks of contact against none), so streets keep the
+centreline until a line knows the lanes.
 
-| | Centreline | Line (shipped) | Player, best |
-|---|---|---|---|
-| Full | 83.1 s | 78.5 s | 72.4 s |
-| East | 63.1 s | 59.8 s | — |
-| Ridge | 51.5 s | 48.6 s | — |
+**Braking while turning, and a correction (2026-09-13).** The first version's
+notes said a true minimum-curvature line (Coulom's K1999) lapped Full in 69–75 s
+but left the road at every setting. That measurement was wrong: the script drew
+a line through a route that already carried one, doubling the offsets, so the
+rival was driving up to 5 m from where the line should have been. Measured once,
+the same line 2.5 m from the edges was clean. What put a wider line on the grass
+was then traced properly, at T9 on East at about 100 mph:
 
-The line is a smoothed path kept 2.5 m inside the edge lines; 4.0 to 5.0 m of
-margin were all clean, 3.5 spun the rival out of T9 and 2.2 put it on the grass.
-It widens the corners less than the player does (the rival's driven radius at
-T2 32 m, the Jog 20, T9 53, to the player's 41, 26, 83), because it also leans
-inside. A true minimum-curvature line (Coulom's K1999) matched the player's
-corners and lapped Full in 69–75 s, but the rival could not stay on the asphalt
-on it at any setting tried: the line holds an edge through braking, and the
-rival carries 2–3 m of error braking into corners and 5–6 m where T9 tightens.
-Braking while turning is its limit now. Every line tried on Sound to Sky ran into
-traffic (143 to 1,862 ticks of contact against none), so streets keep the
-centreline until a line knows the lanes. The details are in the module's header.
+- **Steering.** The rival steered on heading error alone, and an error-only
+  controller holds a steady curve only by being off the line: the steering a
+  bend needs comes from the error that makes it, 3–6 m outward at that speed.
+  It now steers for the line's curvature first (`RIVAL_STEERING.feedforward`,
+  the wheel angle the curvature needs as a share of the lock allowed at speed)
+  and corrects with the error. That was the fix.
+- **Braking.** The braking plan assumed a straight all the way to a corner. It is
+  now a speed profile worked back from the corner in which cornering takes its
+  share of the grip first (`RIVAL_CORNERING.frictionShare`), so the rival brakes
+  before a curve rather than in it.
+- **The outside of a bend.** A rival that errs, errs wide, so the line keeps
+  2.5 m more from the edge on the outside of a bend (`RACING_LINE.outsideMargin`).
+- **A test artefact, found on the way.** The measuring script left the player
+  parked on the grid, where a wide line passes on the second lap; the rival braked
+  to nothing for a stopped car at 105 mph and spun. The player now waits in the
+  infield in the script and in `tests/arena.test.ts`.
+
+Shipped: the line 2.6 m from the edges, 2.5 m more on the outside of bends,
+feedforward 0.8, friction share 0.9. Flying laps over three-lap races, with no
+grass, resets or recoveries:
+
+| | Centreline | Smoothed line | Full line | Player, best |
+|---|---|---|---|---|
+| Full | 83.1 s | 78.5 s | 72.8 s | 72.4 s |
+| East | 63.1 s | 59.8 s | 55.2 s | — |
+| Ridge | 51.5 s | 48.6 s | 46.3 s | — |
+
+Standing laps: Full 75.3 s (the player's first lap was 76.15), East 58.2, Ridge
+48.8. Every neighbouring setting was also clean: edge margin 2.2 to 3.0, outside
+margin 2.0 to 3.5, feedforward 0.7 to 0.9, friction share 0.8 to 1.0, corner speed
+0.80 (Full 71.0 s). Taking one ingredient out at a time: without feedforward Full
+and East went onto the grass, without the outside margin East did, and without
+the braking plan the laps were clean and 0.3 s faster, so the braking plan widens
+the margin rather than being the fix. The line's tightest radii now match the
+recorded laps: T2 37 m (player 39–41), the Jog 25 (25–26), T5 62 (70), T9's exit
+82 (83–84). Feedforward is off on street centrelines: they turn at their
+polyline's corners, where the curvature it reads is a sampling artefact, and
+with it on a generated race put the rival 31 m off the street. Sound to Sky, still
+on its centreline and now braking before curves: 144.8 s (from 143.1), no traffic
+contact. The rival no longer needs the player to make a
+mistake to win on the circuit; it is within half a second of Shawn's best lap.
 Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
 refuses another. Not built: extracting features from recordings automatically,
 and the rival learning from them per street.

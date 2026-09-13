@@ -46,26 +46,26 @@ test("the line stays on the road, is the same every time, and keeps the route's 
   assert.ok(Math.hypot(end.x - finish.x, end.z - finish.z) < 1e-9, "the route's ends stay on the centre");
 });
 
-// The line bends less through each corner than the centreline does: the sum of
-// curvature squared over the corner, which is what the rival's corner-speed
-// planning pays for. (Its tightest local radius barely moves, because the line
-// also leans to the inside; see racing-line.ts.)
-test("the line bends less through the corners the recorded laps widened", () => {
+// Recorded laps (2026-09-13) drove T2 at a 39-41 m radius, the Jog at 25-26 and
+// T9's tightening exit at 83-84, where the centreline is 25, 16 and 39. The line
+// gets close: 37, 25 and 82. It widens every tight corner by at least 30%.
+test("the line widens the corners the recorded laps widened", () => {
   const route = centreline("full"), line = withRacingLine(route), lap = arenaLap("full");
   // The route starts at the grid slot, a few metres behind the line.
   const lead = route.along[1]!;
-  const bending = (path: RivalDefinition, from: number, to: number) => {
-    let sum = 0;
-    for (let d = from; d <= to; d += 2) sum += (1 / radiusAt(path, d)) ** 2 * 2;
-    return sum;
-  };
-  for (const id of ["t2", "jog-in", "t9"] as const) {
+  const expected: Record<string, number> = { t2: 35, "jog-in": 23, "main-straight": 75 };
+  for (const [id, atLeast] of Object.entries(expected)) {
     const corner = lap.corners.find(c => c.id === id)!;
-    const from = lead + corner.from - 40, to = lead + corner.to + 40;
-    // The line is shorter than the centreline; find the same stretch on it.
-    const onLine = (d: number) => { const here = sampleRivalPath(route, d); return projectOntoPathUnindexed(line.points, here.x, here.z).along; };
-    const centre = bending(route, from, to), drawn = bending(line, onLine(from), onLine(to));
-    assert.ok(drawn < centre * 0.8, `${id}: the line bends ${drawn.toExponential(2)} against the centreline's ${centre.toExponential(2)}`);
+    const middle = lead + (corner.from + corner.to) / 2;
+    let tightestCentre = Infinity, tightestLine = Infinity;
+    for (let d = middle - 60; d <= middle + 60; d += 2) {
+      tightestCentre = Math.min(tightestCentre, radiusAt(route, d));
+      // The line is shorter than the centreline; find the same place on it.
+      const here = sampleRivalPath(route, d);
+      tightestLine = Math.min(tightestLine, radiusAt(line, projectOntoPathUnindexed(line.points, here.x, here.z).along));
+    }
+    assert.ok(tightestLine > tightestCentre * 1.3 && tightestLine > atLeast,
+      `${id}: line radius ${tightestLine.toFixed(1)} m against the centreline's ${tightestCentre.toFixed(1)} m`);
   }
 });
 
