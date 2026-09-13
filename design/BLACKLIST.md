@@ -4,11 +4,12 @@ Design note, 2026-09-12. The GDD wins where they disagree; this is the longer
 form of GDD §5's Blacklist: who the ten names are, where they race, what they
 drive and what each one teaches.
 
-**Status.** A sketch. None of the career is implemented. Four of the ten
-exist as characters with portraits and cars: Moth, Rivet and Sable are in the
-game as rivals, and Tally has a portrait and a car but no encounter. Stray has
-a portrait and nothing else, and so do Bollard, Deuce, Plumb, Crest and Wake.
-Every placement, mistake and car below is a proposal until Shawn says otherwise.
+**Status.** A sketch. None of the career is implemented. All ten names have
+portraits (`design/reference/characters/<id>/`). Four have cars: Moth, Rivet
+and Sable are in the game as rivals, and Tally has Vesper but no encounter.
+Stray, Bollard, Deuce, Plumb, Crest and Wake have a portrait and a car
+inspiration below, and nothing else. Every placement, mistake and car is a
+proposal until Shawn says otherwise.
 
 ## How the list is built
 
@@ -30,18 +31,50 @@ Every placement, mistake and car below is a proposal until Shawn says otherwise.
 | # | Name | Turf | Car | Drive | Accent | Challenge |
 |---|---|---|---|---|---|---|
 | 10 | Moth | SoDo freight block | Kestrel rally hatch | AWD | teal / cream | Generated race |
-| 9 | Stray | Alder Center alleys | Boxy hot hatch | FWD | acid green | Unordered checkpoints |
-| 8 | Rivet | Harbor Quarter | Hammer | RWD | cream / black | Drag |
-| 7 | Bollard | Elliott Avenue waterfront | Compact 4x4 ute | AWD | safety yellow | Rival duel |
-| 6 | Deuce | Belltown, Broadcast Tower loop | Light fastback | RWD | hot magenta | Sprint |
-| 5 | Sable | South Wharf drift yard | NS-01 | RWD | red / black | Drift |
-| 4 | Plumb | Madrona Ridge | Four-door sport sedan | AWD | silver | Circuit |
-| 3 | Crest | Queen Anne climb | Lightweight coupe | FWD | cobalt blue | Uphill sprint |
-| 2 | Wake | Capitol Hill | Long-hood GT | AWD | white | Rival duel |
-| 1 | Tally | The whole city | Vesper | RWD | violet | Citywide open checkpoint |
+| 9 | Stray | Alder Center alleys | Sport liftback | FWD | acid green | Unordered checkpoints |
+| 8 | Rivet | Harbor Quarter | Hammer muscle notchback | RWD | cream / black | Drag |
+| 7 | Bollard | Elliott Avenue waterfront | Boxy 4x4 off-roader | AWD | safety yellow | Rival duel |
+| 6 | Deuce | Belltown, Broadcast Tower loop | Rotary sports car | RWD | hot magenta | Sprint |
+| 5 | Sable | South Wharf drift yard | NS-01 drift coupe | RWD | red / black | Drift |
+| 4 | Plumb | Madrona Ridge | Fast wagon | AWD | silver | Circuit |
+| 3 | Crest | Queen Anne climb | Hardtop roadster | FWD | cobalt blue | Uphill sprint |
+| 2 | Wake | Capitol Hill | AWD legend coupe | AWD | white | Rival duel |
+| 1 | Tally | The whole city | Vesper mid-engine coupe | RWD | violet | Citywide open checkpoint |
 
 Race types are GDD §7's. Moth's is the flash as it exists today: a generated
 race whose variant (sprint, circuit or unordered) comes from the seed.
+
+## The cars (2026-09-12)
+
+**Body type is a rival's identity, so the list mixes types.** Every body shares
+one mass, wheelbase and handling model; only the drivetrain differs. A rival is
+mostly seen from behind at chase-camera distance, where six '90s Japanese
+coupes would blur together and a truck, a wagon and a roadster do not. MC3's
+roster made the same point by mixing tuners with muscle, luxury and trucks.
+'90s JDM is one flavour on the list, not the list. Two rules follow:
+
+1. **No two rivals share a body type.**
+2. **No rival shares a body type with a player garage car.** The Cinder is a
+   four-door sedan and the Bulwark's garage render reads as a pickup, so
+   neither type goes to a rival: a rival should never look like the player's
+   own car in the mirror.
+
+The six still to build, each inspired by a real car, never a replica (the
+Vesper rule: proportions and signature ideas, no badges, no exact shapes):
+
+| # | Name | Type | Inspiration | Why |
+|---|---|---|---|---|
+| 9 | Stray | Sport liftback | Mitsubishi Eclipse, second generation ('95–'99), FWD | Shawn's pick. The kid's first tuner; it was a starter-eligible Class D tuner in MC3 and a prize car in MC:LA (`design/reference/midnight-club/`). |
+| 7 | Bollard | Boxy 4x4 off-roader | Toyota Land Cruiser 70 or Mitsubishi Pajero type, spare wheel on the tailgate | The spare wheel identifies her from behind, and a tall body blocks the player's view of the road, which is the bully's job. A Hilux-type pickup was the first idea and would have matched the Bulwark. |
+| 6 | Deuce | Rotary sports car | Mazda RX-7 (FD), RWD | The rotary is the bet: brilliant or blown, like his races. A '60s American fastback suits his pompadour but would be a second muscle car beside Rivet's Hammer. |
+| 4 | Plumb | Fast wagon | Audi RS2 Avant type, AWD, silver | Precise, understated and German, like her redesign. An Evo-type sedan was the first idea and would have matched the Cinder. |
+| 3 | Crest | Hardtop roadster | Lotus Elan (M100), a rare FWD roadster | Light, and a shape nothing else on the list has. The hardtop stays on: an open car needs a visible interior and driver, and detailed interiors are out of scope (GDD §21). An Integra-type coupe was the first idea and would have twinned Stray's Eclipse. |
+| 2 | Wake | AWD legend coupe | Nissan Skyline GT-R (R32) | The old champion's car for the old champion. It is a coupe like Sable's NS-01; its boxy, upright stance should separate them, but that is a prediction until the built car's silhouette is checked. The fallback is a long-hood grand tourer of the BMW 8 Series (E31) kind. |
+
+With the four that exist, the list is ten body types: rally hatch, sport
+liftback, muscle notchback, off-roader, rotary sports car, drift coupe, wagon,
+roadster, AWD legend coupe and mid-engine exotic. The cultures mix without
+being forced: Japanese, German, British and American.
 
 ### #10 Moth
 
@@ -143,12 +176,15 @@ the career gives the player is the pen.
   blue and magenta are clearly left, which is why Plumb is silver and Wake is
   white. The risky pairs are Wake's white against Rivet's and Moth's cream,
   magenta between Sable's red and Tally's violet, and cobalt against the cyan
-  rim. Each needs the measurement violet got in Tally's round one (hue and
-  coverage, counted from the render) before it is trusted.
+  rim. Those pairs were measured on the portraits and pass (the new
+  characters' READMEs have the numbers); every car still needs its own
+  in-game count.
 - **Every body shares one wheelbase, track and mass.** `blender-car.ts` rejects
-  wheels off (±0.92, 0.40, ±1.48), and `HANDLING.mass` is one number. There is
-  no kei van for Stray and no full-size truck for Bollard; car variety lives in
-  overhangs, height and silhouette, and character lives in driving behaviour.
+  wheels off (±0.92, 0.40, ±1.48), a 2.96 m wheelbase, and `HANDLING.mass` is
+  one number. Every inspiration above has a shorter real wheelbase (roughly
+  2.4–2.7 m, from memory), so each body is stretched as Vesper's was, the
+  RX-7 most. Car variety lives in overhangs, height and silhouette, and
+  character lives in driving behaviour.
 - **Drivetrains balance at four AWD, four RWD and two FWD.** Stray and Crest
   would be the first FWD bodies anyone drives, although `createSim` already
   defaults to FWD.
@@ -160,6 +196,10 @@ the career gives the player is the pen.
 
 - Every placement, name and mistake above, until Shawn confirms them.
 - Whether Plumb was Moth's co-driver.
+- Crest's inspiration: the Elan keeps him FWD; a Mazda MX-5 is the famous
+  roadster but RWD, which would leave Stray as the only FWD car.
+- Whether Wake's GT-R reads as a different silhouette from Sable's NS-01 once
+  built.
 - Where the player's shots come from for each name (GDD §5 proposes wins on
   that name's home turf).
 - Whether the player has a portrait in the opening's dialogue (GDD §5).
