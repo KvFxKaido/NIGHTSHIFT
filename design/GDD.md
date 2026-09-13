@@ -170,12 +170,13 @@ of racers. The list is always visible: who is above the player, what they
 drive, and what earns the next shot. The Blacklist gates the career.
 Reputation does not.
 
-**The opening.** The player starts in the red NS-01, the original hero car,
-races #1 for it and loses. The loss is honest: no sabotage and no scripted
-failure. #1 wins on car and line, never on catch-up, grip changes or any other
-advantage the rival rules forbid (§11). The player then starts again from a
-garage body and climbs the list to win the NS-01 back from #1. That is also
-the story of why the NS-01 left the garage.
+**The opening** is a short rendered cutscene with text dialogue and character
+portraits, not a playable race. In it the player loses the red NS-01, the
+original hero car, to #1, and the loss is honest: no sabotage. The player then
+starts from a garage body and climbs the list to win the NS-01 back from #1.
+That is also the story of why the NS-01 left the garage. The cutscene is
+presentation only (§17.2); the sim never models the opening race, so there is
+no outcome in which the player wins it.
 
 **Beating a name** means earning a shot, then winning their challenge. Every
 name's signature car is the player's when they are beaten, guaranteed. Ten
@@ -184,12 +185,11 @@ rivals included.
 
 Open, and unresolved in these documents:
 
-- **Who holds the NS-01.** It is Sable's car today (`design/CHARACTERS.md`,
-  `src/sim/drift-yard.ts`). Either Sable is #1, or the car needs another
-  holder and Sable another car.
-- **What happens if the player wins the opening.** An honest race is one the
-  player can win, and the opening needs an answer for that outcome before it
-  is built.
+- **#1 has not been created.** #1 holds the NS-01 and needs a portrait
+  before the opening can exist. Sable drives the red NS-01 today
+  (`design/CHARACTERS.md`, `src/sim/drift-yard.ts`), so creating #1 also
+  means settling Sable's car.
+- **Whether the player has a portrait** in the opening's dialogue.
 
 Proposed, not decided:
 
