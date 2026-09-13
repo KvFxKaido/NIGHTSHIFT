@@ -141,7 +141,9 @@ fixtures outside the playable bundle, and old world links redirect.
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, racing lines only: street
   centrelines' polyline corners fool it) and a braking plan that leaves grip for
-  cornering. A route must get its line once: drawing a line
+  cornering, which the brake rides down in hard stops (`RIVAL_BRAKING`) rather
+  than waiting to be over it; streets keep the old brake, which strays less in
+  traffic. A route must get its line once: drawing a line
   through a route that already carries one doubles the offsets.
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane

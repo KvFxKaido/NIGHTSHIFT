@@ -100,9 +100,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * bumps this. "racing-line-v1" (2026-09-13): cornering tuned to recorded laps and a
  * smoothed line on Ridge Circuit. "full-line-v1": braking while turning, steering
  * feedforward and the full racing line. "full-line-v2": on a racing line the
- * lost-car speed cap means off the road, not off the line.
+ * lost-car speed cap means off the road, not off the line. "full-line-v3": it
+ * brakes later and harder on a racing line (RIVAL_BRAKING).
  */
-export const RIVAL_REVISION = "full-line-v2";
+export const RIVAL_REVISION = "full-line-v3";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -140,7 +141,7 @@ export const RIVAL_RACING = {
  * line 2.2 m from the edges clean on East; at the shipped 2.6 m the laps were
  * clean without it and 0.3 s faster, so it widens the margin rather than being
  * the fix. The fix was steering (RIVAL_STEERING; design/PORT_ALDER.md, "Braking
- * while turning").
+ * while turning"). On a racing line the plan is RIVAL_BRAKING's instead.
  */
 export const RIVAL_CORNERING = {
   speedFactor: 0.76,
@@ -169,6 +170,38 @@ export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3 } as cons
 
 /** Metres past the carriageway's edge a rival on a racing line may be before it counts as lost: a paved shoulder's worth. */
 export const OFF_ROAD_MARGIN = 1.5;
+
+/**
+ * Braking on a racing line: later and harder (2026-09-13). The brake answers
+ * excess speed alone, `(speed - target) / 5`, so it presses only once the car is
+ * already over its plan: on Ridge Circuit the rival rode 3-5 m/s above a 10 m/s²
+ * plan and lifted for T1 on Full 164 m out at 0.60 pedal, where the player brakes
+ * at about 120. On a racing line the plan is now `planningDeceleration` with
+ * `frictionShare` of the grip for braking in a curve, and where it falls at least
+ * `zone` m/s² the rival stays flat out until it reaches the plan, then brakes as
+ * hard as the plan falls, less what drag already takes, plus a full pedal per
+ * `correction` m/s over it. T1 on Full is braked 144 m out at 11.3 m/s², 0.97 pedal.
+ *
+ * Swept on the three layouts at zone 12: plan 13 to 15 were clean at share 0.6,
+ * and share 0.5 to 0.7 at 14; share 0.75 and 0.9 put East on the grass (13 and 30
+ * ticks). Zone 9 to 13 were clean; riding the plan wherever it fell (zone 3) was a
+ * second slower on Full, because the lag had carried speed into gentle entries
+ * and the chicane that the plan does not allow.
+ *
+ * Not on streets. Over twelve races in traffic it put four rivals more than 16 m
+ * off a street; the harder plan with the old brake put two there, one 24 m off
+ * with a reset; the old braking, none. Braking hard for traffic at a junction,
+ * the rival stopped where it was hit, or ended on full lock circling its target.
+ */
+export const RIVAL_BRAKING = {
+  planningDeceleration: 14,
+  /** Share of lateral grip at which cornering leaves the braking plan nothing. */
+  frictionShare: 0.6,
+  /** m/s² the plan must fall at before the brake rides it. */
+  zone: 12,
+  /** m/s over the plan that adds a full pedal. */
+  correction: 3,
+} as const;
 
 export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
   const car = state.vehicle, driver = state.driver;
@@ -208,7 +241,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   let desiredSpeed = route.speedLimit ?? HANDLING.topSpeed;
   // At highway speed, a 100 m preview cannot see a corner early enough to stop,
   // so the preview looks through the whole braking envelope.
-  const { planningDeceleration } = RIVAL_CORNERING;
+  const plan = route.lateral ? RIVAL_BRAKING : RIVAL_CORNERING;
+  const { planningDeceleration } = plan;
   const previewDistance = Math.max(100, car.speed ** 2 / (2 * planningDeceleration) + 24);
   const limits: number[] = [], curvatures: number[] = [];
   for (let d = 0; d <= previewDistance; d += 4) {
@@ -223,7 +257,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // The fastest speed profile the line allows, worked back from the far end:
   // at each sample the braking left is what cornering at that speed does not use.
-  const grip = RIVAL_CORNERING.frictionShare * HANDLING.maxLateralAcceleration;
+  const grip = plan.frictionShare * HANDLING.maxLateralAcceleration;
   const profile = new Array<number>(limits.length);
   let v = profile[limits.length - 1] = limits.at(-1)!;
   for (let k = limits.length - 2; k >= 0; k--) {
@@ -232,7 +266,12 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     profile[k] = v;
   }
   // Brake as if every corner were `brakingMargin` metres nearer.
-  desiredSpeed = Math.min(desiredSpeed, profile[Math.min(profile.length - 1, Math.round(RIVAL_CORNERING.brakingMargin / 4))]!);
+  const marginIndex = Math.min(profile.length - 1, Math.round(RIVAL_CORNERING.brakingMargin / 4));
+  desiredSpeed = Math.min(desiredSpeed, profile[marginIndex]!);
+  // How hard the profile slows from here to the next sample: what the brake should
+  // deliver while the car rides it. Zero where the profile is not falling.
+  const profileSpeed = profile[marginIndex]!, profileNext = profile[Math.min(profile.length - 1, marginIndex + 1)]!;
+  const profileDeceleration = Math.max(0, (profileSpeed ** 2 - profileNext ** 2) / (2 * 4));
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
   let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : 0;
@@ -355,8 +394,19 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.
-  const throttle = desiredSpeed >= HANDLING.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
-  return {throttle:car.speed>desiredSpeed+.5?0:throttle,
-    brake:car.speed>desiredSpeed+.5?clamp((car.speed-desiredSpeed)/5,0,1):0,
+  let throttle = desiredSpeed >= HANDLING.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
+  let brake = car.speed>desiredSpeed+.5?clamp((car.speed-desiredSpeed)/5,0,1):0;
+  // On a racing line, in a hard stop that the corner plan sets (not traffic, a pass
+  // or being lost): flat out until the plan is reached, then brake as hard as it
+  // falls, less what drag already takes, plus a correction for being over it.
+  if (route.lateral && profileDeceleration > RIVAL_BRAKING.zone && desiredSpeed >= profileSpeed - .5) {
+    if (car.speed < desiredSpeed) throttle = 1;
+    else if (car.speed > desiredSpeed) {
+      const wanted = Math.max(0, profileDeceleration - HANDLING.aerodynamicDrag * car.speed ** 2) / HANDLING.brakeDeceleration;
+      brake = clamp(Math.min(1, wanted) ** (1 / HANDLING.brakeResponseExponent) + (car.speed - desiredSpeed) / RIVAL_BRAKING.correction, 0, 1);
+    }
+  }
+  return {throttle:brake>0||car.speed>desiredSpeed+.5?0:throttle,
+    brake,
     steer,handbrake:desiredSpeed<.5&&car.speed<.7?1:0};
 }

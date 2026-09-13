@@ -10,6 +10,7 @@ import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
 import { createRace } from "../src/sim/race.ts";
 import { sampleRivalPath, withExits } from "../src/sim/rival.ts";
 import { createSim, step, TICK_HZ } from "../src/sim/sim.ts";
+import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
 import { addArena, ARENA_KERB_RADIUS } from "../src/render/arena.ts";
 await RAPIER.init();
 
@@ -189,8 +190,12 @@ test("each layout is a lapped race whose rival line passes through every gate", 
 // Flying laps: Full 102.2 s, East 78.6 s, Ridge 63.9 s on the centreline with
 // the chicane; 83.1, 63.1 and 51.5 s with cornering tuned to recorded laps;
 // 78.5, 59.8 and 48.6 s on the first, smoothed line; 72.8, 55.2 and 46.3 s on the
-// full line with braking while turning and steering feedforward. The player's
-// best on Full is 72.4 s.
+// full line with braking while turning and steering feedforward; 71.8, 54.9 and
+// 46.2 s braking later and harder. The player's best on Full is 70.67 s.
+//
+// Braking for T1 on the flying lap (Full and East): 164 m before the corner at
+// 0.60 pedal when the brake answered only excess speed; 144 m at 0.97 riding a
+// harder plan (RIVAL_BRAKING, 2026-09-13). The player brakes at about 120 m.
 test("the rival laps every layout cleanly on its racing line", () => {
   const limits: Record<ArenaLayoutId, number> = { full: 76, east: 58, ridge: 49 };
   const infield: Record<ArenaLayoutId, { x: number; z: number }> = { full: { x: 3120, z: -1050 }, east: { x: 3120, z: -1050 }, ridge: { x: 2820, z: -1000 } };
@@ -201,9 +206,12 @@ test("the rival laps every layout cleanly on its racing line", () => {
       for (const layout of ARENA_ROADS) assert.ok(distanceTo(layout.points, infield[id].x, infield[id].z) > 30, `${id}: the waiting spot is on ${layout.id}`);
       sim.body.setTranslation({ x: infield[id].x, y: alderHeight(infield[id].x, infield[id].z) + 1, z: infield[id].z }, true);
       let groundTicks = 0;
+      const recorder = createLapRecorder(event.track);
       for (let tick = 0; tick < TICK_HZ * 300 && !sim.state.rival!.race.finished; tick++) {
         step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
-        if (sim.state.rival!.vehicle.groundContact > 0) groundTicks++;
+        const r = sim.state.rival!;
+        recordTick(recorder, r.input, r.vehicle, r.race, TICK_HZ);
+        if (r.vehicle.groundContact > 0) groundTicks++;
       }
       const rival = sim.state.rival!;
       assert.ok(rival.race.finished, `${id}: the rival did not finish (gate ${rival.race.checkpoint})`);
@@ -213,6 +221,16 @@ test("the rival laps every layout cleanly on its racing line", () => {
       assert.equal(rival.driver.resets, 0, `${id}: resets`);
       assert.equal(rival.driver.recoveries, 0, `${id}: recoveries`);
       assert.equal(groundTicks, 0, `${id}: on the grass for ${groundTicks} ticks`);
+      const t1 = arenaLap(id).corners.find(corner => corner.id === "t1-entry");
+      if (t1) {
+        const samples = recorder.laps[1]!.samples;
+        const first = samples.distance.findIndex((d, i) => d > t1.from - 300 && d < t1.from && samples.brake[i]! > 0.05);
+        assert.ok(first >= 0, `${id}: no braking for T1`);
+        const out = t1.from - samples.distance[first]!;
+        const pedal = Math.max(...samples.brake.slice(first).filter((_, i) => samples.distance[first + i]! < t1.from));
+        assert.ok(out < 155, `${id}: braking for T1 began ${out.toFixed(0)} m out`);
+        assert.ok(pedal > 0.9, `${id}: braking for T1 peaked at ${pedal.toFixed(2)} pedal`);
+      }
     } finally { sim.world.free(); }
   }
 });

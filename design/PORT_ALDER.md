@@ -736,6 +736,52 @@ more than `OFF_ROAD_MARGIN` (1.5 m) past the carriageway; street centrelines kee
 the 5 m rule. Re-running Shawn's recorded inputs against the fixed rival, the cap
 never fires and it is 1.0 s behind after lap 2 instead of 2.0, but that re-run is
 only a hint: recorded inputs do not react to a rival in a different place.
+
+**Braking later and harder (2026-09-13).** In the next race the rival looked slow
+off the line. The launch was fine; it was already braking for T1, 164 m out at
+0.60 pedal, slowing at 8.8 m/s², where Shawn brakes at about 120 m. Two causes.
+The brake answered only excess speed, `(speed − target) / 5`, so it pressed once
+the car was already over its plan: it rode 3–5 m/s above a 10 m/s² plan and
+slowed at about 7. And the plan itself was 10 m/s². On a racing line
+(`RIVAL_BRAKING`), the plan is now 14 m/s² with a friction share of 0.6, and where
+it falls at 12 m/s² or more the rival stays flat out until it reaches the plan,
+then brakes as hard as the plan falls, less what drag already takes, plus a full
+pedal per 3 m/s over it. Flying laps over three-lap races, no traffic:
+
+| | Before | After |
+|---|---|---|
+| T1 on Full: braking point | 164 m | 144 m |
+| T1: deceleration, peak pedal | 8.8 m/s², 0.60 | 11.3 m/s², 0.97 |
+| T1: slowest | 33 mph | 33 mph |
+| Full / East / Ridge | 72.0 / 55.2 / 46.3 s | 71.8 / 54.9 / 46.2 s |
+
+It brakes where a driver would now and is barely faster: the slowest point of
+each corner did not move, so the time is only what the braking zones give back.
+
+Swept at zone 12: plan 13 to 15 m/s² at share 0.6, and share 0.5 to 0.7 at 14,
+were all clean; share 0.75 put East on the grass for 13 ticks and 0.9 for 30.
+Zone 9 to 13 were clean at 14 and 0.6. What did not work: the riding brake on the
+old 10 m/s² plan braked earlier (187 m out) and lost 1.4 s on Full, because
+following a gentle plan faithfully is slower than lagging it; and riding the plan
+wherever it fell (zone 3) was a second slower on Full than zone 12, because the
+lag had been carrying speed into gentle entries and through the chicane.
+
+**Not on streets.** Sound to Sky and gen-3 were fine with it (144.0 and 102.8 s,
+no contact), but the full suite failed two street races for straying past 16 m.
+Twelve races in traffic (Sound to Sky, the Queen Anne Climb start, generated
+seeds 1–10), rival alone:
+
+| Street braking | Total | Worst | Past 16 m |
+|---|---|---|---|
+| The new braking | 1,241.8 s | 17.3 m | 4 |
+| The harder plan, old brake | 1,178.4 s | 24.1 m, a reset | 2 |
+| **The old braking (shipped)** | 1,202.4 s | 13.3 m | 0 |
+
+In both traced failures the rival was braking hard for traffic at a junction:
+on Freight Cut it stopped where it was hit and looped off the street, and from
+Queen Anne Climb it ended on full lock circling its target. Three of the four
+reached exactly 16.9 m, which looks like one spot (not traced). Streets keep the
+old plan and brake. `tests/arena.test.ts` holds T1's braking point on Full and East.
 Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
 refuses another. Not built: extracting features from recordings automatically,
 and the rival learning from them per street.
