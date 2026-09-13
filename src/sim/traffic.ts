@@ -39,8 +39,9 @@ export type TrafficKind = "sedan" | "taxi" | "van" | "box-truck";
  * How traffic drives, for anything replayed through it: a recording made in
  * traffic reproduces only on the traffic that drove it. "traffic-v2"
  * (2026-09-13): traffic yields to the cars it does not drive (`TrafficRacer`).
+ * "traffic-v3": nothing slower than 35 mph.
  */
-export const TRAFFIC_REVISION = "traffic-v2";
+export const TRAFFIC_REVISION = "traffic-v3";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -71,10 +72,12 @@ export interface TrafficKindSpec {
 }
 
 export const TRAFFIC_KINDS: Readonly<Record<TrafficKind, TrafficKindSpec>> = {
-  sedan: { length: 4.4, width: 1.85, height: 1.42, cruise: 15.5 },
-  taxi: { length: 4.6, width: 1.88, height: 1.5, cruise: 14 },
-  van: { length: 5.4, width: 2, height: 2.25, cruise: 13 },
-  "box-truck": { length: 7.2, width: 2.4, height: 3.1, cruise: 11 },
+  // Nothing slower than 35 mph (2026-09-13): sedan 40, taxi 38, van 36, box truck
+  // 35. At 25-35 mph the trucks and vans were what clogged a street for a racer.
+  sedan: { length: 4.4, width: 1.85, height: 1.42, cruise: 17.9 },
+  taxi: { length: 4.6, width: 1.88, height: 1.5, cruise: 17 },
+  van: { length: 5.4, width: 2, height: 2.25, cruise: 16.1 },
+  "box-truck": { length: 7.2, width: 2.4, height: 3.1, cruise: 15.7 },
 };
 
 const KIND_ORDER: readonly TrafficKind[] = ["sedan", "sedan", "sedan", "taxi", "van", "box-truck"];
@@ -214,8 +217,8 @@ const HEADWAY = 1.5;
 const LOOKAHEAD = 80;
 const ACCELERATION = 3.2;
 const BRAKING = 7.5;
-/** How far out a vehicle may claim its junction. Comfortably beyond the 16 m it
- *  takes to stop from cruise, and short enough that claims are not held for a
+/** How far out a vehicle may claim its junction. Comfortably beyond the 21 m it
+ *  takes a sedan to stop from its 40 mph cruise, and short enough that claims are not held for a
  *  quarter of a street while the holder walks up to the line. */
 const CLAIM_RANGE = 34;
 /** Longest run of too-short lanes a vehicle will reserve in one go. */

@@ -1087,3 +1087,24 @@ within 120 m and none of this applies. `tests/rival.test.ts` traps the rival 600
 along Sound to Sky: out of sight it is put back within four seconds, at rest and
 never further along; with the player 30 m away it waits, each failing with its
 rule broken.
+
+**Traffic at 35 mph and up (2026-09-13).** Racing Uptown, Shawn read traffic as
+about 20 mph and asked for 35. Measured, it already cruised at sedan 35, taxi 31,
+van 29 and box truck 25 mph and averaged 29.3 mph city-wide (89% of the time at
+cruise, 1% stopped), so the fix is a floor: sedan 40, taxi 38, van 36, box truck
+35 mph (`TRAFFIC_KINDS`, `TRAFFIC_REVISION` "traffic-v3"). It now averages 35.4
+mph city-wide and 36.6 on Uptown's streets. A sedan stops from 40 mph in 21 m,
+inside the 34 m a car claims its junction from.
+
+Over the same 42 races the rival touches traffic about half as often, and drives
+a little worse around it:
+
+| | Time | Contact | Circling | Lost | Past 16 m | Unseen resets |
+|---|---|---|---|---|---|---|
+| 25-35 mph | 4,165.0 s | 497 | 31.5 s | 8.0 s | 2 | 21 |
+| **35-40 mph** | 4,182.3 s | 261 | 64.0 s | 19.5 s | 3 (worst 18.6 m) | 27 |
+
+Uptown in traffic, the rival alone: no contact, 7.2 m worst. Two traffic tests
+were tightened on the way: a car granted its junction during the forecast's
+window changed its plan (reaching claim range sooner, more cars now do), and the
+junction test now picks a car that claims its junction unhindered.

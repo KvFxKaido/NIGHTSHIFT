@@ -15,6 +15,8 @@ test("a forecast is where a car that keeps its speed actually goes, turns and ju
   const seconds = 2, ticks = Math.round(seconds / DT);
   const forecasts = traffic.vehicles.map(vehicle => forecastTraffic(network, vehicle, seconds));
   const startLane = traffic.vehicles.map(v => v.lane);
+  // A car granted a junction during the window changed its plan; the forecast says so and cannot know it.
+  const noClaim = traffic.vehicles.map(v => !v.holds.length);
   const speeds = traffic.vehicles.map(v => ({ min: v.speed, max: v.speed }));
   for (let tick = 0; tick < ticks; tick++) {
     stepTraffic(network, traffic, DT);
@@ -23,6 +25,8 @@ test("a forecast is where a car that keeps its speed actually goes, turns and ju
   let steady = 0, turned = 0, worst = 0;
   traffic.vehicles.forEach((vehicle, i) => {
     if (speeds[i]!.max - speeds[i]!.min > 1e-6) return;
+    if (noClaim[i] && vehicle.lane !== startLane[i]) return;
+    if (noClaim[i] && vehicle.holds.length) return;
     const error = Math.hypot(forecasts[i]!.x - vehicle.x, forecasts[i]!.z - vehicle.z);
     worst = Math.max(worst, error);
     steady++;
@@ -111,13 +115,13 @@ test("traffic stops behind a racer in its lane, braking, and without one drives 
 });
 
 test("traffic does not claim a junction a racer is driving through, and claims it once the racer is past", () => {
-  const run = (withRacer: boolean, arriveTick = 0) => {
+  const run = (withRacer: boolean, arriveTick = 0, pick = 0) => {
     const traffic = createTraffic(network);
     for (let tick = 0; tick < 60 * 20; tick++) stepTraffic(network, traffic, DT);
-    const vehicle = traffic.vehicles.find(v => {
+    const vehicle = traffic.vehicles.filter(v => {
       const lane = network.lanes[v.lane]!, toLine = lane.length - lane.entry - v.distance;
       return !v.holds.length && v.movement >= 0 && v.speed > 8 && toLine > 45 && toLine < 60 && v.blendLeft <= 0;
-    })!;
+    })[pick]!;
     const movement = network.movements[vehicle.movement]!, lane = network.lanes[movement.from]!;
     const point = network.pose(movement.from, lane.length);
     // A racer crossing the junction square to the approach at 20 m/s, timed to reach
@@ -133,12 +137,14 @@ test("traffic does not claim a junction a racer is driving through, and claims i
       stepTraffic(network, traffic, DT, withRacer ? [racer] : []);
       if (vehicle.holds.includes(movement.id)) claimedAt = tick;
     }
-    return { claimedAt, passedAt };
+    return { claimedAt, passedAt, found: !!vehicle };
   };
   // "Past" is the racer through the crossing point; the rule lets a claim go once it is clear of the path.
-  const clear = run(false);
-  assert.ok(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60, `with nobody crossing it took ${clear.claimedAt} ticks to claim; the test proves nothing`);
-  const crossed = run(true, clear.claimedAt + 20);
+  // The first approaching car that, with nobody crossing, claims its junction within four seconds.
+  let pick = 0, clear = run(false, 0, pick);
+  while (!(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60) && pick < 10) clear = run(false, 0, ++pick);
+  assert.ok(clear.claimedAt >= 0 && clear.claimedAt < 4 * 60, `no approaching car claimed its junction within four seconds with nobody crossing; the test proves nothing`);
+  const crossed = run(true, clear.claimedAt + 20, pick);
   assert.ok(crossed.passedAt > clear.claimedAt, "the racer was past before the junction would have been claimed anyway; the test proves nothing");
   assert.ok(crossed.claimedAt >= crossed.passedAt, `it claimed the junction at tick ${crossed.claimedAt}, before the racer crossing it got there at ${crossed.passedAt}`);
   assert.ok(crossed.claimedAt >= 0, "it never claimed the junction after the racer had gone");
