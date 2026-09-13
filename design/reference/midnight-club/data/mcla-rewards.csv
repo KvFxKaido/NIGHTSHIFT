@@ -1,0 +1,19 @@
+Reward ID,Vehicle ID,Event / mission,Opponent,Event type,Requirement,Content pack,Listed showroom value,Award form,Risk,Sources,Confidence
+LR-001,LA-019,Bird on the Line,Nikolai,Best of 3,Win the series,Base,15000,Vehicle award,,LA02; LA05,B
+LR-002,LA-003,Step It Up,Karol,Rival race,Win against Karol,Base,4000,Vehicle award,,LA02; LA05,B
+LR-003,LA-006,Built Rough,Marcel,Best of 3,Win the series,Base,17000,Vehicle award,,LA02; LA05,B
+LR-004,LA-005,Time in the Spotlight,Oswaldo,Time trial,Beat the Hollywood time for the third time,Base,12000,Vehicle award,,LA02; LA05,B
+LR-005,LA-009,Beach Overlook,Lester,Pink slip,Win the wagered-car race,Base,26000,Vehicle award,Own car at risk,LA02; LA05,B
+LR-006,LA-020,Racin' for Pinks,Chung Hee,Pink slip,Win the wagered-car race,Base,16000,Vehicle award,Own car at risk,LA02; LA05,B
+LR-007,LA-012,Pinkslip Challenge,Pete,Pink slip,Win the wagered-car race,Base,32000,Vehicle award,Own car at risk,LA02; LA05,B
+LR-008,LA-014,10 Carat Beatdown,Jin,Story reward,Complete the vehicle-winning story race,Base,37000,Vehicle award,,LA02; LA05,B
+LR-009,LA-021,Time Out,Andre,Time trial,Beat the Beach time for the third time,Base,18000,Vehicle award,,LA02; LA05,B
+LR-010,LA-010,Time's A Tickin',Miguel,Time trial,Beat the Downtown time for the third time,Base,28000,Vehicle award,,LA02; LA05,B
+LR-011,LA-038,Not All Downhill,Marcel,Time trial,Beat the Hills time for the third time,Base,80000,Vehicle award,,LA02; LA05,B
+LR-012,LA-029,Hollywood DUB Tournament,Tournament,DUB tournament,Win on Hard,Base,45200,Vehicle award,,LA02; LA05,B
+LR-013,LA-030,Valley DUB Tournament,Tournament,DUB tournament,Win on Hard,Base,52400,Vehicle award,,LA02; LA05,B
+LR-014,LA-035,Beach DUB Tournament,Tournament,DUB tournament,Win on Hard,Base,180800,Vehicle award,,LA02; LA05,B
+LR-015,LA-045,Downtown DUB Tournament,Tournament,DUB tournament,Win on Hard,Base,389600,Vehicle award,,LA02; LA05,B
+LR-016,LA-023,Pink Stuff,Pinky,Pink slip,Win the wagered-car race,SC Premium,16600,Vehicle award,Own car at risk,LA02; LA05,B
+LR-017,LA-052,How We Do It,Mikey,Time trial,Beat the South Central time for the third time,SC Premium,14000,Vehicle award,,LA02; LA05,B
+LR-018,LA-055,South Central Ballerz Tournament,Tournament,Tournament preset,Win on Hard; Ballerz preset of standard Range Rover Sport,SC Premium,72000,Preset of standard vehicle,,LA18,C

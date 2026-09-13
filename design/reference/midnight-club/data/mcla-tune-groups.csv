@@ -1,0 +1,5 @@
+Group,Vehicle access,REP gate,Level 1 REP,Level 2 REP,Car tune quote,Bike tune quote,Source,Interpretation
+1,Starter tier,0,800,3610,17680,,LA01; LA02,Quotes are full tuning figures; do not add level 1 again.
+2,Student Driver,2000,5600,10760,25910,16230,LA02,Not a measured per-part shopping basket.
+3,Racer,8060,13700,19540,38880,22610,LA02,DUB incremental spend is not established.
+4,Champion,16500,22760,26160,58880,34250,LA02,Ducati 1098R price exception disputed; see sources.

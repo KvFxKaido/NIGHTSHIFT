@@ -1,0 +1,61 @@
+Edition,City / Arc,Unlock Category,Reward,Requirement,Reward Value,Sequence,Source,Confidence,Notes
+Original + REMIX,San Diego,Class License,Class C vehicle roster,Win 11 San Diego street races,,1,S1,B,Unlocks purchasable C-class vehicles.
+Original + REMIX,Atlanta,Class License,Class B vehicle roster,Win 11 Atlanta street races,,2,S1,B,Unlocks purchasable B-class vehicles.
+Original + REMIX,Detroit,Class License,Class A vehicle roster,Win 11 Detroit street races,,3,S1,B,Unlocks purchasable A-class vehicles.
+Original + REMIX,San Diego,Tournament Prize,57 Bel Air,Win Stage Tournament,37000,10,S2,B,
+Original + REMIX,San Diego,Tournament Prize,300C,Win Balboa Park Tournament,32995,11,S2,B,DUB Edition prize vehicle.
+Original + REMIX,San Diego,Tournament Prize,IS300,Win City Tournament,29980,12,S2,B,
+Original + REMIX,San Diego,Tournament Prize,SL55 AMG,Win San Diego DUB Tournament,135000,13,S2,B,DUB Edition prize vehicle.
+Original + REMIX,Atlanta,Tournament Prize,Escalade EXT,Win Atlanta DUB Tournament,53240,20,S2,B,DUB Edition prize vehicle.
+Original + REMIX,Atlanta,Tournament Prize,04 SS1000,Win Hotlanta Tournament,10995,21,S2,B,"REMIX value shown; original value $12,200."
+Original + REMIX,Detroit,Tournament Prize,49 Fleetline,Win Bad Boyz Tournament,42500,30,S2,B,
+Original + REMIX,Detroit,Tournament Prize,Cien,Win City Tournament,135000,31,S2,B,
+REMIX only,Tokyo,Tournament Prize,66 DeVille,Win American Royalty Car Club Tournament,37165,40,S2,C,
+REMIX only,Tokyo,Tournament Prize,98 F355,Win By Invitation Only Tournament,200000,41,S2,C,
+REMIX only,Tokyo,Tournament Prize,Cobalt SS,Win Unbeatable Street Racers Tournament,21995,42,S2,C,
+REMIX only,Tokyo,Tournament Prize,G35,Win Luxury Rollers Tournament,33150,43,S2,C,
+REMIX only,Tokyo,Tournament Prize,H3T,Win Big Playas Tournament,52000,44,S2,C,
+REMIX only,Tokyo,Tournament Prize,Paul Smart 1000,Win Original Riders Tournament,13995,45,S2,C,
+REMIX only,Tokyo,Tournament Prize,Chingon,Win Chopper of America Tournament,113000,46,S2,C,
+REMIX only,Tokyo,Tournament Prize,Sport Concept,Win Asakusa Tournament,28000,47,S2,C,
+REMIX only,Tokyo,Tournament Prize,06 Charger SRT8,Win Wharf Tournament,35995,48,S2,C,
+REMIX only,Tokyo,Tournament Prize,05 Magnum RT,Win Ginza Tournament,32070,49,S2,C,
+REMIX only,Tokyo,Tournament Prize,Zonda C 12 S,Win Imperial Palace Tournament,325000,50,S2,C,
+Original + REMIX,U.S. Career,Club Prize,68 Corvette,Complete American Royalty Car Club,56000,60,S2,B,
+Original + REMIX,U.S. Career,Club Prize,02 Skyline,Complete Unbeatable Street Racers,41500,61,S2,B,
+Original + REMIX,U.S. Career,Club Prize,ME Four-Twelve,Complete By Invitation Only,240000,62,S2,B,
+Original + REMIX,U.S. Career,Club Prize,CL55 AMG,Complete Luxury Rollers,141000,63,S2,B,
+Original + REMIX,U.S. Career,Club Prize,G55 AMG,Complete Big Playas,114000,64,S2,B,
+Original + REMIX,U.S. Career,Club Prize,Skully,Complete Chopper of America Bike Club,65000,65,S2,B,
+Original + REMIX,U.S. Career,Club Prize,Ninja ZX 12R,Complete Original Riders,10999,66,S2,B,
+Original + REMIX,San Diego,Rival Prize,Cuevito,Defeat Phil,65000,70,S2,B,
+Original + REMIX,U.S. Career,Championship Prize,Murcielago,Complete U.S. Championship Series,297700,71,S2,B,
+Original + REMIX,U.S. Career,Completion Prize,Sixteen,Attain 100% U.S. Career completion,250000,72,S2,B,
+Original + REMIX,U.S. Career,Police Vehicle,Police 1000,Complete both Original Riders and Chopper of America,0,80,S2,B,
+Original + REMIX,San Diego,Police Vehicle,San Diego Cop,Wiki: beat Vanessa rematch,0,81,S2,D,Older GameFAQs says win all San Diego tournaments.
+Original + REMIX,Atlanta,Police Vehicle,Atlanta Cop,Wiki: beat Cheng or Naomi plus Roy first rematch,0,82,S2,D,Older GameFAQs says win all Atlanta tournaments.
+Original + REMIX,Detroit,Police Vehicle,Detroit Cop,Beat all Detroit racers,0,83,S2,C,
+REMIX only,Tokyo,Police Vehicle,Tokyo Cop,Win all Tokyo Challenge tournaments,0,84,S2,C,
+Original + REMIX,U.S. Career,Paint,Pearlescent Paint,Defeat Vanessa in her second encounter,,90,S2,C,Unavailable on PSP.
+Original + REMIX,U.S. Career,Paint,Color Shift Paint,Defeat Roy in his first encounter,,91,S2,C,Unavailable on PSP.
+Original + REMIX,U.S. Career,Rims,Car Rim Set 1,Defeat one San Diego rival,,100,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 2,Defeat two initial San Diego rivals,,101,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 3,Defeat one initial Atlanta racer (Roy or Dre),,102,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 4,Complete Atlanta campaign,,103,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 5,Defeat one qualifying Detroit-phase rival,,104,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 6,Defeat two qualifying Detroit-phase rivals,,105,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 7,Defeat three qualifying Detroit-phase rivals,,106,S2,C,
+Original + REMIX,U.S. Career,Rims,Car Rim Set 8,Defeat all four qualifying Detroit-phase rivals,,107,S2,C,
+Original + REMIX,Cruise / Collectibles,Collectible Reward,Flag Vinyls,Collect 12 Rockstar logos,,110,S4,B,
+Original + REMIX,Cruise / Collectibles,Collectible Reward,Rockstar License Plates,Collect 24 Rockstar logos,,111,S4,B,
+Original + REMIX,Cruise / Collectibles,Collectible Reward,Race Starters as Riders,Collect all 36 Rockstar logos,,112,S4,B,
+Original + REMIX,U.S. Career,Performance Progression,Level 2 Upgrades for Class D Vehicles,Point-system milestone; exact point threshold not specified by structured source,,121,S2,C,Listed progression order #1.
+Original + REMIX,U.S. Career,Performance Progression,Level 1 Upgrades for Class C Vehicles,Point-system milestone; exact point threshold not specified by structured source,,122,S2,C,Listed progression order #2.
+Original + REMIX,U.S. Career,Performance Progression,Level 3 Tires for Class D Vehicles,Point-system milestone; exact point threshold not specified by structured source,,123,S2,C,Listed progression order #3.
+Original + REMIX,U.S. Career,Performance Progression,Level 2 Upgrades for Class C Vehicles,Point-system milestone; exact point threshold not specified by structured source,,124,S2,C,Listed progression order #4.
+Original + REMIX,U.S. Career,Performance Progression,Level 1 Upgrades for Class B Vehicles,Point-system milestone; exact point threshold not specified by structured source,,125,S2,C,Listed progression order #5.
+Original + REMIX,U.S. Career,Performance Progression,Level 3 Tires for Class C Vehicles,Point-system milestone; exact point threshold not specified by structured source,,126,S2,C,Listed progression order #6.
+Original + REMIX,U.S. Career,Performance Progression,Level 2 Upgrades for Class B Vehicles,Point-system milestone; exact point threshold not specified by structured source,,127,S2,C,Listed progression order #7.
+Original + REMIX,U.S. Career,Performance Progression,Level 3 Tires for Class B Vehicles,Point-system milestone; exact point threshold not specified by structured source,,128,S2,C,Listed progression order #8.
+Original + REMIX,U.S. Career,Performance Progression,Level 1 Upgrades for Class A Vehicles,Point-system milestone; exact point threshold not specified by structured source,,129,S2,C,Listed progression order #9.
+Original + REMIX,U.S. Career,Performance Progression,Level 2 Upgrades for Class A Vehicles,Point-system milestone; exact point threshold not specified by structured source,,130,S2,C,Listed progression order #10.

@@ -168,6 +168,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
+| MC3 / MCLA rosters, unlocks, REP economy (research data, csv) | `design/reference/midnight-club/` | its `README.md`, then `digest.md` |
 | The stories | — | `design/FIELD_NOTES.md` |
 
 ## Traps (each one has already cost a day)

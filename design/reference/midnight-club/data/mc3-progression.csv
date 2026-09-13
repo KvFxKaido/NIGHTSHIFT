@@ -1,0 +1,11 @@
+Phase,City / Arc,Milestone,Requirement / Trigger,Design Function,Source,Confidence
+0. Start,San Diego,Starter choice,"$22,000 starting cash; choose from six starter vehicles (seven in REMIX).",Establishes ownership identity immediately instead of forcing one canonical starter.,S1,B
+1. Early San Diego,San Diego,Class C license,Win 11 San Diego street races.,First major roster expansion; race participation gates access more than pure money.,S1,B
+1. San Diego rewards,San Diego,Tournament / rival prizes,"IS300, 57 Bel Air, 300C, Cuevito; later San Diego DUB reward SL55 AMG.",Frequent vehicle injections keep category experimentation moving.,S2,B
+2. Atlanta,Atlanta,Class B license,Win 11 Atlanta street races.,Second city doubles as the next performance tier gate.,S1,B
+2. Atlanta rewards,Atlanta,Tournament / club expansion,"Escalade EXT, SS1000 and category-club access/rewards.","Rewards are often category-specific, encouraging the player to inhabit different car cultures.",S2,B
+3. Detroit,Detroit,Class A license,Win 11 Detroit street races.,"Top purchasable tier arrives before the career finale, leaving room to actually use it.",S1,B
+3. Detroit rewards,Detroit,Prestige / club rewards,"Fleetline, Cien, ME Four-Twelve and other club-completion vehicles.","Late progression mixes novelty, prestige and outright performance rather than only bigger numbers.",S2,B
+4. U.S. Championship,All U.S. cities,Murcielago,Complete the U.S. Championship Series.,A recognizable prestige car marks championship status.,S2,B
+5. Completion,U.S. Career,Cadillac Sixteen,Attain 100% U.S. Career completion.,Completion reward is a collector/status object rather than a prerequisite for finishing.,S2,B
+6. REMIX postgame / parallel arc,Tokyo,Tokyo Challenge,Category/class tournaments award REMIX-only vehicles; all tournaments unlock Tokyo police car.,Reuses the existing category language as a compact second progression campaign.,S2,C

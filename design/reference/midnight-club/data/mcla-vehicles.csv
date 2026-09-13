@@ -1,0 +1,68 @@
+Vehicle ID,Vehicle / variant,Year,Manufacturer,Type,Content pack,Purchase group,Listed base class,Starter choice,Showroom price,Purchase REP gate,Named prize route?,Quoted full tune cost,Price + quoted tune,Availability,Edition scope,Price sources,Price confidence,Class source,Class confidence,Tune source,Tune confidence,Notes
+LA-001,Volkswagen Golf GTI,1983,Volkswagen,Tuners,Base,1,D,Yes,3000,0,No,17680,20680,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,FAQ misprints year as 1993. Starter list identifies 1983.
+LA-002,Volkswagen Scirocco,1988,Volkswagen,Tuners,Base,1,D,Yes,3500,0,No,17680,21180,Offline progression,Original + Complete,LA01; LA03,A,LA03,C,LA01,A,
+LA-003,Datsun 280Z,1975,Datsun,Tuners,Base,1,D,No,4000,0,Yes,17680,21680,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,FAQ wrongly lists this as a starter; awarded by Karol.
+LA-004,Nissan 240SX,1998,Nissan,Tuners,Base,1,D,Yes,4500,0,No,17680,22180,Offline progression,Original + Complete,LA01; LA03,A,LA03,C,LA01,A,Official guide confirms starter eligibility and tuning cost.
+LA-005,Mitsubishi Eclipse GSX,1999,Mitsubishi,Tuners,Base,2,C,No,12000,2000,Yes,25910,37910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-006,Ford SVT Focus,2004,Ford,Tuners,Base,2,C,No,17000,2000,Yes,25910,42910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-007,Pontiac Solstice,2006,Pontiac,Tuners,Base,2,C,No,20000,2000,No,25910,45910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-008,Chevrolet Cobalt SS Supercharged,2006,Chevrolet,Tuners,Base,2,C,No,20000,2000,No,25910,45910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-009,Mazda RX-8 Shinka,2006,Mazda,Tuners,Base,2,C,No,26000,2000,Yes,25910,51910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-010,Mitsubishi 3000GT VR-4,1999,Mitsubishi,Tuners,Base,3,C,No,28000,8060,Yes,38880,66880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-011,Mazda RX-7,1995,Mazda,Tuners,Base,3,B,No,32000,8060,No,38880,70880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-012,Mitsubishi Lancer Evolution IX MR,2006,Mitsubishi,Tuners,Base,3,B,No,32000,8060,Yes,38880,70880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-013,Volkswagen R32,2008,Volkswagen,Tuners,Base,3,C,No,35000,8060,No,38880,73880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-014,Nissan 350Z Roadster,2006,Nissan,Tuners,Base,3,C,No,37000,8060,Yes,38880,75880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-015,Nissan Skyline GT-R V-Spec,1999,Nissan,Tuners,Base,3,B,No,38000,8060,No,38880,76880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,atwiki lists Group 2; FAQ and dedicated wiki page support Group 3.
+LA-016,Audi RS4,2008,Audi,Tuners,Base,3,B,No,65000,8060,No,38880,103880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-017,Buick Grand National GNX,1987,Buick,Muscle Cars,Base,2,C,No,11000,2000,No,25910,36910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-018,Chevrolet Impala SS,1996,Chevrolet,Muscle Cars,Base,2,D,No,15000,2000,No,25910,40910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-019,Chevrolet Camaro SS,1969,Chevrolet,Muscle Cars,Base,2,C,No,15000,2000,Yes,25910,40910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-020,Pontiac Firebird,1979,Pontiac,Muscle Cars,Base,2,C,No,16000,2000,Yes,25910,41910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-021,Ford Mustang Boss 302,1969,Ford,Muscle Cars,Base,2,C,No,18000,2000,Yes,25910,43910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-022,Dodge Challenger R/T,1970,Dodge,Muscle Cars,Base,2,C,No,18000,2000,No,25910,43910,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-023,Pontiac GTO,1966,Pontiac,Muscle Cars,SC Premium,2,C,No,16600,2000,Yes,25910,42510,Offline progression,DLC + Complete,LA02,C,LA12,C,LA02,C,
+LA-024,Chevrolet Chevelle SS,1970,Chevrolet,Muscle Cars,SC Premium,2,C,No,19000,2000,No,25910,44910,Offline progression,DLC + Complete,LA02,C,LA12,C,LA02,C,
+LA-025,Ford Mustang GT Convertible,2005,Ford,Muscle Cars,Base,3,C,No,30000,8060,No,38880,68880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-026,Chevrolet Camaro Concept,,Chevrolet,Muscle Cars,Base,3,C,No,32000,8060,No,38880,70880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-027,Dodge Charger SRT-8,,Dodge,Muscle Cars,Base,3,C,No,38000,8060,No,38880,76880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-028,Dodge Challenger Concept,,Dodge,Muscle Cars,Base,3,C,No,38000,8060,No,38880,76880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-029,Chevrolet Camaro Concept DUB Edition,,Chevrolet,Muscle Cars,Base,3,B,No,45200,8060,Yes,38880,,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,Arrives with upgrades. FAQ quote is not verified remaining spend; excluded from price-plus-tune calculation.
+LA-030,Dodge Challenger Concept DUB Edition,,Dodge,Muscle Cars,Base,3,,No,52400,8060,Yes,38880,,Offline progression,Original + Complete,LA02; LA03,B,,D,LA02,C,Arrives with upgrades. FAQ quote is not verified remaining spend; excluded from price-plus-tune calculation. Class differs across sources; left blank.
+LA-031,Chevrolet Corvette Z06,2007,Chevrolet,Muscle Cars,Base,4,A,No,65000,16500,No,58880,123880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-032,Saleen S302 Extreme,2008,Saleen,Muscle Cars,Base,4,B,No,100000,16500,No,58880,158880,Offline progression,Original + Complete,LA02; LA03,B,LA20,C,LA02,C,
+LA-033,Chrysler 300C SRT-8,2007,Chrysler,Luxury,Base,3,C,No,43000,8060,No,38880,81880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-034,Mercedes-Benz S600,2008,Mercedes-Benz,Luxury,Base,4,B,No,145000,16500,No,58880,203880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-035,Mercedes-Benz S600 DUB Edition,2008,Mercedes-Benz,Luxury,Base,4,,No,180800,16500,Yes,58880,,Offline progression,Original + Complete,LA02; LA03,B,,D,LA02,C,Arrives with upgrades. FAQ quote is not verified remaining spend; excluded from price-plus-tune calculation.
+LA-036,Mercedes-Benz SL65 AMG,2007,Mercedes-Benz,Luxury,Base,4,B,No,187000,16500,No,58880,245880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-037,Mercedes-Benz CLK63 AMG Black Series,2008,Mercedes-Benz,Luxury,SC Premium,4,B,No,136000,16500,No,58880,194880,Offline progression,DLC + Complete,LA02,C,LA21,C,LA02,C,
+LA-038,Lamborghini Miura SV,1971,Lamborghini,Exotics,Base,4,B,No,80000,16500,Yes,58880,138880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-039,Audi R8,2008,Audi,Exotics,Base,4,,No,118000,16500,No,58880,176880,Legacy online unlock,Original + Complete,LA02; LA03,B,,D,LA02,C,Group 4 in v1.3; older FAQ says any group. Normal Driving Test unlock discontinued in 2014.
+LA-040,Aston Martin V8 Vantage Roadster,2007,Aston Martin,Exotics,Base,4,B,No,128000,16500,No,58880,186880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-041,Ford GT,2006,Ford,Exotics,Base,4,A,No,153000,16500,No,58880,211880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-042,Ford Shelby Cobra Concept,,Ford,Exotics,Base,4,A,No,165000,16500,No,58880,223880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-043,Lamborghini Gallardo Spyder,2006,Lamborghini,Exotics,Base,4,A,No,175000,16500,No,58880,233880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-044,Lamborghini Murcielago Roadster,2004,Lamborghini,Exotics,Base,4,A,No,319000,16500,No,58880,377880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-045,Lamborghini Murcielago Roadster DUB Edition,2004,Lamborghini,Exotics,Base,4,A,No,389600,16500,Yes,58880,,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,Arrives with upgrades. FAQ quote is not verified remaining spend; excluded from price-plus-tune calculation.
+LA-046,Saleen S7 Twin Turbo,2006,Saleen,Exotics,Base,4,A,No,580000,16500,No,58880,638880,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-047,Ducati Monster S4RS,2007,Ducati,Sport Bikes,Base,2,B,No,14000,2000,No,16230,30230,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-048,Ducati 999R,2006,Ducati,Sport Bikes,Base,3,A,No,32000,8060,No,22610,54610,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-049,Kawasaki Ninja ZX-14,2007,Kawasaki,Sport Bikes,Base,4,A,No,17000,16500,No,34250,51250,Offline progression,Original + Complete,LA02; LA03,B,LA03,C,LA02,C,
+LA-050,Chevrolet Bel Air,1955,Chevrolet,Lowriders,SC Premium,1,D,No,5000,0,No,17680,22680,Offline progression,DLC + Complete,LA02,C,LA11,C,LA02,C,
+LA-051,Buick Riviera,1963,Buick,Lowriders,SC Premium,2,D,No,10000,2000,No,25910,35910,Offline progression,DLC + Complete,LA02,C,LA11,C,LA02,C,
+LA-052,Chevrolet Impala,1964,Chevrolet,Lowriders,SC Premium,2,D,No,14000,2000,Yes,25910,39910,Offline progression,DLC + Complete,LA02,C,LA11,C,LA02,C,
+LA-053,Chevrolet Malibu,1965,Chevrolet,Lowriders,SC Premium,2,C,No,14400,2000,No,25910,40310,Offline progression,DLC + Complete,LA02,C,LA12,C,LA02,C,
+LA-054,Land Rover Range Rover Supercharged,2008,Land Rover,SUVs,SC Premium,3,C,No,94000,8060,No,38880,132880,Offline progression,DLC + Complete,LA02,C,LA12,C,LA02,C,
+LA-055,Land Rover Range Rover Sport Supercharged,2008,Land Rover,SUVs,SC Premium,3,C,No,72000,8060,Yes,38880,110880,Offline progression,DLC + Complete,LA02,C,LA12,C,LA02,C,
+LA-056,Mitsubishi Eclipse Spyder GT,2009,Mitsubishi,Tuners,SC Pack 1,3,C,No,30000,8060,No,38880,68880,Offline progression,DLC + Complete,LA02,C,LA13,C,LA02,C,
+LA-057,Mitsubishi Lancer Evolution X,2008,Mitsubishi,Tuners,SC Pack 2,3,B,No,34000,8060,No,38880,72880,Offline progression,DLC + Complete,LA02,C,LA13,C,LA02,C,
+LA-058,Audi S5,2008,Audi,Luxury,SC Pack 1,3,B,No,54000,8060,No,38880,92880,Offline progression,DLC + Complete,LA02,C,LA14,C,LA02,C,
+LA-059,Cadillac XLR-V,2008,Cadillac,Luxury,SC Pack 2,4,B,No,105000,16500,No,58880,163880,Offline progression,DLC + Complete,LA02,C,LA15,C,LA02,C,
+LA-060,Mercedes-Benz CL65 AMG,2008,Mercedes-Benz,Luxury,SC Pack 1,4,B,No,205000,16500,No,58880,263880,Offline progression,DLC + Complete,LA02,C,LA22,C,LA02,C,
+LA-061,Aston Martin DB9,2007,Aston Martin,Exotics,SC Pack 2,4,B,No,169000,16500,No,58880,227880,Offline progression,DLC + Complete,LA02,C,LA16,C,LA02,C,
+LA-062,Ducati 1098R,2008,Ducati,Sport Bikes,SC Pack 2,4,A,No,15000,16500,No,34250,,Offline progression,DLC + Complete,LA02,C,LA23,C,LA02,D,"FAQ quotes $34,250; dedicated wiki says Group 3 upgrade pricing. Unresolved; excluded from price-plus-tune."
+LA-063,Chevrolet Impala SS Police LAPD,1996,Chevrolet,Police,Police Pack,2,,No,20000,2000,No,25910,,Offline progression,DLC + Complete,LA02,C,,D,LA02,D,FAQ quotes generic group tune cost; applicability not independently verified. Base class not verified.
+LA-064,Chevrolet Impala SS Police CHP,1996,Chevrolet,Police,Police Pack,4,,No,40000,16500,No,58880,,Offline progression,DLC + Complete,LA02,C,,D,LA02,D,FAQ quotes generic group tune cost; applicability not independently verified. Base class not verified.
+LA-065,Dodge Charger Police LAPD,,Dodge,Police,Police Pack,3,,No,38000,8060,No,38880,,Offline progression,DLC + Complete,LA02,C,,D,LA02,D,FAQ quotes generic group tune cost; applicability not independently verified. Base class not verified.
+LA-066,Dodge Charger Police Border Patrol,,Dodge,Police,Police Pack,3,,No,50000,8060,No,38880,,Offline progression,DLC + Complete,LA02,C,,D,LA02,D,FAQ quotes generic group tune cost; applicability not independently verified. Base class not verified.
+LA-067,Dodge Charger Police CHP,,Dodge,Police,Police Pack,4,,No,65000,16500,No,58880,,Offline progression,DLC + Complete,LA02,C,,D,LA02,D,FAQ quotes generic group tune cost; applicability not independently verified. Base class not verified.

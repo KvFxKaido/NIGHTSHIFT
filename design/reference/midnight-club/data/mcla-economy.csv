@@ -1,0 +1,13 @@
+Observation ID,Scope / vehicle ID,Item / metric,Value,Unit,Meaning / limitation,Source,Confidence
+EC-01,LA-004,Full performance tune,17680,Game dollars,Official showroom quote,LA01 p.37,A
+EC-02,LA-002,Full performance tune,17680,Game dollars,Official showroom quote,LA01 p.37,A
+EC-03,LA-001,Level 1 package quote,11780,Game dollars,FAQ quote; not added to full-tune quote,LA02 MCLA2A,C
+EC-04,All vehicles,Vinyl package access,1000,Game dollars per vehicle,Official guide cosmetic fee,LA01 p.33,A
+EC-05,LA-058,Widebody,10800,Game dollars,"Cosmetic example, separate from performance costs",LA14,C
+EC-06,LA-061,Widebody,34000,Game dollars,"Cosmetic example, separate from performance costs",LA16,C
+EC-07,LA-004,Untuned speed,125,"MPH, approximate",Guide observation; test / nitrous conditions not specified,LA01 p.37,A
+EC-08,LA-004,Fully tuned speed,160,"MPH, approximate",Guide observation; no cross-game stat comparison,LA01 p.37,A
+EC-09,LA-002,Untuned speed lower bound,130,"MPH, more than",Guide says over 130; not an exact maximum,LA01 p.37,A
+EC-10,LA-002,Fully tuned speed,176,"MPH, approximate",Guide observation; test / nitrous conditions not specified,LA01 p.37,A
+EC-11,Garage,Capacity,30,Vehicles,Official base-game capacity,LA01 p.32,A
+EC-12,Garage partnership,Payment,1000000,Game dollars,Late-game economy switch; requires mission progression,LA02; LA05,B

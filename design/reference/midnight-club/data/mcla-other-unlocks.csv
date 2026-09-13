@@ -1,0 +1,19 @@
+Track,Scope,Threshold,Unlock,Requirement / unit,Availability,Sources,Confidence
+Cosmetic,Cars,9,Skirts / front bumpers,"Vehicle-type race participation, not necessarily wins",Offline,LA02,C
+Cosmetic,Cars,18,Rear bumpers / spoilers,Same vehicle-type track,Offline,LA02,C
+Cosmetic,Cars,27,Stereo / wheel / gauges / seats,Same vehicle-type track,Offline,LA02,C
+Cosmetic,Cars,36,Hoods / lights,Same vehicle-type track,Offline,LA02,C
+Cosmetic,Cars,45,Exhaust / blower / widebody / intercooler,Same vehicle-type track,Offline,LA02,C
+Cosmetic,Bikes,18,Tails,Race-participation track,Offline,LA02,C
+Cosmetic,Bikes,27,Tanks,Race-participation track,Offline,LA02,C
+Cosmetic,Bikes,36,Cowls,FAQ calls these bowls; terminology corrected,Offline,LA02,C
+Historic online,Driving Test,4,Hydraulics / airbags,Complete 4 of 12 Driving Test goals,Retired unlock,LA02; LA08,B
+Historic online,Driving Test,8,TIS M304 rims,Complete 8 of 12 goals,Retired unlock,LA02; LA08,B
+Historic online,Driving Test,12,Audi R8 purchase eligibility,Complete all goals; purchase price still applies,Retired unlock,LA02; LA08; LA09,B
+Endgame,Garage partnership,1000000,Free vehicles and parts,City Champ / mission chain and cash payment,Offline,LA02; LA05,B
+Collectible,Rockstar barrels,10,Unlimited nitrous,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C
+Collectible,Rockstar barrels,20,No damage-out,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C
+Collectible,Rockstar barrels,30,Unlimited special abilities,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C
+Collectible,Rockstar barrels,40,Top-down view,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C
+Collectible,Rockstar barrels,50,No police,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C
+Collectible,Rockstar barrels,60,No fines,Barrels found; enabling cheats disables cash / REP progression,Offline,LA04 MCLA6,C

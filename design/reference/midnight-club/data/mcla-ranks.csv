@@ -1,0 +1,14 @@
+Rank order,Career rank,Total REP,REP since prior rank,Unlock type,Vehicle group,Upgrade level,Other prerequisites,Source,Confidence
+1,Backseat Driver,0,0,Vehicles,1,,Normal career progression; calls may follow events,LA01 p.6,A
+2,Navigator,800,800,Performance parts,1,1,Normal career progression; calls may follow events,LA01 p.6,A
+3,Student Driver,2000,1200,Vehicles,2,,Normal career progression; calls may follow events,LA01 p.6,A
+4,Rookie,3610,1610,Performance parts,1,2,Normal career progression; calls may follow events,LA01 p.6,A
+5,Driver,5600,1990,Performance parts,2,1,Normal career progression; calls may follow events,LA01 p.6,A
+6,Racer,8060,2460,Vehicles,3,,Normal career progression; calls may follow events,LA01 p.6,A
+7,Veteran,10760,2700,Performance parts,2,2,Normal career progression; calls may follow events,LA01 p.6,A
+8,Elite Racer,13700,2940,Performance parts,3,1,Normal career progression; calls may follow events,LA01 p.6,A
+9,Champion,16500,2800,Vehicles,4,,Normal career progression; calls may follow events,LA01 p.6,A
+10,Legend,19540,3040,Performance parts,3,2,Normal career progression; calls may follow events,LA01 p.6,A
+11,Savant,22760,3220,Performance parts,4,1,Normal career progression; calls may follow events,LA01 p.6,A
+12,Hero,26160,3400,Performance parts,4,2,Normal career progression; calls may follow events,LA01 p.6,A
+13,Idol,33500,7340,Garage partner mission,,,"Story progression / City Champ and $1,000,000 payment; REP alone is insufficient",LA01 p.6,A
