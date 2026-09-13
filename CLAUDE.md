@@ -94,8 +94,8 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   implemented**: a few finite tanks, capacity bought in the garage, full at
   every event start, no mid-race refill and no passive recharge. Style earns
   no reputation and converts into nothing; reputation unlocks performance
-  parts, and a ladder of named racers gates chapters (GDD §5, 5.1; none of
-  it implemented). The Live Cred style-to-speed
+  parts, and a ten-name Blacklist that opens with losing the NS-01 gates the
+  career (GDD §5, 5.1; none of it implemented). The Live Cred style-to-speed
   economy it replaced was dropped on 2026-09-12 and kept, superseded, in
   `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
 - Procedural races are the direction (`design/PROCEDURAL_RACES.md`): every

@@ -163,12 +163,45 @@ Each chapter introduces:
 - A new section or layer of the district
 - A mechanical or environmental complication
 
-Progress is a ladder of named racers (2026-09-12), after Midnight Club 3's
-city ladders rather than a tournament bracket. Each rung is a small group of
-named racers, and the player advances by beating enough of them, not all of
-them, so one racer the player keeps losing to never stalls the career. A major
-rival closes each chapter as its boss; defeating them opens the next level of
-the local racing scene. The ladder gates chapters. Reputation does not.
+Progress is a **Blacklist** (2026-09-12), after Need for Speed: Most Wanted
+(2005): ten named racers ranked #10 to #1, climbed one name at a time. It
+replaced, the same day, a Midnight Club 3-style ladder whose rungs were groups
+of racers. The list is always visible: who is above the player, what they
+drive, and what earns the next shot. The Blacklist gates the career.
+Reputation does not.
+
+**The opening.** The player starts in the red NS-01, the original hero car,
+races #1 for it and loses. The loss is honest: no sabotage and no scripted
+failure. #1 wins on car and line, never on catch-up, grip changes or any other
+advantage the rival rules forbid (§11). The player then starts again from a
+garage body and climbs the list to win the NS-01 back from #1. That is also
+the story of why the NS-01 left the garage.
+
+**Beating a name** means earning a shot, then winning their challenge. Every
+name's signature car is the player's when they are beaten, guaranteed. Ten
+names therefore account for half of the internal target of 20 drivable cars,
+rivals included.
+
+Open, and unresolved in these documents:
+
+- **Who holds the NS-01.** It is Sable's car today (`design/CHARACTERS.md`,
+  `src/sim/drift-yard.ts`). Either Sable is #1, or the car needs another
+  holder and Sable another car.
+- **What happens if the player wins the opening.** An honest race is one the
+  player can win, and the opening needs an answer for that outcome before it
+  is built.
+
+Proposed, not decided:
+
+- A shot is earned by racing, not by police heat (§21): wins on that name's
+  home turf, so the player has learned their streets before racing them there.
+- A name's challenge can be their discipline, such as Rivet's drag or Sable's
+  drift.
+- Chapters open at list positions, opening who races in a district rather than
+  which streets can be driven (§6.3).
+- Beaten names stay in the city as rivals to flash, having learned from the
+  races the player won against them (`design/PROCEDURAL_RACES.md`).
+- Moth, who already cruises by the garage, is #10.
 
 Reputation unlocks performance parts (§5.1). Players earn it from results:
 
@@ -187,9 +220,9 @@ is no second race-time currency to track.
 
 Reputation is a non-spendable record. Crossing its thresholds unlocks
 performance parts for purchase; cash still buys them, and nothing spends
-reputation down. Because the ladder gates chapters and reputation does not,
-grinding generated races earns parts, never a way past a named racer: a player
-stuck on a boss can build the car up and try again.
+reputation down. Because the Blacklist gates the career and reputation does
+not, grinding generated races earns parts, never a way past a name on the list:
+a player stuck on one can build the car up and try again.
 
 Lifetime style is a separate record. It earns no reputation and converts into
 nothing: not speed, not parts, not access. When reputation began unlocking

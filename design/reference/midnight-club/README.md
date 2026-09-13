@@ -58,8 +58,9 @@ police cars and D-confidence tune quotes.
 
 ## What bears on NIGHTSHIFT now
 
-GDD §5 adopted a ladder of named racers and Rep that unlocks performance parts
-on 2026-09-12. The rows most relevant to that:
+GDD §5 adopted Rep that unlocks performance parts on 2026-09-12, and a
+ten-name Blacklist in place of an MC3-style ladder. The rows most relevant to
+that:
 
 - **MC3 gates tiers by racing, not money** (B): classes C, B and A open after
   winning 11 street races in San Diego, Atlanta and Detroit respectively. Rim

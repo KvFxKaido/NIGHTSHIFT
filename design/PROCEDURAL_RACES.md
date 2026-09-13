@@ -45,9 +45,9 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   felt: he takes your alley.
 - **A rival learns only from races the player won against it** (2026-09-12).
   The bank takes the player's trace from a win, never from a loss. Rivals are
-  also the career ladder (GDD §5), and a boss that learned from every failed
-  attempt would get harder with each retry, the loss spiral GDD §5.1 rules
-  out. Studying the line that beat them makes a rematch harder and a retry
+  also the career's Blacklist (GDD §5), and a name that learned from every
+  failed attempt would get harder with each retry, the loss spiral GDD §5.1
+  rules out. Studying the line that beat them makes a rematch harder and a retry
   not.
 - **The shortcut rule is the generator's constraint.** Risk per street is
   computed from the map (width, bends, grade, blind corners); reward per leg
