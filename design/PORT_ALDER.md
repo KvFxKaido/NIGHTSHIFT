@@ -1319,3 +1319,75 @@ Tried and not shipped:
 
 Each fails with its part removed. The last replaces the frame test above: on a
 rounded corner the old frame mistake shows as braking for a truck beside the arc.
+
+**Street pace: where the rival loses to Shawn (2026-09-13).** Shawn raced Uptown
+at 86.3 / 83.7 / 84.3 s and wanted to know how rivals should keep pace, NOS and
+slipstream for everyone among the ideas. Replayed tick for tick, the rival ran
+95.8 / 93.6 and was 28.2 s down at the last gate it reached before he finished. It led until 19 s; after that it was
+within 20 m of him for 9.2 s in all, never in his draft, and he was in its draft
+for 4.8 s. On lap 2 it lost 10.0 s where the slower car dips under 45 mph, -0.3 s
+between 45 and 90 mph and 0.1 s above 90, and top speeds were 133 and 132 mph. It
+takes a corner at about half his minimum speed (24 against 57 mph, 28 against
+59). So the gap is corners. Slipstream needs the rival within reach and it never
+was; nitrous would add straight-line speed it already has. By Shawn's call the
+corners come first: read traffic's indicators, then larger arcs, then the whole
+road when a corner is clear.
+
+Shipped ("full-line-v10"), three changes that are safe only together:
+
+- **Legs are straight runs.** An arc may use 45% of the straight run either side
+  of its corner, not of the segment beside it. Routes are resampled about every
+  29 m, which held every right angle on Uptown to a 12.6 m arc where its side of
+  the street allowed 18.5 m.
+- **Steering feedforward on streets.** Rounded corners have real curvature, so
+  the racing line's feedforward (`RIVAL_STEERING`) now steers streets too. On a
+  35 degree bend at up to 52 m/s it runs 1.2 m off its line against 2.9 m
+  without, and on a 20 degree bend at 62 m/s 5.5 m against 7.8 m. On a slow right
+  angle it is 1 m worse (2.1 m against 1.1 m).
+- **Lost means off the carriageway,** on streets as on racing lines. More than
+  5 m from the centreline braked the rival from 95 mph to the 22 mph lost cap
+  mid-bend, 5.5 m wide of a larger arc on an empty street.
+
+| | v9 | v10 |
+|---|---|---|
+| 82 races in traffic | 7,559.8 s, 292 contact, 0 past 16 m | **7,294.4 s**, 411 contact, 2 at 16.1 m |
+| 42 races clear | 3,757.3 s | **3,603.1 s** |
+| Slowest point of a junction turn, clear | 24.6 mph | 25.8 mph |
+| Exits more than 1 m into the oncoming half, clear | 116 turns, 220 m | 123 turns, 344 m |
+| Uptown clear | 95.7 / 93.6 / 93.6 | **92.0 / 89.9 / 89.9** |
+| Uptown in traffic | 95.8 / 93.7 / 98.2, 24 contact | **92.0 / 90.6 / 90.5**, 8 contact |
+
+It is 3.5% faster in traffic and 4.1% clear, and 3.7 s a lap on Uptown. The cost
+is 41% more contact and exits wider into the oncoming half. Both 16.1 m strays
+are crossing cars at junctions it now reaches faster: on Sound to Sky it braked
+for a car crossing at 17 m/s, stopped short of the line and was hit. Shawn's lap
+is still 6 s quicker.
+
+Tried and not shipped:
+
+- **Reading the indicators** (`forecastTraffic` where the rival will reach each
+  car, instead of straight on): 7,576.8 s over the 82, 215 contact, one race 16.4 m
+  off. It fixed the stray on seed 24 and not the one on 14. The plan it reads is
+  the one the indicators show, but it did not make faster cornering safe.
+- **Straight-run legs alone:** 7,440.1 s, but nine races past 16 m and 95.8 s held
+  at the lost cap. With the carriageway lost rule and no feedforward: four races
+  past 16 m on the first 42, one 34 m. With the forecast instead: eight over the 82.
+- **Straight-run legs only at corners of 45 degrees or more:** four strays on seeds
+  41-80, and Uptown lost its gain (95.2 / 93.8 in traffic), because the resampled route
+  splits some right angles across two 45 degree vertices.
+- **Feedforward alone:** five races past 16 m over the 82.
+- **The whole road when a corner is clear.** Where no traffic and not the player
+  will be on its racing line when it gets there, the rival blends over about a
+  second to an arc that swings out, clips the inside and exits wide (44 m on a 16 m
+  street right angle against 18.5 m in its lane), and back if something appears.
+  On Uptown clear, on straight-run legs, 89.5 / 87.5 / 87.5, within 4 s of Shawn.
+  On gentle kinks it sat at the outside edge for hundreds of metres, so it was
+  limited to corners of 45 degrees or more; on top of v10 that is 3,572.2 s on the
+  42 clear, but in traffic two and one races past 16 m (one 30.2 m) and on Uptown
+  89.4 / 105.7 / 100.3 with 937 ticks of contact and a lap off the track. The next
+  step, not this one.
+
+`tests/rival-racing.test.ts` holds each part, failing with it removed: a right
+angle resampled every 29 m gets the arc its straight runs allow, the rival holds a
+35 degree bend at over 40 m/s within 2 m of its line, and 5.5 m off a street
+centreline, still on the road, is not lost.

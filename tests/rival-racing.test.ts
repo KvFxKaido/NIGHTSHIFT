@@ -338,10 +338,64 @@ test("a rival wide of its racing line but on the road is not treated as lost", (
   assert.ok(at(line + 6.5) > 30, `a rival on the road was treated as lost (target ${at(line + 6.5)} m/s)`);
   // Past the carriageway and its shoulder is lost, and still held back.
   assert.ok(at(width / 2 + OFF_ROAD_MARGIN + 0.5) <= 10, "a rival off the road kept its speed");
-  // A street centreline keeps its 5 m rule.
+  // A street's centreline counts the same way (2026-09-13): 5 m from it used to be lost,
+  // and on the larger street arcs that braked the rival to 22 mph mid-bend at 95 mph.
   const street: RivalDefinition = { ...route, id: "street-check", lateral: undefined };
-  const vehicle = { ...createSim("awd").state.vehicle, x: line + 5.5, y: 0, z: -1000, heading: 0, speed: 42, forwardSpeed: 42, lateralSpeed: 0 };
-  const driver = { ...createRivalDriver(), along: 1000, progressMark: 1000 };
-  rivalInput(street, { vehicle, driver, race }, []);
-  assert.ok(driver.targetSpeed <= 10, `5.5 m off a street centreline, it kept a target of ${driver.targetSpeed} m/s`);
+  const onStreet = (x: number) => {
+    const vehicle = { ...createSim("awd").state.vehicle, x, y: 0, z: -1000, heading: 0, speed: 42, forwardSpeed: 42, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 1000, progressMark: 1000 };
+    rivalInput(street, { vehicle, driver, race }, []);
+    return driver.targetSpeed;
+  };
+  assert.ok(onStreet(line + 5.5) > 30, `5.5 m off a street centreline, on the road, it was held to ${onStreet(line + 5.5)} m/s`);
+  assert.ok(onStreet(line + width / 2 + OFF_ROAD_MARGIN + 0.5) <= 10, "off a street it kept its speed");
+});
+
+/** A street route through `raw`, resampled as given, 16 m wide. */
+const streetRoute = (id: string, raw: [number, number][]): RivalDefinition => {
+  const points: CoursePoint[] = raw.map(([x, z]) => ({ x, z, y: 0, width: 16, zone: "boulevard" }));
+  const along = [0];
+  for (let i = 1; i < points.length; i++) along.push(along[i - 1]! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
+  return { id, start: { x: 1, y: 0, z: 0, heading: 0, pitch: 0 }, points, along, gates: [along.at(-1)!] };
+};
+
+// Straight runs, not segments (2026-09-13). A route is resampled about every 29 m,
+// and an arc limited to 45% of the segment beside its corner held every right angle
+// on Uptown Circuit to a 12.6 m arc. A leg is now the straight run to the next corner.
+test("a corner on a resampled route gets the arc its straight runs allow", () => {
+  const raw: [number, number][] = [];
+  for (let z = 0; z > -100; z -= 29) raw.push([0, z]);
+  raw.push([0, -100]);
+  for (let x = 29; x < 100; x += 29) raw.push([x, -100]);
+  raw.push([100, -100]);
+  const apex = (route: RivalDefinition) => { const at = sampleDrivingPath(route, 100); return Math.hypot(at.x, at.z + 100); };
+  const long = cornerRoute(1), resampled = streetRoute("resampled", raw);
+  assert.ok(apex(long) > 6, `the corner on long segments is only ${apex(long).toFixed(2)} m from its apex; the test proves nothing`);
+  assert.ok(Math.abs(apex(resampled) - apex(long)) < 0.01, `resampled every 29 m its arc is ${apex(resampled).toFixed(2)} m from the corner, not ${apex(long).toFixed(2)}`);
+});
+
+// Steering feedforward on streets (2026-09-13). Error-only steering held a fast arc
+// only by being off it: on a 35 degree bend at up to 52 m/s, 2.9 m off its line.
+test("on a fast street bend it holds its arc", () => {
+  const raw: [number, number][] = [];
+  for (let z = 0; z >= -600; z -= 29) raw.push([0, z]);
+  raw.push([0, -600]);
+  const bend = 35 * Math.PI / 180;
+  for (let k = 29; k <= 600; k += 29) raw.push([Math.sin(bend) * k, -600 - Math.cos(bend) * k]);
+  const route = streetRoute("bend", raw), end = raw.at(-1)!;
+  const sim = createSim("fwd", { id: "bend", start: { ...route.start, x: -40, z: 300 }, walls: [], project: (x, z) => projectOntoPath(route.points, x, z) }, {
+    traffic: false, rival: route, race: { id: "bend", name: "Bend", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], y: 0, radius: 10 }] } });
+  try {
+    let worst = 0, fastest = 0;
+    for (let t = 0; t < 60 * 40 && !sim.state.rival!.race.finished; t++) {
+      step(sim, PARKED);
+      const rival = sim.state.rival!, d = rival.driver.along;
+      if (d < 480 || d > 720) continue;
+      const on = sampleDrivingPath(route, d), side = ownSide(16);
+      worst = Math.max(worst, Math.hypot(rival.vehicle.x - (on.x - on.uz * side), rival.vehicle.z - (on.z + on.ux * side)));
+      fastest = Math.max(fastest, rival.vehicle.speed);
+    }
+    assert.ok(fastest > 40, `it took the bend at only ${fastest.toFixed(1)} m/s; the test proves nothing`);
+    assert.ok(worst < 2, `through the bend it ran ${worst.toFixed(2)} m off its line`);
+  } finally { sim.world.free(); }
 });

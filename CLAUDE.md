@@ -143,8 +143,8 @@ fixtures outside the playable bundle, and old world links redirect.
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
   grip-limited speed its centreline tracking, not grip, puts it on the grass. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
-  pace, held by steering feedforward (`RIVAL_STEERING`, racing lines only: street
-  centrelines' polyline corners fool it) and a braking plan that leaves grip for
+  pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
+  corners are arcs) and a braking plan that leaves grip for
   cornering, which the brake rides down in hard stops (`RIVAL_BRAKING`) rather
   than waiting to be over it; streets keep the old brake, which strays less in
   traffic. A route must get its line once: drawing a line
@@ -239,6 +239,8 @@ fixtures outside the playable bundle, and old world links redirect.
   A street rival's route, distances and gates are centreline too; only the path it
   aims along is rounded at corners (`sampleDrivingPath`), and its progress through
   a corner must be read round the arc, never off the nearer leg, which jumps 11 m.
+  Rival routes are resampled about every 29 m: measure anything about a corner
+  against the straight run to the next corner, never the segment beside it.
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
