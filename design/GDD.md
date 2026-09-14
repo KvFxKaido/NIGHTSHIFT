@@ -193,6 +193,13 @@ visual only, with no handling tuning. The source and runtime asset exist;
 her encounter and reward unlock do not. The rejected notchback is preserved
 as an unregistered source body for a later decision.
 
+**All ten rival car assets are built** (2026-09-13). Stray has Latch (FWD
+liftback), Bollard Breakwater (AWD off-roader), Deuce Wager (RWD sports car),
+Plumb Meridian (AWD wagon), Crest Skim (FWD hardtop roadster), and Wake Reign
+(AWD upright coupe). See `design/BLACKLIST.md` and the runtime captures in
+`design/reference/cars/BLACKLIST_CARS.md`. These are renderable assets with
+base drivetrains; encounters, unlocks and individual handling remain separate.
+
 Open, and unresolved in these documents:
 
 - **Whether the player has a portrait** in the opening's dialogue.

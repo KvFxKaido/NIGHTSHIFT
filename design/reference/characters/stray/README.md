@@ -6,13 +6,12 @@ them. Short, hard-edged dark hair under an acid-green baseball cap worn
 backwards, a black coach jacket zipped halfway over an acid-green T-shirt.
 Watchful and restless, chin down and eyes up, the corner of the mouth almost a
 grin; he is already picking the gap he is about to take. His accent is acid
-green, a yellow-green like fresh spray paint, and his car, a boxy FWD hot hatch
-that does not exist yet, has to carry it. His silhouette is the backwards cap,
+green, a yellow-green like fresh spray paint, and his car, Latch, a FWD sport liftback, carries it. His silhouette is the backwards cap,
 a rounded crown with the bill behind the head, chosen to be nothing like
 Rivet's goggles, Sable's beanie, Moth's hood or Tally's bare head at a hundred
 pixels.
 
-He is not in the game: no sim constant, no car, no contact card. The two served
+He is not in the game: no sim constant or contact card; the car asset is built. The two served
 portraits (`public/assets/characters/stray.png`, `stray-alley.png`) exist ahead
 of the card.
 
@@ -55,3 +54,22 @@ named in words.
    portraits.
 
 Rejected on the way: candidate B, a near twin with the head tilted further.
+
+## Latch (2026-09-13)
+
+Original sport liftback, inspired by second-generation Eclipse proportions; acid green carries the
+portrait identity. Broad liftback glass, rising rear shoulders and a visor spoiler; five-spoke dark wheels.
+
+`latch` declares **FWD** in `CAR_DRIVETRAIN`. The body uses the shared
+wheel rig and existing handling profile: no mass, speed, grip or engine
+simulation changes. It is registered for rendering, not a saved player car.
+The encounter and career reward remain unimplemented.
+
+Source: `assets/cars/ns-latch-01.blend`; runtime: `public/assets/cars/ns-latch-01.glb`.
+Rebuild with `scripts/build-blacklist-cars.py -- --car=latch --render` in Blender.
+Export hand edits with `scripts/export-blacklist-car.py`, then
+`node scripts/optimize-car.mjs --car=ns-latch-01`.
+
+Studio and in-game front/rear captures are in `design/reference/cars/`,
+prefixed `latch-`. See `design/reference/cars/BLACKLIST_CARS.md` for the
+measured runtime colors and the complete build/validation commands.

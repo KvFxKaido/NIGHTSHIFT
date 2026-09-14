@@ -156,7 +156,12 @@ fixtures outside the playable bundle, and old world links redirect.
   hatch (`MOTH` in `encounter.ts`; the challenge id is her id). Pull alongside
   any of the three and the HUD shows their contact card — face, name, car and
   what the challenge is (`src/ui/rival-card.ts`). Rival portraits, and the
-  style that keeps them one game: `design/CHARACTERS.md`.
+  style that keeps them one game: `design/CHARACTERS.md`. All ten Blacklist
+  names have a car asset (`BLENDER_CARS` in `src/render/blender-car.ts`, drives in
+  `CAR_DRIVETRAIN`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
+  Wager, Meridian, Skim and Reign (working names). They render only: no
+  encounter, unlock or per-car handling, and none is a saved player car. Build
+  notes and open review flags: `design/reference/cars/BLACKLIST_CARS.md`.
 - **Ridge Circuit** (working name) east of Madrona Ridge, off Pine East: one
   facility, three layouts (`arena.ts`), open edges, three-lap races with the
   rival on the centreline (`?race=arena-full|arena-east|arena-ridge`, `-solo`

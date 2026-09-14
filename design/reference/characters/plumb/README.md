@@ -7,11 +7,10 @@ a narrow, angular face, a hard-edged silver bob cut straight at the jaw with a
 straight fringe, a small black earpiece whose thin microphone arm runs along
 her cheek, and a tailored, collarless silver-grey jacket over a black shirt with
 a small pointed collar. Focused and measuring, as if reading the next corner off
-a pace note. Her accent is silver, and her car, a four-door AWD sport sedan
-that does not exist yet, has to carry it. Her silhouette is the straight-cut
+a pace note. Her accent is silver, and her car, Meridian, an AWD fast wagon, carries it. Her silhouette is the straight-cut
 bob with the mic arm across the cheek.
 
-She is not in the game: no sim constant, no car, no contact card. The two
+She is not in the game: no sim constant or contact card; the car asset is built. The two
 served portraits (`public/assets/characters/plumb.png`, `plumb-alley.png`) exist
 ahead of the card.
 
@@ -56,3 +55,22 @@ twice from scratch.
 
 Rejected on the way: the whole first brief (both of its candidates), and
 candidate B of the second, which looked away.
+
+## Meridian (2026-09-13)
+
+Original fast wagon, inspired by RS2 Avant proportions; silver carries the
+portrait identity. Long cargo roof, four door handles, roof rails and an upright tailgate.
+
+`meridian` declares **AWD** in `CAR_DRIVETRAIN`. The body uses the shared
+wheel rig and existing handling profile: no mass, speed, grip or engine
+simulation changes. It is registered for rendering, not a saved player car.
+The encounter and career reward remain unimplemented.
+
+Source: `assets/cars/ns-meridian-01.blend`; runtime: `public/assets/cars/ns-meridian-01.glb`.
+Rebuild with `scripts/build-blacklist-cars.py -- --car=meridian --render` in Blender.
+Export hand edits with `scripts/export-blacklist-car.py`, then
+`node scripts/optimize-car.mjs --car=ns-meridian-01`.
+
+Studio and in-game front/rear captures are in `design/reference/cars/`,
+prefixed `meridian-`. See `design/reference/cars/BLACKLIST_CARS.md` for the
+measured runtime colors and the complete build/validation commands.

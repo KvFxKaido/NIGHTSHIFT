@@ -6,12 +6,11 @@ lines, better than she does; his turf is Capitol Hill. Mid thirties, tired and
 handsome, a short dark beard, a black low-crowned hat with a wide, hard, flat
 brim, and a white driving jacket with a stand collar over a black shirt.
 Patient, tired and faintly bitter; he looks at you as the next one who thinks
-they can win. His accent is white, and his car, a long-hood AWD GT that does
-not exist yet, has to carry it. His silhouette is the wide-brimmed hat, chosen
+they can win. His accent is white, and his car, Reign, an upright AWD coupe, carries it. His silhouette is the wide-brimmed hat, chosen
 to be nothing like anyone else's at a hundred pixels. His beard echoes Sable's;
 the hat is what separates them at card size.
 
-He is not in the game: no sim constant, no car, no contact card. The two served
+He is not in the game: no sim constant or contact card; the car asset is built. The two served
 portraits (`public/assets/characters/wake.png`, `wake-alley.png`) exist ahead of
 the card.
 
@@ -45,3 +44,22 @@ Bollard's, Deuce's, Plumb's and Crest's.
    portraits.
 
 Rejected on the way: candidate B, the shallower brim.
+
+## Reign (2026-09-13)
+
+Original upright coupe, inspired by Skyline R32 proportions; white carries the
+portrait identity. Upright two-door greenhouse, separate square boot, bridge wing and six square tail cells.
+
+`reign` declares **AWD** in `CAR_DRIVETRAIN`. The body uses the shared
+wheel rig and existing handling profile: no mass, speed, grip or engine
+simulation changes. It is registered for rendering, not a saved player car.
+The encounter and career reward remain unimplemented.
+
+Source: `assets/cars/ns-reign-01.blend`; runtime: `public/assets/cars/ns-reign-01.glb`.
+Rebuild with `scripts/build-blacklist-cars.py -- --car=reign --render` in Blender.
+Export hand edits with `scripts/export-blacklist-car.py`, then
+`node scripts/optimize-car.mjs --car=ns-reign-01`.
+
+Studio and in-game front/rear captures are in `design/reference/cars/`,
+prefixed `reign-`. See `design/reference/cars/BLACKLIST_CARS.md` for the
+measured runtime colors and the complete build/validation commands.

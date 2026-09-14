@@ -24,6 +24,12 @@ export const CAR_DRIVETRAIN: Record<string, Drivetrain> = {
   blender: "rwd",  // the NS-01 Sable slides around his own yard
   kestrel: "awd",  // Moth runs a rally hatch
   vesper: "rwd",  // Tally: cab-forward coupe; visual mid-engine layout
+  latch: "fwd",  // Stray: sport liftback
+  breakwater: "awd",  // Bollard: enclosed off-roader
+  wager: "rwd",  // Deuce: rotary-inspired sports car
+  meridian: "awd",  // Plumb: fast wagon
+  skim: "fwd",  // Crest: hardtop roadster
+  reign: "awd",  // Wake: upright legend coupe
   hammer: "rwd",   // Rivet drag races; drag-event.ts already declared this
 };
 

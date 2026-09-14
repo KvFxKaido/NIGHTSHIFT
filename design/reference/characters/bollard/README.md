@@ -6,12 +6,12 @@ one who uses contact. Broad-shouldered and weathered, dark hair pulled back
 tight under black industrial ear defenders, a safety-yellow hi-vis work jacket
 with the collar up and two flat reflective bands. Steady, heavy-lidded and
 unbothered; she does not move out of the way. Her accent is safety yellow, and
-her car, a compact 4x4 ute that does not exist yet, has to carry it. Her
+her car, Breakwater, an enclosed AWD off-roader, carries it. Her
 silhouette is the ear defenders, a wide head with a cup on each side, chosen to
 be nothing like the goggles, beanie, hood, bare head or backwards cap before
 her at a hundred pixels.
 
-She is not in the game: no sim constant, no car, no contact card. The two
+She is not in the game: no sim constant or contact card; the car asset is built. The two
 served portraits (`public/assets/characters/bollard.png`, `bollard-alley.png`)
 exist ahead of the card.
 
@@ -48,3 +48,22 @@ Rejected on the way: candidate B, a near twin.
 The silhouette rule was tested against her once. The first Plumb wore a race
 engineer's headset whose dark earcup read as the same shape as these ear
 defenders; Plumb was redrawn rather than Bollard.
+
+## Breakwater (2026-09-13)
+
+Original enclosed off-roader, inspired by Land Cruiser 70 / Pajero proportions; safety yellow carries the
+portrait identity. Tall enclosed cargo cabin, roof rails, utility bumpers, steps and a fixed tailgate spare.
+
+`breakwater` declares **AWD** in `CAR_DRIVETRAIN`. The body uses the shared
+wheel rig and existing handling profile: no mass, speed, grip or engine
+simulation changes. It is registered for rendering, not a saved player car.
+The encounter and career reward remain unimplemented.
+
+Source: `assets/cars/ns-breakwater-01.blend`; runtime: `public/assets/cars/ns-breakwater-01.glb`.
+Rebuild with `scripts/build-blacklist-cars.py -- --car=breakwater --render` in Blender.
+Export hand edits with `scripts/export-blacklist-car.py`, then
+`node scripts/optimize-car.mjs --car=ns-breakwater-01`.
+
+Studio and in-game front/rear captures are in `design/reference/cars/`,
+prefixed `breakwater-`. See `design/reference/cars/BLACKLIST_CARS.md` for the
+measured runtime colors and the complete build/validation commands.

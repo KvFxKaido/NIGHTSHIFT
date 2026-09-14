@@ -4,12 +4,12 @@ Design note, 2026-09-12. The GDD wins where they disagree; this is the longer
 form of GDD §5's Blacklist: who the ten names are, where they race, what they
 drive and what each one teaches.
 
-**Status.** A sketch. None of the career is implemented. All ten names have
-portraits (`design/reference/characters/<id>/`). Four have cars: Moth, Rivet
-and Sable are in the game as rivals, and Tally has Vesper but no encounter.
-Stray, Bollard, Deuce, Plumb, Crest and Wake have a portrait and a car
-inspiration below, and nothing else. Every placement, mistake and car is a
-proposal until Shawn says otherwise.
+**Status.** The career remains a sketch. All ten names now have portraits and
+authored car assets. Moth, Rivet and Sable have encounters; Tally and the six
+new rivals do not. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
+the body directions below with the declared drivetrains. Placements, mistakes
+and the career structure remain proposals. The new car names are Codex's
+working names for Shawn's review (2026-09-13).
 
 ## How the list is built
 
@@ -31,14 +31,14 @@ proposal until Shawn says otherwise.
 | # | Name | Turf | Car | Drive | Accent | Challenge |
 |---|---|---|---|---|---|---|
 | 10 | Moth | SoDo freight block | Kestrel rally hatch | AWD | teal / cream | Generated race |
-| 9 | Stray | Alder Center alleys | Sport liftback | FWD | acid green | Unordered checkpoints |
+| 9 | Stray | Alder Center alleys | Latch sport liftback | FWD | acid green | Unordered checkpoints |
 | 8 | Rivet | Harbor Quarter | Hammer muscle notchback | RWD | cream / black | Drag |
-| 7 | Bollard | Elliott Avenue waterfront | Boxy 4x4 off-roader | AWD | safety yellow | Rival duel |
-| 6 | Deuce | Belltown, Broadcast Tower loop | Rotary sports car | RWD | hot magenta | Sprint |
+| 7 | Bollard | Elliott Avenue waterfront | Breakwater off-roader | AWD | safety yellow | Rival duel |
+| 6 | Deuce | Belltown, Broadcast Tower loop | Wager rotary sports car | RWD | hot magenta | Sprint |
 | 5 | Sable | South Wharf drift yard | NS-01 drift coupe | RWD | red / black | Drift |
-| 4 | Plumb | Madrona Ridge | Fast wagon | AWD | silver | Circuit |
-| 3 | Crest | Queen Anne climb | Hardtop roadster | FWD | cobalt blue | Uphill sprint |
-| 2 | Wake | Capitol Hill | AWD legend coupe | AWD | white | Rival duel |
+| 4 | Plumb | Madrona Ridge | Meridian fast wagon | AWD | silver | Circuit |
+| 3 | Crest | Queen Anne climb | Skim hardtop roadster | FWD | cobalt blue | Uphill sprint |
+| 2 | Wake | Capitol Hill | Reign upright coupe | AWD | white | Rival duel |
 | 1 | Tally | The whole city | Vesper mid-engine coupe | RWD | violet | Citywide open checkpoint |
 
 Race types are GDD §7's. Moth's is the flash as it exists today: a generated
@@ -59,7 +59,7 @@ roster made the same point by mixing tuners with muscle, luxury and trucks.
    neither type goes to a rival: a rival should never look like the player's
    own car in the mirror.
 
-The six still to build, each inspired by a real car, never a replica (the
+The six added on 2026-09-13, each inspired by a real car, never a replica (the
 Vesper rule: proportions and signature ideas, no badges, no exact shapes):
 
 | # | Name | Type | Inspiration | Why |
@@ -91,7 +91,7 @@ Nineteen, grew up in the downtown service lanes. *Silhouette:* a cap worn
 backwards. *Mistake:* he takes the alley even where the avenue is faster.
 *Teaches:* that alleys exist, and that one is not always worth it. His race is
 unordered checkpoints, so the order is a route decision too. Portrait:
-`design/reference/characters/stray/`; no car, no encounter.
+`design/reference/characters/stray/`; car asset built, no encounter.
 
 ### #8 Rivet
 
@@ -107,8 +107,7 @@ Forties, a crane operator on the waterfront. *Silhouette:* ear defenders and a
 hi-vis collar. *Mistake:* she commits to a block early, so a feint one way
 opens the other. *Teaches:* racing through traffic and through contact. Every
 body shares one mass (`HANDLING.mass`), so her menace is aggression and line,
-never weight or grip. Portrait: `design/reference/characters/bollard/`; no
-car, no encounter.
+never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built, no encounter.
 
 ### #6 Deuce
 
@@ -117,7 +116,7 @@ risky line even when he is leading, and half his races end in a wall.
 *Teaches:* the generator's rule that every shortcut has a cost, as a person;
 the player beats him by staying clean and letting the gamble fail. His turf is
 the Broadcast Tower loop and its open plaza. Portrait:
-`design/reference/characters/deuce/`; no car, no encounter.
+`design/reference/characters/deuce/`; car asset built, no encounter.
 
 ### #5 Sable
 
@@ -137,7 +136,7 @@ version read as an older Moth and her headset as Bollard's ear defenders.
 *Mistake:* she never leaves the arterials: no alleys, no crashes, no surprises.
 *Teaches:* parallel routes. Madrona Ridge's broad scenic loop is hers, and its
 inner parallel streets are where she loses. Portrait:
-`design/reference/characters/plumb/`; no car, no encounter.
+`design/reference/characters/plumb/`; car asset built, no encounter.
 
 ### #3 Crest
 
@@ -145,7 +144,7 @@ Late twenties, the hill racer. *Silhouette:* a hard-edged topknot. *Mistake:*
 he takes blind crests flat and lands wide. *Teaches:* grade, crests and blind
 corners, the risk factors the route-choice model already prices. His race
 climbs Queen Anne towards Kerry Overlook. Portrait:
-`design/reference/characters/crest/`; no car, no encounter.
+`design/reference/characters/crest/`; car asset built, no encounter.
 
 ### #2 Wake
 
@@ -154,7 +153,7 @@ every night since driving her lines, and driving them better than she does.
 *Silhouette:* a low-crowned, wide-brimmed hat. *Mistake:* he only drives Tally's
 lines, so he is beaten exactly where she is: off her map. *Teaches:* the last
 lesson, in his words: "I drove every line she drives. It's not enough."
-Portrait: `design/reference/characters/wake/`; no car, no encounter.
+Portrait: `design/reference/characters/wake/`; car asset built, no encounter.
 
 ### #1 Tally
 
@@ -208,8 +207,8 @@ the career gives the player is the pen.
   white. The risky pairs are Wake's white against Rivet's and Moth's cream,
   magenta between Sable's red and Tally's violet, and cobalt against the cyan
   rim. Those pairs were measured on the portraits and pass (the new
-  characters' READMEs have the numbers); every car still needs its own
-  in-game count.
+  characters' READMEs have the numbers); the six new cars have their own
+  in-game counts in `reference/cars/BLACKLIST_CARS.md`.
 - **Every body shares one wheelbase, track and mass.** `blender-car.ts` rejects
   wheels off (±0.92, 0.40, ±1.48), a 2.96 m wheelbase, and `HANDLING.mass` is
   one number. Every inspiration above has a shorter real wheelbase (roughly
@@ -217,7 +216,7 @@ the career gives the player is the pen.
   RX-7 most. Car variety lives in overhangs, height and silhouette, and
   character lives in driving behaviour.
 - **Drivetrains balance at four AWD, four RWD and two FWD.** Stray and Crest
-  would be the first FWD bodies anyone drives, although `createSim` already
+  are the first authored FWD bodies (not yet unlockable), although `createSim` already
   defaults to FWD.
 - **An accent is only real in the game's own light.** Vesper's first body
   counted 123 violet pixels in its in-game rear capture against 2,567 in the

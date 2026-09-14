@@ -5,11 +5,10 @@ takes the risky line every time, even when he is winning; his turf is the
 Belltown loop around the Broadcast Tower. Lean and sharp, a little stubble, a
 tall hard-edged pompadour, a black jacket open over a hot-magenta shirt with an
 open collar. A lazy half-smile and one raised brow; he would bet on this. His
-accent is hot magenta, and his car, a light RWD fastback that does not exist
-yet, has to carry it. His silhouette is the pompadour, chosen to be nothing like
+accent is hot magenta, and his car, Wager, a RWD rotary-inspired sports car, carries it. His silhouette is the pompadour, chosen to be nothing like
 anyone else's at a hundred pixels.
 
-He is not in the game: no sim constant, no car, no contact card. The two served
+He is not in the game: no sim constant or contact card; the car asset is built. The two served
 portraits (`public/assets/characters/deuce.png`, `deuce-alley.png`) exist ahead
 of the card.
 
@@ -47,3 +46,22 @@ with Bollard's, Plumb's, Crest's and Wake's.
 
 Rejected on the way: candidate B, a near twin, and the round-one shirt that
 leaned red.
+
+## Wager (2026-09-13)
+
+Original rotary-inspired sports car, inspired by RX-7 FD proportions; hot magenta carries the
+portrait identity. Low canopy, faceted rounded haunches, a low ducktail and paired round rear lamps.
+
+`wager` declares **RWD** in `CAR_DRIVETRAIN`. The body uses the shared
+wheel rig and existing handling profile: no mass, speed, grip or engine
+simulation changes. It is registered for rendering, not a saved player car.
+The encounter and career reward remain unimplemented.
+
+Source: `assets/cars/ns-wager-01.blend`; runtime: `public/assets/cars/ns-wager-01.glb`.
+Rebuild with `scripts/build-blacklist-cars.py -- --car=wager --render` in Blender.
+Export hand edits with `scripts/export-blacklist-car.py`, then
+`node scripts/optimize-car.mjs --car=ns-wager-01`.
+
+Studio and in-game front/rear captures are in `design/reference/cars/`,
+prefixed `wager-`. See `design/reference/cars/BLACKLIST_CARS.md` for the
+measured runtime colors and the complete build/validation commands.

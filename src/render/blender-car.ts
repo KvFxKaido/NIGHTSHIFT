@@ -9,7 +9,8 @@ export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
  * The Blender-authored bodies, keyed by asset id. `model` is the id
  * the debug tools and deep links round-trip on, so it must stay stable.
  *
- * NS-01, Bulwark and Cinder are garage choices; Hammer belongs to Rivet; Kestrel belongs to the garage-area rival.
+ * Cinder and Bulwark are player garage choices. The ten other bodies belong
+ * to the Blacklist; registration alone does not create an encounter or unlock.
  * Bodies do not change the simulation collider or HANDLING.
  */
 export const BLENDER_CARS = {
@@ -18,6 +19,12 @@ export const BLENDER_CARS = {
   kestrel: { path: "assets/cars/ns-kestrel-01.glb", root: "ns-kestrel-01", model: "ns-kestrel" },
   vesper: { path: "assets/cars/ns-vesper-01.glb", root: "ns-vesper-01", model: "ns-vesper" },
   hammer: { path: "assets/cars/ns-hammer-01.glb", root: "ns-hammer-01", model: "ns-hammer" },
+  latch: { path: "assets/cars/ns-latch-01.glb", root: "ns-latch-01", model: "ns-latch" },
+  breakwater: { path: "assets/cars/ns-breakwater-01.glb", root: "ns-breakwater-01", model: "ns-breakwater" },
+  wager: { path: "assets/cars/ns-wager-01.glb", root: "ns-wager-01", model: "ns-wager" },
+  meridian: { path: "assets/cars/ns-meridian-01.glb", root: "ns-meridian-01", model: "ns-meridian" },
+  skim: { path: "assets/cars/ns-skim-01.glb", root: "ns-skim-01", model: "ns-skim" },
+  reign: { path: "assets/cars/ns-reign-01.glb", root: "ns-reign-01", model: "ns-reign" },
   bulwark: { path: "assets/cars/ns-bulwark-01.glb", root: "ns-bulwark-01", model: "ns-bulwark" },
 } as const;
 export type BlenderCarId = keyof typeof BLENDER_CARS;

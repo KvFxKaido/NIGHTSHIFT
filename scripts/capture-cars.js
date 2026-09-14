@@ -10,10 +10,11 @@
 //   playwright-cli -s=cars open http://localhost:5173/
 //   playwright-cli -s=cars run-code "$(cat scripts/capture-cars.js)"
 //   playwright-cli -s=cars close
-async page => {
+async (page, carIds = null) => {
   page.setDefaultTimeout(30000);
   const base = 'http://localhost:5173/';
-  const cars = ['blender', 'bulwark', 'kestrel', 'hammer', 'vesper'];
+  const cars = carIds ?? ['blender', 'cinder', 'bulwark', 'kestrel', 'hammer', 'vesper',
+    'latch', 'breakwater', 'wager', 'meridian', 'skim', 'reign'];
   const views = { front: -Math.PI / 4, rear: Math.PI * 0.75 };
   const clip = { x: 40, y: 120, width: 660, height: 440 };
   const errors = [];

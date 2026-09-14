@@ -118,12 +118,12 @@ in under three minutes. Rivet's README has the exact briefs.
 | `sable` | Sable | NS-01 | The South Wharf drift yard |
 | `moth` | Moth | Kestrel | The freight block by Wharf Garage; the first rival anyone meets |
 | `tally` | Tally | Vesper | #1 on the Blacklist, and the one who keeps it; not in the game yet |
-| `stray` | Stray | Not built | #9 on the Blacklist, the Alder Center alleys; not in the game yet |
-| `bollard` | Bollard | Not built | #7 on the Blacklist, the Elliott Avenue waterfront; not in the game yet |
-| `deuce` | Deuce | Not built | #6 on the Blacklist, the Broadcast Tower loop; not in the game yet |
-| `plumb` | Plumb | Not built | #4 on the Blacklist, Madrona Ridge; not in the game yet |
-| `crest` | Crest | Not built | #3 on the Blacklist, the Queen Anne climb; not in the game yet |
-| `wake` | Wake | Not built | #2 on the Blacklist and the former #1, Capitol Hill; not in the game yet |
+| `stray` | Stray | Latch | #9 on the Blacklist, the Alder Center alleys; not in the game yet |
+| `bollard` | Bollard | Breakwater | #7 on the Blacklist, the Elliott Avenue waterfront; not in the game yet |
+| `deuce` | Deuce | Wager | #6 on the Blacklist, the Broadcast Tower loop; not in the game yet |
+| `plumb` | Plumb | Meridian | #4 on the Blacklist, Madrona Ridge; not in the game yet |
+| `crest` | Crest | Skim | #3 on the Blacklist, the Queen Anne climb; not in the game yet |
+| `wake` | Wake | Reign | #2 on the Blacklist and the former #1, Capitol Hill; not in the game yet |
 
 Rivet was first, Sable proved the style, Moth was named for the thing that
 is always there when the lamps come on, and Tally, Moth's student, is the
