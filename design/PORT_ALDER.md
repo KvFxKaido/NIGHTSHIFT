@@ -1157,3 +1157,65 @@ races; `tests/rival-racing.test.ts` holds it and fails without it. The second is
 the street rival's clearest remaining problem. Turn slowing needs the junction
 conflicts to include the slide, and a rival that keeps its side of the street,
 before it is worth trying again.
+
+**Lane discipline on streets (2026-09-13).** A street route is the street's
+centreline, and the rival rested on it: straddling the centre line, half in every
+oncoming car's lane. It now rests half-way from the centreline to the middle of
+the inner lane going its way (`RIVAL_LANE`, `laneOffset`, the lane traffic
+drives): 1.4 m right on a 12 m street, 1.1 m on 16 m, 1.6 m on 24 m. Passing,
+dodging and blocking work from there, and racing lines are untouched
+("full-line-v7").
+
+Measuring it turned up a second frame error in the traffic loop. The car's own
+offset was taken across the nearest segment of the route (`nearestSide`), while
+every other offset there is across the route at the aim point. Through a corner
+the nearest segment is still the street being left, so on seed 17 a truck stopped
+just round a right turn, dead in the rival's path, read as 5 m to one side, and
+the rival drove into it. It is now taken at the aim point (`carOffset`).
+
+Measured, rival alone in traffic, over 82 generated races (seeds 1-40, Sound to
+Sky and the qa2 fixture, then seeds 41-80 for a bigger sample):
+
+| Rival | Time | Contact | Past 16 m | Lost | Circling | Uptown, 3 laps in traffic |
+|---|---|---|---|---|---|---|
+| Before | 8,135.5 s | 428 | 5 (18.6 m) | 19.1 s | 38.8 s | 101.1 / 107.6 / 102.6, 6 contact |
+| Frame fix, centreline | 8,135.8 s | 322 | 9 (20.7 m) | 20.5 s | 41.1 s | 101.1 / 107.8 / 104.7, 6 contact |
+| **Frame fix, half-way (shipped)** | **8,046.3 s** | **1,218** | **0 (14.9 m)** | **12.3 s** | 44.4 s | **100.4 / 99.3 / 99.4**, 26 contact |
+| Frame fix, whole inner lane | first 42: 4,052.5 s | first 42: 1,346 | 0 | 27.9 s | 42.3 s | 106.2 / 99.2 / 108.2, 193 contact |
+
+On its own the frame fix strays more than before: nine races past 16 m, seed 2
+by 20.7 m. Half-way is 89 s faster than before over the 82
+races and nothing strays past 16 m. On clear streets it costs 7.1 s over the 42
+(3,960.1 s to 3,967.2 s), and on Uptown clear its laps are 100.4 / 98.3 / 98.3
+against 101.1 / 99.0 / 99.0.
+
+Contact nearly triples, and at least 810 of the 1,218 ticks are one corner. Races
+from the default start whose first gates are S Main St & 4th Ave S, then 6th Ave
+& James St, turn right from 4th Ave onto James St about 44 s in (seeds 16, 17,
+18, 20, 53, 56, 59, 63, 65, 66 and 70). The rival runs wide out of it into the oncoming lane,
+where a box truck waits at the junction, and noses into it. When the rival slows
+under 3 m/s the truck is no longer held for it and drives on into the rival:
+traffic follows only racers going its way. On the centreline the rival runs as
+wide and misses the same truck, arriving half a second earlier. The wide exit is
+the problem, not the lane: at that corner the rival arrives 1 to 3.5 m/s over its
+planned 7 m/s and, on full lock, still runs wide.
+
+Tried and not shipped:
+
+- **Slowing for a car it cannot step round.** A car in the lane the rival is in,
+  with no room to reach a clear side before it gets there, is slowed for. Timed
+  (lateral 4 m/s²), it took Uptown contact from 26 to 0, but at the corner it
+  crawled to a stop in front of the truck, which then drove into it: a car moves
+  sideways per metre travelled, not per second, so slowing never made room.
+  Distance-based (two arcs at the tighter of full lock and grip), it cost 48 s over
+  seeds 41-80 and added contact.
+- **Holding speed until the turn is done.** No accelerating while more than 20°
+  off the street ahead: 75 s slower on clear streets over the 42, and the rival
+  still ran wide into the truck at 8.5 m/s on full lock.
+- **The whole inner lane, faded near corners** (no offset within 30 m of a bend
+  tighter than 35 m): 936 ticks of contact on the first 42.
+
+`tests/rival-racing.test.ts` holds both parts: the rival rests on its own side on
+12, 16 and 24 m streets, and slows for a truck stopped 9 m round a right turn.
+Each fails with its part removed. The racing test that has the rival hold its
+line alongside the player now measures from that line.

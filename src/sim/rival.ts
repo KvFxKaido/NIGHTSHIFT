@@ -1,6 +1,7 @@
 import { HANDLING, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
+import { laneOffset } from "./lanes.ts";
 import type { RaceDefinition } from "./race.ts";
 
 export interface RivalDefinition {
@@ -108,8 +109,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * a radian off moved outside the turning circle. "full-line-v5": recovery out of
  * the player's sight (UNSEEN_RECOVERY in sim.ts). "full-line-v6": a passing side is
  * checked for an oncoming car where it will be when the rival is alongside.
+ * "full-line-v7": keeps to its own side of a street (RIVAL_LANE), and traffic
+ * judged against the car's offset at its aim point.
  */
-export const RIVAL_REVISION = "full-line-v6";
+export const RIVAL_REVISION = "full-line-v7";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -184,6 +187,27 @@ export const OFF_ROAD_MARGIN = 1.5;
  * and hit more traffic and strayed further (a 31.5 m stray in twelve races).
  */
 const PASS = { gap: 3.2, reach: 3.8 } as const;
+
+/**
+ * Lane discipline on streets (2026-09-13). A street route is its centreline, and
+ * the rival used to rest on it, straddling the centre line and meeting every
+ * oncoming car half in its lane. It now rests `share` of the way from the
+ * centreline to the middle of the inner lane going its way (`laneOffset`, the
+ * lane traffic drives), and passes, dodges and blocks from there. Racing lines
+ * are untouched.
+ *
+ * Measured over 82 generated races in traffic, with the frame fix below in both:
+ * on the centreline, 8,135.8 s, 322 contact ticks, 9 races more than 16 m off the
+ * street; half-way, 8,046.3 s, 1,218 ticks, none past 16 m, and time lost off
+ * course 20.5 s down to 12.3 s. The whole inner lane (share 1) ran into slower cars
+ * ahead: 1,346 ticks on the first 42 races. Most of the half-way contact is one
+ * corner: races from the default start whose first gates are Main & 4th, then
+ * 6th & James, turn right from 4th Ave onto James St 44 s in, the rival runs wide
+ * into the oncoming lane, and a truck waits there (11 of the 82). On the
+ * centreline it runs as wide and misses the same truck, arriving half a second
+ * earlier.
+ */
+export const RIVAL_LANE = { share: 0.5 } as const;
 /** Metres along the route aimed at when the aim is more than a radian off: well outside the tightest circle the car can turn. */
 const orbitReach = () => 2.5 * (HANDLING.frontAxleDistance + HANDLING.rearAxleDistance) / Math.tan(HANDLING.maxSteeringAngle);
 
@@ -290,7 +314,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const profileDeceleration = Math.max(0, (profileSpeed ** 2 - profileNext ** 2) / (2 * 4));
   // Stay on the road while making room for a slower car. Crossing traffic is
   // handled by braking too; it remains a solid kinematic hazard.
-  let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : 0;
+  // On a street, rest towards its own side (RIVAL_LANE): classed as Port Alder
+  // classes streets, two lanes each way wider than 14 m.
+  const ownSide = route.lateral ? 0
+    : RIVAL_LANE.share * laneOffset(target.width, { direction: 1, index: 0 }, target.width > 14 ? "collector" : "local");
+  let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : ownSide;
   let blocking = false;
   // A parked or crawling player is in the way, not in the race: that one is
   // avoided and slowed for like any other obstacle. A racing player is raced.
@@ -327,7 +355,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   };
   // Every lateral position below is an offset from the route, the frame
   // `driver.avoidance` is in (2026-09-13). `side` is measured from the car, so a
-  // car's offset from the route is `side` plus the car's own, `nearestSide`.
+  // car's offset from the route is `side` plus the car's own, `carOffset`.
   // Comparing `side` with `driver.avoidance` directly, as this loop did, was
   // right only while the rival was on its route: 3.8 m out to pass a truck on
   // Uptown Circuit, it saw the truck 1.2 m to its left as 5 m out of its path,
@@ -335,11 +363,16 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const edge = Math.max(0, target.width / 2 - 2.2);
   const lowest = -edge - target.lateral, highest = edge - target.lateral;
   const normalX = -target.uz, normalZ = target.ux;
+  // This car's own offset in the same frame as `side`: across the route at the aim
+  // point. Not `nearestSide`, which is across the nearest segment: through a corner
+  // that is still the street being left, and on seed 17 it put a stopped truck
+  // dead ahead 2.2 m to the side, out of the path, and the rival drove into it.
+  const carOffset = (car.x - target.x) * normalX + (car.z - target.z) * normalZ;
   for (const obstacle of hazards) {
     if (Math.abs(obstacle.y-car.y)>3) continue;
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
-    const offRoute=side+nearestSide;
+    const offRoute=side+carOffset;
     const length=(obstacle.length??4.2)/2+2.1;
     if (ahead < -length || ahead > 15+car.speed*1.6) continue;
     const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
@@ -375,7 +408,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const passAt=(candidate: number)=>({ x: obstacle.x-Math.sin(obstacle.heading)*obstacle.speed*alongside+normalX*(candidate-offRoute),
       z: obstacle.z-Math.cos(obstacle.heading)*obstacle.speed*alongside+normalZ*(candidate-offRoute) });
     const clear=(candidate: number)=>!hazards.some(other=>other!==obstacle && (
-      Math.hypot(other.x-(car.x+normalX*(candidate-nearestSide)),other.z-(car.z+normalZ*(candidate-nearestSide)))<7
+      Math.hypot(other.x-(car.x+normalX*(candidate-carOffset)),other.z-(car.z+normalZ*(candidate-carOffset)))<7
       || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7
       || Math.hypot(other.x-Math.sin(other.heading)*other.speed*alongside-passAt(candidate).x,other.z-Math.cos(other.heading)*other.speed*alongside-passAt(candidate).z)<7));
     const reach=Math.min(PASS.reach, edge);

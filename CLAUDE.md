@@ -136,7 +136,8 @@ fixtures outside the playable bundle, and old world links redirect.
   rubber-banding, reversing recovery and a local reset after 12 s stuck, or
   after 2.5 s out of the player's sight (`UNSEEN_RECOVERY`), never further along. It
   races the player rather than yielding: passes, holds its line, blocks and
-  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Its
+  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
+  it rests half-way into the inner lane going its way (`RIVAL_LANE`). Its
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
   grip-limited speed its centreline tracking, not grip, puts it on the grass. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
@@ -279,8 +280,10 @@ fixtures outside the playable bundle, and old world links redirect.
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
 - In `rivalInput`, `side` is measured from the car and `driver.avoidance` from
-  the route; compare them only after adding the car's own offset (`nearestSide`).
-  Mixing them pinned the rival on a truck's bumper for 42 s. The player-racing
+  the route; compare them only after adding the car's own offset across the route
+  at the aim point (`carOffset`), never across the nearest segment, which at a
+  corner is still the street being left. Mixing them pinned the rival on a truck's
+  bumper for 42 s, then drove it into a truck round a corner. The player-racing
   block above the traffic loop still mixes them.
 - Yielding between traffic and racers runs one way per situation. The rival
   waits for traffic in its path, so traffic follows only racers going its way and

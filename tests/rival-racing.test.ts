@@ -4,7 +4,8 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
-import { createRivalDriver, rivalInput, OFF_ROAD_MARGIN, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, OFF_ROAD_MARGIN, RIVAL_LANE, type RivalDefinition } from "../src/sim/rival.ts";
+import { laneOffset } from "../src/sim/lanes.ts";
 await RAPIER.init();
 
 // A racing rival wants to win (2026-09-13): it does not queue behind the
@@ -12,10 +13,10 @@ await RAPIER.init();
 // does not lift for contact. A straight 24 m road isolates that from corners
 // and traffic. The rival starts at x = 0 heading -Z; +X is its right-hand side.
 const PARKED: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-function straight(player: { x: number; z: number }, width = 24): Sim {
+function straight(player: { x: number; z: number }, width = 24, rivalX = 0): Sim {
   const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
   const along = [0, 8000];
-  const start = { x: 0, y: 0, z: 0, heading: 0, pitch: 0 };
+  const start = { x: rivalX, y: 0, z: 0, heading: 0, pitch: 0 };
   const route: RivalDefinition = { id: "racing-check", start, points, along, gates: [8000] };
   const sim = createSim("fwd", { id: "racing-check", start: { ...start, ...player }, walls: [], project: (x, z) => projectOntoPath(points, x, z) }, {
     traffic: false, rival: route,
@@ -87,15 +88,34 @@ test("a player stopped in the road is still avoided, not rammed", () => {
   } finally { sim.world.free(); }
 });
 
+// Where the rival rests on a street: its own side of it (RIVAL_LANE).
+const ownSide = (width: number) => RIVAL_LANE.share * laneOffset(width, { direction: 1, index: 0 }, width > 14 ? "collector" : "local");
+
+test("on a street it keeps to its own side of the road", () => {
+  for (const width of [12, 16, 24]) {
+    // The player parked far behind is no part of it.
+    const sim = straight({ x: 0, z: 400 }, width);
+    try {
+      launch(sim, 20);
+      for (let tick = 0; tick < 600; tick++) step(sim, PARKED);
+      const x = sim.state.rival!.vehicle.x, line = ownSide(width);
+      // Half-way to the middle of the inner lane going its way: 1.4 m right on a 12 m street, 1.1 m on 16, 1.6 m on 24.
+      assert.ok(line > 1, `width ${width}: its own side is only ${line.toFixed(2)} m right; the test proves nothing`);
+      assert.ok(Math.abs(x - line) < 0.35, `width ${width}: it rests ${x.toFixed(2)} m right of the centreline, not ${line.toFixed(2)}`);
+    } finally { sim.world.free(); }
+  }
+});
+
 test("alongside a racing player it holds its line and does not brake", () => {
-  const sim = straight({ x: 3.4, z: 0 });
+  const line = ownSide(24);
+  const sim = straight({ x: line - 3.4, z: 0 }, 24, line);
   try {
     launch(sim, 28);
     let widest = 0, braked = false;
     for (let tick = 0; tick < 240; tick++) {
-      hold(sim, 3.4, sim.state.rival!.vehicle.speed);
+      hold(sim, line - 3.4, sim.state.rival!.vehicle.speed);
       step(sim, PARKED);
-      widest = Math.max(widest, Math.abs(sim.state.rival!.vehicle.x));
+      widest = Math.max(widest, Math.abs(sim.state.rival!.vehicle.x - line));
       if (sim.state.rival!.input.brake > 0) braked = true;
     }
     // The old rival moved about 3.8 m away and braked to let the player through.
@@ -192,6 +212,28 @@ test("a slower car in its way is slowed for and passed even when the rival is al
   const room = decide([{ ...truck, z: -140 }], 20, 3.8);
   assert.ok(room.driver.targetSpeed > 29, `with room to pass it slowed to ${room.driver.targetSpeed.toFixed(1)} m/s`);
   assert.ok(Math.abs(room.driver.avoidance - 3.8) > 0.01, "with room to pass it did not move over");
+});
+
+// Round a corner (2026-09-13). A car's offset is measured across the route at the
+// aim point, where every other offset in the traffic loop is. It used to be across
+// the nearest segment, which at a corner is still the street being left: on a
+// generated race (seed 17) a truck stopped just round a right turn, dead in the
+// rival's path, read as 5 m to one side, and the rival drove into it.
+test("a car stopped just round a corner is in its path", () => {
+  const points: CoursePoint[] = [[0, 0], [0, -100], [100, -100]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 16, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "corner-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 100, 200], gates: [200] };
+  const at = (truck: { x: number; z: number }[]) => {
+    // 5 m short of the corner, turning right onto a street heading +X.
+    const vehicle = { ...createSim("fwd").state.vehicle, x: 0, y: 0, z: -95, heading: 0, speed: 12, forwardSpeed: 12, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 95, progressMark: 95 };
+    rivalInput(route, { vehicle, driver, race: null }, truck.map(t => ({ y: 0, speed: 0, heading: -Math.PI / 2, length: 7.2, ...t })));
+    return driver.targetSpeed;
+  };
+  const clear = at([]);
+  assert.ok(clear > 5, `with the street clear it slowed to ${clear.toFixed(1)} m/s; the test proves nothing`);
+  // A truck stopped on the new street's centreline 9 m round the corner.
+  const blocked = at([{ x: 9, z: -100 }]);
+  assert.ok(blocked < 2, `it kept a target of ${blocked.toFixed(1)} m/s into a truck stopped round the corner`);
 });
 
 // Pulling out into an oncoming car (2026-09-13). On Uptown, queued behind traffic
