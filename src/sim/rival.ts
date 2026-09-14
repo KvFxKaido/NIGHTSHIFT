@@ -62,6 +62,107 @@ export function sampleRivalPath(route: RivalDefinition, distance: number) {
     ux: (b.x - a.x) / length, uz: (b.z - a.z) / length, width: Math.min(a.width,b.width), lateral, index: i };
 }
 
+/**
+ * Street corners, rounded (2026-09-13). A street route is its centreline, whose
+ * junctions are sharp polyline corners. The rival planned every one from that
+ * corner, a 5.7 m radius read across 8 m either side, so a right angle was always
+ * the 7 m/s floor; it steered for the corner itself, arrived over that plan and
+ * ran wide into the oncoming lane. It now drives an arc at each corner: as large as
+ * the pavement allows, less `kerbMargin`, and within its own side of the street.
+ * A right turn cuts in only as far as the kerb allows from its side (RIVAL_LANE);
+ * a left turn is back on its own side by the edge of the junction. An arc uses at
+ * most `legShare` of the shorter leg either side, so neighbouring arcs never meet.
+ * The route itself, its distances and its gates stay on the centreline; only the
+ * path it aims along and plans from is rounded, and its progress through a corner
+ * is read round the arc.
+ *
+ * Measured, rival alone, over 82 generated races in traffic: 8,046.3 s to 7,559.8 s
+ * (6% faster), 1,218 ticks of contact to 292, time off course 12.3 s to 3.6 s, none
+ * past 16 m. On clear streets (42 races) the slowest point of a junction turn went
+ * from 18.7 to 24.6 mph on average, and exits more than 1 m into the oncoming half
+ * from 118 turns to 116. `legShare` 0.38 and 0.45 were clean; 0.3 and 0.5 each put
+ * a race past 16 m.
+ */
+export const RIVAL_STREET_CORNERS = { kerbMargin: 1.5, legShare: 0.45 } as const;
+interface StreetCorner { start: number; end: number; cx: number; cz: number; vx: number; vz: number; radius: number; sweep: number }
+const cornerCache = new WeakMap<RivalDefinition, (StreetCorner | null)[]>();
+/** Each route vertex's arc, or null where the route runs straight on or has no room. Racing lines have none. */
+function streetCorners(route: RivalDefinition): (StreetCorner | null)[] {
+  let list = cornerCache.get(route);
+  if (list) return list;
+  list = route.points.map(() => null);
+  for (let i = 1; !route.lateral && i < route.points.length - 1; i++) {
+    const p = route.points[i - 1]!, q = route.points[i]!, r = route.points[i + 1]!;
+    const l1 = Math.hypot(q.x - p.x, q.z - p.z), l2 = Math.hypot(r.x - q.x, r.z - q.z);
+    if (l1 < 1e-6 || l2 < 1e-6) continue;
+    const u1x = (q.x - p.x) / l1, u1z = (q.z - p.z) / l1, u2x = (r.x - q.x) / l2, u2z = (r.z - q.z) / l2;
+    const turn = Math.abs(Math.atan2(u1x * u2z - u1z * u2x, u1x * u2x + u1z * u2z));
+    if (turn < 0.01) continue;
+    // Room to the inside kerb, measured from the centreline.
+    const room = Math.min(p.width, q.width, r.width) / 2 - RIVAL_STREET_CORNERS.kerbMargin;
+    if (room <= 0) continue;
+    const tan = Math.tan(turn / 2);
+    const right = -u1z * u2x + u1x * u2z > 0;
+    const ownSide = (width: number) => RIVAL_LANE.share * laneOffset(width, { direction: 1, index: 0 }, width > 14 ? "collector" : "local");
+    const side = Math.min(ownSide(p.width), ownSide(r.width)), box = Math.min(p.width, r.width) / 2;
+    // A right turn's arc bulges into its own side, so its apex keeps the kerb margin from
+    // there. A left turn's bulges across the centre line, and has to be back on its own
+    // side, `side` metres out, by the time it leaves the junction.
+    const fits = (radius: number) => {
+      if (right) return radius * (1 - Math.cos(turn / 2)) <= room - side;
+      const T = radius * tan;
+      return radius * (1 - Math.cos(turn / 2)) <= room && (T <= box || radius - Math.sqrt(Math.max(0, radius * radius - (T - box) ** 2)) <= side);
+    };
+    let radius = RIVAL_STREET_CORNERS.legShare * Math.min(l1, l2) / tan;
+    if (!fits(radius)) {
+      let low = 0, high = radius;
+      for (let k = 0; k < 40; k++) { const mid = (low + high) / 2; if (fits(mid)) low = mid; else high = mid; }
+      radius = low;
+    }
+    if (radius < 0.5) continue;
+    const T = radius * tan;
+    let nx = -u1z, nz = u1x;
+    if (nx * u2x + nz * u2z < 0) { nx = -nx; nz = -nz; }
+    const x1 = q.x - u1x * T, z1 = q.z - u1z * T, cx = x1 + nx * radius, cz = z1 + nz * radius;
+    // Which way round: the sweep that carries the start of the arc onto its end.
+    const vx = x1 - cx, vz = z1 - cz, x2 = q.x + u2x * T, z2 = q.z + u2z * T;
+    const miss = (a: number) => (vx * Math.cos(a) - vz * Math.sin(a) + cx - x2) ** 2 + (vx * Math.sin(a) + vz * Math.cos(a) + cz - z2) ** 2;
+    const sweep = miss(turn) < miss(-turn) ? turn : -turn;
+    list[i] = { start: route.along[i]! - T, end: route.along[i]! + T, cx, cz, vx, vz, radius, sweep };
+  }
+  cornerCache.set(route, list);
+  return list;
+}
+/**
+ * Progress through a rounded corner, read round its arc. Off the centreline it is
+ * whichever leg is nearer, and a car cutting the corner jumped 11 m from one to the
+ * other halfway round: its aim and its speed plan jumped with it, it accelerated
+ * while still turning and clipped a waiting truck on Uptown Circuit.
+ */
+function alongDriven(route: RivalDefinition, along: number, x: number, z: number): number {
+  const list = streetCorners(route), i = segmentAt(route.along, clamp(along, 0, route.along.at(-1)!));
+  for (const corner of [list[i], list[i + 1]]) {
+    if (!corner || along < corner.start || along > corner.end) continue;
+    const ax = x - corner.cx, az = z - corner.cz;
+    // Angle from the start of the arc, in the sweep's direction.
+    const a = Math.atan2(corner.vx * az - corner.vz * ax, corner.vx * ax + corner.vz * az) * Math.sign(corner.sweep);
+    return corner.start + clamp(a / Math.abs(corner.sweep), 0, 1) * (corner.end - corner.start);
+  }
+  return along;
+}
+/** The path the rival drives and plans from: the route, with a street's corners rounded (RIVAL_STREET_CORNERS). */
+export function sampleDrivingPath(route: RivalDefinition, distance: number) {
+  const base = sampleRivalPath(route, distance);
+  const list = streetCorners(route), d = clamp(distance, 0, route.along.at(-1)!);
+  for (const corner of [list[base.index], list[base.index + 1]]) {
+    if (!corner || d < corner.start || d > corner.end) continue;
+    const a = corner.sweep * (d - corner.start) / (corner.end - corner.start), c = Math.cos(a), s = Math.sin(a);
+    const vx = corner.vx * c - corner.vz * s, vz = corner.vx * s + corner.vz * c, sign = Math.sign(corner.sweep);
+    return { ...base, x: corner.cx + vx, z: corner.cz + vz, ux: -sign * vz / corner.radius, uz: sign * vx / corner.radius };
+  }
+  return base;
+}
+
 /** Metres past a gate the exit direction is read at: past any kerb mitre, well short of the next junction. */
 export const EXIT_LOOKAHEAD = 6;
 /** The direction the line leaves each gate in — the marker's arrow — read
@@ -114,8 +215,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v7": keeps to its own side of a street (RIVAL_LANE), and traffic
  * judged against the car's offset at its aim point. "full-line-v8": the 12 s reset
  * no longer puts it further along, unless stuck again where the last one put it.
+ * "full-line-v9": street corners rounded (RIVAL_STREET_CORNERS).
  */
-export const RIVAL_REVISION = "full-line-v8";
+export const RIVAL_REVISION = "full-line-v9";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -271,7 +373,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       nearestWidth = a.width + (b.width - a.width) * t;
     }
   }
-  driver.along = Math.min(gate + 8, along);
+  driver.along = Math.min(gate + 8, alongDriven(route, along, car.x, car.z));
   // A high-water mark prevents reversing or circling over the same few metres
   // from continually postponing the fallback reset. Off-road drift isn't progress.
   if (driver.along > driver.progressMark + 4 && nearest < sampleRivalPath(route, driver.along).width / 2) {
@@ -280,7 +382,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   } else driver.noProgressTicks++;
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
-  const target = sampleRivalPath(route, Math.min(gate, driver.along + lookAhead));
+  const target = sampleDrivingPath(route, Math.min(gate, driver.along + lookAhead));
   let desiredSpeed = route.speedLimit ?? HANDLING.topSpeed;
   // At highway speed, a 100 m preview cannot see a corner early enough to stop,
   // so the preview looks through the whole braking envelope.
@@ -290,7 +392,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const limits: number[] = [], curvatures: number[] = [];
   for (let d = 0; d <= previewDistance; d += 4) {
     const at = driver.along + d;
-    const a=sampleRivalPath(route,at-8), b=sampleRivalPath(route,at), c=sampleRivalPath(route,at+8);
+    const a=sampleDrivingPath(route,at-8), b=sampleDrivingPath(route,at), c=sampleDrivingPath(route,at+8);
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
@@ -436,7 +538,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // for it at full lock orbits it, and the aim does not move because the car
     // makes no progress. Seed 5 circled a junction corner for 3.5 s that way.
     // Aim further along the route instead, outside that circle.
-    const wide = sampleRivalPath(route, Math.min(gate, driver.along + Math.max(lookAhead, orbitReach())));
+    const wide = sampleDrivingPath(route, Math.min(gate, driver.along + Math.max(lookAhead, orbitReach())));
     tx=wide.x-wide.uz*driver.avoidance; tz=wide.z+wide.ux*driver.avoidance;
     error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   }
@@ -446,7 +548,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // already use most of the width, and in a recorded race (2026-09-13) the rival
   // abandoning a re-pass at 95 mph drifted 6.5 m from its line, still 4 m inside
   // the edge, read as lost, and braked to 59 mph in the kink after the Drop.
-  const lost = route.lateral ? Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN : nearest > 5;
+  // Through a rounded corner the 5 m is counted from the arc, not the centreline it cuts.
+  const onPath = sampleDrivingPath(route, driver.along), onCentre = sampleRivalPath(route, driver.along);
+  const lost = route.lateral ? Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN
+    : nearest > 5 + Math.hypot(onPath.x - onCentre.x, onPath.z - onCentre.z);
   if (lost) desiredSpeed=Math.min(desiredSpeed,10);
   if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
   driver.targetSpeed=desiredSpeed;
@@ -465,7 +570,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Feedforward: the wheel angle the line's curvature needs, as a share of the
   // lock the car allows at this speed, read a little ahead for the steering's lag.
   const ahead = Math.min(gate, driver.along + car.speed * RIVAL_STEERING.feedforwardLead);
-  const p = sampleRivalPath(route, ahead - 8), q = sampleRivalPath(route, ahead), r = sampleRivalPath(route, ahead + 8);
+  const p = sampleDrivingPath(route, ahead - 8), q = sampleDrivingPath(route, ahead), r = sampleDrivingPath(route, ahead + 8);
   const pq = Math.hypot(q.x - p.x, q.z - p.z), qr = Math.hypot(r.x - q.x, r.z - q.z), pr = Math.hypot(r.x - p.x, r.z - p.z);
   // Signed, positive for a right-hand bend, which positive steer turns into.
   const lineCurvature = pq * qr * pr > 1e-6 ? 2 * ((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x)) / (pq * qr * pr) : 0;

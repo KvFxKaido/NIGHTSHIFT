@@ -4,7 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
-import { createRivalDriver, rivalInput, OFF_ROAD_MARGIN, RIVAL_LANE, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_STREET_CORNERS, type RivalDefinition } from "../src/sim/rival.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
 await RAPIER.init();
 
@@ -214,26 +214,93 @@ test("a slower car in its way is slowed for and passed even when the rival is al
   assert.ok(Math.abs(room.driver.avoidance - 3.8) > 0.01, "with room to pass it did not move over");
 });
 
+// Street corners, rounded (2026-09-13). The rival planned and steered every
+// junction from the centreline's sharp corner: a right angle was always the 7 m/s
+// floor, and it ran wide out of it into the oncoming lane. It now drives an arc
+// within its own side of the street (RIVAL_STREET_CORNERS).
+const cornerRoute = (turn: 1 | -1, width = 16): RivalDefinition => {
+  const points: CoursePoint[] = [[0, 0], [0, -100], [turn * 100, -100]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  return { id: `corner-${turn}`, start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 100, 200], gates: [200] };
+};
+// Where the rival's own line is at a distance along the route: the driving path, moved out to its side.
+const ownLine = (route: RivalDefinition, along: number, width = 16) => {
+  const at = sampleDrivingPath(route, along), side = ownSide(width);
+  return { x: at.x - at.uz * side, z: at.z + at.ux * side, at };
+};
+
+test("a street corner is rounded within the rival's own side of the street", () => {
+  const width = 16, room = width / 2 - RIVAL_STREET_CORNERS.kerbMargin;
+  for (const turn of [1, -1] as const) {
+    const route = cornerRoute(turn, width), label = turn > 0 ? "right" : "left";
+    // The path is continuous and points the way it runs.
+    let previous = sampleDrivingPath(route, 60);
+    for (let d = 60.1; d < 140; d += 0.1) {
+      const here = sampleDrivingPath(route, d), step = Math.hypot(here.x - previous.x, here.z - previous.z);
+      assert.ok(step <= 0.1 + 1e-9, `${label}: the path jumps ${step.toFixed(3)} m at ${d.toFixed(1)} m`);
+      assert.ok(Math.hypot((here.x - previous.x) / step - here.ux, (here.z - previous.z) / step - here.uz) < 0.01, `${label}: the path does not point the way it runs at ${d.toFixed(1)} m`);
+      previous = here;
+    }
+    const apex = sampleDrivingPath(route, 100);
+    assert.ok(Math.hypot(apex.x, apex.z + 100) > 3, `${label}: the corner is not rounded; the test proves nothing`);
+    if (turn > 0) {
+      // A right turn cuts in towards the kerb from its own side, and keeps the margin at the apex.
+      const line = ownLine(route, 100, width);
+      assert.ok(line.x <= room + 1e-6 && line.z + 100 <= room + 1e-6, `right: its line at the apex is ${line.x.toFixed(2)} m in, the kerb margin is at ${room}`);
+    } else {
+      // A left turn is back on its own side of the new street by the edge of the junction.
+      for (let d = 100 + width / 2; d <= 140; d += 0.5) {
+        const line = ownLine(route, d, width);
+        assert.ok(-(line.z + 100) >= -1e-6, `left: ${d - 100} m past the corner its line is ${(line.z + 100).toFixed(2)} m into the oncoming half`);
+      }
+    }
+  }
+});
+
+test("a right-angle street corner is planned above the old floor, and progress runs round the arc", () => {
+  const route = cornerRoute(1);
+  const at = (along: number, speed: number) => {
+    const on = sampleDrivingPath(route, along);
+    const vehicle = { ...createSim("fwd").state.vehicle, x: on.x, y: 0, z: on.z, heading: Math.atan2(-on.ux, -on.uz), speed, forwardSpeed: speed, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: Math.max(0, along - 10), progressMark: Math.max(0, along - 10) };
+    rivalInput(route, { vehicle, driver, race: null }, []);
+    return driver;
+  };
+  // Mid-corner at 10 m/s: the centreline's corner held it to 7 m/s here.
+  assert.ok(at(100, 10).targetSpeed > 10, `mid-corner it planned ${at(100, 10).targetSpeed.toFixed(1)} m/s`);
+  // Driven round the arc, its progress follows the arc: it used to jump from one leg of the corner to the other.
+  let previous = -Infinity;
+  for (let d = 80; d <= 120; d++) {
+    const along = at(d, 10).along;
+    assert.ok(Math.abs(along - d) < 1.5, `${d} m round the corner its progress read ${along.toFixed(1)} m`);
+    assert.ok(along > previous, `its progress went backwards at ${d} m`);
+    previous = along;
+  }
+});
+
 // Round a corner (2026-09-13). A car's offset is measured across the route at the
 // aim point, where every other offset in the traffic loop is. It used to be across
 // the nearest segment, which at a corner is still the street being left: on a
 // generated race (seed 17) a truck stopped just round a right turn, dead in the
-// rival's path, read as 5 m to one side, and the rival drove into it.
-test("a car stopped just round a corner is in its path", () => {
-  const points: CoursePoint[] = [[0, 0], [0, -100], [100, -100]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 16, zone: "boulevard" }));
-  const route: RivalDefinition = { id: "corner-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 100, 200], gates: [200] };
+// rival's path, read as 5 m to one side, and the rival drove into it. Since corners
+// are rounded, the same mistake brakes for a truck beside the arc it will drive.
+test("a car stopped just round a corner is judged against the path the rival will drive", () => {
+  const route = cornerRoute(1);
   const at = (truck: { x: number; z: number }[]) => {
-    // 5 m short of the corner, turning right onto a street heading +X.
-    const vehicle = { ...createSim("fwd").state.vehicle, x: 0, y: 0, z: -95, heading: 0, speed: 12, forwardSpeed: 12, lateralSpeed: 0 };
-    const driver = { ...createRivalDriver(), along: 95, progressMark: 95 };
+    // 5 m short of the corner and turning into it, right onto a street heading +X.
+    const on = sampleDrivingPath(route, 95);
+    const vehicle = { ...createSim("fwd").state.vehicle, x: 2, y: 0, z: -95, heading: Math.atan2(-on.ux, -on.uz), speed: 12, forwardSpeed: 12, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 95, progressMark: 95, avoidance: ownSide(16) };
     rivalInput(route, { vehicle, driver, race: null }, truck.map(t => ({ y: 0, speed: 0, heading: -Math.PI / 2, length: 7.2, ...t })));
     return driver.targetSpeed;
   };
   const clear = at([]);
-  assert.ok(clear > 5, `with the street clear it slowed to ${clear.toFixed(1)} m/s; the test proves nothing`);
-  // A truck stopped on the new street's centreline 9 m round the corner.
-  const blocked = at([{ x: 9, z: -100 }]);
-  assert.ok(blocked < 2, `it kept a target of ${blocked.toFixed(1)} m/s into a truck stopped round the corner`);
+  assert.ok(clear > 10, `with the street clear it slowed to ${clear.toFixed(1)} m/s; the test proves nothing`);
+  // Stopped on the arc, 8 m round the corner.
+  const blocked = at([{ x: 8, z: -97 }]);
+  assert.ok(blocked < 2, `it kept a target of ${blocked.toFixed(1)} m/s into a truck stopped in its path`);
+  // Stopped on the new street's centreline, 4 m outside the arc the rival drives.
+  const beside = at([{ x: 9, z: -100 }]);
+  assert.ok(beside > 10, `it slowed to ${beside.toFixed(1)} m/s for a truck beside its path`);
 });
 
 // Pulling out into an oncoming car (2026-09-13). On Uptown, queued behind traffic

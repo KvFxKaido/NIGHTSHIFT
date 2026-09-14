@@ -1217,7 +1217,8 @@ under 3 m/s the truck is no longer held for it and drives on into the rival:
 traffic follows only racers going its way. On the centreline the rival runs as
 wide and misses the same truck, arriving half a second earlier. The wide exit is
 the problem, not the lane: at that corner the rival arrives 1 to 3.5 m/s over its
-planned 7 m/s and, on full lock, still runs wide.
+planned 7 m/s and, on full lock, still runs wide. Rounding street corners fixed it
+(below, **Street corners, rounded**).
 
 Tried and not shipped:
 
@@ -1235,6 +1236,86 @@ Tried and not shipped:
   tighter than 35 m): 936 ticks of contact on the first 42.
 
 `tests/rival-racing.test.ts` holds both parts: the rival rests on its own side on
-12, 16 and 24 m streets, and slows for a truck stopped 9 m round a right turn.
+12, 16 and 24 m streets, and slows for a truck stopped 9 m round a right turn
+(since reworked for rounded corners, below).
 Each fails with its part removed. The racing test that has the rival hold its
 line alongside the player now measures from that line.
+
+**Street corners, rounded (2026-09-13).** The wide exit above was the corner, not
+the lane. A street route is its centreline, and its junctions are sharp polyline
+corners. The rival planned every one from that corner, reading a 5.7 m radius
+across 8 m either side, so every right angle was planned at the 7 m/s (16 mph)
+floor. It steered for the corner itself, arrived over that plan, and ran wide out
+of it. Shawn, racing, found it braking more than he'd like.
+
+It now drives an arc at each corner (`RIVAL_STREET_CORNERS`, `sampleDrivingPath`,
+"full-line-v9"), as large as the pavement allows less a 1.5 m kerb margin, and
+kept to its own side of the street:
+
+- **A right turn** cuts in towards the kerb from its own side and keeps the
+  margin at the apex.
+- **A left turn** is back on its own side, the half-way-into-the-lane offset
+  above, by the edge of the junction.
+- **An arc** uses at most 45% of the shorter leg either side, so neighbouring arcs
+  never meet.
+
+On a 16 m street that is an 18.5 m arc for a right turn and about 13 m for a left.
+The route, its distances and its gates stay on the centreline: only the path it
+aims along and plans from is rounded. Its progress through a corner is read round
+the arc, and the lost-car 5 m is counted from the arc.
+
+Measured, rival alone, against the lane-discipline rival above:
+
+| | Before | Rounded |
+|---|---|---|
+| 82 races in traffic | 8,046.3 s, 1,218 contact, 12.3 s lost | **7,559.8 s, 292 contact, 3.6 s lost** |
+| Races past 16 m | 0 (14.9 m) | 0 (12.5 m) |
+| 42 races clear | 3,967.2 s | **3,757.3 s** |
+| Slowest point of a junction turn, clear | 18.7 mph average | **24.6 mph** |
+| Exits more than 1 m into the oncoming half, clear | 118 of 255 turns | 116 |
+| Uptown clear | 100.4 / 98.3 / 98.3 | **95.7 / 93.6 / 93.6** |
+| Uptown in traffic | 100.4 / 99.3 / 99.4, 26 contact | **95.8 / 93.7 / 98.2**, 24 contact |
+
+It is 6% faster in traffic and 5% on clear streets, with a quarter of the contact.
+The 4th Ave onto James St corner is clean on all eleven races that share it: 0
+ticks on nine of them, 10 and 8 on the other two, against 81 to 154 before. Sound
+to Sky picks up 63 ticks of oncoming contact (140.6 s against 139.6). Uptown's
+third lap in traffic loses 4.5 s to one incident with 4 ticks off the pavement:
+the rival stopped in a junction for a crossing car and, under 3 m/s, was no longer
+held for, and the crossing car hit it side on, which is the one-way yielding above.
+"Worst off" now reads about 7 m where it read 3.7: that is an arc's apex, measured
+from the centreline it cuts.
+
+Tried and not shipped:
+
+- **Arcs as large as the kerb allows, ignoring lanes.** 6% faster on two races,
+  but a left turn cut across the oncoming half, 11 m of exit into it on one race.
+- **Getting there without reading progress round the arc.** Progress was still
+  the nearer leg of the centreline, and a car cutting the corner jumped 11 m from
+  one leg to the other halfway round. Its aim and speed plan jumped with it: on
+  Uptown's third lap it accelerated while still turning right, swung into the
+  oncoming lane and clipped a waiting box truck (102 ticks of contact). Over 82
+  races it had 346 ticks against 292 with progress round the arc.
+- **Steering feedforward on streets**, now that a street's curvature is real: a
+  little faster, but exits into the oncoming half went from 291 m to 427 m, and on
+  Uptown in traffic it left the road on lap 3.
+- **Planning straight from the arc's radius** instead of reading it off the path:
+  slower (3,878 s clear), and it left the road on Uptown.
+- **Left turns back on its own side 1 m sooner:** two races past 16 m, one 28.7 m.
+- **Sensitivity.** 80% arcs made almost no difference (lanes limit most corners
+  first). A 2.5 m kerb margin was 9 s slower on clear streets and lost more time off
+  course. An arc limit of 38% or 45% of the leg was clean; 30% put a race 38.6 m off
+  the street, and 50% put one past 16 m and 36 ticks off the pavement on Uptown.
+
+`tests/rival-racing.test.ts` holds it:
+
+- **The arc stays on its own side.** A right turn keeps the kerb margin at its
+  apex, a left turn is back on its own side by the junction edge, and the path is
+  continuous.
+- **Planning and progress.** Mid-corner it plans above the old floor, and its
+  progress through the corner follows the arc.
+- **Trucks at the corner.** A truck stopped on the arc is slowed for, and one
+  beside it is not.
+
+Each fails with its part removed. The last replaces the frame test above: on a
+rounded corner the old frame mistake shows as braking for a truck beside the arc.

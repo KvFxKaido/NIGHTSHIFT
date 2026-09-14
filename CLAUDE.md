@@ -138,7 +138,8 @@ fixtures outside the playable bundle, and old world links redirect.
   (only a second 12 s reset where the last one put it may go past a blockage). It
   races the player rather than yielding: passes, holds its line, blocks and
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
-  it rests half-way into the inner lane going its way (`RIVAL_LANE`). Its
+  it rests half-way into the inner lane going its way (`RIVAL_LANE`) and drives
+  each junction as an arc within its own side (`RIVAL_STREET_CORNERS`). Its
   cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
   grip-limited speed its centreline tracking, not grip, puts it on the grass. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
@@ -235,6 +236,9 @@ fixtures outside the playable bundle, and old world links redirect.
   equal distance are not abreast through a bend; routes stay centreline. The one
   exception is Ridge Circuit's racing line, which has its own `along` and never
   compares distances with a lane; streets stay centreline (lines hit traffic).
+  A street rival's route, distances and gates are centreline too; only the path it
+  aims along is rounded at corners (`sampleDrivingPath`), and its progress through
+  a corner must be read round the arc, never off the nearer leg, which jumps 11 m.
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
