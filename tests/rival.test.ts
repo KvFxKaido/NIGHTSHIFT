@@ -109,7 +109,7 @@ function cage(sim: Sim) {
   }
 }
 
-test("twelve seconds without net progress resets a trapped rival nearby at rest",()=>{
+test("twelve seconds without net progress resets a trapped rival nearby at rest, and past the trap only once stuck where a reset put it",()=>{
   const sim=create(false);
   try {
     cage(sim);
@@ -119,7 +119,7 @@ test("twelve seconds without net progress resets a trapped rival nearby at rest"
     }
     const rival=sim.state.rival!;
     assert.equal(rival.driver.noProgressTicks,RIVAL_RESET_TICKS-1);
-    const old={...rival.vehicle}, clock=rival.race.ticks;
+    const old={...rival.vehicle}, clock=rival.race.ticks, trappedAt=rival.driver.along;
     step(sim,parked);
     assert.equal(rival.driver.resets,1);
     assert.ok(Math.hypot(old.x-rival.vehicle.x,old.z-rival.vehicle.z)<35);
@@ -127,8 +127,16 @@ test("twelve seconds without net progress resets a trapped rival nearby at rest"
     assert.equal(rival.race.checkpoint,0);
     assert.equal(rival.race.ticks,clock+1,"reset must not rewind the race clock");
     assert.deepEqual(rival.race.splits,[]);
+    // The player can see this one: it goes back, never further along (2026-09-13).
+    assert.ok(rival.driver.along<=trappedAt+1e-6,`the reset put it ${(rival.driver.along-trappedAt).toFixed(1)} m further along`);
+    // The trap is still ahead of it, so it is stuck again where the reset put it.
+    // Only then does a reset go past what blocks it, one wall at a time: into the
+    // box past its back wall, then past its front wall and out.
     for(let tick=0;tick<300;tick++)step(sim,parked);
-    assert.ok(rival.vehicle.z<800,"reset did not let the rival escape the trap");
+    assert.ok(rival.vehicle.z>800,"the first reset let it out of the trap; the rest of this test proves nothing");
+    for(let tick=0;tick<3*RIVAL_RESET_TICKS && rival.vehicle.z>800;tick++)step(sim,parked);
+    assert.ok(rival.vehicle.z<800,"stuck again where its resets put it, it never got past the trap");
+    assert.ok(rival.driver.resets<=3,`it took ${rival.driver.resets} resets to get past the trap`);
   } finally {sim.world.free();}
 });
 

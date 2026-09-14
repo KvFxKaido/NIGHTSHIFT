@@ -134,7 +134,8 @@ fixtures outside the playable bundle, and old world links redirect.
   and the rival tests' fixture.
 - **Rival.** One AI driver in the same physics world, routed line, no
   rubber-banding, reversing recovery and a local reset after 12 s stuck, or
-  after 2.5 s out of the player's sight (`UNSEEN_RECOVERY`), never further along. It
+  after 2.5 s out of the player's sight (`UNSEEN_RECOVERY`), never further along
+  (only a second 12 s reset where the last one put it may go past a blockage). It
   races the player rather than yielding: passes, holds its line, blocks and
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
   it rests half-way into the inner lane going its way (`RIVAL_LANE`). Its

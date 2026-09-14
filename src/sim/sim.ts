@@ -854,8 +854,16 @@ export function step(sim: Sim, rawInput: Input): void {
   if (sim.race && rival) stepRace(sim.race, rival.race, rival.vehicle);
 }
 
-/** Give normal recovery twelve seconds, then rejoin locally without gaining a gate. */
+/**
+ * Give normal recovery twelve seconds, then rejoin locally without gaining a gate:
+ * where it was or behind, never further along (2026-09-13). It used to try 8 m on
+ * first, up to 24 m, so the one reset the player can watch was the one that could
+ * gain ground. Only when it is stuck again within 30 m of where the last reset put
+ * it, the way on blocked from behind and 24 s already lost, may it be put past.
+ */
 export const RIVAL_RESET_TICKS = 12 * TICK_HZ;
+/** Metres from the last reset within which a second one counts as stuck at the same place. */
+const RESET_REPEAT = 30;
 
 /**
  * Recovery out of the player's sight (2026-09-13). Where NightShift may lie for
@@ -892,8 +900,10 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
   if (maximum < minimum) return;
   const center = Math.max(minimum, Math.min(maximum, driver.along));
   const shape = new RAPIER.Cuboid(1.4, .65, 2.7);
-  // Unseen, only where it was or behind: never further along.
-  for (const delta of unseen ? [0, -8, -16, -24] : [8, -8, 16, -16, 24, -24, 0]) {
+  // Only where it was or behind: never further along. In sight and stuck again where
+  // the last reset put it, past whatever is in the way.
+  const repeat = !unseen && Math.abs(center - driver.resetAlong) < RESET_REPEAT;
+  for (const delta of repeat ? [8, 16, 24, 0, -8, -16, -24] : [0, -8, -16, -24]) {
     const along = Math.max(minimum, Math.min(maximum, center + delta));
     const point = sampleRivalPath(route, along);
     for (const side of [0, 3, -3]) {
@@ -923,7 +933,7 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
       body.resetTorques(true);
       reset(initialVehicle({ ...sim.roadWorld, start: { x, y: surface.height, z,
         heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } }),
-        { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries,
+        { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries, resetAlong: along,
           resets: driver.resets + (unseen ? 0 : 1), unseenResets: driver.unseenResets + (unseen ? 1 : 0) });
       return;
     }

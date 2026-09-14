@@ -502,7 +502,8 @@ corner preview extends with stopping distance instead of ending at 100 metres;
 traffic, bends and recovery still lower the target speed. The 10 m/s local cruise
 limit is separate. After 12 seconds without gaining another
 4 metres of forward route progress, the sim can reset it at rest on nearby clear
-road. It keeps its race clock and checkpoints, stays behind the next gate, and
+road, where it was or behind (see **The twelve-second reset never gains ground**
+below). It keeps its race clock and checkpoints, stays behind the next gate, and
 retries once per second if local placements are occupied. This recovery follows
 its own route position, with no catch-up speed boost or grip change.
 Start/reset reconstructs
@@ -1087,6 +1088,24 @@ within 120 m and none of this applies. `tests/rival.test.ts` traps the rival 600
 along Sound to Sky: out of sight it is put back within four seconds, at rest and
 never further along; with the player 30 m away it waits, each failing with its
 rule broken.
+
+**The twelve-second reset never gains ground (2026-09-13).** With recovery out of
+sight in, the twelve-second reset is the one the player can watch: a stuck rival
+within 120 m of them. It tried 8 m further along first and could land 24 m ahead,
+so the reset in view was the only one that could gain ground. By Shawn's call it
+now keeps the rule the unseen one has, where it was or behind (`RIVAL_RESET_TICKS`
+in `sim.ts`, "full-line-v8"), and the timer stays at twelve seconds: before then
+the rival is visibly reversing out of trouble, which reads as a driver, and a
+shorter timer would only mean more resets in front of the player.
+
+One exception keeps it from looping. A route blocked for good puts a rival reset
+behind the blockage straight back against it, so a second reset within 30 m of
+where the last one put it may go past, 8 m at a time; it has lost 24 s by then.
+`tests/rival.test.ts` boxes the rival in on its route: the first reset puts it
+behind the box, the next past the back wall, the third out, and the test fails
+with either rule removed. The 82 generated races cannot measure this: their player
+stays parked on the grid, the rival is out of sight, and the twelve-second reset
+fired in none of them.
 
 **Traffic at 35 mph and up (2026-09-13).** Racing Uptown, Shawn read traffic as
 about 20 mph and asked for 35. Measured, it already cruised at sedan 35, taxi 31,

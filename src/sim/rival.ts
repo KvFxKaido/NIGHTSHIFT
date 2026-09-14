@@ -25,6 +25,8 @@ export interface RivalDriver {
   resets: number;
   /** Put back on its line out of the player's sight (`UNSEEN_RECOVERY` in sim.ts), counted apart from the 12 s fallback. */
   unseenResets: number;
+  /** Where the last reset put it along its route: a second one near there may go past what blocked it. */
+  resetAlong: number;
   stuckTicks: number;
   reverseTicks: number;
   recoveries: number;
@@ -34,7 +36,7 @@ export interface RivalDriver {
   targetSpeed: number;
 }
 export function createRivalDriver(): RivalDriver {
-  return { along: 0, progressMark: 0, noProgressTicks: 0, resetCheckIn: 0, resets: 0, unseenResets: 0, stuckTicks: 0, reverseTicks: 0, recoveries: 0, recoverySide: 0, bypassUntil: 0, avoidance: 0, targetSpeed: 0 };
+  return { along: 0, progressMark: 0, noProgressTicks: 0, resetCheckIn: 0, resets: 0, unseenResets: 0, resetAlong: -1e9, stuckTicks: 0, reverseTicks: 0, recoveries: 0, recoverySide: 0, bypassUntil: 0, avoidance: 0, targetSpeed: 0 };
 }
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const angle = (value: number) => Math.atan2(Math.sin(value), Math.cos(value));
@@ -110,9 +112,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * the player's sight (UNSEEN_RECOVERY in sim.ts). "full-line-v6": a passing side is
  * checked for an oncoming car where it will be when the rival is alongside.
  * "full-line-v7": keeps to its own side of a street (RIVAL_LANE), and traffic
- * judged against the car's offset at its aim point.
+ * judged against the car's offset at its aim point. "full-line-v8": the 12 s reset
+ * no longer puts it further along, unless stuck again where the last one put it.
  */
-export const RIVAL_REVISION = "full-line-v7";
+export const RIVAL_REVISION = "full-line-v8";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
