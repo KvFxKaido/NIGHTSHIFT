@@ -102,6 +102,7 @@
             <button class="menu-button" data-menu-action="saves" data-save-mode="load">Load game</button>
             <button class="menu-button" data-menu-action="new-drive">New drive</button>
             <button class="menu-button" data-menu-action="races">Race list</button>
+            <button class="menu-button" data-menu-action="blacklist">Blacklist</button>
             <button class="menu-button" data-menu-action="garage">Garage</button>
             <button class="menu-button" data-menu-action="options">Options</button>
           </nav>
@@ -121,11 +122,20 @@
               <div class="garage-options text-options">
                 <button class="garage-option" data-car="cinder" aria-pressed="true">Cinder</button>
                 <button class="garage-option" data-car="bulwark" aria-pressed="false">Bulwark</button>
-                <button class="garage-option" data-car="kestrel" aria-pressed="false" disabled>Kestrel · Pink slip</button>
+                <button class="garage-option" data-car="kestrel" aria-pressed="false" disabled>Kestrel · #10 Moth</button>
+                <button class="garage-option" data-car="latch" aria-pressed="false" disabled>Latch · #9 Stray</button>
+                <button class="garage-option" data-car="hammer" aria-pressed="false" disabled>Hammer · #8 Rivet</button>
+                <button class="garage-option" data-car="breakwater" aria-pressed="false" disabled>Breakwater · #7 Bollard</button>
+                <button class="garage-option" data-car="wager" aria-pressed="false" disabled>Wager · #6 Deuce</button>
+                <button class="garage-option" data-car="ns01" aria-pressed="false" disabled>NS-01 · #5 Sable</button>
+                <button class="garage-option" data-car="meridian" aria-pressed="false" disabled>Meridian · #4 Plumb</button>
+                <button class="garage-option" data-car="skim" aria-pressed="false" disabled>Skim · #3 Crest</button>
+                <button class="garage-option" data-car="reign" aria-pressed="false" disabled>Reign · #2 Wake</button>
+                <button class="garage-option" data-car="vesper" aria-pressed="false" disabled>Vesper · #1 Tally</button>
               </div>
               <p class="handling-note" data-car-status role="status" aria-live="polite">Each car has its own drivetrain. Changing car starts a fresh drive; paint, wheels and stance carry over.</p>
               <p class="handling-note" data-career-status role="status"></p>
-              <button class="garage-option" data-replace-moth-race hidden>Replace outdated Moth course</button>
+              <button class="garage-option" data-replace-stage-race hidden>Replace outdated course</button>
               <p class="handling-note" data-cash role="status">Cash · $0</p>
               <button class="garage-option" data-buy-bulwark disabled>Buy Bulwark · $1,500</button>
             </fieldset>
@@ -234,6 +244,15 @@
           <button class="menu-button" data-menu-action="back">Back</button>
         </section>
 
+        <section class="menu-screen blacklist-menu" data-menu-screen="blacklist" aria-labelledby="blacklist-title" hidden>
+          <p class="menu-kicker">Port Alder / The Blacklist</p>
+          <h2 id="blacklist-title" class="menu-heading">Blacklist</h2>
+          <p class="handling-note">Ten names, climbed from #10. Flash the next name to race for a stage: two wins, then the pink slip for their car. Anyone higher races you for nothing.</p>
+          <div class="blacklist" data-blacklist></div>
+          <p class="settings-status" data-blacklist-status role="status" aria-live="polite"></p>
+          <button class="menu-button" data-menu-action="back">Back</button>
+        </section>
+
         <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
           <p class="menu-kicker">Driver setup</p>
           <h2 id="controls-title" class="menu-heading">Controls</h2>
@@ -275,6 +294,7 @@
             <button class="menu-button" data-free-roam hidden>Return to free roam</button>
             <button class="menu-button" data-menu-action="restart" data-restart-label>Return to garage</button>
             <button class="menu-button" data-menu-action="races">Race list</button>
+            <button class="menu-button" data-menu-action="blacklist">Blacklist</button>
             <button class="menu-button" data-menu-action="saves" data-save-mode="save">Save game</button>
             <button class="menu-button" data-menu-action="options">Options</button>
             <button class="menu-button" data-district-map data-menu-action="map">Port Alder map</button>

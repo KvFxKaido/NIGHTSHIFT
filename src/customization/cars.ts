@@ -1,11 +1,14 @@
 import type { Drivetrain } from "../sim/sim.ts";
-/** Garage-capable bodies; progress.ts separately gates Kestrel ownership.
- *  All bodies currently share the same handling model.
+/** Garage-capable bodies; progress.ts gates which ones a profile owns: Cinder
+ *  always, Bulwark by purchase, and each Blacklist name's car once that name is
+ *  beaten (settings/blacklist.ts). All bodies share the same handling model.
  *  The NS-01 left the garage when it became the car Sable drives; a save that
- *  still names it is migrated by RETIRED_CARS in settings.ts. */
-export type PlayerCarId = "bulwark" | "cinder" | "kestrel";
+ *  still names it as "blender" is migrated by RETIRED_CARS in settings.ts, so the
+ *  NS-01 won back from Sable is "ns01", the same body under a new id. */
+export const PLAYER_CAR_IDS = ["cinder", "bulwark", "kestrel", "latch", "hammer", "breakwater", "wager", "ns01", "meridian", "skim", "reign", "vesper"] as const;
+export type PlayerCarId = typeof PLAYER_CAR_IDS[number];
 export function isPlayerCarId(value: unknown): value is PlayerCarId {
-  return value === "bulwark" || value === "cinder" || value === "kestrel";
+  return (PLAYER_CAR_IDS as readonly unknown[]).includes(value);
 }
 
 /**
@@ -23,6 +26,7 @@ export const CAR_DRIVETRAIN: Record<string, Drivetrain> = {
   cinder: "rwd",   // the hero sedan the player starts in
   bulwark: "awd",  // heavy, planted
   blender: "rwd",  // the NS-01 Sable slides around his own yard
+  ns01: "rwd",  // the same NS-01, won back from Sable
   kestrel: "awd",  // Moth runs a rally hatch
   vesper: "rwd",  // Tally: cab-forward coupe; visual mid-engine layout
   latch: "fwd",  // Stray: sport liftback

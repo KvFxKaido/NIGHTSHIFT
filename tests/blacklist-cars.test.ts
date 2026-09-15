@@ -7,6 +7,8 @@ import validator from "gltf-validator";
 import { createBlenderCar, BLENDER_CARS } from "../src/render/blender-car.ts";
 import { CAR_GEOMETRY } from "../src/render/car.ts";
 import { drivetrainFor, isPlayerCarId } from "../src/customization/cars.ts";
+import { BLACKLIST } from "../src/settings/blacklist.ts";
+import { decodeProgress, ownsCar } from "../src/settings/progress.ts";
 
 const bodies = [
   { id: "latch", drive: "fwd", landmark: "liftback-canopy", minHeight: 1.4 },
@@ -27,7 +29,11 @@ for (const body of bodies) {
     const view = createBlenderCar(asset.scene, BLENDER_CARS[body.id].root, BLENDER_CARS[body.id].model);
     assert.equal(view.car.userData.model, `ns-${body.id}`);
     assert.equal(drivetrainFor(body.id), body.drive);
-    assert.equal(isPlayerCarId(body.id), false, "rival cannot become a saved garage car");
+    // Won on its owner's pink slip (settings/blacklist.ts), so a saved garage car, but never before.
+    assert.equal(isPlayerCarId(body.id), true, "a won Blacklist car must round-trip through garage saves");
+    const owner = BLACKLIST.find(name => name.car === body.id)!;
+    assert.equal(ownsCar(decodeProgress(null), body.id), false, `${body.id} must be won from ${owner.name} first`);
+    assert.equal(ownsCar({ names: { [owner.id]: { wins: 3, races: [] } } }, body.id), true);
     assert.ok(view.bodyShell.getObjectByName(body.landmark));
     view.car.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(view.bodyShell);

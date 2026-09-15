@@ -47,6 +47,7 @@ test("nested options, save and race list screens return to their origin without 
       assert.equal(transitionMenu(returned, back).screen, origin);
       assert.equal(transitionMenu(transitionMenu(initial, "open-saves"), back).screen, origin);
       assert.equal(transitionMenu(transitionMenu(initial, "open-races"), back).screen, origin);
+      assert.equal(transitionMenu(transitionMenu(initial, "open-blacklist"), back).screen, origin);
     }
   }
 });

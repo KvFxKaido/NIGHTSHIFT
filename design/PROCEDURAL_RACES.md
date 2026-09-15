@@ -27,7 +27,8 @@ These arrived as a possible "more elegant solution" to the shortcut rule
 
 Two wins unlock a rival's pink slip; the third win takes the car and removes
 the rival from the map. Moth implements sprint, circuit rematch, then unordered
-checkpoints. A new stage draws once, losses retry it, and old wins never advance
+checkpoints; since phase 2 every Blacklist name has three stages of its race
+(`design/BLACKLIST.md`, "The chain"). A new stage draws once, losses retry it, and old wins never advance
 or pay again. The future playlist is where retired rivals' races remain playable.
 This supersedes the original every-flash redraw and indefinite post-win encounters
 for career rivals. Edge-bank learning is still unimplemented; learning from the
@@ -99,7 +100,7 @@ first two wins could affect later stages, not resurrect a retired street rival.
    Western against 1st would test the model where the generator most relies on it.
 4. **Playlists.** *Done 2026-09-15*, as the race list (Pause or title → Race
    list; `design/PORT_ALDER.md`, "Race list"). Shawn's calls: the results of a
-   generated race offer Keep, and Moth's won stages are listed from her career
+   generated race offer Keep, and won career stages are listed from the career
    without being kept; free roam can draw a new race from where the car is,
    which is idea 1 outside the career; the authored races are always listed; and
    every entry starts against the rival or solo. Kept races live in their own

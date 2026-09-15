@@ -9,6 +9,7 @@ import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 import { ALDER_CRUISE } from "../src/sim/encounter.ts";
 import { alderGeneratedRace } from "../src/sim/alder.ts";
 import type { RivalDefinition } from "../src/sim/rival.ts";
+import { BLACKLIST } from "../src/settings/blacklist.ts";
 
 // The drivetrain stopped being a garage toggle and became a property of the
 // body. These pin the parts of that which are easy to get silently wrong.
@@ -68,10 +69,12 @@ test("the bodies drive differently enough to be worth winning", () => {
   assert.equal(CAR_DRIVETRAIN.kestrel, "awd", "Moth's rally hatch is not all-wheel drive");
 });
 
-test("the garage roster includes the earnable Kestrel, but not the other rival bodies", () => {
-  for (const id of ["cinder", "bulwark", "kestrel"]) assert.ok(isPlayerCarId(id), `${id} should be a garage choice`);
-  for (const id of ["blender", "hammer"]) {
-    assert.equal(isPlayerCarId(id), false, `${id} is a rival body and must not be selectable`);
-    assert.ok(CAR_DRIVETRAIN[id] !== undefined, `${id} still needs a profile even unselectable`);
+test("the garage roster is the Cinder, the Bulwark and every Blacklist car; the retired NS-01 id is not one", () => {
+  for (const id of ["cinder", "bulwark", ...BLACKLIST.map(name => name.car)]) {
+    assert.ok(isPlayerCarId(id), `${id} should be a garage choice`);
+    assert.ok(CAR_DRIVETRAIN[id] !== undefined, `${id} needs a drivetrain`);
   }
+  // "blender" is the NS-01's old saved id, migrated to the Cinder (RETIRED_CARS); Sable's pink slip is "ns01".
+  assert.equal(isPlayerCarId("blender"), false);
+  assert.equal(CAR_DRIVETRAIN.ns01, CAR_DRIVETRAIN.blender, "the won NS-01 drives as Sable's does");
 });

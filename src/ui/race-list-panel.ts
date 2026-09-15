@@ -14,7 +14,7 @@ export interface RaceListPanelOptions {
   draw(): string | null;
 }
 
-const GROUP_TITLES: Record<RaceListItem["group"], string> = { authored: "Courses", moth: "Moth", kept: "Kept races" };
+const GROUP_TITLES: Record<RaceListItem["group"], string> = { authored: "Courses", blacklist: "Blacklist", kept: "Kept races" };
 
 /** The race list screen: rebuilt each time it opens, and after a removal. */
 export function createRaceListPanel(options: RaceListPanelOptions) {

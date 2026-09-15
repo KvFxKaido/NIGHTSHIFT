@@ -3,16 +3,16 @@ import test from "node:test";
 import { ALDER_RACE } from "../src/sim/alder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
 import { AUTHORED_RACES, generatedKind, raceListItems } from "../src/ui/race-list.ts";
-import type { CareerProgress } from "../src/settings/progress.ts";
+import { decodeProgress, type StageRace } from "../src/settings/progress.ts";
 import type { PlaylistEntry } from "../src/settings/playlist.ts";
 
-// The race list shows the authored races, Moth's won stages and the races the
+// The race list shows the authored races, the Blacklist's won stages and the races the
 // player kept, and says what each Race and Solo button starts.
 
 const today = { generator: "generator-v1", world: "alder-test" };
 const older = { generator: "generator-v0", world: "alder-test" };
-const career = (wins: number, races: CareerProgress["mothRaces"]): CareerProgress =>
-  ({ mothBeaten: wins === 3, mothWins: wins, mothRaces: races, cash: 0, bulwarkOwned: false });
+const career = (wins: number, races: StageRace[], names: Record<string, { wins: number; races: StageRace[] }> = {}) =>
+  decodeProgress(JSON.stringify({ version: 4, cash: 0, bulwarkOwned: false, names: { moth: { wins, races }, ...names } }));
 const kept = (raceId: string, start: string | null, build = today): PlaylistEntry =>
   ({ race: { raceId, start, build, name: `Kept ${raceId}`, keptAt: 1 }, playable: build === today });
 
@@ -43,7 +43,7 @@ test("Moth's won stages are listed; her pending stage is not; kept races follow 
     { raceId: "gen-17-unordered", start: null, build: today },
   ];
   const items = raceListItems(career(2, stages), [kept("gen-99", null)], today);
-  const moth = items.filter(i => i.group === "moth");
+  const moth = items.filter(i => i.group === "blacklist");
   assert.deepEqual(moth.map(i => [i.title, i.detail]), [["Moth / First meeting", "Sprint · won"], ["Moth / Rematch", "Circuit · won"]]);
   assert.deepEqual(moth[0]!.race, { raceId: "gen-15", start: "-4.5,875.0,0.000", solo: false });
   assert.deepEqual(moth[0]!.solo, { raceId: "gen-15", start: "-4.5,875.0,0.000", solo: true });
@@ -51,14 +51,14 @@ test("Moth's won stages are listed; her pending stage is not; kept races follow 
   const keptItems = items.filter(i => i.group === "kept");
   assert.equal(keptItems.length, 1);
   assert.equal(keptItems[0]!.removable!.raceId, "gen-99");
-  assert.deepEqual(items.map(i => i.group), [...AUTHORED_RACES.map(() => "authored"), "moth", "moth", "kept"]);
+  assert.deepEqual(items.map(i => i.group), [...AUTHORED_RACES.map(() => "authored"), "blacklist", "blacklist", "kept"]);
 });
 
-test("a kept race Moth's group already shows is listed once; the same seed from another start or build is not the same race", () => {
+test("a kept race the Blacklist group already shows is listed once; the same seed from another start or build is not the same race", () => {
   const stages = [{ raceId: "gen-15", start: null, build: today }];
   const items = raceListItems(career(1, stages),
     [kept("gen-15", null), kept("gen-15", "-4.5,875.0,0.000"), kept("gen-15", null, older)], today);
-  assert.equal(items.filter(i => i.group === "moth").length, 1);
+  assert.equal(items.filter(i => i.group === "blacklist").length, 1);
   assert.deepEqual(items.filter(i => i.group === "kept").map(i => [i.race?.start ?? null, i.race === null]),
     [["-4.5,875.0,0.000", false], [null, true]]);
 });
@@ -72,9 +72,22 @@ test("a course from another build is listed but cannot be started, kept or caree
   }
   assert.ok(items.find(i => i.group === "kept")!.removable, "an unplayable kept race can still be removed");
   // A migrated one-win profile has no course history to list.
-  assert.equal(raceListItems(career(3, []), [], today).filter(i => i.group === "moth").length, 0);
+  assert.equal(raceListItems(career(3, []), [], today).filter(i => i.group === "blacklist").length, 0);
   // An unversioned stage (build null) is never today's.
-  assert.equal(raceListItems(career(1, [{ raceId: "gen-15", start: null, build: null }]), [], today).find(i => i.group === "moth")!.race, null);
+  assert.equal(raceListItems(career(1, [{ raceId: "gen-15", start: null, build: null }]), [], today).find(i => i.group === "blacklist")!.race, null);
+});
+
+test("every name's won generated stages list in ladder order under the name that raced them", () => {
+  const moth = [
+    { raceId: "gen-moth-1", start: null, build: today },
+    { raceId: "gen-moth-2-circuit", start: null, build: today },
+    { raceId: "gen-moth-3-unordered", start: null, build: today },
+  ];
+  const stray = [{ raceId: "gen-stray-4-unordered", start: null, build: today }, { raceId: "gen-stray-5-unordered", start: null, build: today }];
+  const items = raceListItems(career(3, moth, { stray: { wins: 3, races: [...stray, { raceId: "gen-stray-6-unordered", start: null, build: today }] },
+    rivet: { wins: 2, races: [] }, bollard: { wins: 0, races: [] } }), [], today).filter(i => i.group === "blacklist");
+  assert.deepEqual(items.map(i => i.title), ["Moth / First meeting", "Moth / Rematch", "Moth / Pink slip",
+    "Stray / First win", "Stray / Second win", "Stray / Pink slip"], "Rivet's drags store no course, so list nothing");
 });
 
 test("kinds read off the race id", () => {

@@ -7,10 +7,10 @@
 import * as THREE from "three";
 import type { View } from "../render/scene.ts";
 import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
-import { BLENDER_CARS } from "../render/blender-car.ts";
+import { BLENDER_CARS, isBlenderCarId as isPlayerCarId } from "../render/blender-car.ts";
 import { CHASE_CAMERAS, isChaseCameraId, type ChaseCameraId } from "../render/camera.ts";
 
-export type DebugScreen = "main" | "garage" | "track" | "pause" | "races";
+export type DebugScreen = "main" | "garage" | "track" | "pause" | "races" | "blacklist";
 
 export interface AudioReport {
   /** "absent" until a gesture builds the graph; "running" once it is audible. */
@@ -143,6 +143,9 @@ export function installDebugApi(bridge: DebugBridge): void {
     } else if (screen === "races") {
       go("pause");
       click('[data-menu-screen="pause"] [data-menu-action="races"]');
+    } else if (screen === "blacklist") {
+      go("pause");
+      click('[data-menu-screen="pause"] [data-menu-action="blacklist"]');
     }
     bridge.renderOnce();
     return document.body.dataset.gameScreen ?? "unknown";
@@ -309,7 +312,9 @@ export function installDebugApi(bridge: DebugBridge): void {
     if (lighting) url.searchParams.set("lighting", lighting);
     // Round-trip whichever body is loaded, not just "is it the coupe".
     const loaded = view.car.userData.model;
-    const authored = Object.entries(BLENDER_CARS).find(([, car]) => car.model === loaded);
+    // The NS-01 is two ids for one model; a link names the one a player can drive.
+    const authored = Object.entries(BLENDER_CARS).find(([id, car]) => car.model === loaded && isPlayerCarId(id))
+      ?? Object.entries(BLENDER_CARS).find(([, car]) => car.model === loaded);
     if (authored) url.searchParams.set("car", authored[0]);
     else if (!authored) url.searchParams.set("car", "classic");
     const screen = document.body.dataset.gameScreen;
@@ -359,7 +364,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.pick(x, y, 1523)  same, for a pixel read off a 1523px-wide screenshot",
       "__ns.find('hood')      every mesh whose name contains a string",
       "__ns.state()           screen, tick, customization, vehicle",
-      "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause' | 'races'",
+      "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause' | 'races' | 'blacklist'",
       "__ns.set({paint:'ice', stance:'slammed', wheels:'alloy'})",
       "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
       "__ns.camera('near')    'near' | 'standard' | 'far' chase framing; a preview, never saved",
@@ -414,7 +419,7 @@ export function applyDeepLink(api: {
       stance: params.get("stance") ?? undefined,
     });
   }
-  if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause" || scene === "races") {
+  if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause" || scene === "races" || scene === "blacklist") {
     api.go(scene);
   }
   if (camera !== null) api.camera(camera);

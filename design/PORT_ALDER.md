@@ -572,7 +572,7 @@ race of the nearest existing type. Phase 1 is presence. Moth keeps her freight
 block and her stages; Rivet and Sable stay parked; the other seven cruise loops
 in their turfs (`BLACKLIST_CRUISERS`, `src/sim/alder-cruisers.ts`) and a flash
 draws `gen-<id>-<seed>[-kind]`, raced in their own car with its drivetrain. The
-career chain, where only the next name's stages advance, is phase 2.
+career chain, where only the next name's stages advance, is phase 2, below.
 
 | | Car | Race | Loop |
 |---|---|---|---|
@@ -600,6 +600,21 @@ Measured: all seven cruise 60 s in traffic without a reset and replay tick for
 tick; a tick went from 1.64 ms with Moth alone to 3.16 ms with all eight (node,
 PC), a cost to remember for the phone. In the browser a flash on Stray loaded
 `gen-stray-842725-unordered` against his Latch.
+
+### The Blacklist career (phase 2, 2026-09-15)
+
+Every name now races for stages, one name at a time; the rules are in
+`design/BLACKLIST.md`, "The chain". On the map: a flash reaches whoever is
+alongside, as before, and `progress.flashName` decides what it is. The lowest
+unbeaten name's flash is its next stage (a drawn course, the drag, or Sable's yard
+at that stage's target); anyone higher gets the phase 1 free race; a beaten name
+is not on the map to flash, since `main.ts` leaves beaten cruisers and parked
+rivals out of the sim and loads no car for them. The card of the current name
+offers the stage and its pay, and higher names' cards say no stakes. Sable's yard
+runs at 3,000, 3,600 or 4,200 points (`SABLE_DRIFTS`), and its result is saved as a
+career result like a race's. Checked in the browser: flashing Rivet at one win
+loaded the drag, and a pink-slip drift won at 4,200 paid $4,000, handed over the
+NS-01 and named Plumb next.
 
 ### Race list (2026-09-15)
 

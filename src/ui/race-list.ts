@@ -1,7 +1,8 @@
 import { ALDER_RACE } from "../sim/alder.ts";
 import { arenaRaceId } from "../sim/arena-events.ts";
 import { streetCircuitRaceId } from "../sim/street-circuit.ts";
-import { MOTH_STAGES, type CareerProgress } from "../settings/progress.ts";
+import type { CareerProgress } from "../settings/progress.ts";
+import { BLACKLIST } from "../settings/blacklist.ts";
 import { raceBuildFor, sameRaceBuild, type RaceBuild, type RaceBuildFor } from "../settings/race-build.ts";
 import type { KeptRace, PlaylistEntry } from "../settings/playlist.ts";
 import { parseGeneratedRaceId } from "../sim/race-id.ts";
@@ -10,10 +11,10 @@ import { parseGeneratedRaceId } from "../sim/race-id.ts";
  * The race list (design/PROCEDURAL_RACES.md, step 4), as data: what the menu
  * shows and what each button starts. No DOM here, so the rules are testable.
  *
- * Three groups, in this order: the authored races, always listed; Moth's won
- * stages, straight from her career, since retiring her from the street is what
- * makes this their home; and the races the player kept. A kept race Moth's
- * group already shows is not listed twice. Anything drawn on another build is
+ * Three groups, in this order: the authored races, always listed; the Blacklist
+ * stages won on generated courses, straight from the career, since a beaten name
+ * leaves the street and this is their home; and the races the player kept. A kept
+ * race the Blacklist group already shows is not listed twice. Anything drawn on another build is
  * listed, marked, and cannot be started.
  */
 
@@ -21,7 +22,7 @@ import { parseGeneratedRaceId } from "../sim/race-id.ts";
 export interface RaceLaunch { raceId: string; start: string | null; solo: boolean }
 export interface RaceListItem {
   key: string;
-  group: "authored" | "moth" | "kept";
+  group: "authored" | "blacklist" | "kept";
   title: string;
   detail: string;
   /** Null when the course cannot be raced on this build. */
@@ -54,22 +55,31 @@ export function generatedKind(raceId: string): string {
 
 const OLDER = "Drawn on an older version of the city or generator · cannot be raced";
 
-export function raceListItems(career: CareerProgress, kept: readonly PlaylistEntry[], buildOf: RaceBuild | RaceBuildFor): RaceListItem[] {
+/** Every generated stage won on the Blacklist, in list order, with the name and stage it was. */
+export function wonStages(career: Pick<CareerProgress, "names">) {
+  return BLACKLIST.flatMap(name => {
+    const record = career.names[name.id];
+    return record ? record.races.slice(0, record.wins).map((race, index) => ({ name, stage: name.stages[index]!, index, race })) : [];
+  });
+}
+
+export function raceListItems(career: Pick<CareerProgress, "names">, kept: readonly PlaylistEntry[], buildOf: RaceBuild | RaceBuildFor): RaceListItem[] {
   const build = raceBuildFor(buildOf);
-  const moth = career.mothRaces.slice(0, career.mothWins).map((stage, index): RaceListItem => {
-    const playable = sameRaceBuild(stage.build, build(stage.raceId));
-    const launch = (solo: boolean): RaceLaunch => ({ raceId: stage.raceId, start: stage.start, solo });
-    return { key: `moth-${index}`, group: "moth", title: `Moth / ${MOTH_STAGES[index]!.name}`,
-      detail: playable ? `${generatedKind(stage.raceId)} · won` : OLDER,
+  const won = wonStages(career);
+  const blacklist = won.map(({ name, stage, index, race }): RaceListItem => {
+    const playable = sameRaceBuild(race.build, build(race.raceId));
+    const launch = (solo: boolean): RaceLaunch => ({ raceId: race.raceId, start: race.start, solo });
+    return { key: `${name.id}-${index}`, group: "blacklist", title: `${name.name} / ${stage.name}`,
+      detail: playable ? `${generatedKind(race.raceId)} · won` : OLDER,
       race: playable ? launch(false) : null, solo: playable ? launch(true) : null, removable: null };
   });
-  const shownByMoth = (race: KeptRace) => career.mothRaces.slice(0, career.mothWins)
-    .some(stage => stage.raceId === race.raceId && stage.start === race.start && sameRaceBuild(stage.build, race.build));
-  const keptItems = kept.filter(entry => !shownByMoth(entry.race)).map(({ race, playable }): RaceListItem => {
+  const shownByBlacklist = (race: KeptRace) => won
+    .some(stage => stage.race.raceId === race.raceId && stage.race.start === race.start && sameRaceBuild(stage.race.build, race.build));
+  const keptItems = kept.filter(entry => !shownByBlacklist(entry.race)).map(({ race, playable }): RaceListItem => {
     const launch = (solo: boolean): RaceLaunch => ({ raceId: race.raceId, start: race.start, solo });
     return { key: `kept-${race.raceId}-${race.start ?? "grid"}-${race.build.generator}-${race.build.world}`, group: "kept",
       title: race.name, detail: playable ? `${generatedKind(race.raceId)} · kept` : OLDER,
       race: playable ? launch(false) : null, solo: playable ? launch(true) : null, removable: race };
   });
-  return [...AUTHORED_RACES, ...moth, ...keptItems];
+  return [...AUTHORED_RACES, ...blacklist, ...keptItems];
 }

@@ -96,13 +96,13 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   every event start, no mid-race refill and no passive recharge. Style earns
   no reputation and converts into nothing; reputation unlocks performance
   parts, and a ten-name Blacklist that opens with losing the NS-01 gates the
-  career (GDD §5, 5.1). Moth's three-stage career, cash and car ownership are
-  implemented; the opening, later chapters, reputation and Surge are not. The Live Cred style-to-speed
+  career (GDD §5, 5.1). The ten-name career (three stages each), cash and car
+  ownership are implemented; the opening, later chapters, reputation and Surge are not. The Live Cred style-to-speed
   economy it replaced was dropped on 2026-09-12 and kept, superseded, in
   `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
-- Procedural races are the direction (`design/PROCEDURAL_RACES.md`). Moth draws
-  once per career stage; losses retry that course. Two wins unlock the pink
-  slip; the third retires her from the map. The race list keeps her races.
+- Procedural races are the direction (`design/PROCEDURAL_RACES.md`). A career
+  stage draws once; losses retry that course. Two wins unlock the pink slip; the
+  third retires the name from the map. The race list keeps won stages.
   Learning from earlier wins remains unimplemented and could affect later
   stages; retirement supersedes repeat street encounters after the pink slip.
 
@@ -126,7 +126,7 @@ fixtures outside the playable bundle, and old world links redirect.
   world reports ground (`RoadWorld.ground`, `alderGround`).
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
   enter; the garage has a fixed camera, starts new profiles in Cinder, sells
-  Bulwark for $1,500 and allows the won Kestrel to be selected. It offers
+  Bulwark for $1,500 and allows each won Blacklist car to be selected. It offers
   paint, wheel finish, visual stance and a livery editor whose panels derive
   from each body (appearance edits only; liveries are a per-car browser profile,
   not part of save slots).
@@ -134,7 +134,8 @@ fixtures outside the playable bundle, and old world links redirect.
   near the garage; flash her (F / Square) to race. Since 2026-09-15 the other
   seven non-parked Blacklist names cruise loops in their turfs
   (`alder-cruisers.ts`, sim `cruisers`); a flash draws `gen-<id>-<seed>[-kind]` of
-  their nearest race type in their own car, paying nothing yet (phase 1). The generator draws gates
+  their nearest race type in their own car. Only the lowest unbeaten name's flash
+  is a career stage (`progress.flashName`); anyone higher races for nothing. The generator draws gates
   per seed from the route-choice arithmetic (`route-choice.ts`,
   `race-generator.ts`) and starts the race where you flashed
   (`race-start.ts`). Sprint, two-lap circuit and unordered variants;
@@ -170,18 +171,20 @@ fixtures outside the playable bundle, and old world links redirect.
   names have a car asset (`BLENDER_CARS` in `src/render/blender-car.ts`, drives in
   `CAR_DRIVETRAIN`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
   Wager, Meridian, Skim and Reign (working names). Each cruises and races as its
-  rival (above); none has an unlock or per-car handling. Kestrel is now an earnable saved player
-  car; the other Blacklist bodies remain rival-only. Build
+  rival (above) and is a saved player car once its name is beaten (Sable's NS-01
+  as `ns01`); none has per-car handling. Build
   notes and open review flags: `design/reference/cars/BLACKLIST_CARS.md`.
 - **Career/shop.** `src/settings/progress.ts` stores `nightshift.progress`
-  separately from manual slots: Moth's sprint/rematch/pink slip, accepted courses,
-  cash, purchased Bulwark and won Kestrel. Payouts are $750/$750/$1,500 once each.
-  A completed pink slip removes Moth from free roam. Old save slots never roll
+  separately from manual slots (schema 4): each Blacklist name's wins and accepted
+  courses (`src/settings/blacklist.ts` holds the stages), cash and the purchased
+  Bulwark; a name's car is owned once its third win lands. A stage pays $750 at #10
+  plus $250 a place up, the pink slip double, once each. A completed pink slip
+  removes that name from free roam. The Blacklist screen (title or Pause) shows
+  the ladder (`src/ui/blacklist-panel.ts`). Old save slots never roll
   ownership back; migration writes the legacy Bulwark grant before a car change.
   Stored courses carry generator/world identity; incompatible pending courses
-  require explicit replacement in the garage. Later rivals' chains are not
-  implemented.
-- **Race list** (title or Pause): the authored races, Moth's won stages and
+  require explicit replacement in the garage.
+- **Race list** (title or Pause): the authored races, the Blacklist's won stages and
   kept generated races (`nightshift.playlist`), each raced with the rival or
   solo (`?solo=1`, circuits by `-solo`); Keep on a generated race's results;
   Draw a race here in free roam. Entries from another build stay listed,
@@ -229,7 +232,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
 | Lap recording, replay check, save endpoint | `lap-recorder.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
-| The Blacklist: the ten career names (sketch) | — | `design/BLACKLIST.md` |
+| The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
 | Race list: playlist store, list model and screen | `src/settings/playlist.ts`, `race-build.ts`, `src/ui/race-list.ts`, `race-list-panel.ts` | `design/PORT_ALDER.md` |
@@ -308,6 +311,10 @@ fixtures outside the playable bundle, and old world links redirect.
 - Settings never persist physics snapshots, replays, camera poses or debug
   flags. URL overrides are previews; deliberate menu edits save only their
   own field.
+- Owning a car is `ownsCar`, never `isPlayerCarId`: every Blacklist car is a
+  player car id from the start, and only its name's third win makes it yours. A
+  generated Blacklist stage must store its course (only Moth's migrated one-win
+  profile may have wins without courses), or the whole career fails to load.
 - `decodeSaves` requires each slot's build to decode as exactly `"saved"`, and
   its throw sits outside the loop: one slot naming a value that only *recovers*
   discards every slot, not that one. Retiring a `PlayerCarId` therefore needs an

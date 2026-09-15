@@ -570,6 +570,23 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
   .race-row { grid-template-columns: 1fr; }
   .race-row-actions .menu-button { flex: 1; }
 }
+.blacklist-menu { max-width: 640px; }
+.blacklist { display: grid; gap: 6px; margin: 16px 0; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
+.blacklist-row { display: grid; grid-template-columns: 34px 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px;
+  border-left: 2px solid rgba(255, 255, 255, .16); background: rgba(7, 10, 18, .72); }
+.blacklist-row[data-standing="current"] { border-left-color: var(--menu-cyan); background: rgba(10, 24, 30, .88); }
+.blacklist-row[data-standing="beaten"] { opacity: .55; }
+.blacklist-rank { font-size: 13px; font-weight: 700; color: var(--menu-muted); }
+.blacklist-row[data-standing="current"] .blacklist-rank { color: var(--menu-cyan); }
+.blacklist-face { width: 44px; height: 44px; object-fit: cover; background: #101a23; }
+.blacklist-row strong { display: block; font-size: 13px; }
+.blacklist-row div span { display: block; margin-top: 3px; font-size: 10px; line-height: 1.5; color: rgba(242, 238, 227, .7); }
+.blacklist-reward { font-size: 11px; color: var(--menu-ink); text-align: right; }
+@media (max-width: 520px) {
+  .blacklist-row { grid-template-columns: 30px 40px minmax(0, 1fr); }
+  .blacklist-face { width: 40px; height: 40px; }
+  .blacklist-reward { grid-column: 3; text-align: left; }
+}
 .save-editor { border-left: 2px solid var(--menu-cyan); padding: 12px 18px; margin-bottom: 18px; background: rgba(10, 18, 24, .85); }
 .save-editor label { display: block; font-size: 12px; margin-bottom: 8px; }
 .save-editor input { display: block; box-sizing: border-box; width: 100%; max-width: 380px; padding: 12px; border: 1px solid var(--menu-muted); background: #101a23; color: var(--menu-ink); font: inherit; }

@@ -1,4 +1,5 @@
 import { drivetrainFor, isPlayerCarId } from "../src/customization/cars.ts";
+import { decodeProgress, ownsCar } from "../src/settings/progress.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
@@ -32,7 +33,10 @@ test("Vesper ships valid compact glTF and fits the car adapter without correctio
     assert.ok(pod.quaternion.angleTo(new THREE.Quaternion()) < 1e-6);
   }
   assert.equal(drivetrainFor("vesper"), "rwd");
-  assert.equal(isPlayerCarId("vesper"), false, "rival body must not become a saved garage choice");
+  // Tally's pink slip: a saved garage car once won, never before.
+  assert.equal(isPlayerCarId("vesper"), true, "a won Vesper must round-trip through garage saves");
+  assert.equal(ownsCar(decodeProgress(null), "vesper"), false, "the Vesper must be won from Tally first");
+  assert.equal(ownsCar({ names: { tally: { wins: 3, races: [] } } }, "vesper"), true);
 
 });
 

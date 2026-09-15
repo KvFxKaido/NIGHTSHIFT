@@ -15,6 +15,8 @@ export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
  */
 export const BLENDER_CARS = {
   blender: { path: BLENDER_CAR_PATH, root: "ns-coupe-01", model: "ns-01" },
+  /** The NS-01 won back from Sable: the same body, under the player car id that "blender" can no longer be. */
+  ns01: { path: BLENDER_CAR_PATH, root: "ns-coupe-01", model: "ns-01" },
   cinder: { path: "assets/cars/ns-cinder-01.glb", root: "ns-cinder-01", model: "ns-cinder" },
   kestrel: { path: "assets/cars/ns-kestrel-01.glb", root: "ns-kestrel-01", model: "ns-kestrel" },
   vesper: { path: "assets/cars/ns-vesper-01.glb", root: "ns-vesper-01", model: "ns-vesper" },

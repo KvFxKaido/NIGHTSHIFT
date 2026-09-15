@@ -4,16 +4,15 @@ Design note, 2026-09-12. The GDD wins where they disagree; this is the longer
 form of GDD §5's Blacklist: who the ten names are, where they race, what they
 drive and what each one teaches.
 
-**Status.** Moth has a three-stage career: first meeting, rematch, then pink slip.
-The first two wins pay $750 each; the third pays $1,500 and awards her Kestrel.
-She then leaves free roam. The Bulwark costs $1,500 in the garage. Cash, stages,
-race descriptors and ownership autosave across drive slots. Stray is named next but has
-no challenge yet; the rest of the career remains a sketch. All ten names have portraits and
-authored car assets. Since 2026-09-15 every name is on the map: Moth cruises her
-freight block, Rivet and Sable wait at their strip and yard, and the other seven
-cruise loops in their turfs (`src/sim/alder-cruisers.ts`). Flashing one of the
-seven draws a race of the type nearest its challenge, leaning toward its turf, in
-its own car; those races pay and advance nothing until each name's stages exist. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
+**Status.** Since 2026-09-15 the whole list is a career (`src/settings/blacklist.ts`,
+`src/settings/progress.ts`): ten names climbed from #10, three stages each, two
+wins then a pink slip for the name's car, after which the name leaves free roam.
+Moth keeps her first meeting, rematch and pink slip. Every name is on the map:
+Moth cruises her freight block, Rivet and Sable wait at their strip and yard, and
+the other seven cruise loops in their turfs (`src/sim/alder-cruisers.ts`). The
+Bulwark costs $1,500 in the garage. Cash, stages, race descriptors and ownership
+autosave across drive slots. All ten names have portraits and authored car
+assets, and each car is a saved garage car once won. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
 the body directions below with the declared drivetrains. Placements, mistakes
 and the career structure remain proposals. The new car names are Codex's
 working names for Shawn's review (2026-09-13).
@@ -41,13 +40,40 @@ to take the car and retire the rival from the map. Losses retry the current
 stage. Repeating an earlier win never advances or pays again. Defeated rivals'
 races stay in the race list rather than remaining street encounters.
 
-Moth is the implemented slice: generated sprint, circuit rematch, then unordered
+Moth was the first slice: generated sprint, circuit rematch, then unordered
 checkpoints for the pink slip. Each stage draws once when first accepted; its
 seed, kind, start and generator/world identity are retained even after winning,
-and her won stages are listed in the race list. Incompatible or unversioned courses are rejected;
+and won stages are listed in the race list. Incompatible or unversioned courses are rejected;
 an unfinished stage can be explicitly replaced in the garage without losing
 wins, cash or cars. Completed history keeps its original identity.
-Other rivals' stage chains and Stray's arrival remain unimplemented.
+
+### The chain (phase 2, 2026-09-15)
+
+Shawn's calls: the next name opens as soon as the one below is beaten; every name's
+three stages are its signature race; stage pay rises with rank; and a simple
+Blacklist screen (title or Pause) shows where the career stands.
+
+- **One name at a time.** Only the lowest unbeaten name races for a stage. Flash
+  anyone higher and they race you anyway, their race from where you are, for
+  nothing: the card says "no stakes yet". A stored career with a win or a course
+  above an unbeaten name does not load.
+- **Stages.** Moth: sprint, circuit, unordered. Rivet: three drags on the Harbor
+  Quarter strip. Sable: her yard at 3,000, then 3,600, then 4,200 points
+  (`SABLE_DRIFTS`, `sable-yard-drift[-2|-3]`). Everyone else: their cruising race
+  type three times, sprint for Bollard, Deuce, Crest and Wake, unordered for Stray
+  and Tally, circuit for Plumb. Drag and drift stages store no course; a win of the
+  current stage's event pays, which also means a direct `?race=` link to that event
+  counts, as reopening an accepted course's link always has.
+- **Pay.** A stage win pays $750 at #10 and $250 more per place up; the pink slip
+  pays double. A name is worth four stage wins: $3,000 for Moth (what she always
+  paid), $12,000 for Tally, $75,000 for the list.
+- **Cars.** Each name's car is a `PlayerCarId` and `ownsCar` grants it on that
+  name's third win. Sable's is `ns01`, since the NS-01's old id `blender` migrates
+  to the Cinder (`RETIRED_CARS`). The garage lists all twelve bodies, each unwon
+  one labelled with whose pink slip it is.
+- **Storage.** Schema 4 keeps a `names` record, `{wins, races}` per id. Schema 1-3
+  profiles become Moth's record, and the `mothBeaten`/`mothWins`/`mothRaces` fields
+  still read for code that asks about her.
 
 ## The ten
 
@@ -64,10 +90,11 @@ Other rivals' stage chains and Stray's arrival remain unimplemented.
 | 2 | Wake | Capitol Hill | Reign upright coupe | AWD | white | Rival duel |
 | 1 | Tally | The whole city | Vesper mid-engine coupe | RWD | violet | Citywide open checkpoint |
 
-Race types are GDD §7's. Moth's is the flash as it exists today: a generated
-race whose variant (sprint, circuit or unordered) comes from her career stage.
-Every turf but Tally's is a centre and radius on the map (`src/sim/alder-turf.ts`,
-2026-09-15), and a name's generated races lean toward it; only Moth's draw today.
+Race types are GDD §7's. The challenges without a race type of their own yet
+(rival duel, uphill sprint, citywide open checkpoint) race the nearest that exists,
+listed under "The chain" above. Every turf but Tally's is a centre and radius on
+the map (`src/sim/alder-turf.ts`, 2026-09-15), and a name's generated races lean
+toward it.
 
 ## The cars (2026-09-12)
 
@@ -116,7 +143,7 @@ Nineteen, grew up in the downtown service lanes. *Silhouette:* a cap worn
 backwards. *Mistake:* he takes the alley even where the avenue is faster.
 *Teaches:* that alleys exist, and that one is not always worth it. His race is
 unordered checkpoints, so the order is a route decision too. Portrait:
-`design/reference/characters/stray/`; car asset built; cruises its turf (phase 1, no stages).
+`design/reference/characters/stray/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #8 Rivet
 
@@ -132,7 +159,7 @@ Forties, a crane operator on the waterfront. *Silhouette:* ear defenders and a
 hi-vis collar. *Mistake:* she commits to a block early, so a feint one way
 opens the other. *Teaches:* racing through traffic and through contact. Every
 body shares one mass (`HANDLING.mass`), so her menace is aggression and line,
-never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built; cruises its turf (phase 1, no stages).
+never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #6 Deuce
 
@@ -141,7 +168,7 @@ risky line even when he is leading, and half his races end in a wall.
 *Teaches:* the generator's rule that every shortcut has a cost, as a person;
 the player beats him by staying clean and letting the gamble fail. His turf is
 the Broadcast Tower loop and its open plaza. Portrait:
-`design/reference/characters/deuce/`; car asset built; cruises its turf (phase 1, no stages).
+`design/reference/characters/deuce/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #5 Sable
 
@@ -161,7 +188,7 @@ version read as an older Moth and her headset as Bollard's ear defenders.
 *Mistake:* she never leaves the arterials: no alleys, no crashes, no surprises.
 *Teaches:* parallel routes. Madrona Ridge's broad scenic loop is hers, and its
 inner parallel streets are where she loses. Portrait:
-`design/reference/characters/plumb/`; car asset built; cruises its turf (phase 1, no stages).
+`design/reference/characters/plumb/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #3 Crest
 
@@ -169,7 +196,7 @@ Late twenties, the hill racer. *Silhouette:* a hard-edged topknot. *Mistake:*
 he takes blind crests flat and lands wide. *Teaches:* grade, crests and blind
 corners, the risk factors the route-choice model already prices. His race
 climbs Queen Anne towards Kerry Overlook. Portrait:
-`design/reference/characters/crest/`; car asset built; cruises its turf (phase 1, no stages).
+`design/reference/characters/crest/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #2 Wake
 
@@ -178,7 +205,7 @@ every night since driving her lines, and driving them better than she does.
 *Silhouette:* a low-crowned, wide-brimmed hat. *Mistake:* he only drives Tally's
 lines, so he is beaten exactly where she is: off her map. *Teaches:* the last
 lesson, in his words: "I drove every line she drives. It's not enough."
-Portrait: `design/reference/characters/wake/`; car asset built; cruises its turf (phase 1, no stages).
+Portrait: `design/reference/characters/wake/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #1 Tally
 
@@ -186,7 +213,7 @@ Early twenties, Moth's student, the one who keeps the list. Fastest on every
 line she has driven; never takes one she has not. Rivals learn only from races
 the player wins (`design/PROCEDURAL_RACES.md`), so each route that beats her
 works once. Exists: `design/reference/characters/tally/`, Vesper in
-`assets/cars/ns-vesper-01.blend`; cruises the city's middle (phase 1, no stages).
+`assets/cars/ns-vesper-01.blend`; cruises the city's middle; three unordered stages for the Vesper.
 
 *Proposed:* Vesper is the one car on the list without the 140 mph cap (see
 "The 140 mph cap" below). If she cannot be caught on a straight, a route she

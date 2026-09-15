@@ -1,21 +1,23 @@
 import { createLiveryEditor } from "./ui/livery.ts";
 import { padLabel, refreshControlHints } from "./ui/prompts.ts";
 import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
-import { SABLE_DRIFT } from "./sim/drift-event.ts";
+import { SABLE_DRIFT, sableDriftFor } from "./sim/drift-event.ts";
 import { addDriftYard } from "./render/drift-yard.ts";
 import { HARBOR_DRAG, DRAG_START, RIVET, RIVET_DRAG_DRIVER } from "./sim/drag-event.ts";
 import { addDragStrip } from "./render/drag-strip.ts";
 import { createGameMap } from "./ui/game-map.ts";
 import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
-import { BULWARK_PRICE, MOTH_STAGES, createProgressStore, ownsCar, sameRaceBuild, type CareerResult } from "./settings/progress.ts";
+import { BULWARK_PRICE, createProgressStore, ownsCar, sameRaceBuild, type CareerResult } from "./settings/progress.ts";
+import { BLACKLIST, blacklistName, stagePayout, type BlacklistName } from "./settings/blacklist.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
 import { createPlaylistStore } from "./settings/playlist.ts";
 import { createRaceListPanel } from "./ui/race-list-panel.ts";
-import type { RaceLaunch } from "./ui/race-list.ts";
+import { createBlacklistPanel } from "./ui/blacklist-panel.ts";
+import { wonStages, type RaceLaunch } from "./ui/race-list.ts";
 import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
-import { cardCopy, rivalCard, RIVAL_CARDS, type CardCopy } from "./ui/rival-card.ts";
+import { cardCopy, rivalCard, RIVAL_CARDS, type CardCopy, type RivalCard } from "./ui/rival-card.ts";
 import type { SpotLight } from "three";
 import { ALDER_RIVAL } from "./sim/alder-rival.ts";
 import { createControlsPanel } from "./ui/controls.ts";
@@ -76,6 +78,10 @@ const raceBuild = (raceId: string) => ({ generator: generatorRevision(raceId), w
 const progress = createProgressStore(() => window.localStorage, raceBuild, settings.get().car === "bulwark" || restored.car === "bulwark");
 if (!ownsCar(progress.get(), restored.car)) restored.car = "cinder";
 const playlist = createPlaylistStore(() => window.localStorage, raceBuild);
+/** A beaten Blacklist name has left the streets: no cruise, no parked car, nobody to flash. */
+const onTheStreets = (id: string) => (progress.get().names[id]?.wins ?? 0) < 3;
+const streetCruisers = BLACKLIST_CRUISERS.filter(cruiser => onTheStreets(cruiser.id));
+const money = (dollars: number) => `$${dollars.toLocaleString("en-US")}`;
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
@@ -128,7 +134,7 @@ try {
   // the draw toward a rival's home ground (src/sim/alder-turf.ts).
   const generated = raceId ? parseGeneratedRaceId(raceId) : null;
   const circuitRace = raceId ? circuitEvent(raceId) : null;
-  if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
+  if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && !sableDriftFor(raceId)) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
@@ -151,7 +157,7 @@ try {
     race = circuit.race; rival = circuit.rival; raceStart = circuit.start;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
-  } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
+  } else if (sableDriftFor(raceId)) { race = sableDriftFor(raceId); raceStart = DRIFT_YARD.start;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   // Solo keeps the race and its gate arrows, which come from the rival's line, and fields nobody.
   if (params.has("solo")) {
@@ -175,12 +181,12 @@ try {
     const opponent = raceOpponentCar();
     // A solo run has nobody to draw.
     if (!circuit?.solo && !solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
-    if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
-    if (!race) await Promise.all(BLACKLIST_CRUISERS.map(async cruiser => {
+    if (!race && onTheStreets(RIVET.id)) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
+    if (!race) await Promise.all(streetCruisers.map(async cruiser => {
       const car = cruiser.car as keyof typeof BLENDER_CARS;
       cruiserParts.set(cruiser.id, await loadBlenderCar(new URL(BLENDER_CARS[car].path, document.baseURI).href, car));
     }));
-    if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
+    if ((!race && onTheStreets(SABLE.id)) || race?.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
 } catch (error) {
   document.body.dataset.assetState = "error";
@@ -200,8 +206,8 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
-  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE],
-    cruisers: BLACKLIST_CRUISERS.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
+  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
+    cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
@@ -328,24 +334,34 @@ let carLoading = false;
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
   const career = progress.get();
+  const current = progress.current();
   document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.car === selectedCar));
-    button.disabled = carLoading || !ownsCar(progress.get(), button.dataset.car);
-    if (button.dataset.car === "kestrel") button.textContent = career.mothBeaten ? "Kestrel" : "Kestrel · Pink slip";
+    button.disabled = carLoading || !ownsCar(career, button.dataset.car);
+    // Each Blacklist car says whose pink slip it is until it is yours.
+    const owner = BLACKLIST.find(name => name.car === button.dataset.car);
+    if (owner) button.textContent = ownsCar(career, owner.car) ? owner.carName : `${owner.carName} · #${owner.rank} ${owner.name}`;
     if (button.dataset.car === "bulwark") button.textContent = career.bulwarkOwned ? "Bulwark" : "Bulwark · For sale";
   });
   const buy = document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!;
   buy.hidden = career.bulwarkOwned;
   buy.disabled = career.cash < BULWARK_PRICE || carLoading;
   document.querySelector<HTMLElement>("[data-cash]")!.textContent = `Cash · $${career.cash.toLocaleString("en-US")}`;
-  document.querySelector<HTMLButtonElement>("[data-replace-moth-race]")!.hidden = !progress.outdatedChallenge();
+  const replace = document.querySelector<HTMLButtonElement>("[data-replace-stage-race]")!;
+  replace.hidden = !progress.outdatedChallenge();
+  replace.textContent = `Replace outdated ${current?.name ?? ""} course`;
   document.querySelector<HTMLElement>("[data-career-status]")!.textContent = progress.unavailable()
     ? "Career progress could not be read or saved. Existing data has been left untouched."
     : progress.outdatedChallenge()
-      ? "Your unfinished Moth course belongs to an older version. Replace it to continue; wins, cash and cars stay yours."
-    : career.mothBeaten
-      ? "#10 Moth retired · Kestrel owned. Next: #9 Stray — challenge coming soon."
-      : `#10 Moth · ${career.mothWins}/3 wins · Next: ${MOTH_STAGES[career.mothWins]!.name}. Win the pink slip to own her Kestrel. Cash and cars save automatically.`;
+      ? `Your unfinished ${current!.name} course belongs to an older version. Replace it to continue; wins, cash and cars stay yours.`
+    : blacklistStatus();
+}
+/** Where the career stands, in one line: the name it is on, that name's wins and next stage. */
+function blacklistStatus(): string {
+  const current = progress.current();
+  if (!current) return "The Blacklist is yours · all ten names retired, every car owned.";
+  const wins = progress.get().names[current.id]!.wins;
+  return `#${current.rank} ${current.name} · ${wins}/3 wins · Next: ${current.stages[wins]!.name}. Win the pink slip to own the ${current.carName}. Cash and cars save automatically.`;
 }
 async function selectCar(id: string): Promise<void> {
   if (carLoading || !isBlenderCarId(id) || !ownsCar(progress.get(), id)) return;
@@ -394,9 +410,9 @@ document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!.addEventListene
     : "Purchase could not be saved. No cash was spent; try again.";
   renderCarSelection();
 });
-document.querySelector<HTMLButtonElement>("[data-replace-moth-race]")!.addEventListener("click", () => {
+document.querySelector<HTMLButtonElement>("[data-replace-stage-race]")!.addEventListener("click", () => {
   carNote.textContent = progress.discardOutdatedChallenge()
-    ? "Old course replaced. Flash Moth to draw this stage again."
+    ? `Old course replaced. Flash ${progress.current()?.name ?? "them"} to draw this stage again.`
     : "Could not replace the course. Existing progress is unchanged; try again.";
   renderCarSelection();
 });
@@ -449,6 +465,7 @@ const menu = createMenuController({
     if (screen === "playing" || screen === "pause") onTheStreet = true;
     else if (screen === "main") onTheStreet = false;
     if (screen === "races") raceList.render();
+    if (screen === "blacklist") blacklistPanel.render();
     setViewMode(view, screen === "garage" ? "garage" : "track");
   },
   getAudioLevels: () => audioLevels,
@@ -569,31 +586,44 @@ function updateFlash(dt: number, active: boolean): void {
   });
   if (challengePending && flashRemaining === 0 && active) {
     challengePending = false;
-    if (challengeRival === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
-    if (challengeRival === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
-    // Every other Blacklist name draws a race of its type from here, leaning toward its turf, in its own car.
-    // Phase 1: these races pay nothing and advance nothing; only Moth's stages do.
-    const cruiser = cruiserFor(challengeRival);
-    if (cruiser) {
-      const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
-      const start = here ? encodeStart(here) : null;
-      for (const salt of DRAW_SEEDS) {
-        const raceId = generatedRaceId({ seed: seedFromTick(sim.state.tick, salt), kind: cruiser.kind, rival: cruiser.id });
-        if (alderCourseDraws(raceId, start)) { loadDrive(raceId, "track", start); return; }
-      }
-      challengeNotice = "No race from here · Drive on and flash again";
-      return;
-    }
-    // A new stage draws once at the flash position; losses retry that same draw.
-    // Only a course that draws is accepted or handed back (src/sim/alder-course.ts).
+    const name = blacklistName(challengeRival);
+    if (!name) return;
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
-    const outcome = progress.flash(DRAW_SEEDS.map(salt => seedFromTick(sim.state.tick, salt)), here ? encodeStart(here) : null,
+    const start = here ? encodeStart(here) : null;
+    // Only the name the career is on races for a stage (settings/blacklist.ts). A drag or drift stage runs
+    // its event; a generated stage draws once at the flash position and losses retry that same draw. Only a
+    // course that draws is accepted or handed back (src/sim/alder-course.ts).
+    const outcome = progress.flashName(name.id, DRAW_SEEDS.map(salt => seedFromTick(sim.state.tick, salt)), start,
       course => alderCourseDraws(course.raceId, course.start));
-    if ("race" in outcome) loadDrive(outcome.race.raceId, "track", outcome.race.start);
-    else challengeNotice = outcome.none === "unavailable" ? "Could not save challenge · Flash again to retry"
+    if ("event" in outcome) { loadDrive(outcome.event); return; }
+    if ("race" in outcome) { loadDrive(outcome.race.raceId, "track", outcome.race.start); return; }
+    if (outcome.none === "not-yet") { freeRace(name, start); return; }
+    challengeNotice = outcome.none === "unavailable" ? "Could not save challenge · Flash again to retry"
       : outcome.none === "outdated" ? "Course out of date · Replace it at the garage"
-      : outcome.none === "undrawable" ? "No race from here · Drive on and flash again" : "Moth retired · Return to the garage";
+      : outcome.none === "undrawable" ? "No race from here · Drive on and flash again" : `${name.name} retired · Return to the garage`;
   }
+}
+/** A name above the one the career is on races for nothing: its race from here, in its own car. */
+function freeRace(name: BlacklistName, start: string | null): void {
+  if (name.id === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
+  if (name.id === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
+  const cruiser = cruiserFor(name.id);
+  if (!cruiser) return;
+  for (const salt of DRAW_SEEDS) {
+    const raceId = generatedRaceId({ seed: seedFromTick(sim.state.tick, salt), kind: cruiser.kind, rival: cruiser.id });
+    if (alderCourseDraws(raceId, start)) { loadDrive(raceId, "track", start); return; }
+  }
+  challengeNotice = "No race from here · Drive on and flash again";
+}
+/** The card of the name the career is on offers its next stage and what it pays; anyone above races for nothing. */
+function careerCard(contact: RivalCard): RivalCard {
+  const name = blacklistName(contact.id), current = progress.current();
+  if (!name || !current) return contact;
+  if (name.id !== current.id) return { ...contact, offer: `${contact.offer} · #${name.rank}, no stakes yet` };
+  const index = progress.get().names[name.id]!.wins, stage = name.stages[index]!;
+  const target = sableDriftFor(stage.event)?.drift?.targetScore;
+  return { ...contact, accepted: stage.name,
+    offer: `${stage.name} · ${stage.kind}${target ? ` ${target.toLocaleString("en-US")} pts` : ""} · ${money(stagePayout(name.rank, index))}${index === 2 ? ` + ${name.carName}` : ""}` };
 }
 
 document.addEventListener("visibilitychange", () => {
@@ -635,7 +665,7 @@ function updateHud(): void {
   if (raceState?.drift) {
     const d = raceState.drift;
     document.getElementById("drift-chain")!.textContent = `+${Math.floor(d.chain)} x${d.multiplier}`;
-    document.getElementById("drift-feedback")!.textContent = raceState.countdown > 0 ? "90s / BEAT SABLE / 3,000 PTS" : d.feedbackTicks ? d.feedback : d.drifting ? `${Math.round(d.angle)} DEG / LINK THE NEXT CORNER` : "BUILD SPEED / TAP HANDBRAKE";
+    document.getElementById("drift-feedback")!.textContent = raceState.countdown > 0 ? `90s / BEAT SABLE / ${race!.drift!.targetScore.toLocaleString("en-US")} PTS` : d.feedbackTicks ? d.feedback : d.drifting ? `${Math.round(d.angle)} DEG / LINK THE NEXT CORNER` : "BUILD SPEED / TAP HANDBRAKE";
     document.getElementById("drift-zone")!.textContent = `NEXT: ${race!.drift!.zones[d.nextZone]!.name.toUpperCase()}`;
     const bindings = input.bindings();
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
@@ -684,8 +714,7 @@ function frame(now: number): void {
   const contact = rivalCard(challengePending ? challengeRival : challengeTarget());
   rivalPrompt.hidden = !gameplayActive || !contact;
   if (contact) {
-    const stage = contact.id === "moth" ? MOTH_STAGES[progress.get().mothWins] : undefined;
-    const copy = cardCopy(stage ? { ...contact, offer: `${stage.name} · ${stage.kind} · $${stage.payout}${stage.kind === "unordered" ? " + Kestrel" : ""}`, accepted: stage.name } : contact, challengePending, flashLabel());
+    const copy = cardCopy(careerCard(contact), challengePending, flashLabel());
     showRivalCard(challengeNotice ? { ...copy, action: challengeNotice } : copy);
   }
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
@@ -715,6 +744,8 @@ function frame(now: number): void {
     accumulator -= DT;
     if (sim.state.race?.finished && race?.kind === "drift") {
       const drift = sim.state.race.drift!;
+      // Sable's stages are her yard at a rising target: beating the target is the win.
+      saveRaceReward({ raceId: race.id, start: null, build: null, finished: true, disqualified: false, position: drift.won ? 1 : 2 });
       menu.finishRace(drift.won ? "Sable beaten" : "Target missed",
         `${Math.floor(drift.score)} / ${race.drift!.targetScore} points / ${drift.clips} clips / ${drift.transitions} transitions`);
       accumulator = 0;
@@ -830,9 +861,13 @@ function saveRaceReward(result: CareerResult): void {
   const outcome = progress.complete(result);
   const note = document.querySelector<HTMLElement>("[data-result-reward]")!;
   note.hidden = outcome === "none";
-  note.textContent = outcome === "awarded"
-    ? "Pink slip won · +$1,500 · Kestrel added to your garage. Moth has left the streets. Next: #9 Stray — challenge coming soon."
-    : outcome === "advanced" ? `+$750 · ${progress.get().mothWins}/3 wins saved. Find Moth for the ${MOTH_STAGES[progress.get().mothWins]!.name.toLowerCase()}.`
+  const current = progress.current();
+  // A stage can only have been won by the name the career was on: after a pink slip, the name below today's.
+  const beaten = current ? BLACKLIST[BLACKLIST.indexOf(current) - 1] : BLACKLIST.at(-1);
+  const wins = current ? progress.get().names[current.id]!.wins : 3;
+  note.textContent = outcome === "awarded" && beaten
+    ? `Pink slip won · +${money(stagePayout(beaten.rank, 2))} · ${beaten.carName} added to your garage. ${beaten.name} has left the streets. ${current ? `Next: #${current.rank} ${current.name}.` : "The Blacklist is yours."}`
+    : outcome === "advanced" && current ? `+${money(stagePayout(current.rank, wins - 1))} · ${wins}/3 wins saved. Find ${current.name} for the ${current.stages[wins]!.name.toLowerCase()}.`
     : outcome === "recorded" ? "Stage already won · No additional payout."
     : outcome === "incompatible" ? "That course belongs to an older version. No progress or payout changed; return to the garage."
     : outcome === "unavailable" ? "Your win could not be saved. Retry before leaving to keep your progress and payout."
@@ -860,11 +895,10 @@ function renderKeep(message = ""): void {
   keepStatus.hidden = !message;
   keepStatus.textContent = message;
   if (!course) return;
-  const career = progress.get();
-  if (career.mothRaces.slice(0, career.mothWins).some(stage => stage.raceId === course.raceId && stage.start === course.start && sameRaceBuild(stage.build, raceBuild(course.raceId)))) {
+  if (wonStages(progress.get()).some(({ race }) => race.raceId === course.raceId && race.start === course.start && sameRaceBuild(race.build, raceBuild(course.raceId)))) {
     keepButton.hidden = true;
     keepStatus.hidden = false;
-    keepStatus.textContent = "Moth's won races are in your race list.";
+    keepStatus.textContent = "Blacklist races you've won are in your race list.";
     return;
   }
   // Never disabled: a disabled button drops focus, and the next Confirm on a pad
@@ -877,6 +911,11 @@ keepButton.addEventListener("click", () => {
   const outcome = playlist.keep(course, race.name, Date.now());
   renderKeep(outcome === "kept" ? `“${race.name}” is in your race list.`
     : outcome === "already" ? "Already in your race list." : "Could not keep it. Your race list has been left untouched; try again.");
+});
+const blacklistPanel = createBlacklistPanel({
+  career: () => progress.get(),
+  unavailable: () => progress.unavailable(),
+  card: id => { const card = rivalCard(id); return card ? { turf: card.turf, portrait: card.portrait.calm } : null; },
 });
 const raceList = createRaceListPanel({
   playlist,
