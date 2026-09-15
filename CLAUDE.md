@@ -135,7 +135,9 @@ fixtures outside the playable bundle, and old world links redirect.
   per seed from the route-choice arithmetic (`route-choice.ts`,
   `race-generator.ts`) and starts the race where you flashed
   (`race-start.ts`). Sprint, two-lap circuit and unordered variants;
-  `?race=gen-<seed>[-circuit|-unordered]`. Sound to Sky is the authored race
+  `?race=gen-[<turf>-]<seed>[-circuit|-unordered]` (`race-id.ts`). A turf leans
+  a rival's draws toward its home ground (`alder-turf.ts`, nine names, soft pull):
+  Moth's stages draw `gen-moth-<seed>`. Sound to Sky is the authored race
   and the rival tests' fixture.
 - **Rival.** One AI driver in the same physics world, routed line, no
   rubber-banding, reversing recovery and a local reset after 12 s stuck, or
@@ -218,7 +220,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Vehicle model, `HANDLING`, `PHYSICS_VERSION`, tick | `src/sim/sim.ts` | `design/HANDLING.md` |
 | Port Alder streets, terrain, plots, layout | `src/sim/alder*.ts`, `src/sim/alder-*.json` | `design/PORT_ALDER.md` |
 | District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
-| Route choice, race generation, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
+| Route choice, race generation, race ids, turfs, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-id.ts`, `alder-turf.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
@@ -356,6 +358,7 @@ pnpm dev              # run
 pnpm test             # deterministic simulation checks (~7 min)
 pnpm build            # typecheck + build (what CI runs)
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
+pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)

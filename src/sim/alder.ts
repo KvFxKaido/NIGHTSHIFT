@@ -13,7 +13,7 @@ import type { TrafficNetwork } from "./traffic.ts";
 import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
-import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace } from "./race-generator.ts";
+import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace, type Turf } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
 import { kerbPoses, ALDER_LAMPS, ALDER_BINS } from "./kerb-props.ts";
 import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
@@ -234,11 +234,12 @@ export function alderRouting(): RoutingGraph {
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
  *  the rival's line through its gates. (ALDER_VERSION, GENERATOR_REVISION, seed,
- *  kind, start) reproduces it. */
-export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag" | "drift"> = "sprint"): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
+ *  kind, start) reproduces it, and the turf when a rival's draw leans toward one
+ *  (`alder-turf.ts`, which names it in the id). */
+export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag" | "drift"> = "sprint", turf: Turf | null = null): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);
-  const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]), approach.node, kind);
+  const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id], turf), approach.node, kind);
   // Every generated road race fields Moth's Kestrel (raceOpponentCar in
   // main.ts), so the drawn line is driven all-wheel. rivalLineFor itself stays
   // ignorant of who is driving it -- it draws a route, not a personality.

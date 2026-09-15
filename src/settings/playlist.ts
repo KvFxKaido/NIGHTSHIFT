@@ -1,5 +1,6 @@
 import { decodeStart } from "../sim/race-start.ts";
 import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
+import { parseGeneratedRaceId } from "../sim/race-id.ts";
 
 /**
  * The playlist: generated races the player chose to keep (design/PROCEDURAL_RACES.md,
@@ -31,13 +32,12 @@ export interface KeptRace extends Course {
 export interface PlaylistEntry { race: KeptRace; playable: boolean }
 type Disk = Pick<Storage, "getItem" | "setItem">;
 
-const RACE_ID = /^gen-\d{1,9}(-circuit|-unordered)?$/;
 const sameCourse = (a: KeptRace, b: Course & { build: RaceBuild }) =>
   a.raceId === b.raceId && a.start === b.start && sameRaceBuild(a.build, b.build);
 
 function decodeRace(race: unknown): KeptRace {
   const r = race as KeptRace | null;
-  if (!r || typeof r.raceId !== "string" || !RACE_ID.test(r.raceId)) throw Error("Invalid race id");
+  if (!r || typeof r.raceId !== "string" || !parseGeneratedRaceId(r.raceId)) throw Error("Invalid race id");
   if (r.start !== null && (typeof r.start !== "string" || !decodeStart(r.start))) throw Error("Invalid start");
   const b = r.build;
   if (!b || typeof b.generator !== "string" || !b.generator || typeof b.world !== "string" || !b.world) throw Error("Invalid build");

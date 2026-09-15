@@ -81,7 +81,14 @@ first two wins could affect later stages, not resurrect a retired street rival.
    variant; a playlist keeps all four. The authored
    race ignores `start`, since its line was authored from the grid, and a
    flash from off every street still starts on the grid.
-2. **Rival turf bias** on the draw, once there is a second rival to differ.
+2. **Rival turf bias.** *Done 2026-09-15* as data for nine names and a lean
+   on Moth's stage draws (`src/sim/alder-turf.ts`; `design/PORT_ALDER.md`,
+   "Rival turf"). Shawn's calls: all ten names now, geography only, a soft pull
+   toward a centre and radius. Measured, the pull has a ceiling: from nine turf
+   centres a race is 34% inside its 800 m turf with no pull and 42% at the
+   pull chosen, because the flow rule carries a 3 km race out of any area that
+   size. Where a rival's races start, which is where it cruises, is most of what
+   makes them its own; the pull is the rest. Street taste is still a proposal.
 3. **Calibrate the pace model.** *Done 2026-09-15*, from recorded Uptown
    Circuit laps rather than the priced corridors, which nobody had driven for
    the record (`pnpm pace`; `design/PORT_ALDER.md`, "Pace, calibrated"). The

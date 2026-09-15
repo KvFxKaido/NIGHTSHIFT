@@ -37,6 +37,8 @@ import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { GENERATOR_REVISION, seedFromTick } from "./sim/race-generator.ts";
+import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
+import { turfFor } from "./sim/alder-turf.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
@@ -49,7 +51,7 @@ import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
-import { formatRaceTime, racePosition, raceProgressLabel, type RaceKind, type RaceDefinition } from "./sim/race.ts";
+import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { engineTone, REDLINE_RPM, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
@@ -116,9 +118,12 @@ try {
   }
   history.replaceState(history.state, "", url);
   const raceId = params.get("race");
-  // A generated race is its seed: ?race=gen-<seed> draws the same gates and
-  // the same rival line every time, which is all a playlist needs to keep.
-  const generated = raceId ? /^gen-(\d{1,9})(?:-(circuit|unordered))?$/.exec(raceId) : null;
+  // A generated race is its seed: ?race=gen-[<turf>-]<seed>[-variant] draws the
+  // same gates and rival line every time (src/sim/race-id.ts), and a turf leans
+  // the draw toward a rival's home ground (src/sim/alder-turf.ts).
+  const generated = raceId ? parseGeneratedRaceId(raceId) : null;
+  const turf = generated?.rival ? turfFor(generated.rival) : null;
+  if (generated?.rival && !turf) throw new Error(`Unknown turf '${generated.rival}' in race '${raceId}'`);
   const circuitRace = raceId ? circuitEvent(raceId) : null;
   if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
@@ -132,7 +137,7 @@ try {
     if (!raceStart) throw new Error(`No street to start on at ${startParam}`);
   } else if (startParam) { params.delete("start"); history.replaceState(history.state, "", url); }
   if (generated) {
-    const drawn = alderGeneratedRace(Number(generated[1]), raceStart ?? undefined, (generated[2] ?? "sprint") as Exclude<RaceKind, "drag" | "drift">);
+    const drawn = alderGeneratedRace(generated.seed, raceStart ?? undefined, generated.kind, turf);
     race = drawn.race; rival = drawn.rival;
   } else if (circuitRace) {
     circuit = circuitRace;
@@ -856,7 +861,7 @@ const raceList = createRaceListPanel({
     if (!here) return;
     const seed = seedFromTick(sim.state.tick, 1);
     const kind = (["sprint", "circuit", "unordered"] as const)[seed % 3]!;
-    loadDrive(`gen-${seed}${kind === "sprint" ? "" : `-${kind}`}`, "track", encodeStart(here));
+    loadDrive(generatedRaceId({ seed, kind, rival: null }), "track", encodeStart(here));
   },
 });
 

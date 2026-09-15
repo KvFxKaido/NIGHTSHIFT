@@ -20,7 +20,8 @@ test("three distinct stages award cash, and only the pink slip grants the Kestre
   assert.equal(storage.writes, 0);
   assert.ok(ownsCar(store.get(), "cinder"));
   assert.equal(ownsCar(store.get(), "bulwark"), false);
-  for (const [index, id] of ["gen-15", "gen-16-circuit", "gen-17-unordered"].entries()) {
+  // New stages draw toward Moth's turf, so their ids name it (src/sim/race-id.ts).
+  for (const [index, id] of ["gen-moth-15", "gen-moth-16-circuit", "gen-moth-17-unordered"].entries()) {
     const race = store.challenge(15 + index, null)!;
     assert.equal(race.raceId, id);
     assert.equal(store.complete(result(race)), index === 2 ? "awarded" : "advanced");
@@ -56,7 +57,7 @@ test("old wins cannot skip a stage or pay again, including from another tab", ()
   assert.equal(first.complete(result(race)), "advanced");
   assert.equal(second.complete(result(race)), "recorded");
   const next = second.challenge(15, null)!;
-  assert.equal(next.raceId, "gen-15-circuit");
+  assert.equal(next.raceId, "gen-moth-15-circuit");
   assert.equal(first.complete(result(race)), "recorded");
   assert.equal(first.get().cash, 750);
   assert.equal(first.get().mothWins, 1);
@@ -227,4 +228,22 @@ test("unversioned schema-2 courses remain unknown, and failed replacement preser
   assert.equal(blocked.discardOutdatedChallenge(), false);
   assert.equal(storage.getItem(PROGRESS_KEY), before);
   assert.ok(blocked.outdatedChallenge());
+});
+
+test("stages accepted before turfs keep their plain ids: they load, retry and pay as the races they were", () => {
+  const storage = disk();
+  storage.data.set(PROGRESS_KEY, JSON.stringify({ version: 3, mothBeaten: false, mothWins: 1, cash: 750, bulwarkOwned: false,
+    mothRaces: [{ raceId: "gen-15", start: null, build: TEST_BUILD }, { raceId: "gen-16-circuit", start: null, build: TEST_BUILD }] }));
+  const store = createProgressStore(() => storage);
+  assert.equal(store.unavailable(), false);
+  assert.deepEqual(store.challenge(99, null), { raceId: "gen-16-circuit", start: null, build: TEST_BUILD }, "a pending plain stage retries as itself");
+  assert.equal(store.complete(result({ raceId: "gen-16-circuit", start: null, build: TEST_BUILD })), "advanced");
+  assert.equal(store.challenge(40, null)!.raceId, "gen-moth-40-unordered", "the next stage drawn is a turf draw");
+  // A stage names a variant and, if any, Moth's turf; another variant or turf is not her stage.
+  for (const raceId of ["gen-15-circuit", "gen-stray-15", "gen-mothx-15", "gen-moth-15-drift"]) {
+    const bad = disk();
+    bad.data.set(PROGRESS_KEY, JSON.stringify({ version: 3, mothBeaten: false, mothWins: 0, cash: 0, bulwarkOwned: false,
+      mothRaces: [{ raceId, start: null, build: TEST_BUILD }] }));
+    assert.ok(createProgressStore(() => bad).unavailable(), raceId);
+  }
 });

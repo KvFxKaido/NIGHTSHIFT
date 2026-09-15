@@ -17,6 +17,7 @@ import { mix } from "./traffic.ts";
 import { forwardOf, rightOf } from "./race-start.ts";
 import { measureLeg, route, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
 import { projectOntoPath, type Street } from "./street-path.ts";
+import { generatedRaceId } from "./race-id.ts";
 import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
@@ -60,7 +61,43 @@ export const GENERATOR = {
   flow: { bearing: 120, turn: 135 },
   countdownTicks: 180,
   gateRadius: 20,
+  /** A rival's turf (design/PROCEDURAL_RACES.md, step 2): a candidate leg's
+   *  weight is multiplied by 1 + pull x the share of its route inside the turf,
+   *  so a draw leans home and can still leave. A draw with no turf is untouched.
+   *  Measured over nine 800 m turfs x 60 seeds, each drawn from its own centre
+   *  (`pnpm alder:turf`, 2026-09-15): the share of a race inside its turf goes
+   *  from 34% with no pull to 40% at 3, 42% at 10 and 44% at 30, with no failed
+   *  draws and the priced-or-even share 64% -> 63%. The flow rule carries a 3 km
+   *  race forward out of any turf that size, so the pull has a ceiling; letting a
+   *  turf draw turn back for home reached 47% by doubling back, which is what
+   *  the flow rule exists to stop. 10 takes nearly all of what is there. */
+  turf: { pull: 10 },
 } as const;
+
+/** A rival's home ground, as the draw sees it: a centre and a radius in metres. */
+export interface Turf { readonly id: string; readonly centre: { readonly x: number; readonly z: number }; readonly radius: number }
+
+const turfShares = new WeakMap<RoutingGraph, Map<string, number>>();
+/** The share of a leg's route length inside a turf, measured on segment midpoints. */
+export function turfShare(graph: RoutingGraph, leg: Leg, turf: Turf): number {
+  let cache = turfShares.get(graph);
+  if (!cache) { cache = new Map(); turfShares.set(graph, cache); }
+  const key = `${turf.id}@${turf.centre.x},${turf.centre.z},${turf.radius}|${leg.from}|${leg.to}`;
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached;
+  let inside = 0, total = 0;
+  for (const drive of leg.via) {
+    const points = graph.streets.get(drive.id)!.points;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1]!, b = points[i]!, length = Math.hypot(b.x - a.x, b.z - a.z);
+      total += length;
+      if (Math.hypot((a.x + b.x) / 2 - turf.centre.x, (a.z + b.z) / 2 - turf.centre.z) <= turf.radius) inside += length;
+    }
+  }
+  const share = total > 0 ? inside / total : 0;
+  cache.set(key, share);
+  return share;
+}
 
 export interface GeneratedRace {
   readonly definition: RaceDefinition;
@@ -103,10 +140,12 @@ export function nodePosition(graph: RoutingGraph, id: string): { x: number; z: n
  * gate ahead or abeam of the heading the last one is reached on, so a race
  * never doubles back on itself. A leg's time is still the table's, which
  * routes it with a free first exit: the turn at the gate (at most `turn`
- * degrees, under 5 s) is not in it.
+ * degrees, under 5 s) is not in it. A `turf` leans the draw toward a rival's
+ * home ground and names the race after the rival (`gen-moth-15`); without one
+ * the draw and its id are what they always were.
  */
 export function generateRace(graph: RoutingGraph, seed: number, origin: string, arriving: Heading,
-  avoid: readonly string[] = []): GeneratedRace {
+  avoid: readonly string[] = [], turf: Turf | null = null): GeneratedRace {
   const next = stream(seed);
   for (let attempt = 0; attempt < 12; attempt++) {
     const gateCount = GENERATOR.gates.min + Math.floor(next() * (GENERATOR.gates.max - GENERATOR.gates.min + 1));
@@ -133,6 +172,7 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
         const leg = measureLeg(graph, at, to);
         let weight = GENERATOR.weight[leg.kind]!;
         if (leg.detour !== null && leg.detour >= 0.1 && leg.detour <= 0.25) weight += GENERATOR.weight.sweetSpot!;
+        if (turf) weight *= 1 + GENERATOR.turf.pull * turfShare(graph, leg, turf);
         candidates.push({ leg, weight });
       }
       if (!candidates.length) break;
@@ -156,7 +196,7 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
     });
     const name = `${shortStreetName(checkpoints[0]!.name)} to ${shortStreetName(checkpoints[checkpoints.length - 1]!.name)}`;
     return { seed, legs: chosen,
-      definition: { id: `gen-${seed}`, name, countdownTicks: GENERATOR.countdownTicks, checkpoints } };
+      definition: { id: generatedRaceId({ seed, kind: "sprint", rival: turf?.id ?? null }), name, countdownTicks: GENERATOR.countdownTicks, checkpoints } };
   }
   throw new RangeError(`Seed ${seed} draws no race from ${origin}`);
 }

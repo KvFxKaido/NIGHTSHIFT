@@ -476,8 +476,47 @@ S in either direction; the mechanism is what makes a cruise route anywhere
 in the city a start anywhere in the city. `tests/race-start.test.ts` snaps,
 round-trips the URL, draws from Pike St, Queen Anne Climb, Freight Cut and
 4th Ave S southbound, and drives a race from the hill to the finish in traffic.
-Not yet: rivals biasing the draw towards their own streets, and rivals learning
-the player's line per street.
+Not yet: rivals learning the player's line per street.
+
+### Rival turf (2026-09-15)
+
+`design/PROCEDURAL_RACES.md`, step 2. Each Blacklist name but Tally has a turf,
+a centre and an 800 m radius (`TURF_RADIUS`) taken from the map so an edit
+moves it (`src/sim/alder-turf.ts`): Moth's cruise loop, the downtown core for
+Stray, Rivet's strip, Elliott Ave, the Broadcast Tower, Sable's yard, the
+Madrona Ridge and Capitol Hill labels, and Queen Anne Climb. Tally's turf is the
+whole city, which is no pull.
+
+A turf draw multiplies each candidate leg's weight by 1 + pull x the share of its
+route inside the turf (`GENERATOR.turf`, pull 10), so a race leans home and can
+still leave, and it names the turf in the id: `gen-moth-15`, the grammar in
+`src/sim/race-id.ts`. `gen-15` is still the plain draw, so stages accepted
+before turfs keep their races, and the plain fingerprint did not move. Turf draws
+have their own pin, which also takes the turfs, the pull and each sampled leg's
+share by value, because a sample of races missed pull 10 -> 20.
+
+`pnpm alder:turf` draws the same seeds from each turf's centre with and without
+it. Measured (60 seeds, 2026-09-15):
+
+| pull | inside own turf | priced or even | no race |
+|---|---|---|---|
+| none | 34% | 64% | 0 |
+| 3 | 40% | 63% | 0 |
+| 10 | 42% | 63% | 0 |
+| 30 | 44% | 62% | 0 |
+
+At a 1,200 m radius the same pulls give 62% -> 71%. Letting a turf draw turn back
+for home once outside reached 47% at pull 10 with 32 of 1,362 legs doubling back
+past 135°, which is what the flow rule is for, so it was not kept. From Moth's
+own loop her races go from 34% to 40% inside her turf and 18 of 40 seeds draw
+another race. Only her stages draw with a turf; Draw a race here stays plain.
+
+The map puts some turfs almost on top of each other: Rivet and Sable are 224 m
+apart, Bollard and Deuce 354 m, and 69% of Bollard's turf races lie in Deuce's
+turf. Rivet and Sable race drag and drift, not generated races, but Bollard and
+Deuce would draw alike until their races differ some other way. The pull costs
+choice where a turf has few priced legs: Rivet's priced-or-even share falls from
+74% to 61%, the largest drop of the nine; the rest move by six points or less.
 
 ### Race list (2026-09-15)
 

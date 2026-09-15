@@ -62,7 +62,9 @@ Other rivals' stage chains and Stray's arrival remain unimplemented.
 | 1 | Tally | The whole city | Vesper mid-engine coupe | RWD | violet | Citywide open checkpoint |
 
 Race types are GDD §7's. Moth's is the flash as it exists today: a generated
-race whose variant (sprint, circuit or unordered) comes from the seed.
+race whose variant (sprint, circuit or unordered) comes from her career stage.
+Every turf but Tally's is a centre and radius on the map (`src/sim/alder-turf.ts`,
+2026-09-15), and a name's generated races lean toward it; only Moth's draw today.
 
 ## The cars (2026-09-12)
 

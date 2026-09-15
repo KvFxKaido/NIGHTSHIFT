@@ -431,9 +431,9 @@ refuses to violate rather than a paragraph to remember. The seed is the
 race's identity: the same seed draws the same gates and the same rival line,
 which with its variant (sprint, circuit, unordered) and the start pose the
 flash was made from is all a saved playlist or a ghost needs to carry. A race repeats only
-if the player keeps it. Rivals biasing the draw towards their own streets,
-and rivals learning the player's lines per street from races the player won
-against them (never from the player's losses), are the next two steps;
+if the player keeps it. A rival's draws lean toward its turf (2026-09-15).
+Rivals learning the player's lines per street from races the player won
+against them (never from the player's losses) is the next step;
 `design/PROCEDURAL_RACES.md` is the long form and the order of work.
 
 ### 7.4 Drag

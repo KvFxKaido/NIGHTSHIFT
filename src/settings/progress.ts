@@ -1,11 +1,14 @@
 import { isPlayerCarId, type PlayerCarId } from "../customization/cars.ts";
 import { decodeStart } from "../sim/race-start.ts";
+import { generatedRaceId, parseGeneratedRaceId } from "../sim/race-id.ts";
 import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
 
 export { sameRaceBuild, type RaceBuild };
 
 export const PROGRESS_KEY = "nightshift.progress";
 export const BULWARK_PRICE = 1500;
+/** The turf Moth's stages draw toward (`alder-turf.ts`). Stages accepted before turfs drew plain races and keep them. */
+export const MOTH_TURF = "moth";
 export const MOTH_STAGES = [
   { name: "First meeting", kind: "sprint", payout: 750 },
   { name: "Rematch", kind: "circuit", payout: 750 },
@@ -42,8 +45,9 @@ export function decodeProgress(raw: string | null, legacyBulwark = false): Caree
     || !Array.isArray(data.mothRaces) || data.mothRaces.length > Math.min(3, data.mothWins + 1)
     || (data.mothRaces.length < data.mothWins && !(data.mothWins === 3 && data.mothRaces.length === 0))) throw Error("Unreadable progress");
   const mothRaces: MothRace[] = data.mothRaces.map((race: MothRace, index: number) => {
-    const suffix = ["", "-circuit", "-unordered"][index];
-    if (!race || typeof race.raceId !== "string" || !new RegExp(`^gen-\\d{1,9}${suffix}$`).test(race.raceId)
+    // Each stage's variant is fixed; its draw leans toward Moth's turf (gen-moth-15) or, drawn before turfs, none (gen-15).
+    const id = race && typeof race.raceId === "string" ? parseGeneratedRaceId(race.raceId) : null;
+    if (!id || id.kind !== MOTH_STAGES[index]!.kind || (id.rival !== null && id.rival !== MOTH_TURF)
       || (race.start !== null && (typeof race.start !== "string" || !decodeStart(race.start)))) throw Error("Unreadable race");
     // Unversioned prototype races have unknown provenance, never today's build.
     const build = data.version === 2 ? null : race.build;
@@ -119,7 +123,7 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
         const existing = progress.mothRaces[progress.mothWins];
         if (existing) return sameRaceBuild(existing.build, build) ? structuredClone(existing) : null;
         const kind = MOTH_STAGES[progress.mothWins]!.kind;
-        const race = { raceId: `gen-${seed}${kind === "sprint" ? "" : `-${kind}`}`, start, build: { ...build } };
+        const race = { raceId: generatedRaceId({ seed, kind, rival: MOTH_TURF }), start, build: { ...build } };
         write({ ...progress, mothRaces: [...progress.mothRaces, race] });
         return structuredClone(race);
       } catch { unavailable = true; return null; }

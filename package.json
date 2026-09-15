@@ -19,7 +19,8 @@
     "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts",
     "laps": "node --experimental-strip-types --no-warnings scripts/lap-summary.ts",
     "pace": "node --experimental-strip-types --no-warnings scripts/calibrate-pace.ts",
-    "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts"
+    "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
+    "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.19.3",

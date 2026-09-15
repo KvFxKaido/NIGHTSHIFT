@@ -4,6 +4,7 @@ import { streetCircuitRaceId } from "../sim/street-circuit.ts";
 import { MOTH_STAGES, type CareerProgress } from "../settings/progress.ts";
 import { sameRaceBuild, type RaceBuild } from "../settings/race-build.ts";
 import type { KeptRace, PlaylistEntry } from "../settings/playlist.ts";
+import { parseGeneratedRaceId } from "../sim/race-id.ts";
 
 /**
  * The race list (design/PROCEDURAL_RACES.md, step 4), as data: what the menu
@@ -47,7 +48,8 @@ export const AUTHORED_RACES: readonly RaceListItem[] = [
 
 /** "gen-12-circuit" -> "Circuit". */
 export function generatedKind(raceId: string): string {
-  return raceId.endsWith("-circuit") ? "Circuit" : raceId.endsWith("-unordered") ? "Unordered" : "Sprint";
+  const kind = parseGeneratedRaceId(raceId)?.kind ?? "sprint";
+  return kind === "circuit" ? "Circuit" : kind === "unordered" ? "Unordered" : "Sprint";
 }
 
 const OLDER = "Drawn on an older version of the city or generator · cannot be raced";
