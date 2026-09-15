@@ -9,13 +9,29 @@ await RAPIER.init();
 
 test("challenge requires a nearby opponent at the same height and a cruising speed", () => {
   const opponent = ALDER_ENCOUNTER;
-  const player = { ...opponent, z: opponent.z + 20, speed: 5 };
+  const player = { ...opponent, z: opponent.z + 20, forwardSpeed: 5 };
   assert.equal(canChallenge(player, opponent, false), true);
   assert.equal(canChallenge({ ...player, z: opponent.z + 33 }, opponent, false), false);
   assert.equal(canChallenge({ ...player, y: opponent.y + 4 }, opponent, false), false);
-  assert.equal(canChallenge({ ...player, speed: 12 }, opponent, false), false);
+  assert.equal(canChallenge({ ...player, forwardSpeed: 12 }, opponent, false), false, "a parked rival is reached under 12 m/s, as always");
+  assert.equal(canChallenge({ ...player, forwardSpeed: -11.9 }, opponent, false), true, "reversing counts as speed too");
   assert.equal(canChallenge(player, null, false), false);
   assert.equal(canChallenge(player, opponent, true), false);
+});
+
+test("a moving rival is reached at its own pace: following, catching up and drifting back reach it; blasting past or meeting head-on does not", () => {
+  // Cruisers hold 10.5 m/s round their loops (measured 2026-09-15, every name, two minutes in traffic).
+  const heading = 0.7, cruiser = { x: 0, y: 0, z: 0, heading, forwardSpeed: 10.5, lateralSpeed: 0 };
+  const behind = (gap: number, forwardSpeed: number, lateralSpeed = 0, turn = 0) =>
+    ({ x: gap * Math.sin(heading), y: 0, z: gap * Math.cos(heading), heading: heading + turn, forwardSpeed, lateralSpeed });
+  for (const speed of [10.5, 12, 15, 20, 22]) assert.equal(canChallenge(behind(25, speed), cruiser, false), true, `following at ${speed} m/s`);
+  assert.equal(canChallenge(behind(25, 0), cruiser, false), true, "stopped as it pulls away");
+  assert.equal(canChallenge(behind(25, 23), cruiser, false), false, "12.5 m/s faster is driving past, not flashing");
+  assert.equal(canChallenge(behind(25, 3, 0, Math.PI), cruiser, false), false, "meeting it head-on closes at 13.5 m/s");
+  assert.equal(canChallenge(behind(25, 10.5, 4), cruiser, false), true, "a little sideways is still its pace");
+  assert.equal(canChallenge(behind(33, 10.5), cruiser, false), false, "out of reach at its pace");
+  // Poses with no velocity stand still, so a parked rival is the rule it always was.
+  assert.equal(canChallenge({ x: 0, y: 0, z: 20 }, { x: 0, y: 0, z: 0 }, false), true);
 });
 
 test("Port Alder encounter fits on the road, stays parked in traffic, and resets reproducibly", () => {

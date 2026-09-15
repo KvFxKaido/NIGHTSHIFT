@@ -616,6 +616,21 @@ career result like a race's. Checked in the browser: flashing Rivet at one win
 loaded the drag, and a pink-slip drift won at 4,200 paid $4,000, handed over the
 NS-01 and named Plumb next.
 
+### Flash reach on a moving rival (2026-09-15)
+
+A flash reached a rival within 32 m, at the same height, while the player drove
+under 12 m/s. Measured: every cruiser, Moth included, holds 10.5 m/s round its
+whole loop, corners too, so following one left a 1.5 m/s window, and catching up
+meant going over 12 and losing the card. A scripted pursuer (the rival driver on
+Moth's loop, capped at 13, 16 or 20 m/s, starting 60 m behind) never got the old
+prompt in 90 s. The limit is now on speed relative to the rival (`canChallenge`,
+`CHALLENGE_REACH`): under 12 m/s apart, velocity against velocity. The same
+pursuers are offered the flash for nearly all their time within reach, first at
+12.1, 7.1 and 5.3 s. A parked rival has no velocity, so Rivet and Sable are
+reached exactly as before; closing on a cruiser at 23 m/s, or meeting it head-on,
+is still driving past. In the browser, closing on Plumb from 20 m back at 17.4 m/s
+showed his card; at 26.4 m/s it did not.
+
 ### Race list (2026-09-15)
 
 The playlist of `design/PROCEDURAL_RACES.md`, step 4, from the title or Pause

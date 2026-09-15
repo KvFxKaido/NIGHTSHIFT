@@ -75,16 +75,31 @@ export function cruiseLoop(id: string, drives: readonly { street: string; revers
   return { id, drivetrain, start: { x: first.x, y: first.y, z: first.z, heading, pitch: 0 }, points, along, gates: [], loop: true, speedLimit };
 }
 
-/** Challenge from nearby at cruising speed; vertical separation prevents bridge triggers. */
-export function canChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed">,
-  opponent: Pick<VehicleState, "x" | "y" | "z"> | null | undefined, inRace: boolean): boolean {
-  return !inRace && !!opponent && player.speed < 12 &&
-    Math.abs(player.y - opponent.y) < 3 && Math.hypot(player.x - opponent.x, player.z - opponent.z) <= 32;
+/** Where a flash reaches: within this distance, at the same height, and closing or drifting apart slower than this. */
+export const CHALLENGE_REACH = { distance: 32, relativeSpeed: 12 } as const;
+/** A pose or vehicle's velocity in the world; a bare pose is standing still. */
+type Moving = Pick<VehicleState, "x" | "y" | "z"> & Partial<Pick<VehicleState, "heading" | "forwardSpeed" | "lateralSpeed">>;
+function worldVelocity(v: Moving): { x: number; z: number } {
+  const h = v.heading ?? 0, forward = v.forwardSpeed ?? 0, lateral = v.lateralSpeed ?? 0;
+  return { x: -forward * Math.sin(h) + lateral * Math.cos(h), z: -forward * Math.cos(h) - lateral * Math.sin(h) };
+}
+
+/**
+ * Challenge from nearby, matching the opponent's pace; vertical separation prevents bridge triggers.
+ * Pace is relative (2026-09-15): cruisers hold 10.5 m/s, so the old limit on the player's own speed
+ * (under 12 m/s) left a 1.5 m/s window to follow one in, and catching up dropped the prompt. Against
+ * a parked rival relative speed is the player's speed, so parked challenges are unchanged.
+ */
+export function canChallenge(player: Moving, opponent: Moving | null | undefined, inRace: boolean): boolean {
+  if (inRace || !opponent || Math.abs(player.y - opponent.y) >= 3
+    || Math.hypot(player.x - opponent.x, player.z - opponent.z) > CHALLENGE_REACH.distance) return false;
+  const a = worldVelocity(player), b = worldVelocity(opponent);
+  return Math.hypot(a.x - b.x, a.z - b.z) < CHALLENGE_REACH.relativeSpeed;
 }
 
 /** Resolve the nearby rival when the flash begins, so driving past another
  * opponent during the lamp animation cannot change the accepted challenge. */
-export function nearbyChallenge(player: Pick<VehicleState, "x" | "y" | "z" | "speed">,
+export function nearbyChallenge(player: Moving,
   cruise: VehicleState | null | undefined,
   parked: readonly { id: string; vehicle: VehicleState }[], inRace: boolean,
   cruisers: readonly { id: string; vehicle: VehicleState }[] = []): string | null {
