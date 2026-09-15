@@ -18,7 +18,7 @@ separate authoring/navigation page.
 
 ## Menus and named saves
 
-The title centers on Continue / Load game / New drive, with Garage and Options.
+The title centers on Continue / Load game / New drive, with Race list, Garage and Options.
 Continue loads the most recently saved of three named slots. Empty slots cannot
 be loaded. Pause → Save game records the current build and free-roam position;
 a second, explicitly labeled Replace save action is required for an occupied slot.
@@ -39,8 +39,8 @@ Fresh profiles start in Cinder; the garage sells Bulwark for $1,500. Purchases
 save cash and ownership together. Older one-win profiles retain their cars, and
 an existing selected Bulwark is durably granted when no career record exists.
 If that migration cannot be saved, car changes wait for a successful retry.
-Loading an older build never revokes ownership. Stray's challenge and a playlist
-are still unavailable. Race descriptors carry generator and world identity.
+Loading an older build never revokes ownership. Stray's challenge is still
+unavailable; Moth's won races are in the race list (below). Race descriptors carry generator and world identity.
 Mismatched or unversioned courses are rejected. The garage can explicitly
 replace only the incompatible unfinished stage, preserving wins, money, cars
 and completed history. New challenge links carry the same version identity.
@@ -476,8 +476,38 @@ S in either direction; the mechanism is what makes a cruise route anywhere
 in the city a start anywhere in the city. `tests/race-start.test.ts` snaps,
 round-trips the URL, draws from Pike St, Queen Anne Climb, Freight Cut and
 4th Ave S southbound, and drives a race from the hill to the finish in traffic.
-Not yet: rivals biasing the draw towards their own streets, saved playlists,
-and rivals learning the player's line per street.
+Not yet: rivals biasing the draw towards their own streets, and rivals learning
+the player's line per street.
+
+### Race list (2026-09-15)
+
+The playlist of `design/PROCEDURAL_RACES.md`, step 4, from the title or Pause
+(`src/ui/race-list.ts` decides, `race-list-panel.ts` draws). Three groups:
+
+- **Courses**, always listed: Sound to Sky, Ridge Circuit's three layouts, and
+  Uptown Circuit in traffic and clear.
+- **Moth**, her won stages read from `nightshift.progress`, so retiring her
+  from the street does not lose her races. Career history is not removable here,
+  and replaying a won stage pays nothing.
+- **Kept races**, from the Keep button on a generated race's results, in
+  `nightshift.playlist` (`src/settings/playlist.ts`). A kept race Moth's group
+  already shows is not listed twice, and her won stages offer no Keep.
+
+Every playable entry has Race (the rival) and Solo. A circuit is solo by its race
+id (`-solo`); a generated race or Sound to Sky takes `?solo=1`, which keeps the
+race and its gate arrows and fields nobody. The arrows come from the rival's
+line, so solo runs `withExits` before the rival is dropped. A solo win is never a
+career result. Entries drawn on another `ALDER_VERSION` or `GENERATOR_REVISION`
+are listed, dimmed, with only Remove: never redrawn under their old name.
+
+**Draw a race here**, at the top of the list during a free-roam drive, draws a
+new generated race from the lane the car is on (a seed from the tick, the variant
+from the seed, as flashes did before Moth's stages drew once), against the rival.
+Off every street, in a race, or before a drive has started, it says why not.
+Checked in the browser on a fresh profile (2026-09-15): draw, keep, the solo
+replay with the same first gate and arrow, results for both, Remove, an
+older-build entry, Moth's groups, and a 390 px layout. Finishes were forced, so
+this checks the flow, not the races.
 
 
 ## First racing rival

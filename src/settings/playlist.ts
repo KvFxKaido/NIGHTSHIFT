@@ -1,4 +1,5 @@
 import { decodeStart } from "../sim/race-start.ts";
+import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
 
 /**
  * The playlist: generated races the player chose to keep (design/PROCEDURAL_RACES.md,
@@ -19,7 +20,6 @@ import { decodeStart } from "../sim/race-start.ts";
 export const PLAYLIST_KEY = "nightshift.playlist";
 export const PLAYLIST_VERSION = 1;
 
-export interface RaceBuild { generator: string; world: string }
 export interface Course { raceId: string; start: string | null }
 export interface KeptRace extends Course {
   build: RaceBuild;
@@ -32,9 +32,8 @@ export interface PlaylistEntry { race: KeptRace; playable: boolean }
 type Disk = Pick<Storage, "getItem" | "setItem">;
 
 const RACE_ID = /^gen-\d{1,9}(-circuit|-unordered)?$/;
-export const sameBuild = (a: RaceBuild, b: RaceBuild) => a.generator === b.generator && a.world === b.world;
 const sameCourse = (a: KeptRace, b: Course & { build: RaceBuild }) =>
-  a.raceId === b.raceId && a.start === b.start && sameBuild(a.build, b.build);
+  a.raceId === b.raceId && a.start === b.start && sameRaceBuild(a.build, b.build);
 
 function decodeRace(race: unknown): KeptRace {
   const r = race as KeptRace | null;
@@ -71,7 +70,7 @@ export function createPlaylistStore(storage: () => Disk, build: RaceBuild) {
   return {
     /** Every kept race in the order it was kept, each marked playable on this build or not; null when the stored list cannot be read. */
     list(): PlaylistEntry[] | null {
-      try { return read().map(race => ({ race, playable: sameBuild(race.build, build) })); } catch { return null; }
+      try { return read().map(race => ({ race, playable: sameRaceBuild(race.build, build) })); } catch { return null; }
     },
     /** Keep a race drawn on this build. Keeping it again changes nothing. */
     keep(course: Course, name: string, now: number): "kept" | "already" | "unavailable" {

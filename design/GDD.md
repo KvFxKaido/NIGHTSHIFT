@@ -207,8 +207,8 @@ Each accepted stage retains its route for retries; old wins cannot advance or
 pay again. Cash and ownership survive reloads and older drive slots.
 The fresh-profile starter is Cinder. Bulwark costs $1,500, so the first two wins
 can buy it before the pink slip. These are provisional tuning prices.
-Stray is named next but has no challenge yet; reputation, chapter gates,
-rival learning and the replay playlist remain future work.
+Moth's won races stay playable in the race list. Stray is named next but has
+no challenge yet; reputation, chapter gates and rival learning remain future work.
 
 Roster direction: 20 cars for the first complete roster, with room toward 30.
 Ten are guaranteed rival rewards; the remaining 10–20 are starter/shop cars.
@@ -236,8 +236,8 @@ Proposed, not decided:
   drift.
 - Chapters open at list positions, opening who races in a district rather than
   which streets can be driven (§6.3).
-- Beaten names leave the map after their pink slip. Their races will remain
-  available through a future playlist. Moth implements the departure; later
+- Beaten names leave the map after their pink slip. Their races remain
+  available in the race list. Moth implements the departure; later
   rival learning remains a separate proposal (`design/PROCEDURAL_RACES.md`).
 - Moth, who already cruises by the garage, is #10.
 - The full list, #10 to #1, with turf, car, accent, challenge and each name's

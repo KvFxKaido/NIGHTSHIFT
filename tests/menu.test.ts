@@ -36,7 +36,7 @@ test("race results pause driving and require a destination instead of resuming o
   assert.equal(transitionMenu(createInitialMenuState(), "race-finished").screen, "main");
 });
 
-test("nested options and save screens return to their origin without resuming the sim", () => {
+test("nested options, save and race list screens return to their origin without resuming the sim", () => {
   for (const origin of ["main", "pause"] as const) {
     const initial = { screen: origin, returnTo: origin };
     const options = transitionMenu(initial, "open-options");
@@ -46,6 +46,7 @@ test("nested options and save screens return to their origin without resuming th
       assert.deepEqual(returned, options);
       assert.equal(transitionMenu(returned, back).screen, origin);
       assert.equal(transitionMenu(transitionMenu(initial, "open-saves"), back).screen, origin);
+      assert.equal(transitionMenu(transitionMenu(initial, "open-races"), back).screen, origin);
     }
   }
 });

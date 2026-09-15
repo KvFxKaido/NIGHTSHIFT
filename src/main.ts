@@ -11,6 +11,9 @@ import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
 import { BULWARK_PRICE, MOTH_STAGES, createProgressStore, ownsCar, sameRaceBuild, type CareerResult } from "./settings/progress.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
+import { createPlaylistStore } from "./settings/playlist.ts";
+import { createRaceListPanel } from "./ui/race-list-panel.ts";
+import type { RaceLaunch } from "./ui/race-list.ts";
 import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
 import { cardCopy, rivalCard, RIVAL_CARDS, type CardCopy } from "./ui/rival-card.ts";
 import type { SpotLight } from "three";
@@ -35,7 +38,7 @@ import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
 import { GENERATOR_REVISION, seedFromTick } from "./sim/race-generator.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
-import { RIVAL_REVISION } from "./sim/rival.ts";
+import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
 import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
@@ -68,6 +71,7 @@ const restored = { ...settings.get(), ...loadedSave?.build };
 const raceBuild = { generator: GENERATOR_REVISION, world: ALDER_VERSION };
 const progress = createProgressStore(() => window.localStorage, raceBuild, settings.get().car === "bulwark" || restored.car === "bulwark");
 if (!ownsCar(progress.get(), restored.car)) restored.car = "cinder";
+const playlist = createPlaylistStore(() => window.localStorage, raceBuild);
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
@@ -82,6 +86,8 @@ let rival: RivalDefinition | null = null;
 let raceStart: RoadWorld["start"] | null = null;
 /** A lapped circuit race, Ridge Circuit or a street circuit, solo or not. Its laps are recorded. */
 let circuit: CircuitEvent | null = null;
+/** A generated race or Sound to Sky raced with nobody: `?solo=1`. Circuits carry solo in their race id. */
+let solo = false;
 let lighting: DistrictLighting = "night";
 try {
   const url = new URL(location.href);
@@ -135,6 +141,12 @@ try {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
   } else if (raceId === SABLE_DRIFT.id) { race = SABLE_DRIFT; raceStart = DRIFT_YARD.start;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
+  // Solo keeps the race and its gate arrows, which come from the rival's line, and fields nobody.
+  if (params.has("solo")) {
+    solo = params.get("solo") === "1" && race !== null && rival !== null && !circuit && (!!generated || race === ALDER_RACE);
+    if (solo) { race = withExits(race!, rival!); rival = null; }
+    else { params.delete("solo"); history.replaceState(history.state, "", url); }
+  }
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
@@ -150,7 +162,7 @@ try {
   {
     const opponent = raceOpponentCar();
     // A solo run has nobody to draw.
-    if (!circuit?.solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    if (!circuit?.solo && !solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
@@ -376,6 +388,8 @@ const savePanel = createSavesPanel(saves, () => ({
   build: { car: ownsCar(progress.get(), selectedCar) ? selectedCar : "cinder", customization: { ...customization } },
   position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
 }));
+/** Whether a drive is under way, so the race list can draw a race from where the car is. */
+let onTheStreet = false;
 const menu = createMenuController({
   startTrack: (fresh) => {
     if (fresh) {
@@ -414,6 +428,9 @@ const menu = createMenuController({
     if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);
     if (screen === "map") gameMap.open();
+    if (screen === "playing" || screen === "pause") onTheStreet = true;
+    else if (screen === "main") onTheStreet = false;
+    if (screen === "races") raceList.render();
     setViewMode(view, screen === "garage" ? "garage" : "track");
   },
   getAudioLevels: () => audioLevels,
@@ -483,8 +500,9 @@ const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encou
 const flashLabel = () => input.activeGamepadName()
   ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName())
   : keyLabel(input.bindings().keyboard.flash);
-function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null): void {
+function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null, soloRace = false): void {
   const url = new URL(location.href);
+  if (soloRace) url.searchParams.set("solo", "1"); else url.searchParams.delete("solo");
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
   if (raceId?.startsWith("gen-")) {
     url.searchParams.set("generator", raceBuild.generator);
@@ -674,6 +692,12 @@ function frame(now: number): void {
       accumulator = 0;
       break;
     }
+    if (sim.state.race?.finished && !sim.state.rival && solo && race) {
+      menu.finishRace("Finished", `${race.name} · Solo · ${formatRaceTime(sim.state.race.ticks, TICK_HZ)}`);
+      renderKeep();
+      accumulator = 0;
+      break;
+    }
     if (sim.state.race?.finished && sim.state.rival && race) {
       const position = racePosition(race,
         { race: sim.state.race, x: sim.state.vehicle.x, z: sim.state.vehicle.z },
@@ -682,6 +706,7 @@ function frame(now: number): void {
       const dragTiming = race.kind === "drag" && reactionTicks != null
         ? ` / RT ${(reactionTicks / TICK_HZ).toFixed(3)} s / ET ${formatRaceTime(sim.state.race.ticks - reactionTicks, TICK_HZ, 3)}` : "";
       saveRaceReward({ raceId: race.id, start: new URLSearchParams(location.search).get("start"), build: raceBuild, finished: sim.state.race.finished, disqualified: !!sim.state.race.disqualified, position });
+      renderKeep();
       menu.finishRace(sim.state.race.disqualified ? "Disqualified" : position === 1 ? "You win" : "Second place",
         `${race.name} · ${sim.state.race.disqualified ? "Left the strip" : `P${position}/2`} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${dragTiming}`);
       accumulator = 0;
@@ -787,6 +812,53 @@ document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button 
   button.addEventListener("click", () => loadDrive(null));
 });
 document.querySelector<HTMLButtonElement>("[data-race-garage]")!.addEventListener("click", () => loadDrive(null, "garage"));
+
+// The race list (design/PROCEDURAL_RACES.md, step 4): keep a generated race from
+// its results, race anything listed with the rival or solo, or draw a new race
+// from where the car is, as a flash used to before Moth's stages drew once.
+const keepButton = document.querySelector<HTMLButtonElement>("[data-keep-race]")!;
+const keepStatus = document.querySelector<HTMLElement>("[data-keep-status]")!;
+const keptCourse = () => race?.id.startsWith("gen-") ? { raceId: race.id, start: new URLSearchParams(location.search).get("start") } : null;
+function renderKeep(message = ""): void {
+  const course = keptCourse();
+  keepButton.hidden = !course;
+  keepStatus.hidden = !message;
+  keepStatus.textContent = message;
+  if (!course) return;
+  const career = progress.get();
+  if (career.mothRaces.slice(0, career.mothWins).some(stage => stage.raceId === course.raceId && stage.start === course.start && sameRaceBuild(stage.build, raceBuild))) {
+    keepButton.hidden = true;
+    keepStatus.hidden = false;
+    keepStatus.textContent = "Moth's won races are in your race list.";
+    return;
+  }
+  // Never disabled: a disabled button drops focus, and the next Confirm on a pad
+  // would fall through to Return to free roam. Pressing it again says so instead.
+  keepButton.textContent = playlist.has(course) ? "Kept in race list" : "Keep this race";
+}
+keepButton.addEventListener("click", () => {
+  const course = keptCourse();
+  if (!course || !race) return;
+  const outcome = playlist.keep(course, race.name, Date.now());
+  renderKeep(outcome === "kept" ? `“${race.name}” is in your race list.`
+    : outcome === "already" ? "Already in your race list." : "Could not keep it. Your race list has been left untouched; try again.");
+});
+const raceList = createRaceListPanel({
+  playlist,
+  career: () => progress.get(),
+  build: raceBuild,
+  launch: (entry: RaceLaunch) => loadDrive(entry.raceId, "track", entry.start, entry.solo),
+  drawBlocked: () => race ? "Leave this race to draw a new one."
+    : !onTheStreet ? "Start a drive, then draw a race from wherever you are."
+    : !snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight) ? "Get onto a street: a race starts from a lane." : null,
+  draw: () => {
+    const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
+    if (!here) return;
+    const seed = seedFromTick(sim.state.tick, 1);
+    const kind = (["sprint", "circuit", "unordered"] as const)[seed % 3]!;
+    loadDrive(`gen-${seed}${kind === "sprint" ? "" : `-${kind}`}`, "track", encodeStart(here));
+  },
+});
 
 const debugApi = (window as unknown as { __ns: Parameters<typeof applyDeepLink>[0] }).__ns;
 settings.preview(() => applyDeepLink(debugApi, location.search));

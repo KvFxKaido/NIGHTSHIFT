@@ -90,11 +90,16 @@ first two wins could affect later stages, not resurrect a retired street rival.
    and 280 of 300 seeds draw a different race. Width and grade are still
    guesses, and the corridors named here were not driven: a recorded run down
    Western against 1st would test the model where the generator most relies on it.
-4. **Playlists**: a saved list of seeds in `settings` (it is a preference,
-   not a physics snapshot), with generator/world identity. Moth's saved course
-   descriptors are groundwork only: they are rejected on mismatch or missing
-   identity, and an unfinished stage can be explicitly replaced without losing
-   wins, cash or cars. Completed history keeps its original identity.
+4. **Playlists.** *Done 2026-09-15*, as the race list (Pause or title → Race
+   list; `design/PORT_ALDER.md`, "Race list"). Shawn's calls: the results of a
+   generated race offer Keep, and Moth's won stages are listed from her career
+   without being kept; free roam can draw a new race from where the car is,
+   which is idea 1 outside the career; the authored races are always listed; and
+   every entry starts against the rival or solo. Kept races live in their own
+   key, `nightshift.playlist` (`src/settings/playlist.ts`), not in settings as
+   first proposed: the list grows, and an unreadable one must not take Options
+   with it. Each entry carries (`ALDER_VERSION`, `GENERATOR_REVISION`, race id,
+   start); one from another build stays listed, unplayable, until removed.
 5. **The edge bank and learning rivals**, with a skill cap so the rival does
    not converge on the player's ceiling and climb past it.
 

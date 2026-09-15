@@ -553,6 +553,23 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
 .save-slot { display: grid; gap: 8px; min-height: 80px; padding: 16px 28px 16px 16px; }
 .save-slot strong { font-size: 14px; overflow-wrap: anywhere; }
 .save-slot span { font-size: 10px; letter-spacing: .035em; text-transform: none; font-weight: 400; line-height: 1.5; }
+.races-menu { max-width: 640px; }
+.race-draw { display: grid; gap: 6px; width: min(340px, 100%); margin: 16px 0 6px; }
+.race-draw .handling-note { margin: 0; }
+.race-list { display: grid; gap: 6px; margin: 16px 0; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.race-group { margin: 12px 0 2px; color: var(--menu-muted); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+.race-group:first-child { margin-top: 0; }
+.race-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px;
+  border-left: 2px solid rgba(255, 255, 255, .16); background: rgba(7, 10, 18, .72); }
+.race-row[data-playable="false"] { opacity: .62; }
+.race-row strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
+.race-row span { display: block; margin-top: 4px; font-size: 10px; line-height: 1.5; color: rgba(242, 238, 227, .7); }
+.race-row-actions { display: flex; gap: 6px; }
+.race-row-actions .menu-button { min-height: 36px; min-width: 76px; padding: 0 26px 0 10px; font-size: 11px; }
+@media (max-width: 520px) {
+  .race-row { grid-template-columns: 1fr; }
+  .race-row-actions .menu-button { flex: 1; }
+}
 .save-editor { border-left: 2px solid var(--menu-cyan); padding: 12px 18px; margin-bottom: 18px; background: rgba(10, 18, 24, .85); }
 .save-editor label { display: block; font-size: 12px; margin-bottom: 8px; }
 .save-editor input { display: block; box-sizing: border-box; width: 100%; max-width: 380px; padding: 12px; border: 1px solid var(--menu-muted); background: #101a23; color: var(--menu-ink); font: inherit; }

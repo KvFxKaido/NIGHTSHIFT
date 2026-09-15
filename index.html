@@ -101,6 +101,7 @@
             <button class="menu-button primary" data-continue hidden>Continue</button>
             <button class="menu-button" data-menu-action="saves" data-save-mode="load">Load game</button>
             <button class="menu-button" data-menu-action="new-drive">New drive</button>
+            <button class="menu-button" data-menu-action="races">Race list</button>
             <button class="menu-button" data-menu-action="garage">Garage</button>
             <button class="menu-button" data-menu-action="options">Options</button>
           </nav>
@@ -220,6 +221,19 @@
           <button class="menu-button" data-menu-action="back">Back</button>
         </section>
 
+        <section class="menu-screen races-menu" data-menu-screen="races" aria-labelledby="races-title" hidden>
+          <p class="menu-kicker">Port Alder / Race list</p>
+          <h2 id="races-title" class="menu-heading">Race list</h2>
+          <p class="handling-note">Race any course against the rival or solo. Keep a generated race from its results to find it here.</p>
+          <div class="race-draw">
+            <button class="menu-button primary" data-draw-race disabled>Draw a race here</button>
+            <p class="handling-note" data-draw-note></p>
+          </div>
+          <div class="race-list" data-race-list></div>
+          <p class="settings-status" data-race-list-status role="status" aria-live="polite"></p>
+          <button class="menu-button" data-menu-action="back">Back</button>
+        </section>
+
         <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
           <p class="menu-kicker">Driver setup</p>
           <h2 id="controls-title" class="menu-heading">Controls</h2>
@@ -244,8 +258,10 @@
           <h2 id="race-result-title" class="menu-heading" data-result-title>Finished</h2>
           <p class="save-summary" data-result-detail></p>
           <p class="save-summary" data-result-reward role="status" hidden></p>
+          <p class="save-summary" data-keep-status role="status" hidden></p>
           <nav class="menu-actions" aria-label="After the race">
             <button class="menu-button" data-retry-reward hidden>Retry saving win</button>
+            <button class="menu-button" data-keep-race hidden>Keep this race</button>
             <button class="menu-button primary" data-free-roam>Return to free roam</button>
             <button class="menu-button" data-race-garage>Go to garage</button>
           </nav>
@@ -258,6 +274,7 @@
             <button class="menu-button primary" data-menu-action="resume">Resume</button>
             <button class="menu-button" data-free-roam hidden>Return to free roam</button>
             <button class="menu-button" data-menu-action="restart" data-restart-label>Return to garage</button>
+            <button class="menu-button" data-menu-action="races">Race list</button>
             <button class="menu-button" data-menu-action="saves" data-save-mode="save">Save game</button>
             <button class="menu-button" data-menu-action="options">Options</button>
             <button class="menu-button" data-district-map data-menu-action="map">Port Alder map</button>

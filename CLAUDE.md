@@ -102,7 +102,7 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
 - Procedural races are the direction (`design/PROCEDURAL_RACES.md`). Moth draws
   once per career stage; losses retry that course. Two wins unlock the pink
-  slip; the third retires her from the map. The future playlist keeps her races.
+  slip; the third retires her from the map. The race list keeps her races.
   Learning from earlier wins remains unimplemented and could affect later
   stages; retirement supersedes repeat street encounters after the pink slip.
 
@@ -174,8 +174,13 @@ fixtures outside the playable bundle, and old world links redirect.
   A completed pink slip removes Moth from free roam. Old save slots never roll
   ownership back; migration writes the legacy Bulwark grant before a car change.
   Stored courses carry generator/world identity; incompatible pending courses
-  require explicit replacement in the garage. Playlists and later rivals' chains
-  are not implemented.
+  require explicit replacement in the garage. Later rivals' chains are not
+  implemented.
+- **Race list** (title or Pause): the authored races, Moth's won stages and
+  kept generated races (`nightshift.playlist`), each raced with the rival or
+  solo (`?solo=1`, circuits by `-solo`); Keep on a generated race's results;
+  Draw a race here in free roam. Entries from another build stay listed,
+  unplayable (`design/PORT_ALDER.md`, "Race list").
 - **Ridge Circuit** (working name) east of Madrona Ridge, off Pine East: one
   facility, three layouts (`arena.ts`), open edges, three-lap races with the
   rival on the centreline (`?race=arena-full|arena-east|arena-ridge`, `-solo`
@@ -222,6 +227,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | The Blacklist: the ten career names (sketch) | — | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
+| Race list: playlist store, list model and screen | `src/settings/playlist.ts`, `race-build.ts`, `src/ui/race-list.ts`, `race-list-panel.ts` | `design/PORT_ALDER.md` |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
@@ -320,6 +326,9 @@ fixtures outside the playable bundle, and old world links redirect.
   change is in the generator or in route choice (`PACE`, risk weights): a stored
   race is (`ALDER_VERSION`, generator revision, race id, start). The fingerprint
   test prints the values to repin; repinning without a bump is the mistake.
+- A race's gate arrows come from its rival's line (`withExits`). A solo race
+  keeps them only because `?solo=1` runs `withExits` before dropping the rival;
+  a race handed to `createSim` with no rival and no exits has no arrows.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push

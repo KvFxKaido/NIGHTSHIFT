@@ -51,6 +51,7 @@ const actionEvents: Record<string, MenuEvent> = {
   controls: "open-controls",
   options: "open-options",
   saves: "open-saves",
+  races: "open-races",
   map: "map-toggle",
   start: "start-track",
   "new-drive": "start-track",

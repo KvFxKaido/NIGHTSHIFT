@@ -1,5 +1,8 @@
 import { isPlayerCarId, type PlayerCarId } from "../customization/cars.ts";
 import { decodeStart } from "../sim/race-start.ts";
+import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
+
+export { sameRaceBuild, type RaceBuild };
 
 export const PROGRESS_KEY = "nightshift.progress";
 export const BULWARK_PRICE = 1500;
@@ -8,7 +11,6 @@ export const MOTH_STAGES = [
   { name: "Rematch", kind: "circuit", payout: 750 },
   { name: "Pink slip", kind: "unordered", payout: 1500 },
 ] as const;
-export interface RaceBuild { generator: string; world: string }
 export interface RaceKey { raceId: string; start: string | null }
 export interface MothRace extends RaceKey { build: RaceBuild | null }
 export interface CareerProgress {
@@ -27,7 +29,6 @@ export interface CareerResult extends MothRace {
 }
 const freshProgress = (bulwarkOwned = false): CareerProgress => ({ mothBeaten: false, mothWins: 0, mothRaces: [], cash: 0, bulwarkOwned });
 const sameRace = (a: RaceKey, b: RaceKey) => a.raceId === b.raceId && a.start === b.start;
-export const sameRaceBuild = (a: RaceBuild | null, b: RaceBuild) => a !== null && a.generator === b.generator && a.world === b.world;
 
 export function decodeProgress(raw: string | null, legacyBulwark = false): CareerProgress {
   if (raw === null) return freshProgress(legacyBulwark);

@@ -1,4 +1,4 @@
-export type MenuScreen = "main" | "garage" | "pause" | "results" | "options" | "saves" | "controls" | "map" | "playing";
+export type MenuScreen = "main" | "garage" | "pause" | "results" | "options" | "saves" | "races" | "controls" | "map" | "playing";
 
 export interface MenuState {
   screen: MenuScreen;
@@ -12,6 +12,7 @@ export type MenuEvent =
   | "open-controls"
   | "open-options"
   | "open-saves"
+  | "open-races"
   | "open-garage"
   | "start-track"
   | "pause-toggle"
@@ -41,7 +42,8 @@ export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
       return { screen: "controls", returnTo: state.screen === "pause" ? "pause" : "main" };
     case "open-options":
     case "open-saves":
-      return { screen: event === "open-options" ? "options" : "saves", returnTo: state.screen === "pause" ? "pause" : "main" };
+    case "open-races":
+      return { screen: event === "open-options" ? "options" : event === "open-saves" ? "saves" : "races", returnTo: state.screen === "pause" ? "pause" : "main" };
     case "open-garage":
       return { screen: "garage", returnTo: state.screen === "playing" ? "playing" : state.screen === "pause" ? "pause" : "main" };
     case "start-track":
@@ -54,12 +56,12 @@ export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
       if (state.submenu === "options") return { screen: "options", returnTo: state.returnTo };
       if (state.screen === "playing") return { screen: "pause", returnTo: "pause" };
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (["garage", "controls", "map", "options", "saves"].includes(state.screen)) return { screen: state.returnTo, returnTo: state.returnTo };
+      if (["garage", "controls", "map", "options", "saves", "races"].includes(state.screen)) return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
     case "back":
       if (state.submenu === "options") return { screen: "options", returnTo: state.returnTo };
       if (state.screen === "pause") return { screen: "playing", returnTo: "main" };
-      if (["garage", "controls", "map", "options", "saves"].includes(state.screen)) return { screen: state.returnTo, returnTo: state.returnTo };
+      if (["garage", "controls", "map", "options", "saves", "races"].includes(state.screen)) return { screen: state.returnTo, returnTo: state.returnTo };
       return state;
   }
 }

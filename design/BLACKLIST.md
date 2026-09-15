@@ -36,15 +36,15 @@ working names for Shawn's review (2026-09-13).
 The adopted structure is two wins to unlock a pink-slip race, then a third win
 to take the car and retire the rival from the map. Losses retry the current
 stage. Repeating an earlier win never advances or pays again. Defeated rivals'
-races belong in a future playlist rather than remaining street encounters.
+races stay in the race list rather than remaining street encounters.
 
 Moth is the implemented slice: generated sprint, circuit rematch, then unordered
 checkpoints for the pink slip. Each stage draws once when first accepted; its
 seed, kind, start and generator/world identity are retained even after winning,
-for future playlist use. Incompatible or unversioned courses are rejected;
+and her won stages are listed in the race list. Incompatible or unversioned courses are rejected;
 an unfinished stage can be explicitly replaced in the garage without losing
 wins, cash or cars. Completed history keeps its original identity.
-Other rivals' stage chains, the playlist and Stray's arrival remain unimplemented.
+Other rivals' stage chains and Stray's arrival remain unimplemented.
 
 ## The ten
 

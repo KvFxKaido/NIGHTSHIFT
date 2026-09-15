@@ -10,7 +10,7 @@ import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.
 import { BLENDER_CARS } from "../render/blender-car.ts";
 import { CHASE_CAMERAS, isChaseCameraId, type ChaseCameraId } from "../render/camera.ts";
 
-export type DebugScreen = "main" | "garage" | "track" | "pause";
+export type DebugScreen = "main" | "garage" | "track" | "pause" | "races";
 
 export interface AudioReport {
   /** "absent" until a gesture builds the graph; "running" once it is audible. */
@@ -140,6 +140,9 @@ export function installDebugApi(bridge: DebugBridge): void {
     } else if (screen === "pause") {
       if (document.body.dataset.gameScreen !== "playing" && document.body.dataset.gameScreen !== "pause") go("track");
       bridge.pause();
+    } else if (screen === "races") {
+      go("pause");
+      click('[data-menu-screen="pause"] [data-menu-action="races"]');
     }
     bridge.renderOnce();
     return document.body.dataset.gameScreen ?? "unknown";
@@ -355,7 +358,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.pick(x, y, 1523)  same, for a pixel read off a 1523px-wide screenshot",
       "__ns.find('hood')      every mesh whose name contains a string",
       "__ns.state()           screen, tick, customization, vehicle",
-      "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause'",
+      "__ns.go('garage')      'main' | 'garage' | 'track' | 'pause' | 'races'",
       "__ns.set({paint:'ice', stance:'slammed', wheels:'alloy'})",
       "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
       "__ns.camera('near')    'near' | 'standard' | 'far' chase framing; a preview, never saved",
@@ -410,7 +413,7 @@ export function applyDeepLink(api: {
       stance: params.get("stance") ?? undefined,
     });
   }
-  if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause") {
+  if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause" || scene === "races") {
     api.go(scene);
   }
   if (camera !== null) api.camera(camera);
