@@ -9,7 +9,7 @@ export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
  * The Blender-authored bodies, keyed by asset id. `model` is the id
  * the debug tools and deep links round-trip on, so it must stay stable.
  *
- * Cinder and Bulwark are player garage choices. The ten other bodies belong
+ * Cinder is the starter, Bulwark can be bought, and Moth's Kestrel can be won. Rival bodies belong
  * to the Blacklist; registration alone does not create an encounter or unlock.
  * Bodies do not change the simulation collider or HANDLING.
  */

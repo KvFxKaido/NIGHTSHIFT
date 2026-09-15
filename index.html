@@ -120,8 +120,13 @@
               <div class="garage-options text-options">
                 <button class="garage-option" data-car="cinder" aria-pressed="true">Cinder</button>
                 <button class="garage-option" data-car="bulwark" aria-pressed="false">Bulwark</button>
+                <button class="garage-option" data-car="kestrel" aria-pressed="false" disabled>Kestrel · Pink slip</button>
               </div>
               <p class="handling-note" data-car-status role="status" aria-live="polite">Each car has its own drivetrain. Changing car starts a fresh drive; paint, wheels and stance carry over.</p>
+              <p class="handling-note" data-career-status role="status"></p>
+              <button class="garage-option" data-replace-moth-race hidden>Replace outdated Moth course</button>
+              <p class="handling-note" data-cash role="status">Cash · $0</p>
+              <button class="garage-option" data-buy-bulwark disabled>Buy Bulwark · $1,500</button>
             </fieldset>
             <fieldset class="garage-control">
               <legend>Paint</legend>
@@ -238,7 +243,9 @@
           <p class="menu-kicker">Event complete / Port Alder</p>
           <h2 id="race-result-title" class="menu-heading" data-result-title>Finished</h2>
           <p class="save-summary" data-result-detail></p>
+          <p class="save-summary" data-result-reward role="status" hidden></p>
           <nav class="menu-actions" aria-label="After the race">
+            <button class="menu-button" data-retry-reward hidden>Retry saving win</button>
             <button class="menu-button primary" data-free-roam>Return to free roam</button>
             <button class="menu-button" data-race-garage>Go to garage</button>
           </nav>

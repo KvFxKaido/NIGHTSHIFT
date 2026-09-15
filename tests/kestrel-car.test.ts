@@ -1,4 +1,5 @@
 import { isPlayerCarId } from "../src/customization/cars.ts";
+import { ownsCar } from "../src/settings/progress.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
@@ -26,7 +27,9 @@ test("Kestrel ships valid compact glTF and fits the car adapter without correcti
   assert.ok(view.bodyShell.getObjectByName("hatch-cabin"));
   assert.ok(view.bodyShell.getObjectByName("rally-lamp-left"));
   assert.ok(view.bodyShell.getObjectByName("roof-spoiler"));
-  assert.equal(isPlayerCarId("kestrel"), false, "rival body must not become a saved garage choice");
+  assert.equal(isPlayerCarId("kestrel"), true, "won Kestrel must round-trip through garage saves");
+  assert.equal(ownsCar({ mothBeaten: false }, "kestrel"), false, "Kestrel must be earned first");
+  assert.equal(ownsCar({ mothBeaten: true }, "kestrel"), true);
 
 });
 

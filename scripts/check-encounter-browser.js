@@ -1,9 +1,9 @@
-async page => {
+// Run in an isolated Playwright CLI session; optionally supply a worktree URL.
+async (page, base = 'http://127.0.0.1:5173/') => {
   page.setDefaultTimeout(30000);
   page.setDefaultNavigationTimeout(30000);
   await page.addInitScript(()=>Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[]}));
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  const base='http://127.0.0.1:5173/';
   const ready=()=>page.waitForFunction(()=>window.__ns&&document.body.dataset.assetState==='ready');
   const approach=()=>page.evaluate(()=>{
     const rival=__ns.sim.state.encounter;
@@ -13,7 +13,14 @@ async page => {
   });
   await page.setViewportSize({width:1440,height:900});
   await page.goto(base+'?scene=track&car=blender&freeze=1');await ready();
-  await page.evaluate(()=>localStorage.removeItem('nightshift.controls'));
+  await page.evaluate(()=>{
+    localStorage.removeItem('nightshift.controls');
+    localStorage.removeItem('nightshift.settings');
+    // Keep Moth active and explicitly own the car used by the garage-swap check.
+    localStorage.setItem('nightshift.progress', JSON.stringify({
+      version:3,mothWins:0,mothRaces:[],cash:0,bulwarkOwned:true,
+    }));
+  });
   await page.reload();await ready();
   const initial=await page.evaluate(()=>{
     const state=__ns.state();

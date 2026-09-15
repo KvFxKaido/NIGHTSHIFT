@@ -4,7 +4,11 @@ Design note, 2026-09-12. The GDD wins where they disagree; this is the longer
 form of GDD §5's Blacklist: who the ten names are, where they race, what they
 drive and what each one teaches.
 
-**Status.** The career remains a sketch. All ten names now have portraits and
+**Status.** Moth has a three-stage career: first meeting, rematch, then pink slip.
+The first two wins pay $750 each; the third pays $1,500 and awards her Kestrel.
+She then leaves free roam. The Bulwark costs $1,500 in the garage. Cash, stages,
+race descriptors and ownership autosave across drive slots. Stray is named next but has
+no challenge yet; the rest of the career remains a sketch. All ten names have portraits and
 authored car assets. Moth, Rivet and Sable have encounters; Tally and the six
 new rivals do not. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
 the body directions below with the declared drivetrains. Placements, mistakes
@@ -24,7 +28,23 @@ working names for Shawn's review (2026-09-13).
 - **Every name keeps the portrait rules** (`design/CHARACTERS.md`): one
   silhouette at 96 px, one accent colour, and it is their car's.
 - **Every name's car is guaranteed** to the player when that name is beaten
-  (GDD §5): ten of the internal target of 20 drivable cars.
+  (GDD §5): ten reward cars within an initial 20-car roster, with room to grow
+  toward 30 through starter/shop cars.
+
+## Career cadence (2026-09-15)
+
+The adopted structure is two wins to unlock a pink-slip race, then a third win
+to take the car and retire the rival from the map. Losses retry the current
+stage. Repeating an earlier win never advances or pays again. Defeated rivals'
+races belong in a future playlist rather than remaining street encounters.
+
+Moth is the implemented slice: generated sprint, circuit rematch, then unordered
+checkpoints for the pink slip. Each stage draws once when first accepted; its
+seed, kind, start and generator/world identity are retained even after winning,
+for future playlist use. Incompatible or unversioned courses are rejected;
+an unfinished stage can be explicitly replaced in the garage without losing
+wins, cash or cars. Completed history keeps its original identity.
+Other rivals' stage chains, the playlist and Stray's arrival remain unimplemented.
 
 ## The ten
 
