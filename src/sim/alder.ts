@@ -233,7 +233,8 @@ export function alderRouting(): RoutingGraph {
   return routing ??= buildRoutingGraph(ALDER_STREETS, alderHeight, ALDER_BLOCKS);
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
- *  the rival's line through its gates. (ALDER_VERSION, seed) reproduces it. */
+ *  the rival's line through its gates. (ALDER_VERSION, GENERATOR_REVISION, seed,
+ *  kind, start) reproduces it. */
 export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag" | "drift"> = "sprint"): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);

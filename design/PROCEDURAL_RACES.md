@@ -30,7 +30,11 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   links carry world/route identity. Nothing else needs storing. *Since the
   start-where-you-flashed and variant work the tuple is (world version, race
   id, start): the id is the seed plus the variant, `gen-<seed>[-circuit|-unordered]`,
-  which a flash derives from the seed (`seed % 3`) but a link may name outright.* Every tick's
+  which a flash derives from the seed (`seed % 3`) but a link may name outright.*
+  *Since 2026-09-15 it also names the generator, `GENERATOR_REVISION`: the pace
+  calibration changed the race 280 of 300 seeds drew while the world version
+  stood still. The tuple is (world version, generator revision, race id, start),
+  and `tests/race-generator.test.ts` fails when the draw moves without a new name.* Every tick's
   input is already logged (law 2), so "save this race" costs nothing new.
 - **A rival is the distribution of races it proposes.** Bias the draw
   towards a rival's own streets and it has a personality before it has
@@ -79,7 +83,8 @@ These arrived as a possible "more elegant solution" to the shortcut rule
    guesses, and the corridors named here were not driven: a recorded run down
    Western against 1st would test the model where the generator most relies on it.
 4. **Playlists**: a saved list of seeds in `settings` (it is a preference,
-   not a physics snapshot), with the world version they were drawn on.
+   not a physics snapshot), with the world version and generator revision
+   they were drawn on.
 5. **The edge bank and learning rivals**, with a skill cap so the rival does
    not converge on the player's ceiling and climb past it.
 
@@ -92,6 +97,7 @@ These arrived as a possible "more elegant solution" to the shortcut rule
   of the player's sight is allowed (2026-09-13): a stuck rival put back on
   its line where it already was, never further along.
 - Learned lines and playlists carry physics/build identity and are rejected
-  when it changes, as future saved ghosts must be.
+  when it changes, as future saved ghosts must be. For a stored race that is
+  `ALDER_VERSION` and `GENERATOR_REVISION`.
 - Only flashed rivals learn, and only from races the player won against them.
   The field in a race is not a learner.

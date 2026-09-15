@@ -301,6 +301,10 @@ fixtures outside the playable bundle, and old world links redirect.
   waits for traffic in its path, so traffic follows only racers going its way and
   holds junctions only for racers moving over 3 m/s; every other way traffic also
   waited for the rival made a standoff where neither moved.
+- Changing what a seed draws means bumping `GENERATOR_REVISION`, whether the
+  change is in the generator or in route choice (`PACE`, risk weights): a stored
+  race is (`ALDER_VERSION`, generator revision, race id, start). The fingerprint
+  test prints the values to repin; repinning without a bump is the mistake.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push

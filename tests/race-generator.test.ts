@@ -3,8 +3,9 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createAlderWorld, alderGeneratedRace, alderRouting, projectOntoAlder, ALDER_STREETS,
-  ALDER_RACE, ALDER_GARAGE, alderHeight } from "../src/sim/alder.ts";
-import { GENERATOR, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition } from "../src/sim/race-generator.ts";
+  ALDER_RACE, ALDER_GARAGE, ALDER_VERSION, alderHeight } from "../src/sim/alder.ts";
+import { GENERATOR, GENERATOR_REVISION, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition } from "../src/sim/race-generator.ts";
+import { decodeStart, snapToLane } from "../src/sim/race-start.ts";
 import { legTable, routeLength, buildRoutingGraph } from "../src/sim/route-choice.ts";
 import released from "../assets/maps/alder/belltown-slice.json" with { type: "json" };
 import { sampleRivalPath, withExits, EXIT_LOOKAHEAD } from "../src/sim/rival.ts";
@@ -26,6 +27,45 @@ test("a seed draws the same race every time, and different seeds draw different 
   const ids = new Set(Array.from({ length: 30 }, (_, i) => draw(i + 1).definition.checkpoints.map(c => c.id).join(">")));
   assert.ok(ids.size >= 24, `only ${ids.size} distinct races in 30 seeds`);
   assert.notEqual(draw(7).definition.id, ALDER_RACE.id);
+});
+
+// What a seed draws is part of a stored race's identity, so it moves only with a
+// name: GENERATOR_REVISION, or ALDER_VERSION for the map. The pace calibration
+// (2026-09-15) changed the race 280 of 300 seeds draw and nothing said so; this
+// is what would have. The fingerprint covers gates and the rival's line for
+// sprints, circuits and unordered races from the grid, and from two starts as a
+// URL carries them, snapped again as a load snaps them.
+const FINGERPRINTED = { revision: "generator-v1", world: "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1", fingerprint: "94d6ca9b" };
+function drawFingerprint(): string {
+  const r = (n: number) => n.toFixed(2);
+  const parts: string[] = [];
+  const add = (label: string, event: ReturnType<typeof alderGeneratedRace>) => {
+    const { race, rival } = event;
+    parts.push(label, race.id, race.kind ?? "sprint", String(race.laps ?? 1), String(race.gatesPerLap ?? race.checkpoints.length),
+      String(race.countdownTicks), ...race.checkpoints.map(c => `${c.id}@${r(c.x)},${r(c.z)}r${r(c.radius)}`),
+      `${r(rival.start.x)},${r(rival.start.z)},${r(rival.start.heading)}`,
+      ...rival.points.map(p => `${r(p.x)},${r(p.z)}`), ...rival.gates.map(r));
+  };
+  for (let seed = 1; seed <= 12; seed++) add(`grid ${seed}`, alderGeneratedRace(seed));
+  for (const kind of ["circuit", "unordered"] as const) for (let seed = 1; seed <= 4; seed++) add(`grid ${kind} ${seed}`, alderGeneratedRace(seed, undefined, kind));
+  for (const text of ["-234.2,-611.6,-1.083", "-1014.3,-1580.0,0.291"]) {
+    const from = snapToLane(ALDER_STREETS, decodeStart(text)!, alderHeight)!;
+    for (let seed = 1; seed <= 3; seed++) add(`${text} ${seed}`, alderGeneratedRace(seed, from));
+  }
+  // FNV-1a, 32 bits: a name for the draw, not a security property.
+  let hash = 0x811c9dc5;
+  for (const ch of parts.join("|")) hash = Math.imul(hash ^ ch.charCodeAt(0), 0x01000193);
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+test("the draw moves only with GENERATOR_REVISION or ALDER_VERSION", () => {
+  const fingerprint = drawFingerprint();
+  const repin = `repin FINGERPRINTED to { revision: "${GENERATOR_REVISION}", world: "${ALDER_VERSION}", fingerprint: "${fingerprint}" }`;
+  if (FINGERPRINTED.revision !== GENERATOR_REVISION || FINGERPRINTED.world !== ALDER_VERSION) {
+    assert.fail(`the generator or the map has a new name since the draw was pinned: ${repin}`);
+  }
+  assert.equal(fingerprint, FINGERPRINTED.fingerprint,
+    `seeds draw different races on ${GENERATOR_REVISION} and ${ALDER_VERSION}. If that was meant, bump GENERATOR_REVISION (race-generator.ts) and ${repin}`);
 });
 
 test("every drawn race is a legal race: gates at junctions, legs in range, no street twice, a line that fits", () => {

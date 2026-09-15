@@ -9,6 +9,9 @@
  * Sim, not renderer; deterministic — the integer hash the traffic uses, never
  * Math.random. The rival's line through the gates is routed on the same graph
  * and built from the streets' own points, exactly as the authored line was.
+ *
+ * A seed names a race only together with the world it was drawn on and the
+ * arithmetic that drew it: (ALDER_VERSION, GENERATOR_REVISION, race id, start).
  */
 import { mix } from "./traffic.ts";
 import { forwardOf, rightOf } from "./race-start.ts";
@@ -18,6 +21,25 @@ import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
+
+/**
+ * What a seed draws, for anything that stores one: a saved race or a playlist
+ * reproduces only on the generator that drew it, and is refused by name rather
+ * than quietly drawing another race. The world is named separately, by
+ * ALDER_VERSION, which moves with the streets and the building layout.
+ *
+ * Bump it whenever the same seed, start and world would draw different gates or
+ * a different rival line: anything in `GENERATOR`, the route-choice arithmetic
+ * (`PACE`, `RISK_WEIGHTS`, `SIGHT_CLEAR`, leg classes), `withRaceKind`,
+ * `rivalLineFor`, `startApproach`. `tests/race-generator.test.ts` pins a
+ * fingerprint of the draw to this name and fails when the draw moves without it.
+ *
+ * "generator-v1" (2026-09-15): the first named revision, the draw after the pace
+ * calibration. Draws before it were never named, though the flow rule
+ * (2026-09-11), junction sight in the risk, and the calibration each changed what
+ * nearly every seed drew.
+ */
+export const GENERATOR_REVISION = "generator-v1";
 
 export const GENERATOR = {
   gates: { min: 3, max: 5 },

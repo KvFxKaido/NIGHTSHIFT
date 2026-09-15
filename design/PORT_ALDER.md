@@ -128,8 +128,9 @@ of 195. See `design/EDITOR.md` for the editor's side.
 The builder now stamps `alder-slice-v4` and the sim derives its version from
 that stamp (plus the evergreen revision and layout fingerprint). The old separate v1/v2 stamps are
 retired. Map expansions must bump the builder's stamp deliberately. Generated
-race seeds are reproducible within a world version; v3 seeds may draw different
-routes on the expanded graph.
+race seeds are reproducible within a world version and generator revision
+(`GENERATOR_REVISION`, since 2026-09-15); v3 seeds may draw different routes on
+the expanded graph.
 
 ### Belltown–Broadcast Tower extension (2026-09-11)
 
@@ -336,6 +337,11 @@ races 32–112 s; median race 3.16 km → 3.23 km, now priced at 80 s, which is
 about what it takes to drive). Only 20 of 300 seeds draw the race they drew
 before, so rival measurements over generated seeds from before this date,
 including the 42-race tables below, describe races the seeds no longer draw.
+Nothing named that change, since the world version did not move, so the draw
+now has a name of its own: `GENERATOR_REVISION` ("generator-v1" is this draw),
+which a stored race carries beside `ALDER_VERSION`. `tests/race-generator.test.ts`
+fingerprints the gates and rival lines of 26 races, from the grid and from two
+starts as a URL carries them, and fails when they move without a new name.
 
 What this says to authoring: the grid has route choice but not shortcuts.
 Cut-throughs — diagonals, passages through the larger parcels, an alley that
@@ -444,7 +450,8 @@ right-hand lane of its street, facing the way it was going and 15 m short of
 the junction ahead, carried across the page transition as `?start=x,z,heading`
 and snapped again on load; the generator's origin is the junction ahead of
 it, the rival starts 7 m ahead in the other lane in the start's own frame,
-and the race's identity is (world version, race id, start), the id being
+and the race's identity is (world version, generator revision, race id,
+start), the id being
 the seed plus its variant (`gen-<seed>[-circuit|-unordered]`, which a flash
 draws from the seed and a link may name outright). Today the rival
 cruises the freight block, so a flash happens on 1st Ave S, Holgate or 4th Ave
