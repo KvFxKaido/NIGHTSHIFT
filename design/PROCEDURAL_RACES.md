@@ -36,12 +36,12 @@ first two wins could affect later stages, not resurrect a retired street rival.
 ## How they fit together
 
 - **The seed needs versioned context.** The course identity is
-  `(ALDER_VERSION, GENERATOR_REVISION, race id, start)`. The race id combines
+  `(ALDER_VERSION, GENERATOR_REVISIONS[kind], race id, start)`. The race id combines
   seed and variant, `gen-<seed>[-circuit|-unordered]`; Moth's stage chooses the
   variant, while a developer link may name it outright. A future playlist also
   needs the rival once rivals differ; a ghost additionally needs physics/build
   identity and its recorded run. The pace calibration changed the race 280 of
-  300 seeds drew while the world version stood still. `GENERATOR_REVISION`
+  300 seeds drew while the world version stood still. `GENERATOR_REVISIONS`
   names that dependency, and `tests/race-generator.test.ts` fingerprints the
   draw so it cannot silently move under the same name.
 - **A rival is the distribution of races it proposes.** Bias the draw
@@ -105,7 +105,7 @@ first two wins could affect later stages, not resurrect a retired street rival.
    every entry starts against the rival or solo. Kept races live in their own
    key, `nightshift.playlist` (`src/settings/playlist.ts`), not in settings as
    first proposed: the list grows, and an unreadable one must not take Options
-   with it. Each entry carries (`ALDER_VERSION`, `GENERATOR_REVISION`, race id,
+   with it. Each entry carries (`ALDER_VERSION`, its kind's generator revision, race id,
    start); one from another build stays listed, unplayable, until removed.
 5. **The edge bank and learning rivals**, with a skill cap so the rival does
    not converge on the player's ceiling and climb past it.
@@ -120,6 +120,6 @@ first two wins could affect later stages, not resurrect a retired street rival.
   its line where it already was, never further along.
 - Learned lines and playlists carry physics/build identity and are rejected
   when it changes, as future saved ghosts must be. For a stored race that is
-  `ALDER_VERSION` and `GENERATOR_REVISION`.
+  `ALDER_VERSION` and its kind's `GENERATOR_REVISIONS` entry.
 - Only flashed rivals learn, and only from races the player won against them.
   The field in a race is not a learner.

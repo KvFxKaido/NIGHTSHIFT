@@ -1,7 +1,7 @@
 import { isPlayerCarId, type PlayerCarId } from "../customization/cars.ts";
 import { decodeStart } from "../sim/race-start.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "../sim/race-id.ts";
-import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
+import { raceBuildFor, sameRaceBuild, type RaceBuild, type RaceBuildFor } from "./race-build.ts";
 
 export { sameRaceBuild, type RaceBuild };
 
@@ -68,7 +68,9 @@ export function ownsCar(progress: Pick<CareerProgress, "mothBeaten"> & Partial<P
  * An accepted Moth course is the reward entitlement, including after reopening
  * its link. A matching driver or a generated race alone grants no entitlement.
  */
-export function createProgressStore(storage: () => Disk, build: RaceBuild, legacyBulwark = false) {
+export function createProgressStore(storage: () => Disk, buildOf: RaceBuild | RaceBuildFor, legacyBulwark = false) {
+  /** This build's identity for a course: per kind, so a circuit revision does not orphan sprints. */
+  const build = raceBuildFor(buildOf);
   let progress = freshProgress(legacyBulwark);
   let unavailable = false;
   let legacyOwnershipPending = legacyBulwark;
@@ -110,12 +112,13 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
       const won = progress.mothRaces.slice(0, progress.mothWins);
       const pending = progress.mothRaces[progress.mothWins];
       if (pending) {
-        if (!sameRaceBuild(pending.build, build)) return { none: "outdated" };
+        if (!sameRaceBuild(pending.build, build(pending.raceId))) return { none: "outdated" };
         if (draws(pending)) return { race: structuredClone(pending) };
       }
       const kind = MOTH_STAGES[progress.mothWins]!.kind;
       for (const seed of seeds) {
-        const race = { raceId: generatedRaceId({ seed, kind, rival: MOTH_TURF }), start, build: { ...build } };
+        const raceId = generatedRaceId({ seed, kind, rival: MOTH_TURF });
+        const race = { raceId, start, build: { ...build(raceId) } };
         if (!draws(race)) continue;
         write({ ...progress, mothRaces: [...won, race] });
         return { race: structuredClone(race) };
@@ -133,15 +136,15 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
     unavailable: () => unavailable,
     outdatedChallenge: () => {
       const race = progress.mothRaces[progress.mothWins];
-      return !!race && !sameRaceBuild(race.build, build);
+      return !!race && !sameRaceBuild(race.build, build(race.raceId));
     },
-    isOutdatedRace: (key: RaceKey) => progress.mothRaces.some(race => sameRace(race, key) && !sameRaceBuild(race.build, build)),
+    isOutdatedRace: (key: RaceKey) => progress.mothRaces.some(race => sameRace(race, key) && !sameRaceBuild(race.build, build(race.raceId))),
     /** Explicit user choice: discard only the incompatible unfinished stage. */
     discardOutdatedChallenge(): boolean {
       try {
         progress = read();
         const race = progress.mothRaces[progress.mothWins];
-        if (!race || sameRaceBuild(race.build, build)) return false;
+        if (!race || sameRaceBuild(race.build, build(race.raceId))) return false;
         write({ ...progress, mothRaces: progress.mothRaces.slice(0, progress.mothWins) });
         return true;
       } catch { unavailable = true; return false; }
@@ -159,7 +162,7 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
         unavailable = false;
         const index = progress.mothRaces.findIndex(race => sameRace(race, result));
         if (index < 0) return "none";
-        if (!sameRaceBuild(result.build, build) || !sameRaceBuild(progress.mothRaces[index]!.build, build)) return "incompatible";
+        if (!sameRaceBuild(result.build, build(result.raceId)) || !sameRaceBuild(progress.mothRaces[index]!.build, build(result.raceId))) return "incompatible";
         if (index < progress.mothWins) return "recorded";
         const mothWins = progress.mothWins + 1;
         write({ ...progress, mothWins, mothBeaten: mothWins === 3, cash: progress.cash + MOTH_STAGES[index]!.payout });

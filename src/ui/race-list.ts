@@ -2,7 +2,7 @@ import { ALDER_RACE } from "../sim/alder.ts";
 import { arenaRaceId } from "../sim/arena-events.ts";
 import { streetCircuitRaceId } from "../sim/street-circuit.ts";
 import { MOTH_STAGES, type CareerProgress } from "../settings/progress.ts";
-import { sameRaceBuild, type RaceBuild } from "../settings/race-build.ts";
+import { raceBuildFor, sameRaceBuild, type RaceBuild, type RaceBuildFor } from "../settings/race-build.ts";
 import type { KeptRace, PlaylistEntry } from "../settings/playlist.ts";
 import { parseGeneratedRaceId } from "../sim/race-id.ts";
 
@@ -54,9 +54,10 @@ export function generatedKind(raceId: string): string {
 
 const OLDER = "Drawn on an older version of the city or generator · cannot be raced";
 
-export function raceListItems(career: CareerProgress, kept: readonly PlaylistEntry[], build: RaceBuild): RaceListItem[] {
+export function raceListItems(career: CareerProgress, kept: readonly PlaylistEntry[], buildOf: RaceBuild | RaceBuildFor): RaceListItem[] {
+  const build = raceBuildFor(buildOf);
   const moth = career.mothRaces.slice(0, career.mothWins).map((stage, index): RaceListItem => {
-    const playable = sameRaceBuild(stage.build, build);
+    const playable = sameRaceBuild(stage.build, build(stage.raceId));
     const launch = (solo: boolean): RaceLaunch => ({ raceId: stage.raceId, start: stage.start, solo });
     return { key: `moth-${index}`, group: "moth", title: `Moth / ${MOTH_STAGES[index]!.name}`,
       detail: playable ? `${generatedKind(stage.raceId)} · won` : OLDER,

@@ -97,3 +97,36 @@ test("the softlock: a saved stage that cannot be drawn is replaced at the next f
   retired.data.set(PROGRESS_KEY, JSON.stringify({ version: 3, mothBeaten: true, mothWins: 3, cash: 3000, bulwarkOwned: false, mothRaces: [] }));
   assert.deepEqual(createProgressStore(() => retired, BUILD).flash([1], MOTH_LOOP, draws), { none: "retired" });
 });
+
+test("a store judges each course by its own kind's revision: circuits outdated by a circuit bump, sprints kept", async () => {
+  const { createPlaylistStore } = await import("../src/settings/playlist.ts");
+  const { raceListItems } = await import("../src/ui/race-list.ts");
+  const { generatorRevision, GENERATOR_REVISIONS } = await import("../src/sim/race-generator.ts");
+  // As stored before circuits were revised: every kind on generator-v1.
+  const v1 = { generator: "generator-v1", world: "world-test" };
+  const today = (raceId: string) => ({ generator: generatorRevision(raceId), world: "world-test" });
+  assert.deepEqual(GENERATOR_REVISIONS, { sprint: "generator-v1", circuit: "generator-v2", unordered: "generator-v1" });
+
+  const storage = disk();
+  storage.data.set(PROGRESS_KEY, JSON.stringify({ version: 3, mothBeaten: false, mothWins: 1, cash: 750, bulwarkOwned: false,
+    mothRaces: [{ raceId: "gen-moth-15", start: MOTH_LOOP, build: v1 }, { raceId: "gen-moth-16-circuit", start: MOTH_LOOP, build: v1 }] }));
+  const career = createProgressStore(() => storage, today);
+  assert.equal(career.outdatedChallenge(), true, "the pending v1 rematch is outdated");
+  assert.equal(career.isOutdatedRace({ raceId: "gen-moth-15", start: MOTH_LOOP }), false, "the won v1 sprint is not");
+  assert.equal(career.discardOutdatedChallenge(), true);
+  const next = career.flash([16], MOTH_LOOP, () => true);
+  assert.ok("race" in next && next.race.raceId === "gen-moth-16-circuit");
+  assert.deepEqual(next.race.build, { generator: "generator-v2", world: "world-test" }, "a new circuit is stamped with the circuit revision");
+
+  const kept = disk();
+  kept.data.set("nightshift.playlist", JSON.stringify({ version: 1, races: [
+    { raceId: "gen-40", start: null, build: v1, name: "Sprint", keptAt: 1 },
+    { raceId: "gen-41-unordered", start: null, build: v1, name: "Scatter", keptAt: 2 },
+    { raceId: "gen-42-circuit", start: null, build: v1, name: "Loop", keptAt: 3 }] }));
+  const playlist = createPlaylistStore(() => kept, today);
+  assert.deepEqual(playlist.list()!.map(e => [e.race.name, e.playable]), [["Sprint", true], ["Scatter", true], ["Loop", false]]);
+  assert.equal(playlist.keep({ raceId: "gen-42-circuit", start: null }, "Loop", 4), "kept", "today's draw of the circuit is a different course");
+  const items = raceListItems(createProgressStore(() => storage, today).get(), playlist.list()!, today);
+  assert.deepEqual(items.filter(i => i.group !== "authored").map(i => [i.title, i.race !== null]),
+    [["Moth / First meeting", true], ["Sprint", true], ["Scatter", true], ["Loop", false], ["Loop", true]]);
+});

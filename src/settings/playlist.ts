@@ -1,5 +1,5 @@
 import { decodeStart } from "../sim/race-start.ts";
-import { sameRaceBuild, type RaceBuild } from "./race-build.ts";
+import { raceBuildFor, sameRaceBuild, type RaceBuild, type RaceBuildFor } from "./race-build.ts";
 import { parseGeneratedRaceId } from "../sim/race-id.ts";
 
 /**
@@ -9,7 +9,7 @@ import { parseGeneratedRaceId } from "../sim/race-id.ts";
  * An entry is a course, not a recording: the race id (seed and variant), the
  * start as the URL carries it, and the generator and world it was drawn on,
  * since the same seed draws a different race on either of those changing
- * (GENERATOR_REVISION, ALDER_VERSION). An entry from another build stays in the
+ * (GENERATOR_REVISIONS for its kind, ALDER_VERSION). An entry from another build stays in the
  * list, marked unplayable, until the player removes it; it is never redrawn
  * under its old name and never dropped without being asked.
  *
@@ -60,7 +60,8 @@ export function decodePlaylist(raw: string | null): KeptRace[] {
   return races;
 }
 
-export function createPlaylistStore(storage: () => Disk, build: RaceBuild) {
+export function createPlaylistStore(storage: () => Disk, buildOf: RaceBuild | RaceBuildFor) {
+  const build = raceBuildFor(buildOf);
   const read = () => decodePlaylist(storage().getItem(PLAYLIST_KEY));
   const write = (races: KeptRace[]) => {
     const raw = JSON.stringify({ version: PLAYLIST_VERSION, races });
@@ -70,13 +71,13 @@ export function createPlaylistStore(storage: () => Disk, build: RaceBuild) {
   return {
     /** Every kept race in the order it was kept, each marked playable on this build or not; null when the stored list cannot be read. */
     list(): PlaylistEntry[] | null {
-      try { return read().map(race => ({ race, playable: sameRaceBuild(race.build, build) })); } catch { return null; }
+      try { return read().map(race => ({ race, playable: sameRaceBuild(race.build, build(race.raceId)) })); } catch { return null; }
     },
     /** Keep a race drawn on this build. Keeping it again changes nothing. */
     keep(course: Course, name: string, now: number): "kept" | "already" | "unavailable" {
       try {
         const races = read();
-        const race = decodeRace({ ...course, build, name, keptAt: now });
+        const race = decodeRace({ ...course, build: build(course.raceId), name, keptAt: now });
         if (races.some(r => sameCourse(r, race))) return "already";
         write([...races, race]);
         return "kept";
@@ -84,7 +85,7 @@ export function createPlaylistStore(storage: () => Disk, build: RaceBuild) {
     },
     /** Whether this build's draw of a course is in the list, for a Keep button's state. */
     has(course: Course): boolean {
-      try { return read().some(r => sameCourse(r, { ...course, build })); } catch { return false; }
+      try { return read().some(r => sameCourse(r, { ...course, build: build(course.raceId) })); } catch { return false; }
     },
     /** Remove one entry, playable or not, by its full identity. */
     remove(race: Course & { build: RaceBuild }): "removed" | "missing" | "unavailable" {

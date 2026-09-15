@@ -36,7 +36,7 @@ import { loadCameraPreference, saveCameraPreference } from "./settings/camera-pr
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
-import { GENERATOR_REVISION, seedFromTick } from "./sim/race-generator.ts";
+import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
 import { alderCourseDraws, drawAlderCourse } from "./sim/alder-course.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
@@ -70,7 +70,8 @@ if (requestedSave !== null) {
   } catch { loadNotice = "Saved games could not be loaded. Your existing data is unchanged."; }
 }
 const restored = { ...settings.get(), ...loadedSave?.build };
-const raceBuild = { generator: GENERATOR_REVISION, world: ALDER_VERSION };
+/** This build's identity for a generated course: its kind's generator revision and the map. */
+const raceBuild = (raceId: string) => ({ generator: generatorRevision(raceId), world: ALDER_VERSION });
 const progress = createProgressStore(() => window.localStorage, raceBuild, settings.get().car === "bulwark" || restored.car === "bulwark");
 if (!ownsCar(progress.get(), restored.car)) restored.car = "cinder";
 const playlist = createPlaylistStore(() => window.localStorage, raceBuild);
@@ -109,7 +110,7 @@ try {
   if (requestedRace?.startsWith("gen-")) {
     const tagged = params.has("generator") || params.has("raceWorld");
     const linkedBuild = { generator: params.get("generator") ?? "", world: params.get("raceWorld") ?? "" };
-    if ((tagged && !sameRaceBuild(linkedBuild, raceBuild))
+    if ((tagged && !sameRaceBuild(linkedBuild, raceBuild(requestedRace)))
       || progress.isOutdatedRace({ raceId: requestedRace, start: params.get("start") })) {
       params.delete("race"); params.delete("start"); params.delete("generator"); params.delete("raceWorld");
       params.set("scene", "garage");
@@ -514,8 +515,8 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
   if (soloRace) url.searchParams.set("solo", "1"); else url.searchParams.delete("solo");
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
   if (raceId?.startsWith("gen-")) {
-    url.searchParams.set("generator", raceBuild.generator);
-    url.searchParams.set("raceWorld", raceBuild.world);
+    url.searchParams.set("generator", raceBuild(raceId).generator);
+    url.searchParams.set("raceWorld", raceBuild(raceId).world);
   } else { url.searchParams.delete("generator"); url.searchParams.delete("raceWorld"); }
   if (start) url.searchParams.set("start", start); else url.searchParams.delete("start");
   url.searchParams.set("scene", scene);
@@ -716,7 +717,7 @@ function frame(now: number): void {
       const reactionTicks = sim.state.vehicle.transmission?.reactionTicks;
       const dragTiming = race.kind === "drag" && reactionTicks != null
         ? ` / RT ${(reactionTicks / TICK_HZ).toFixed(3)} s / ET ${formatRaceTime(sim.state.race.ticks - reactionTicks, TICK_HZ, 3)}` : "";
-      saveRaceReward({ raceId: race.id, start: new URLSearchParams(location.search).get("start"), build: raceBuild, finished: sim.state.race.finished, disqualified: !!sim.state.race.disqualified, position });
+      saveRaceReward({ raceId: race.id, start: new URLSearchParams(location.search).get("start"), build: raceBuild(race.id), finished: sim.state.race.finished, disqualified: !!sim.state.race.disqualified, position });
       renderKeep();
       menu.finishRace(sim.state.race.disqualified ? "Disqualified" : position === 1 ? "You win" : "Second place",
         `${race.name} · ${sim.state.race.disqualified ? "Left the strip" : `P${position}/2`} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${dragTiming}`);
@@ -837,7 +838,7 @@ function renderKeep(message = ""): void {
   keepStatus.textContent = message;
   if (!course) return;
   const career = progress.get();
-  if (career.mothRaces.slice(0, career.mothWins).some(stage => stage.raceId === course.raceId && stage.start === course.start && sameRaceBuild(stage.build, raceBuild))) {
+  if (career.mothRaces.slice(0, career.mothWins).some(stage => stage.raceId === course.raceId && stage.start === course.start && sameRaceBuild(stage.build, raceBuild(course.raceId)))) {
     keepButton.hidden = true;
     keepStatus.hidden = false;
     keepStatus.textContent = "Moth's won races are in your race list.";

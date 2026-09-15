@@ -233,13 +233,15 @@ export function alderRouting(): RoutingGraph {
   return routing ??= buildRoutingGraph(ALDER_STREETS, alderHeight, ALDER_BLOCKS);
 }
 /** A race drawn from the city by its seed, from the race grid on 1st Ave S, and
- *  the rival's line through its gates. (ALDER_VERSION, GENERATOR_REVISION, seed,
+ *  the rival's line through its gates. (ALDER_VERSION, GENERATOR_REVISIONS[kind], seed,
  *  kind, start) reproduces it, and the turf when a rival's draw leans toward one
  *  (`alder-turf.ts`, which names it in the id). */
 export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag" | "drift"> = "sprint", turf: Turf | null = null): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
   const approach = startApproach(ALDER_STREETS, from);
-  const generated = withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id], turf), approach.node, kind);
+  // A circuit is drawn as a circuit, so its loop closes under the flow rule; unordered is the sprint's gates in any order.
+  const drawn = generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id], turf, kind === "circuit");
+  const generated = kind === "unordered" ? withRaceKind(graph, drawn, approach.node, kind) : drawn;
   // Every generated road race fields Moth's Kestrel (raceOpponentCar in
   // main.ts), so the drawn line is driven all-wheel. rivalLineFor itself stays
   // ignorant of who is driving it -- it draws a route, not a personality.

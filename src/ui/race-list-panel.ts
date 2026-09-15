@@ -1,12 +1,12 @@
 import { raceListItems, type RaceLaunch, type RaceListItem } from "./race-list.ts";
 import type { createPlaylistStore } from "../settings/playlist.ts";
 import type { CareerProgress } from "../settings/progress.ts";
-import type { RaceBuild } from "../settings/race-build.ts";
+import type { RaceBuildFor } from "../settings/race-build.ts";
 
 export interface RaceListPanelOptions {
   playlist: ReturnType<typeof createPlaylistStore>;
   career(): CareerProgress;
-  build: RaceBuild;
+  build: RaceBuildFor;
   launch(race: RaceLaunch): void;
   /** Why a new race cannot be drawn from here, or null when it can. */
   drawBlocked(): string | null;

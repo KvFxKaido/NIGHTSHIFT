@@ -4,7 +4,8 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createAlderWorld, alderGeneratedRace, alderRouting, projectOntoAlder, ALDER_STREETS,
   ALDER_RACE, ALDER_GARAGE, ALDER_VERSION, alderHeight } from "../src/sim/alder.ts";
-import { GENERATOR, GENERATOR_REVISION, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition, turfShare } from "../src/sim/race-generator.ts";
+import { GENERATOR, GENERATOR_REVISIONS, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition, turfShare, withRaceKind } from "../src/sim/race-generator.ts";
+import type { GeneratedKind } from "../src/sim/race-id.ts";
 import { decodeStart, snapToLane } from "../src/sim/race-start.ts";
 import { ALDER_TURFS, turfFor } from "../src/sim/alder-turf.ts";
 import { legTable, routeLength, buildRoutingGraph } from "../src/sim/route-choice.ts";
@@ -31,16 +32,26 @@ test("a seed draws the same race every time, and different seeds draw different 
 });
 
 // What a seed draws is part of a stored race's identity, so it moves only with a
-// name: GENERATOR_REVISION, or ALDER_VERSION for the map. The pace calibration
-// (2026-09-15) changed the race 280 of 300 seeds draw and nothing said so; this
-// is what would have. The fingerprint covers gates and the rival's line for
-// sprints, circuits and unordered races from the grid, and from two starts as a
-// URL carries them, snapped again as a load snaps them. Turf draws (gen-moth-15)
-// are stored too, by Moth's career, so they carry a pin of their own: adding them
-// (2026-09-15) moved no plain draw, which the first pin still proves.
-const FINGERPRINTED = { revision: "generator-v1", world: "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1", fingerprint: "94d6ca9b" };
-const FINGERPRINTED_TURF = { revision: "generator-v1", world: "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1", fingerprint: "c28566e5" };
-function drawFingerprint(set: "plain" | "turf" = "plain"): string {
+// name: its kind's GENERATOR_REVISIONS entry, or ALDER_VERSION for the map. The
+// pace calibration (2026-09-15) changed the race 280 of 300 seeds draw and
+// nothing said so; this is what would have. Each kind has its own pin, plain and
+// leaning toward a turf, so a change to circuits alone moves only circuit pins:
+// when circuits began closing under the flow rule, the sprint and unordered pins
+// were computed on the code before and after and did not move.
+const WORLD = "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1";
+const FINGERPRINTED: Record<"plain" | "turf", Record<GeneratedKind, { revision: string; world: string; fingerprint: string }>> = {
+  plain: {
+    sprint: { revision: "generator-v1", world: WORLD, fingerprint: "6b99feee" },
+    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "6d544a9a" },
+    unordered: { revision: "generator-v1", world: WORLD, fingerprint: "a6e27ee4" },
+  },
+  turf: {
+    sprint: { revision: "generator-v1", world: WORLD, fingerprint: "3a795e99" },
+    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "505ac89d" },
+    unordered: { revision: "generator-v1", world: WORLD, fingerprint: "d1330307" },
+  },
+};
+function drawFingerprint(set: "plain" | "turf", kind: GeneratedKind): string {
   const r = (n: number) => n.toFixed(2);
   const parts: string[] = [];
   const add = (label: string, event: ReturnType<typeof alderGeneratedRace>) => {
@@ -52,10 +63,10 @@ function drawFingerprint(set: "plain" | "turf" = "plain"): string {
   };
   const at = (text: string) => snapToLane(ALDER_STREETS, decodeStart(text)!, alderHeight)!;
   if (set === "plain") {
-    for (let seed = 1; seed <= 12; seed++) add(`grid ${seed}`, alderGeneratedRace(seed));
-    for (const kind of ["circuit", "unordered"] as const) for (let seed = 1; seed <= 4; seed++) add(`grid ${kind} ${seed}`, alderGeneratedRace(seed, undefined, kind));
+    // From the grid, and from two starts as a URL carries them, snapped again as a load snaps them.
+    for (let seed = 1; seed <= 12; seed++) add(`grid ${seed}`, alderGeneratedRace(seed, undefined, kind));
     for (const text of ["-234.2,-611.6,-1.083", "-1014.3,-1580.0,0.291"]) {
-      for (let seed = 1; seed <= 3; seed++) add(`${text} ${seed}`, alderGeneratedRace(seed, at(text)));
+      for (let seed = 1; seed <= 3; seed++) add(`${text} ${seed}`, alderGeneratedRace(seed, at(text), kind));
     }
   } else {
     // A sample of races can miss a change that moves only other seeds: pull 10 -> 20
@@ -70,10 +81,9 @@ function drawFingerprint(set: "plain" | "turf" = "plain"): string {
     };
     // Moth from her cruise loop, where her stages are flashed; Stray and Crest from starts inside their turfs.
     const moth = at("-4.5,875.0,0.000");
-    for (let seed = 1; seed <= 8; seed++) addTurf(`moth ${seed}`, "moth", alderGeneratedRace(seed, moth, "sprint", turfFor("moth")));
-    for (const kind of ["circuit", "unordered"] as const) for (let seed = 1; seed <= 3; seed++) addTurf(`moth ${kind} ${seed}`, "moth", alderGeneratedRace(seed, moth, kind, turfFor("moth")));
+    for (let seed = 1; seed <= 8; seed++) addTurf(`moth ${seed}`, "moth", alderGeneratedRace(seed, moth, kind, turfFor("moth")));
     for (const [id, text] of [["stray", "-234.2,-611.6,-1.083"], ["crest", "-1014.3,-1580.0,0.291"]] as const) {
-      for (let seed = 1; seed <= 2; seed++) addTurf(`${id} ${seed}`, id, alderGeneratedRace(seed, at(text), "sprint", turfFor(id)));
+      for (let seed = 1; seed <= 2; seed++) addTurf(`${id} ${seed}`, id, alderGeneratedRace(seed, at(text), kind, turfFor(id)));
     }
   }
   // FNV-1a, 32 bits: a name for the draw, not a security property.
@@ -82,25 +92,48 @@ function drawFingerprint(set: "plain" | "turf" = "plain"): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-test("the draw moves only with GENERATOR_REVISION or ALDER_VERSION", () => {
-  const fingerprint = drawFingerprint();
-  const repin = `repin FINGERPRINTED to { revision: "${GENERATOR_REVISION}", world: "${ALDER_VERSION}", fingerprint: "${fingerprint}" }`;
-  if (FINGERPRINTED.revision !== GENERATOR_REVISION || FINGERPRINTED.world !== ALDER_VERSION) {
-    assert.fail(`the generator or the map has a new name since the draw was pinned: ${repin}`);
+for (const set of ["plain", "turf"] as const) for (const kind of ["sprint", "circuit", "unordered"] as const) {
+  test(`${set === "turf" ? "turf " : ""}${kind} draws move only with their GENERATOR_REVISIONS entry or ALDER_VERSION`, () => {
+    const pin = FINGERPRINTED[set][kind], fingerprint = drawFingerprint(set, kind);
+    const repin = `repin FINGERPRINTED.${set}.${kind} to { revision: "${GENERATOR_REVISIONS[kind]}", world: "${ALDER_VERSION}", fingerprint: "${fingerprint}" }`;
+    if (pin.revision !== GENERATOR_REVISIONS[kind] || pin.world !== ALDER_VERSION) {
+      assert.fail(`the ${kind} generator or the map has a new name since this draw was pinned: ${repin}`);
+    }
+    assert.equal(fingerprint, pin.fingerprint,
+      `${set} ${kind} draws differ on ${GENERATOR_REVISIONS[kind]} and ${ALDER_VERSION}. If that was meant, bump GENERATOR_REVISIONS.${kind} (every kind, for a change to the shared draw) and ${repin}`);
+  });
+}
+
+test("a circuit closes under the flow rule: the start lies ahead of the last gate, and lap two's first gate ahead of the start", () => {
+  const starts = [world.start, ...["-4.5,875.0,0.000", "-234.2,-611.6,-1.083", "-1014.3,-1580.0,0.291"].map(t => snapToLane(ALDER_STREETS, decodeStart(t)!, alderHeight)!)];
+  const bearing = (from: string, to: string) => {
+    const a = nodePosition(graph, from), b = nodePosition(graph, to), l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return { x: (b.x - a.x) / l, z: (b.z - a.z) / l };
+  };
+  let drawn = 0, failed = 0;
+  for (const from of starts) {
+    const origin = startApproach(ALDER_STREETS, from);
+    for (let seed = 1; seed <= 40; seed++) {
+      let event;
+      try { event = alderGeneratedRace(seed, from, "circuit"); } catch { failed++; continue; }
+      drawn++;
+      const legs = event.generated.legs, perLap = event.race.gatesPerLap!;
+      assert.equal(legs.length, perLap * 2);
+      const last = legs[perLap - 2]!, closing = legs[perLap - 1]!, first = legs[0]!;
+      assert.equal(closing.to, origin.node);
+      const label = `circuit seed ${seed} from ${from.x.toFixed(0)},${from.z.toFixed(0)}`;
+      assert.ok(degreesBetween(last.via.at(-1)!.arriving, bearing(last.to, origin.node)) <= GENERATOR.flow.bearing, `${label}: the start is behind the last gate`);
+      assert.ok(degreesBetween(closing.via.at(-1)!.arriving, bearing(origin.node, first.to)) <= GENERATOR.flow.bearing, `${label}: lap two's first gate is behind the start`);
+    }
   }
-  assert.equal(fingerprint, FINGERPRINTED.fingerprint,
-    `seeds draw different races on ${GENERATOR_REVISION} and ${ALDER_VERSION}. If that was meant, bump GENERATOR_REVISION (race-generator.ts) and ${repin}`);
+  // Measured over 600 (2026-09-15): 598 draw, where closing any sprint drew 591 and turned drivers around in 469.
+  assert.ok(failed <= 2, `${failed} of ${drawn + failed} circuits failed to draw`);
+  // A sprint whose loop cannot close with flow is not a circuit, and converting one says so.
+  assert.throws(() => {
+    for (let seed = 1; seed <= 200; seed++) withRaceKind(graph, generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id]), approach.node, "circuit");
+  }, /flow rule/);
 });
 
-test("turf draws move only with GENERATOR_REVISION or ALDER_VERSION", () => {
-  const fingerprint = drawFingerprint("turf");
-  const repin = `repin FINGERPRINTED_TURF to { revision: "${GENERATOR_REVISION}", world: "${ALDER_VERSION}", fingerprint: "${fingerprint}" }`;
-  if (FINGERPRINTED_TURF.revision !== GENERATOR_REVISION || FINGERPRINTED_TURF.world !== ALDER_VERSION) {
-    assert.fail(`the generator or the map has a new name since turf draws were pinned: ${repin}`);
-  }
-  assert.equal(fingerprint, FINGERPRINTED_TURF.fingerprint,
-    `turf draws differ on ${GENERATOR_REVISION} and ${ALDER_VERSION}: a turf, its pull or the draw moved. If that was meant, bump GENERATOR_REVISION and ${repin}`);
-});
 
 test("every drawn race is a legal race: gates at junctions, legs in range, no street twice, a line that fits", () => {
   const legs = legTable(graph);

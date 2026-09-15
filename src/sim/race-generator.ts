@@ -11,36 +11,48 @@
  * and built from the streets' own points, exactly as the authored line was.
  *
  * A seed names a race only together with the world it was drawn on and the
- * arithmetic that drew it: (ALDER_VERSION, GENERATOR_REVISION, race id, start).
+ * arithmetic that drew its kind: (ALDER_VERSION, GENERATOR_REVISIONS[kind], race id, start).
  */
 import { mix } from "./traffic.ts";
 import { forwardOf, rightOf } from "./race-start.ts";
 import { measureLeg, route, type Drive, type Leg, type RoutingGraph } from "./route-choice.ts";
 import { projectOntoPath, type Street } from "./street-path.ts";
-import { generatedRaceId } from "./race-id.ts";
+import { generatedRaceId, parseGeneratedRaceId, type GeneratedKind } from "./race-id.ts";
 import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 
 /**
- * What a seed draws, for anything that stores one: a saved race or a playlist
- * reproduces only on the generator that drew it, and is refused by name rather
- * than quietly drawing another race. The world is named separately, by
- * ALDER_VERSION, which moves with the streets and the building layout.
+ * What a seed draws, per race kind, for anything that stores one: a saved race or
+ * a playlist reproduces only on the generator that drew it, and is refused by
+ * name rather than quietly drawing another race. The world is named separately,
+ * by ALDER_VERSION, which moves with the streets and the building layout.
  *
- * Bump it whenever the same seed, start and world would draw different gates or
- * a different rival line: anything in `GENERATOR`, the route-choice arithmetic
- * (`PACE`, `RISK_WEIGHTS`, `SIGHT_CLEAR`, leg classes), `withRaceKind`,
- * `rivalLineFor`, `startApproach`. `tests/race-generator.test.ts` pins a
- * fingerprint of the draw to this name and fails when the draw moves without it.
+ * Per kind, so a change to one kind orphans only that kind's stored races. Bump
+ * every kind for a change to the shared draw: anything in `GENERATOR` but
+ * `circuitAttempts`, the route-choice arithmetic (`PACE`, `RISK_WEIGHTS`,
+ * `SIGHT_CLEAR`, leg classes), turfs, `rivalLineFor`, `startApproach`. Bump
+ * circuit alone for `closeCircuit` or `circuitAttempts`, and unordered alone
+ * for its conversion. `tests/race-generator.test.ts` pins a fingerprint per kind
+ * to these names and fails when a kind's draw moves without its own.
  *
  * "generator-v1" (2026-09-15): the first named revision, the draw after the pace
- * calibration. Draws before it were never named, though the flow rule
- * (2026-09-11), junction sight in the risk, and the calibration each changed what
- * nearly every seed drew.
+ * calibration, for every kind. Draws before it were never named, though the flow
+ * rule (2026-09-11), junction sight in the risk, and the calibration each changed
+ * what nearly every seed drew. Circuit "generator-v2" (2026-09-15): a circuit is
+ * drawn as one, closing only under the flow rule; sprints and unordered races did
+ * not move, which their pins, unchanged across the split, show.
  */
-export const GENERATOR_REVISION = "generator-v1";
+export const GENERATOR_REVISIONS: Readonly<Record<GeneratedKind, string>> = {
+  sprint: "generator-v1",
+  circuit: "generator-v2",
+  unordered: "generator-v1",
+};
+/** The revision a generated race id's kind is drawn by. */
+export function generatorRevision(raceId: string): string {
+  return GENERATOR_REVISIONS[parseGeneratedRaceId(raceId)?.kind ?? "sprint"];
+}
 
 export const GENERATOR = {
   gates: { min: 3, max: 5 },
@@ -72,6 +84,8 @@ export const GENERATOR = {
    *  turf draw turn back for home reached 47% by doubling back, which is what
    *  the flow rule exists to stop. 10 takes nearly all of what is there. */
   turf: { pull: 10 },
+  /** Draws a circuit may take to find a loop that closes under the flow rule. */
+  circuitAttempts: 48,
 } as const;
 
 /** A rival's home ground, as the draw sees it: a centre and a radius in metres. */
@@ -142,12 +156,14 @@ export function nodePosition(graph: RoutingGraph, id: string): { x: number; z: n
  * routes it with a free first exit: the turn at the gate (at most `turn`
  * degrees, under 5 s) is not in it. A `turf` leans the draw toward a rival's
  * home ground and names the race after the rival (`gen-moth-15`); without one
- * the draw and its id are what they always were.
+ * the draw and its id are what they always were. A `circuit` draw keeps
+ * drawing until the loop closes under the flow rule (`closeCircuit`), so a
+ * seed's circuit is its sprint only when that sprint already closes that way.
  */
 export function generateRace(graph: RoutingGraph, seed: number, origin: string, arriving: Heading,
-  avoid: readonly string[] = [], turf: Turf | null = null): GeneratedRace {
+  avoid: readonly string[] = [], turf: Turf | null = null, circuit = false): GeneratedRace {
   const next = stream(seed);
-  for (let attempt = 0; attempt < 12; attempt++) {
+  for (let attempt = 0; attempt < (circuit ? GENERATOR.circuitAttempts : 12); attempt++) {
     const gateCount = GENERATOR.gates.min + Math.floor(next() * (GENERATOR.gates.max - GENERATOR.gates.min + 1));
     const chosen: Leg[] = [];
     const used = new Set<string>(avoid);
@@ -195,35 +211,61 @@ export function generateRace(graph: RoutingGraph, seed: number, origin: string, 
       return { id: leg.to, name: graph.nodeName(leg.to), x: point.x, z: point.z, radius: GENERATOR.gateRadius };
     });
     const name = `${shortStreetName(checkpoints[0]!.name)} to ${shortStreetName(checkpoints[checkpoints.length - 1]!.name)}`;
-    return { seed, legs: chosen,
+    const sprint: GeneratedRace = { seed, legs: chosen,
       definition: { id: generatedRaceId({ seed, kind: "sprint", rival: turf?.id ?? null }), name, countdownTicks: GENERATOR.countdownTicks, checkpoints } };
+    if (!circuit) return sprint;
+    const closed = closeCircuit(graph, sprint, origin);
+    if (closed) return closed;
   }
   throw new RangeError(`Seed ${seed} draws no race from ${origin}`);
 }
 
 /** Convert a seeded sprint into another event, keeping the same routed gates.
- * Circuits close at the approach junction and repeat the complete loop twice.
+ * Circuits close at the approach junction and repeat the complete loop twice;
+ * a sprint whose loop cannot close under the flow rule throws, which is why a
+ * circuit is drawn as one (`generateRace`'s `circuit`) rather than converted.
  */
 export function withRaceKind(graph: RoutingGraph, race: GeneratedRace, origin: string, kind: Exclude<RaceKind, "drag" | "drift">): GeneratedRace {
   if (kind === "sprint") return race;
   if (kind === "unordered") return { ...race, definition: { ...race.definition,
     kind, id: `${race.definition.id}-unordered`, name: `${race.definition.name} / Unordered` } };
+  const closed = closeCircuit(graph, race, origin);
+  if (!closed) throw new RangeError("Circuit cannot return to its start under the flow rule");
+  return closed;
+}
+
+/**
+ * Close a drawn sprint into a two-lap circuit at `origin`, or null when the loop
+ * cannot close under the flow rule. The rule that holds between gates holds at
+ * both ends of the closing leg (2026-09-15): the start lies within `flow.bearing`
+ * of the heading the last gate is reached on, and the first gate within it of the
+ * heading the start is reached on. Closing any sprint without that put the start
+ * more than 120° off your heading at 57% of last gates, and the first gate at 52%
+ * of lap-two starts: the gates that turn a driver around.
+ */
+export function closeCircuit(graph: RoutingGraph, race: GeneratedRace, origin: string): GeneratedRace | null {
   const finish = race.legs.at(-1)!;
   const arrival = finish.via.at(-1)!.arriving;
   const departure = race.legs[0]!.via[0]!.leaving;
+  const bearing = (from: string, to: string) => {
+    const a = nodePosition(graph, from), b = nodePosition(graph, to), span = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return { x: (b.x - a.x) / span, z: (b.z - a.z) / span };
+  };
+  if (degreesBetween(arrival, bearing(finish.to, origin)) > GENERATOR.flow.bearing) return null;
   // Route the return with both boundary headings constrained. A shortest
   // return otherwise often reverses down the street the rival just arrived on.
   const closingGraph: RoutingGraph = { ...graph, legs: null, drives: graph.drives.filter(d =>
     (d.from !== finish.to || degreesBetween(arrival, d.leaving) <= GENERATOR.flow.turn) &&
     (d.to !== origin || degreesBetween(d.arriving, departure) <= GENERATOR.flow.turn)) };
   const closing = measureLeg(closingGraph, finish.to, origin);
-  if (!Number.isFinite(closing.time) || !closing.via.length) throw new RangeError("Circuit cannot return to its start");
+  if (!Number.isFinite(closing.time) || !closing.via.length) return null;
+  if (degreesBetween(closing.via.at(-1)!.arriving, bearing(origin, race.legs[0]!.to)) > GENERATOR.flow.bearing) return null;
   const point = nodePosition(graph, origin);
   const gates = [...race.definition.checkpoints,
     { id: origin, name: graph.nodeName(origin), ...point, radius: GENERATOR.gateRadius }];
   const loop = [...race.legs, closing];
   return { ...race, legs: [...loop, ...loop], definition: { ...race.definition,
-    kind, id: `${race.definition.id}-circuit`, name: `${shortStreetName(gates[0]!.name)} Circuit`,
+    kind: "circuit", id: `${race.definition.id}-circuit`, name: `${shortStreetName(gates[0]!.name)} Circuit`,
     laps: 2, gatesPerLap: gates.length, checkpoints: [...gates, ...gates] } };
 }
 

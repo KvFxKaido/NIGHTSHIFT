@@ -327,10 +327,14 @@ fixtures outside the playable bundle, and old world links redirect.
 - Not every generated course draws: some lanes draw no race for any seed. Ask
   `alderCourseDraws` (the load's own path, `alder-course.ts`) before accepting,
   handing back or offering one; a stored course that throws on load retries forever.
-- Changing what a seed draws means bumping `GENERATOR_REVISION`, whether the
-  change is in the generator or in route choice (`PACE`, risk weights): a stored
-  race is (`ALDER_VERSION`, generator revision, race id, start). The fingerprint
-  test prints the values to repin; repinning without a bump is the mistake.
+- Changing what a seed draws means bumping that kind's `GENERATOR_REVISIONS`
+  entry, and every kind's for the shared draw (route choice, `PACE`, turfs, gate
+  rules): a stored race is (`ALDER_VERSION`, its kind's revision, race id, start).
+  The per-kind fingerprint tests print the values to repin; repinning without a
+  bump is the mistake, and so is bumping every kind for a change to one.
+- A circuit is drawn as a circuit (`generateRace`'s `circuit`), never a sprint
+  converted after: converting skipped the flow rule at the close, and 469 of 591
+  circuits turned the driver around at the last gate or the start.
 - A race's gate arrows come from its rival's line (`withExits`). A solo race
   keeps them only because `?solo=1` runs `withExits` before dropping the rival;
   a race handed to `createSim` with no rival and no exits has no arrows.

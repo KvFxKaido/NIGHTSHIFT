@@ -154,8 +154,8 @@ of 195. See `design/EDITOR.md` for the editor's side.
 The builder now stamps `alder-slice-v4` and the sim derives its version from
 that stamp (plus the evergreen revision and layout fingerprint). The old separate v1/v2 stamps are
 retired. Map expansions must bump the builder's stamp deliberately. Generated
-race seeds are reproducible within a world version and generator revision
-(`GENERATOR_REVISION`, since 2026-09-15); v3 seeds may draw different routes on
+race seeds are reproducible within a world version and their kind's generator
+revision (`GENERATOR_REVISIONS`, since 2026-09-15); v3 seeds may draw different routes on
 the expanded graph.
 
 ### Belltown–Broadcast Tower extension (2026-09-11)
@@ -364,7 +364,7 @@ about what it takes to drive). Only 20 of 300 seeds draw the race they drew
 before, so rival measurements over generated seeds from before this date,
 including the 42-race tables below, describe races the seeds no longer draw.
 Nothing named that change, since the world version did not move, so the draw
-now has a name of its own: `GENERATOR_REVISION` ("generator-v1" is this draw),
+now has a name of its own: `GENERATOR_REVISION` ("generator-v1" is this draw; per kind as `GENERATOR_REVISIONS` since circuits were revised, below),
 which a stored race carries beside `ALDER_VERSION`. `tests/race-generator.test.ts`
 fingerprints the gates and rival lines of 26 races, from the grid and from two
 starts as a URL carries them, and fails when they move without a new name.
@@ -452,6 +452,32 @@ refuses. A soft falloff kept three more points of
 choice but can only be asserted statistically; a hard rule is one a test
 can state. A leg's time is still the table's, routed with a free first
 exit, so the turn at the gate (under 5 s) is not in it.
+
+**Circuits close under the flow rule (2026-09-15).** Shawn named the weird gates:
+ones that turn you completely around after you pass through. Sprints and circuit
+legs obeyed the rule (0.2% of next gates more than 120° off the heading through
+a gate, over 1,191 races from four starts). Circuits did not where they close: a
+circuit was a sprint closed afterwards by a route back to the start, and nothing
+looked at where the start was, so the start lay more than 120° off at 57% of last
+gates (40% past 135°), and lap two's first gate at 52% of starts; 469 of 591
+circuits had one. More gates carry a race further out, which is why the 4-5 gate
+ones looked worst. A circuit is now drawn as one (`generateRace`'s `circuit`,
+`closeCircuit`): the draw is kept only if the start lies within 120° of the last
+gate's arrival heading and the first gate within 120° of the start's, redrawing up
+to `circuitAttempts` (48) times. Over 600: 8 circuits with a next gate over 120°
+off, none past 135°; 598 draw where 591 did; median lap 5.10 -> 5.05 km, 4.92 ->
+5.07 gates a lap, priced-or-even legs 61% -> 58%. 122 seeds keep their sprint's
+gates. About one ordinary gate in ten still puts the next 105-120° off, a hard
+turn back rather than a reversal, left as it is.
+
+**Revisions per race kind.** Because only circuits moved, `GENERATOR_REVISIONS`
+names each kind: circuit `generator-v2`, sprint and unordered still
+`generator-v1`, and a stored course is judged by its own kind's
+(`generatorRevision`, `RaceBuildFor`). Stored sprints and unordered races stay
+playable; a pending circuit stage is outdated and the garage replaces it; kept and
+won circuits are listed unplayable. The per-kind pins in
+`tests/race-generator.test.ts` were computed on the code before and after, and
+the sprint and unordered ones did not move.
 
 **Gate arrows.** A checkpoint carries the direction the reference route
 leaves it: `withExits` in `rival.ts` reads it from the rival's line 6 m
@@ -545,7 +571,7 @@ Every playable entry has Race (the rival) and Solo. A circuit is solo by its rac
 id (`-solo`); a generated race or Sound to Sky takes `?solo=1`, which keeps the
 race and its gate arrows and fields nobody. The arrows come from the rival's
 line, so solo runs `withExits` before the rival is dropped. A solo win is never a
-career result. Entries drawn on another `ALDER_VERSION` or `GENERATOR_REVISION`
+career result. Entries drawn on another `ALDER_VERSION` or their kind's `GENERATOR_REVISIONS` entry
 are listed, dimmed, with only Remove: never redrawn under their old name.
 
 **Draw a race here**, at the top of the list during a free-roam drive, draws a
