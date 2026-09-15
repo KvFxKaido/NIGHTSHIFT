@@ -10,7 +10,8 @@ export interface RaceListPanelOptions {
   launch(race: RaceLaunch): void;
   /** Why a new race cannot be drawn from here, or null when it can. */
   drawBlocked(): string | null;
-  draw(): void;
+  /** Draws and loads a race, or returns why none draws from here. */
+  draw(): string | null;
 }
 
 const GROUP_TITLES: Record<RaceListItem["group"], string> = { authored: "Courses", moth: "Moth", kept: "Kept races" };
@@ -85,6 +86,10 @@ export function createRaceListPanel(options: RaceListPanelOptions) {
     drawButton.disabled = blocked !== null;
     drawNote.textContent = blocked ?? "A new race from where you are, against the rival. Keep it afterwards if you like it.";
   }
-  drawButton.onclick = () => { if (options.drawBlocked() === null) options.draw(); };
+  drawButton.onclick = () => {
+    if (options.drawBlocked() !== null) return;
+    const failed = options.draw();
+    if (failed) drawNote.textContent = failed;
+  };
   return { render };
 }

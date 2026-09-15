@@ -45,6 +45,15 @@ Mismatched or unversioned courses are rejected. The garage can explicitly
 replace only the incompatible unfinished stage, preserving wins, money, cars
 and completed history. New challenge links carry the same version identity.
 Failed result writes offer a retry and grant no cash or progress until saved.
+A stage is accepted, and handed back on a later flash, only if its course draws
+the way a load draws it (`src/sim/alder-course.ts`, 2026-09-15). Heading south
+on Moth's loop near (212, 897), toward a junction at the map's southern edge, no
+seed draws any race, turf or not, and some circuits cannot close. A stage accepted
+there used to be handed back on every flash and throw on every load. Now a flash
+tries eight seeds; a pending stage that no longer draws is replaced from where the
+flash is, keeping wins and cash; with nothing drawable Moth's card says "No race
+from here". Draw a race here tries eight seeds the same way, and a link to a course
+that cannot be drawn opens the garage with the reason instead of an error screen.
 Invalid storage
 is reported without replacing existing data, and a slot changed by another tab
 must be selected again before replacement.

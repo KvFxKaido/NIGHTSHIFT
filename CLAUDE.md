@@ -324,6 +324,9 @@ fixtures outside the playable bundle, and old world links redirect.
   waits for traffic in its path, so traffic follows only racers going its way and
   holds junctions only for racers moving over 3 m/s; every other way traffic also
   waited for the rival made a standoff where neither moved.
+- Not every generated course draws: some lanes draw no race for any seed. Ask
+  `alderCourseDraws` (the load's own path, `alder-course.ts`) before accepting,
+  handing back or offering one; a stored course that throws on load retries forever.
 - Changing what a seed draws means bumping `GENERATOR_REVISION`, whether the
   change is in the generator or in route choice (`PACE`, risk weights): a stored
   race is (`ALDER_VERSION`, generator revision, race id, start). The fingerprint

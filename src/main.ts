@@ -35,16 +35,16 @@ import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
+import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { GENERATOR_REVISION, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
-import { turfFor } from "./sim/alder-turf.ts";
+import { alderCourseDraws, drawAlderCourse } from "./sim/alder-course.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
 import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
-import { snapToLane, encodeStart, decodeStart } from "./sim/race-start.ts";
+import { snapToLane, encodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
@@ -122,23 +122,25 @@ try {
   // same gates and rival line every time (src/sim/race-id.ts), and a turf leans
   // the draw toward a rival's home ground (src/sim/alder-turf.ts).
   const generated = raceId ? parseGeneratedRaceId(raceId) : null;
-  const turf = generated?.rival ? turfFor(generated.rival) : null;
-  if (generated?.rival && !turf) throw new Error(`Unknown turf '${generated.rival}' in race '${raceId}'`);
   const circuitRace = raceId ? circuitEvent(raceId) : null;
   if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && raceId !== SABLE_DRIFT.id) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
   const startParam = params.get("start");
-  if (startParam && generated) {
-    const flashed = decodeStart(startParam);
-    if (!flashed) throw new Error(`Unknown start '${startParam}'`);
-    raceStart = snapToLane(ALDER_STREETS, flashed, alderHeight);
-    if (!raceStart) throw new Error(`No street to start on at ${startParam}`);
-  } else if (startParam) { params.delete("start"); history.replaceState(history.state, "", url); }
+  if (startParam && !generated) { params.delete("start"); history.replaceState(history.state, "", url); }
   if (generated) {
-    const drawn = alderGeneratedRace(generated.seed, raceStart ?? undefined, generated.kind, turf);
-    race = drawn.race; rival = drawn.rival;
+    // A course that cannot be drawn is not a broken asset: return to the garage
+    // and say why, rather than an error screen that refreshing only repeats.
+    try {
+      const drawn = drawAlderCourse(raceId!, startParam);
+      race = drawn.race; rival = drawn.rival; raceStart = drawn.start;
+    } catch (error) {
+      for (const key of ["race", "start", "generator", "raceWorld", "solo"]) params.delete(key);
+      params.set("scene", "garage");
+      history.replaceState(history.state, "", url);
+      loadNotice = `That race can't be drawn (${error instanceof Error ? error.message : String(error)}). Your wins, cash and cars are unchanged.`;
+    }
   } else if (circuitRace) {
     circuit = circuitRace;
     race = circuit.race; rival = circuit.rival; raceStart = circuit.start;
@@ -497,6 +499,8 @@ function showRivalCard(copy: CardCopy): void {
   cardMeta.textContent = copy.meta;
   cardAction.textContent = copy.action;
 }
+/** Seeds a flash or a drawn race tries, in order, before saying nothing draws from here. Salts on the flash's tick. */
+const DRAW_SEEDS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 let flashRemaining = 0;
 let challengePending = false;
 let challengeRival: string | null = null;
@@ -557,12 +561,14 @@ function updateFlash(dt: number, active: boolean): void {
     if (challengeRival === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
     if (challengeRival === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
     // A new stage draws once at the flash position; losses retry that same draw.
+    // Only a course that draws is accepted or handed back (src/sim/alder-course.ts).
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
-    const seed = seedFromTick(sim.state.tick);
-    const challenge = progress.challenge(seed, here ? encodeStart(here) : null);
-    if (challenge) loadDrive(challenge.raceId, "track", challenge.start);
-    else challengeNotice = progress.unavailable() ? "Could not save challenge · Flash again to retry"
-      : progress.outdatedChallenge() ? "Course out of date · Replace it at the garage" : "Moth retired · Return to the garage";
+    const outcome = progress.flash(DRAW_SEEDS.map(salt => seedFromTick(sim.state.tick, salt)), here ? encodeStart(here) : null,
+      course => alderCourseDraws(course.raceId, course.start));
+    if ("race" in outcome) loadDrive(outcome.race.raceId, "track", outcome.race.start);
+    else challengeNotice = outcome.none === "unavailable" ? "Could not save challenge · Flash again to retry"
+      : outcome.none === "outdated" ? "Course out of date · Replace it at the garage"
+      : outcome.none === "undrawable" ? "No race from here · Drive on and flash again" : "Moth retired · Return to the garage";
   }
 }
 
@@ -858,10 +864,14 @@ const raceList = createRaceListPanel({
     : !snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight) ? "Get onto a street: a race starts from a lane." : null,
   draw: () => {
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
-    if (!here) return;
-    const seed = seedFromTick(sim.state.tick, 1);
-    const kind = (["sprint", "circuit", "unordered"] as const)[seed % 3]!;
-    loadDrive(generatedRaceId({ seed, kind, rival: null }), "track", encodeStart(here));
+    if (!here) return "Get onto a street: a race starts from a lane.";
+    const start = encodeStart(here);
+    for (const salt of DRAW_SEEDS) {
+      const seed = seedFromTick(sim.state.tick, salt + 1);
+      const raceId = generatedRaceId({ seed, kind: (["sprint", "circuit", "unordered"] as const)[seed % 3]!, rival: null });
+      if (alderCourseDraws(raceId, start)) { loadDrive(raceId, "track", start); return null; }
+    }
+    return "No race draws from this lane. Drive on and try again.";
   },
 });
 

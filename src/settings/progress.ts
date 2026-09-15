@@ -93,6 +93,38 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
     } catch { unavailable = true; return false; }
   }
   // Persist the legacy grant at boot so changing the selected car cannot lose it.
+  /**
+   * A flash at Moth: her current stage, or a new one drawn from here. A stage is
+   * only accepted, or handed back, if `draws` says it can be raced on this build
+   * (`alderCourseDraws`). A pending stage that no longer draws is replaced, since
+   * nothing was won on it; before this, one that could not be drawn was handed back
+   * on every flash and its load threw every time. Seeds are tried in order. Losses
+   * still retry the same course, which still draws.
+   */
+  function flash(seeds: readonly number[], start: string | null, draws: (race: RaceKey) => boolean):
+    { race: MothRace } | { none: "retired" | "outdated" | "undrawable" | "unavailable" } {
+    try {
+      progress = read();
+      unavailable = false;
+      if (progress.mothBeaten) return { none: "retired" };
+      const won = progress.mothRaces.slice(0, progress.mothWins);
+      const pending = progress.mothRaces[progress.mothWins];
+      if (pending) {
+        if (!sameRaceBuild(pending.build, build)) return { none: "outdated" };
+        if (draws(pending)) return { race: structuredClone(pending) };
+      }
+      const kind = MOTH_STAGES[progress.mothWins]!.kind;
+      for (const seed of seeds) {
+        const race = { raceId: generatedRaceId({ seed, kind, rival: MOTH_TURF }), start, build: { ...build } };
+        if (!draws(race)) continue;
+        write({ ...progress, mothRaces: [...won, race] });
+        return { race: structuredClone(race) };
+      }
+      // Nothing draws from here. A pending stage that cannot be drawn goes anyway, so the next flash elsewhere draws afresh.
+      if (pending) write({ ...progress, mothRaces: won });
+      return { none: "undrawable" };
+    } catch { unavailable = true; return { none: "unavailable" }; }
+  }
   if (legacyBulwark) preserveLegacyOwnership();
   else { try { progress = read(); } catch { unavailable = true; } }
   return {
@@ -114,19 +146,11 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
         return true;
       } catch { unavailable = true; return false; }
     },
-    /** Draw once per stage. Subsequent flashes retry the same course and start. */
+    flash,
+    /** Draw once per stage. Subsequent flashes retry the same course and start. Does not ask whether a course draws; a flash does. */
     challenge(seed: number, start: string | null): MothRace | null {
-      try {
-        progress = read();
-        unavailable = false;
-        if (progress.mothBeaten) return null;
-        const existing = progress.mothRaces[progress.mothWins];
-        if (existing) return sameRaceBuild(existing.build, build) ? structuredClone(existing) : null;
-        const kind = MOTH_STAGES[progress.mothWins]!.kind;
-        const race = { raceId: generatedRaceId({ seed, kind, rival: MOTH_TURF }), start, build: { ...build } };
-        write({ ...progress, mothRaces: [...progress.mothRaces, race] });
-        return structuredClone(race);
-      } catch { unavailable = true; return null; }
+      const outcome = flash([seed], start, () => true);
+      return "race" in outcome ? outcome.race : null;
     },
     complete(result: CareerResult): "none" | "advanced" | "awarded" | "recorded" | "incompatible" | "unavailable" {
       if (!result.finished || result.disqualified || result.position !== 1) return "none";
