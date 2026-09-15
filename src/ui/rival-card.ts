@@ -1,6 +1,7 @@
 import { RIVET } from "../sim/drag-event.ts";
 import { SABLE } from "../sim/drift-yard.ts";
 import { MOTH } from "../sim/encounter.ts";
+import { BLACKLIST_CRUISERS } from "../sim/alder-cruisers.ts";
 
 /**
  * The contact card the HUD shows when a rival is close enough to flash: their
@@ -59,6 +60,12 @@ export const RIVAL_CARDS: readonly RivalCard[] = [
     id: MOTH.id, name: MOTH.name, car: MOTH.carName, turf: "Freight block",
     offer: "Street race", accepted: "Drawing a race…", portrait: portraits(MOTH.id),
   },
+  // The rest of the Blacklist, cruising their turfs: what a flash draws is their race type.
+  ...BLACKLIST_CRUISERS.map(cruiser => ({
+    id: cruiser.id, name: cruiser.name, car: cruiser.carName, turf: cruiser.turf,
+    offer: { sprint: "Street sprint", circuit: "Two-lap circuit", unordered: "Unordered checkpoints" }[cruiser.kind],
+    accepted: "Drawing a race…", portrait: portraits(cruiser.id),
+  })),
 ];
 
 export function rivalCard(id: string | null | undefined): RivalCard | null {

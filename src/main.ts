@@ -39,6 +39,7 @@ import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RAC
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
 import { alderCourseDraws, drawAlderCourse } from "./sim/alder-course.ts";
+import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
@@ -81,7 +82,10 @@ let carParts: CarView;
 let rivalParts: CarView | null = null;
 let rivetParts: CarView | null = null;
 let sableParts: CarView | null = null;
-const raceOpponentCar = () => race?.kind === "drag" ? "hammer" : "kestrel";
+/** Who a race fields: Rivet's Hammer on the strip; a rival's own car when the race id names one; otherwise Moth's Kestrel. */
+const raceOpponentCar = () => (race?.kind === "drag" ? "hammer" : cruiserFor(race ? parseGeneratedRaceId(race.id)?.rival : null)?.car ?? "kestrel") as keyof typeof BLENDER_CARS;
+/** The Blacklist names cruising their turfs in free roam, by id. */
+const cruiserParts = new Map<string, CarView>();
 let selectedCar = "cinder";
 let race: RaceDefinition | null = null;
 let rival: RivalDefinition | null = null;
@@ -172,6 +176,10 @@ try {
     // A solo run has nobody to draw.
     if (!circuit?.solo && !solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
+    if (!race) await Promise.all(BLACKLIST_CRUISERS.map(async cruiser => {
+      const car = cruiser.car as keyof typeof BLENDER_CARS;
+      cruiserParts.set(cruiser.id, await loadBlenderCar(new URL(BLENDER_CARS[car].path, document.baseURI).href, car));
+    }));
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
 } catch (error) {
@@ -192,13 +200,15 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
-  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
+  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE],
+    cruisers: BLACKLIST_CRUISERS.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
+for (const [id, parts] of cruiserParts) setParkedRivalCar(view, id, parts);
 if (sableParts) {
   // No repaint: the NS-01 leaves the factory in signal red, which is the car
   // the portrait in design/reference/characters/sable has always described.
@@ -506,7 +516,7 @@ let flashRemaining = 0;
 let challengePending = false;
 let challengeRival: string | null = null;
 let challengeNotice = "";
-const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encounter, sim.state.parkedRivals, !!sim.state.race);
+const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encounter, sim.state.parkedRivals, !!sim.state.race, sim.state.cruisers);
 const flashLabel = () => input.activeGamepadName()
   ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName())
   : keyLabel(input.bindings().keyboard.flash);
@@ -561,6 +571,19 @@ function updateFlash(dt: number, active: boolean): void {
     challengePending = false;
     if (challengeRival === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
     if (challengeRival === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
+    // Every other Blacklist name draws a race of its type from here, leaning toward its turf, in its own car.
+    // Phase 1: these races pay nothing and advance nothing; only Moth's stages do.
+    const cruiser = cruiserFor(challengeRival);
+    if (cruiser) {
+      const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
+      const start = here ? encodeStart(here) : null;
+      for (const salt of DRAW_SEEDS) {
+        const raceId = generatedRaceId({ seed: seedFromTick(sim.state.tick, salt), kind: cruiser.kind, rival: cruiser.id });
+        if (alderCourseDraws(raceId, start)) { loadDrive(raceId, "track", start); return; }
+      }
+      challengeNotice = "No race from here · Drive on and flash again";
+      return;
+    }
     // A new stage draws once at the flash position; losses retry that same draw.
     // Only a course that draws is accepted or handed back (src/sim/alder-course.ts).
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
@@ -603,7 +626,7 @@ function updateHud(): void {
       : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}${lapNote}`,
   } : null,
   // Every rival gets a blip, pinned to the minimap rim when off the disc, as in Midnight Club 3.
-  [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle)]
+  [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle), ...sim.state.cruisers.map(cruiser => cruiser.vehicle)]
     .filter((vehicle): vehicle is NonNullable<typeof vehicle> => !!vehicle),
   // The tachometer follows the engine you hear; the sim has no gears outside drag races.
   { rpm: engineTone(car, lastInput).rpm, redlineRpm: REDLINE_RPM });

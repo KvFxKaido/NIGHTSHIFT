@@ -565,6 +565,42 @@ Deuce would draw alike until their races differ some other way. The pull costs
 choice where a turf has few priced legs: Rivet's priced-or-even share falls from
 74% to 61%, the largest drop of the nine; the rest move by six points or less.
 
+### The Blacklist on the map (2026-09-15)
+
+Shawn: put the rest of the rivals on the map, all at once, ranked, each flash a
+race of the nearest existing type. Phase 1 is presence. Moth keeps her freight
+block and her stages; Rivet and Sable stay parked; the other seven cruise loops
+in their turfs (`BLACKLIST_CRUISERS`, `src/sim/alder-cruisers.ts`) and a flash
+draws `gen-<id>-<seed>[-kind]`, raced in their own car with its drivetrain. The
+career chain, where only the next name's stages advance, is phase 2.
+
+| | Car | Race | Loop |
+|---|---|---|---|
+| Stray | Latch, FWD | unordered | Pike St, 6th Ave, Yesler Way, Western Ave, Madison St, 4th Ave |
+| Bollard | Breakwater, AWD | sprint | Wall St, Elliott Ave, Cedar St, 4th Ave, Pike St, 2nd Ave |
+| Deuce | Wager, RWD | sprint | Broad St, 5th Ave N, Taylor Terrace, Uptown Link, Queen Anne Climb |
+| Plumb | Meridian, AWD | circuit | Denny East, Ridge Scenic Way, Pine East, Valley Parkway |
+| Crest | Skim, FWD | sprint | Galer Terrace, Queen Anne Climb, Crown Loop, Taylor Terrace |
+| Wake | Reign, AWD | sprint | 12th Ave, Aloha St, 23rd Ave, Bellevue Court, Belmont Passage, Roy St |
+| Tally | Vesper, RWD | unordered | Aloha St, Belmont Passage, Mercer East, Republic St, Valley Parkway, Madrona Drive |
+
+The loops were found by search and pinned as street lists: closed, 1.5-2.8 km,
+junction turns of 100° or less, entirely inside the turf (Tally near the map's
+middle), no street segment shared with another loop or Moth's, and a race of the
+rival's type draws from every 60 m of it, so no loop hands a flash a dead lane.
+Bollard keeps Elliott Ave and Deuce the Broadcast Tower streets; the first search
+gave both to whichever went first. Tally's turf is the whole city, which is no
+pull: `gen-tally-12` draws the gates of `gen-12` under her name.
+
+In the sim Moth stays `encounter`, which tests and three browser harnesses read
+by name, and the seven are `cruisers`, created after her body so a world without
+them is the world it was. Each drives `rivalInput` round its loop with every
+other car as an obstacle, and resets as she does without landing on another.
+Measured: all seven cruise 60 s in traffic without a reset and replay tick for
+tick; a tick went from 1.64 ms with Moth alone to 3.16 ms with all eight (node,
+PC), a cost to remember for the phone. In the browser a flash on Stray loaded
+`gen-stray-842725-unordered` against his Latch.
+
 ### Race list (2026-09-15)
 
 The playlist of `design/PROCEDURAL_RACES.md`, step 4, from the title or Pause

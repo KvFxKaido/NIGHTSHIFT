@@ -11,6 +11,8 @@
  */
 import { ALDER_STREETS, alderGeneratedRace, alderHeight } from "./alder.ts";
 import { turfFor } from "./alder-turf.ts";
+import { cruiserFor } from "./alder-cruisers.ts";
+import { CAR_DRIVETRAIN } from "../customization/cars.ts";
 import { parseGeneratedRaceId } from "./race-id.ts";
 import { decodeStart, snapToLane } from "./race-start.ts";
 import type { RoadWorld } from "./road-world.ts";
@@ -21,8 +23,11 @@ export type AlderCourse = ReturnType<typeof alderGeneratedRace> & { start: RoadW
 export function drawAlderCourse(raceId: string, start: string | null): AlderCourse {
   const id = parseGeneratedRaceId(raceId);
   if (!id) throw new Error(`'${raceId}' is not a generated race`);
+  // The id names the rival whose race it is. Its turf leans the draw; Tally's is the
+  // whole city, which is no pull, so hers draws as a plain race of the same seed.
   const turf = id.rival ? turfFor(id.rival) : null;
-  if (id.rival && !turf) throw new Error(`Unknown turf '${id.rival}' in race '${raceId}'`);
+  const cruiser = cruiserFor(id.rival);
+  if (id.rival && !turf && !cruiser) throw new Error(`Unknown turf '${id.rival}' in race '${raceId}'`);
   let pose: RoadWorld["start"] | null = null;
   if (start !== null) {
     const flashed = decodeStart(start);
@@ -30,7 +35,14 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
     pose = snapToLane(ALDER_STREETS, flashed, alderHeight);
     if (!pose) throw new Error(`No street to start on at ${start}`);
   }
-  return { ...alderGeneratedRace(id.seed, pose ?? undefined, id.kind, turf), start: pose };
+  const drawn = alderGeneratedRace(id.seed, pose ?? undefined, id.kind, turf);
+  // The race keeps the id it was asked for: a turfless rival's draw is named for no
+  // turf by the generator, but the id is how a load knows whose car to field.
+  const race = drawn.race.id === raceId ? drawn.race : { ...drawn.race, id: raceId };
+  const generated = drawn.generated.definition.id === raceId ? drawn.generated : { ...drawn.generated, definition: race };
+  // Raced in the rival's own car: its drivetrain, not the Kestrel every generated race used to field.
+  const rival = { ...drawn.rival, id: `${raceId}-driver`, drivetrain: cruiser ? CAR_DRIVETRAIN[cruiser.car] ?? drawn.rival.drivetrain : drawn.rival.drivetrain };
+  return { race, generated, rival, start: pose };
 }
 
 export function alderCourseDraws(raceId: string, start: string | null): boolean {

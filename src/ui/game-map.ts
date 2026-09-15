@@ -91,6 +91,11 @@ export function createGameMap(sim: Sim) {
       shape(markers, "circle", { cx: x, cy: z, r: 24, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-parked-rival": rival.id });
       shape(markers, "text", { x: x + 34, y: z + 10, fill: "#ffdb9c", "font-size": 28 }, `${rival.name} / ${rival.id === SABLE.id ? "Drift" : "Drag"}`);
     }
+    for (const cruiser of sim.state.cruisers) {
+      const { x, z } = cruiser.vehicle;
+      shape(markers, "circle", { cx: x, cy: z, r: 22, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-cruiser": cruiser.id });
+      shape(markers, "text", { x: x + 32, y: z + 10, fill: "#ffdb9c", "font-size": 28 }, cruiser.name);
+    }
     if(opponent)shape(markers,"circle",{cx:opponent.x,cy:opponent.z,r:20,fill:uiColor("rival"),stroke:"#491b2c","stroke-width":5,"data-map-rival":""});
     shape(markers,"path",{d:"M 0 -30 L 20 22 L 0 12 L -20 22 Z",fill:"#f4f7fa",stroke:"#162631","stroke-width":5,
       transform:`translate(${player.x} ${player.z}) rotate(${-player.heading*180/Math.PI})`,"data-map-player":""});

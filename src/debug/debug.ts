@@ -247,6 +247,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       tick: sim.state.tick,
       parkedRivals: sim.state.parkedRivals.map(rival => ({ ...rival, model: view.parkedRivalCars.get(rival.id)?.car.userData.model })),
       encounter: sim.state.encounter ? { model: view.rivalCar?.car.userData.model, vehicle: { ...sim.state.encounter } } : null,
+      cruisers: sim.state.cruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, model: view.parkedRivalCars.get(cruiser.id)?.car.userData.model, vehicle: { ...cruiser.vehicle }, resets: cruiser.driver.resets })),
       customization: {
         paint: selected("paint"),
         wheels: selected("wheels"),

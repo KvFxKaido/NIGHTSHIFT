@@ -130,8 +130,11 @@ fixtures outside the playable bundle, and old world links redirect.
   paint, wheel finish, visual stance and a livery editor whose panels derive
   from each body (appearance edits only; liveries are a per-car browser profile,
   not part of save slots).
-- **Encounters and generated races.** A rival cruises a freight-block loop
-  near the garage; flash it (F / Square) to race. The generator draws gates
+- **Encounters and generated races.** Moth cruises a freight-block loop
+  near the garage; flash her (F / Square) to race. Since 2026-09-15 the other
+  seven non-parked Blacklist names cruise loops in their turfs
+  (`alder-cruisers.ts`, sim `cruisers`); a flash draws `gen-<id>-<seed>[-kind]` of
+  their nearest race type in their own car, paying nothing yet (phase 1). The generator draws gates
   per seed from the route-choice arithmetic (`route-choice.ts`,
   `race-generator.ts`) and starts the race where you flashed
   (`race-start.ts`). Sprint, two-lap circuit and unordered variants;
@@ -166,8 +169,8 @@ fixtures outside the playable bundle, and old world links redirect.
   style that keeps them one game: `design/CHARACTERS.md`. All ten Blacklist
   names have a car asset (`BLENDER_CARS` in `src/render/blender-car.ts`, drives in
   `CAR_DRIVETRAIN`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
-  Wager, Meridian, Skim and Reign (working names). They render only: no
-  encounter, unlock or per-car handling. Kestrel is now an earnable saved player
+  Wager, Meridian, Skim and Reign (working names). Each cruises and races as its
+  rival (above); none has an unlock or per-car handling. Kestrel is now an earnable saved player
   car; the other Blacklist bodies remain rival-only. Build
   notes and open review flags: `design/reference/cars/BLACKLIST_CARS.md`.
 - **Career/shop.** `src/settings/progress.ts` stores `nightshift.progress`
@@ -221,7 +224,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Port Alder streets, terrain, plots, layout | `src/sim/alder*.ts`, `src/sim/alder-*.json` | `design/PORT_ALDER.md` |
 | District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race ids, turfs, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-id.ts`, `alder-turf.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
-| Rival, encounter, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
+| Rival, encounter, cruisers, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `alder-cruisers.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
 | Lap recording, replay check, save endpoint | `lap-recorder.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
@@ -299,7 +302,9 @@ fixtures outside the playable bundle, and old world links redirect.
   when the player is far enough away not to see it. Never further along,
   never faster, never a different car. The handling is what is sacred.
 - `SimOptions.encounter` is a handbraked vehicle with no race state; never
-  add race clock or checkpoint progress to it.
+  add race clock or checkpoint progress to it. Moth is `encounter` and the other
+  cruising names are `cruisers`: keep her there, since tests and harnesses read
+  `state.encounter`, and create cruiser bodies after hers.
 - Settings never persist physics snapshots, replays, camera poses or debug
   flags. URL overrides are previews; deliberate menu edits save only their
   own field.

@@ -9,8 +9,11 @@ The first two wins pay $750 each; the third pays $1,500 and awards her Kestrel.
 She then leaves free roam. The Bulwark costs $1,500 in the garage. Cash, stages,
 race descriptors and ownership autosave across drive slots. Stray is named next but has
 no challenge yet; the rest of the career remains a sketch. All ten names have portraits and
-authored car assets. Moth, Rivet and Sable have encounters; Tally and the six
-new rivals do not. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
+authored car assets. Since 2026-09-15 every name is on the map: Moth cruises her
+freight block, Rivet and Sable wait at their strip and yard, and the other seven
+cruise loops in their turfs (`src/sim/alder-cruisers.ts`). Flashing one of the
+seven draws a race of the type nearest its challenge, leaning toward its turf, in
+its own car; those races pay and advance nothing until each name's stages exist. Latch, Breakwater, Wager, Meridian, Skim and Reign implement
 the body directions below with the declared drivetrains. Placements, mistakes
 and the career structure remain proposals. The new car names are Codex's
 working names for Shawn's review (2026-09-13).
@@ -113,7 +116,7 @@ Nineteen, grew up in the downtown service lanes. *Silhouette:* a cap worn
 backwards. *Mistake:* he takes the alley even where the avenue is faster.
 *Teaches:* that alleys exist, and that one is not always worth it. His race is
 unordered checkpoints, so the order is a route decision too. Portrait:
-`design/reference/characters/stray/`; car asset built, no encounter.
+`design/reference/characters/stray/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #8 Rivet
 
@@ -129,7 +132,7 @@ Forties, a crane operator on the waterfront. *Silhouette:* ear defenders and a
 hi-vis collar. *Mistake:* she commits to a block early, so a feint one way
 opens the other. *Teaches:* racing through traffic and through contact. Every
 body shares one mass (`HANDLING.mass`), so her menace is aggression and line,
-never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built, no encounter.
+never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #6 Deuce
 
@@ -138,7 +141,7 @@ risky line even when he is leading, and half his races end in a wall.
 *Teaches:* the generator's rule that every shortcut has a cost, as a person;
 the player beats him by staying clean and letting the gamble fail. His turf is
 the Broadcast Tower loop and its open plaza. Portrait:
-`design/reference/characters/deuce/`; car asset built, no encounter.
+`design/reference/characters/deuce/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #5 Sable
 
@@ -158,7 +161,7 @@ version read as an older Moth and her headset as Bollard's ear defenders.
 *Mistake:* she never leaves the arterials: no alleys, no crashes, no surprises.
 *Teaches:* parallel routes. Madrona Ridge's broad scenic loop is hers, and its
 inner parallel streets are where she loses. Portrait:
-`design/reference/characters/plumb/`; car asset built, no encounter.
+`design/reference/characters/plumb/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #3 Crest
 
@@ -166,7 +169,7 @@ Late twenties, the hill racer. *Silhouette:* a hard-edged topknot. *Mistake:*
 he takes blind crests flat and lands wide. *Teaches:* grade, crests and blind
 corners, the risk factors the route-choice model already prices. His race
 climbs Queen Anne towards Kerry Overlook. Portrait:
-`design/reference/characters/crest/`; car asset built, no encounter.
+`design/reference/characters/crest/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #2 Wake
 
@@ -175,7 +178,7 @@ every night since driving her lines, and driving them better than she does.
 *Silhouette:* a low-crowned, wide-brimmed hat. *Mistake:* he only drives Tally's
 lines, so he is beaten exactly where she is: off her map. *Teaches:* the last
 lesson, in his words: "I drove every line she drives. It's not enough."
-Portrait: `design/reference/characters/wake/`; car asset built, no encounter.
+Portrait: `design/reference/characters/wake/`; car asset built; cruises its turf (phase 1, no stages).
 
 ### #1 Tally
 
@@ -183,7 +186,7 @@ Early twenties, Moth's student, the one who keeps the list. Fastest on every
 line she has driven; never takes one she has not. Rivals learn only from races
 the player wins (`design/PROCEDURAL_RACES.md`), so each route that beats her
 works once. Exists: `design/reference/characters/tally/`, Vesper in
-`assets/cars/ns-vesper-01.blend`; no encounter.
+`assets/cars/ns-vesper-01.blend`; cruises the city's middle (phase 1, no stages).
 
 *Proposed:* Vesper is the one car on the list without the 140 mph cap (see
 "The 140 mph cap" below). If she cannot be caught on a straight, a route she

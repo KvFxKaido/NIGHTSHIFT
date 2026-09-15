@@ -277,7 +277,7 @@ export function render(
   // guessed at: the renderer still only draws what a tick decided.
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic, frameDelta);
   placeCar(view, car);
-  for (const rival of state.parkedRivals) {
+  for (const rival of [...state.parkedRivals, ...state.cruisers]) {
     const parts = view.parkedRivalCars.get(rival.id);
     if (parts) placeCar(parts, rival.vehicle);
   }

@@ -75,6 +75,12 @@ export interface ParkedRival {
   readonly name: string;
   readonly start: RoadWorld["start"];
 }
+/** A rival who cruises a loop in free roam, as Moth does, and can be flashed from nearby. */
+export interface CruiseRival {
+  readonly id: string;
+  readonly name: string;
+  readonly route: RivalDefinition;
+}
 
 export interface SimState {
   physicsVersion: typeof PHYSICS_VERSION;
@@ -88,6 +94,8 @@ export interface SimState {
   encounter?: VehicleState | null;
   encounterDriver: RivalDriver | null;
   parkedRivals: { id: string; name: string; vehicle: VehicleState }[];
+  /** The Blacklist names beside Moth who cruise their turf in free roam (`alder-cruisers.ts`), in option order. */
+  cruisers: { id: string; name: string; vehicle: VehicleState; driver: RivalDriver }[];
   /** Null in free roam. Progress through an open-checkpoint race: rules about
    *  where the car has been, decided per tick, so a replay reproduces the
    *  splits. The definition itself is static and lives on `Sim.race`. */
@@ -119,6 +127,9 @@ export interface Sim {
   encounterBody: RAPIER.RigidBody | null;
   parkedRivalDefinitions: readonly ParkedRival[];
   parkedRivalBodies: RAPIER.RigidBody[];
+  cruiserDefinitions: readonly CruiseRival[];
+  /** One per cruiser, in `state.cruisers` order, created after Moth's so a world without them is the world it was. */
+  cruiserBodies: RAPIER.RigidBody[];
   /** One kinematic body per traffic vehicle, in `state.traffic.vehicles` order.
    *  Created once and never added to or removed from: a changing collider set
    *  changes the solver's own bookkeeping, and a replay has to reproduce it. */
@@ -138,6 +149,7 @@ export interface SimOptions {
   readonly encounter?: RoadWorld["start"];
   readonly encounterRoute?: RivalDefinition;
   readonly parkedRivals?: readonly ParkedRival[];
+  readonly cruisers?: readonly CruiseRival[];
 }
 
 // Feel stays centralized. No suspension or wheel inertia yet: the chassis
@@ -399,7 +411,7 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   roadWorld: RoadWorld = BLACKGLASS_WORLD, options: SimOptions = {}): Sim {
   if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
   if (options.rival && !options.race) throw new Error("A rival requires a race");
-  if ((options.encounter || options.encounterRoute || (options.parkedRivals?.length && options.race?.kind !== "drift")) && options.race) throw new Error("A cruising encounter belongs in free roam");
+  if ((options.encounter || options.encounterRoute || options.cruisers?.length || (options.parkedRivals?.length && options.race?.kind !== "drift")) && options.race) throw new Error("A cruising encounter belongs in free roam");
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
   world.timestep = DT;
   for (const wall of roadWorld.walls) {
@@ -459,6 +471,10 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   const encounterStart = encounterRoute?.start ?? options.encounter ?? null;
   const encounterBody = encounterStart ? createVehicleBody(world, encounterStart) : null;
   const encounter = encounterStart ? initialVehicle({ ...roadWorld, start: encounterStart }) : null;
+  const cruiserDefinitions = options.cruisers ?? [];
+  const cruiserBodies = cruiserDefinitions.map(cruiser => createVehicleBody(world, cruiser.route.start));
+  const cruisers = cruiserDefinitions.map(cruiser => ({ id: cruiser.id, name: cruiser.name,
+    vehicle: initialVehicle({ ...roadWorld, start: cruiser.route.start }), driver: createRivalDriver() }));
   const rivalDefinition = options.rival ?? null;
   // Paired with its rival's line, a race learns which way each gate is left:
   // the marker's arrow. A race without a rival has no reference route to read.
@@ -477,16 +493,16 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   return {
     roadWorld,
     state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
-      vehicle, traffic, rival, encounter, parkedRivals, encounterDriver: encounterRoute ? createRivalDriver() : null,
+      vehicle, traffic, rival, encounter, parkedRivals, cruisers, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
-    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, encounterRoute, parkedRivalDefinitions, parkedRivalBodies, trafficBodies, race: raceDefinition,
+    world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, encounterRoute, parkedRivalDefinitions, parkedRivalBodies, cruiserDefinitions, cruiserBodies, trafficBodies, race: raceDefinition,
   };
 }
 
 export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions });
+  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
@@ -494,6 +510,8 @@ export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain
   sim.encounterBody = fresh.encounterBody;
   sim.parkedRivalDefinitions = fresh.parkedRivalDefinitions;
   sim.parkedRivalBodies = fresh.parkedRivalBodies;
+  sim.cruiserDefinitions = fresh.cruiserDefinitions;
+  sim.cruiserBodies = fresh.cruiserBodies;
   sim.encounterStart = fresh.encounterStart;
   sim.encounterRoute = fresh.encounterRoute;
   sim.rivalDefinition = fresh.rivalDefinition;
@@ -780,6 +798,11 @@ export function step(sim: Sim, rawInput: Input): void {
     state: { vehicle: rival.vehicle, drivetrain: "rwd", race: null },
   }));
   for (const parked of parkedRigs) applyVehicleInput(parked, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+  const cruiserRigs: VehicleRig[] = sim.state.cruisers.map((cruiser, i) => ({
+    roadWorld: sim.roadWorld, body: sim.cruiserBodies[i]!,
+    state: { vehicle: cruiser.vehicle, drivetrain: sim.cruiserDefinitions[i]!.route.drivetrain ?? "fwd", race: null },
+  }));
+  const trafficObstacles = () => (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
   const encounterRig: VehicleRig | null = sim.state.encounter && sim.encounterBody
     ? { roadWorld: sim.roadWorld, body: sim.encounterBody,
       // Read the route's own layout: hardcoding this quietly ignored a field
@@ -789,10 +812,16 @@ export function step(sim: Sim, rawInput: Input): void {
     const driver = sim.state.encounterDriver;
     const input = sim.encounterRoute && driver ? rivalInput(sim.encounterRoute,
       { vehicle: encounterRig.state.vehicle, driver, race: null },
-      [sim.state.vehicle, ...sim.state.parkedRivals.map(r => r.vehicle), ...(sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }))])
+      [sim.state.vehicle, ...sim.state.parkedRivals.map(r => r.vehicle), ...sim.state.cruisers.map(c => c.vehicle), ...trafficObstacles()])
       : { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
     applyVehicleInput(encounterRig, input);
   }
+  // Each cruiser drives its loop as Moth drives hers, around everyone else on the road.
+  sim.state.cruisers.forEach((cruiser, i) => {
+    const others = sim.state.cruisers.filter((_, j) => j !== i).map(c => c.vehicle);
+    applyVehicleInput(cruiserRigs[i]!, rivalInput(sim.cruiserDefinitions[i]!.route, { vehicle: cruiser.vehicle, driver: cruiser.driver, race: null },
+      [sim.state.vehicle, ...sim.state.parkedRivals.map(r => r.vehicle), ...(sim.state.encounter ? [sim.state.encounter] : []), ...others, ...trafficObstacles()]));
+  });
   const rival = sim.state.rival;
   const rig: VehicleRig | null = rival && sim.rivalBody ? { roadWorld: sim.roadWorld, body: sim.rivalBody, state: rival } : null;
   if (rival && sim.rivalDefinition && !sim.race?.drag) {
@@ -821,7 +850,7 @@ export function step(sim: Sim, rawInput: Input): void {
   if (sim.state.traffic && sim.roadWorld.traffic) {
     // Traffic yields to the cars it does not drive (TrafficRacer in traffic.ts).
     const racers = [sim.state.vehicle, ...(sim.state.rival ? [sim.state.rival.vehicle] : []),
-      ...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.parkedRivals.map(r => r.vehicle)];
+      ...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.cruisers.map(c => c.vehicle), ...sim.state.parkedRivals.map(r => r.vehicle)];
     stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT, racers);
     sim.state.traffic.vehicles.forEach((vehicle, i) => {
       const trafficBody = sim.trafficBodies[i]!;
@@ -835,12 +864,18 @@ export function step(sim: Sim, rawInput: Input): void {
   finishVehicle(sim);
   if (rig) finishVehicle(rig);
   if (encounterRig) finishVehicle(encounterRig);
+  for (const cruiser of cruiserRigs) finishVehicle(cruiser);
   for (const parked of parkedRigs) finishVehicle(parked);
   if (!sim.race?.drag) resetStalledRival(sim);
   if (sim.state.encounter && sim.state.encounterDriver && sim.encounterBody && sim.encounterRoute) {
     resetStalledDriver(sim, sim.encounterBody, sim.encounterRoute, sim.state.encounterDriver, null,
-      (vehicle, driver) => { sim.state.encounter = vehicle; sim.state.encounterDriver = driver; });
+      (vehicle, driver) => { sim.state.encounter = vehicle; sim.state.encounterDriver = driver; }, undefined, false, sim.state.cruisers.map(c => c.vehicle));
   }
+  sim.state.cruisers.forEach((cruiser, i) => {
+    const others = [...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.cruisers.filter((_, j) => j !== i).map(c => c.vehicle)];
+    resetStalledDriver(sim, sim.cruiserBodies[i]!, sim.cruiserDefinitions[i]!.route, cruiser.driver, null,
+      (vehicle, driver) => { cruiser.vehicle = vehicle; cruiser.driver = driver; }, undefined, false, others);
+  });
   sim.state.tick++;
   // After syncState: the race reads the vehicle where this tick left it.
   let driftContact = false;
@@ -891,7 +926,7 @@ function resetStalledRival(sim: Sim): void {
 
 function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefinition, driver: RivalDriver,
   race: RaceState | null, reset: (vehicle: VehicleState, driver: RivalDriver) => void,
-  after = RIVAL_RESET_TICKS, unseen = false): void {
+  after = RIVAL_RESET_TICKS, unseen = false, others: readonly VehicleState[] = []): void {
   if (driver.noProgressTicks < after || driver.resetCheckIn > 0) return;
   driver.resetCheckIn = TICK_HZ;
   const gate = race ? sim.race!.checkpoints[race.targetIndex]! : null;
@@ -920,7 +955,7 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
         () => { occupied = true; return false; }, undefined, undefined, undefined, body);
       if (occupied) continue;
       // Leave room for vehicles that will arrive immediately after the reset.
-      const vehicles = [sim.state.vehicle, ...sim.state.parkedRivals.map(r => r.vehicle), ...(sim.state.traffic?.vehicles ?? [])];
+      const vehicles = [sim.state.vehicle, ...sim.state.parkedRivals.map(r => r.vehicle), ...others, ...(sim.state.traffic?.vehicles ?? [])];
       if (vehicles.some(vehicle => Math.abs(vehicle.y - surface.height) < 3 &&
         (Math.hypot(vehicle.x - x, vehicle.z - z) < 8 ||
          Math.hypot(vehicle.x - Math.sin(vehicle.heading) * vehicle.speed * .5 - x,
