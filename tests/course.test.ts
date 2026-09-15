@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ALDER_STREETS, alderGeneratedRace, alderHeight } from "../src/sim/alder.ts";
+import { ALDER_STREETS, alderGeneratedRace, alderHeight, alderRouting } from "../src/sim/alder.ts";
+import { generateRace, generateRaceFrom, nodePosition, startApproach } from "../src/sim/race-generator.ts";
 import { alderCourseDraws, drawAlderCourse } from "../src/sim/alder-course.ts";
 import { turfFor } from "../src/sim/alder-turf.ts";
 import { decodeStart, snapToLane } from "../src/sim/race-start.ts";
@@ -12,8 +13,12 @@ import { createProgressStore, PROGRESS_KEY } from "../src/settings/progress.ts";
 // accepted or handed back, and a stage that cannot be drawn is replaced.
 
 const MOTH_LOOP = "-4.5,875.0,0.000";
-/** Heading south on Moth's loop, toward a junction at the map's southern edge: no seed draws a race from here. */
-const DEAD_LANE = "210.5,897.0,-3.142";
+/** Heading south on Moth's loop, toward a junction at the map's southern edge: no race drew from its own junction. */
+const EDGE_LANE = "210.5,897.0,-3.142";
+/** Elliott Ave toward W Denny Way, whose only way on is a 136° turn: still no race, even one street on. */
+const DEAD_LANE = "-999.9,-1092.3,0.816";
+/** Off the map: no street to start on. */
+const NOWHERE = "4999.0,4999.0,0.000";
 const BUILD = { generator: "generator-test", world: "world-test" };
 function disk() {
   const data = new Map<string, string>();
@@ -35,12 +40,27 @@ test("a course draws as a load draws it: the id's turf, the start snapped again,
   }
 });
 
-test("no seed draws a race from the dead lane on Moth's loop, turf or not, of any kind", () => {
-  for (const kind of ["", "-circuit", "-unordered"]) for (const turf of ["", "moth-"]) for (let seed = 1; seed <= 12; seed++) {
-    assert.equal(alderCourseDraws(`gen-${turf}${seed}${kind}`, DEAD_LANE), false, `gen-${turf}${seed}${kind}`);
+test("a lane whose junction draws nothing draws from one street on, and only such a lane does", () => {
+  const graph = alderRouting();
+  const edge = snapToLane(ALDER_STREETS, decodeStart(EDGE_LANE)!, alderHeight)!;
+  // From its own junction at the map's edge every gate in range is back up the street you came down.
+  const approach = startApproach(ALDER_STREETS, edge);
+  assert.throws(() => generateRace(graph, 7919, approach.node, approach.arriving, [approach.street.id]), /draws no race/);
+  const from = generateRaceFrom(graph, 7919, ALDER_STREETS, edge);
+  assert.equal(from.lead.length, 1);
+  assert.equal(from.lead[0]!.from, approach.node);
+  // The rival's line drives the lead street: it reaches the draw's origin before the first gate.
+  const course = drawAlderCourse("gen-moth-7919-circuit", EDGE_LANE);
+  const origin = nodePosition(graph, course.generated.legs[course.race.gatesPerLap! - 1]!.to);
+  assert.ok(course.rival.points.some(p => Math.hypot(p.x - origin.x, p.z - origin.z) < 0.1));
+  for (const kind of ["", "-circuit", "-unordered"]) for (const turf of ["", "moth-"]) {
+    assert.ok([1, 2, 3, 4, 5, 6, 7, 8].some(seed => alderCourseDraws(`gen-${turf}${seed}${kind}`, EDGE_LANE)), `gen-${turf}N${kind} from the edge lane`);
   }
-  assert.throws(() => drawAlderCourse("gen-moth-7919-circuit", DEAD_LANE), /draws no race/);
-  assert.ok(alderCourseDraws("gen-moth-7919-circuit", MOTH_LOOP), "the same seed draws from her loop proper");
+  // A lane that draws from its own junction takes no lead street, so it draws what it always did (the per-kind pins say so too).
+  const loop = snapToLane(ALDER_STREETS, decodeStart(MOTH_LOOP)!, alderHeight)!;
+  assert.equal(generateRaceFrom(graph, 15, ALDER_STREETS, loop).lead.length, 0);
+  // Two lanes on the map still draw nothing, even one street on: a flash there says so.
+  for (let seed = 1; seed <= 12; seed++) assert.equal(alderCourseDraws(`gen-${seed}`, DEAD_LANE), false, `gen-${seed} from Elliott Ave`);
 });
 
 test("a flash accepts only a course that draws, trying seeds in order, and says when none does", () => {
@@ -62,7 +82,7 @@ test("a flash accepts only a course that draws, trying seeds in order, and says 
 test("the softlock: a saved stage that cannot be drawn is replaced at the next flash, keeping wins and cash", () => {
   const stuck = (races: unknown[]) => JSON.stringify({ version: 3, mothBeaten: false, mothWins: 1, cash: 750, bulwarkOwned: false, mothRaces: races });
   const won = { raceId: "gen-moth-15", start: MOTH_LOOP, build: BUILD };
-  const dead = { raceId: "gen-moth-7919-circuit", start: DEAD_LANE, build: BUILD };
+  const dead = { raceId: "gen-moth-7919-circuit", start: NOWHERE, build: BUILD };
   const draws = (race: { raceId: string; start: string | null }) => alderCourseDraws(race.raceId, race.start);
 
   // Before: the old path hands the dead course back, and loading it throws.
@@ -82,7 +102,7 @@ test("the softlock: a saved stage that cannot be drawn is replaced at the next f
   const career = createProgressStore(() => storage, BUILD).get();
   assert.deepEqual([career.mothWins, career.cash, career.mothRaces[0]], [1, 750, won]);
 
-  // A flash from the dead lane itself draws nothing, and drops the dead stage so the next flash elsewhere draws afresh.
+  // A flash from a dead lane draws nothing, and drops the dead stage so the next flash elsewhere draws afresh.
   const nowhere = disk();
   nowhere.data.set(PROGRESS_KEY, stuck([won, dead]));
   assert.deepEqual(createProgressStore(() => nowhere, BUILD).flash([1, 2, 3], DEAD_LANE, draws), { none: "undrawable" });

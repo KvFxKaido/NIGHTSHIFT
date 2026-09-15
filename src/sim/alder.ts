@@ -13,7 +13,7 @@ import type { TrafficNetwork } from "./traffic.ts";
 import type { RaceDefinition, RaceKind } from "./race.ts";
 import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
-import { generateRace, withRaceKind, rivalLineFor, startApproach, type GeneratedRace, type Turf } from "./race-generator.ts";
+import { generateRaceFrom, withRaceKind, rivalLineFor, type GeneratedRace, type Turf } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
 import { kerbPoses, ALDER_LAMPS, ALDER_BINS } from "./kerb-props.ts";
 import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
@@ -238,13 +238,13 @@ export function alderRouting(): RoutingGraph {
  *  (`alder-turf.ts`, which names it in the id). */
 export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = start, kind: Exclude<RaceKind, "drag" | "drift"> = "sprint", turf: Turf | null = null): { race: RaceDefinition; rival: RivalDefinition; generated: GeneratedRace } {
   const graph = alderRouting();
-  const approach = startApproach(ALDER_STREETS, from);
   // A circuit is drawn as a circuit, so its loop closes under the flow rule; unordered is the sprint's gates in any order.
-  const drawn = generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id], turf, kind === "circuit");
-  const generated = kind === "unordered" ? withRaceKind(graph, drawn, approach.node, kind) : drawn;
+  // A start that draws nothing from its own junction draws from one street on (generateRaceFrom).
+  const { race: drawn, origin, lead } = generateRaceFrom(graph, seed, ALDER_STREETS, from, turf, kind === "circuit");
+  const generated = kind === "unordered" ? withRaceKind(graph, drawn, origin, kind) : drawn;
   // Every generated road race fields Moth's Kestrel (raceOpponentCar in
   // main.ts), so the drawn line is driven all-wheel. rivalLineFor itself stays
   // ignorant of who is driving it -- it draws a route, not a personality.
   return { race: generated.definition, generated,
-    rival: { ...rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight), drivetrain: "awd" } };
+    rival: { ...rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight, lead), drivetrain: "awd" } };
 }

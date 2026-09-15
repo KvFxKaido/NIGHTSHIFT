@@ -327,6 +327,8 @@ fixtures outside the playable bundle, and old world links redirect.
 - Not every generated course draws: some lanes draw no race for any seed. Ask
   `alderCourseDraws` (the load's own path, `alder-course.ts`) before accepting,
   handing back or offering one; a stored course that throws on load retries forever.
+  A start whose junction draws nothing draws one street on (`generateRaceFrom`); two
+  waterfront lanes still draw nothing, so keep cruise routes off them.
 - Changing what a seed draws means bumping that kind's `GENERATOR_REVISIONS`
   entry, and every kind's for the shared draw (route choice, `PACE`, turfs, gate
   rules): a stored race is (`ALDER_VERSION`, its kind's revision, race id, start).

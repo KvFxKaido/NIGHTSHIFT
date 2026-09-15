@@ -269,6 +269,36 @@ export function closeCircuit(graph: RoutingGraph, race: GeneratedRace, origin: s
     laps: 2, gatesPerLap: gates.length, checkpoints: [...gates, ...gates] } };
 }
 
+/**
+ * Draw a race from a start pose: from the junction its street leads to, or, only
+ * when this seed draws nothing from there, from the junction one street further on,
+ * the smallest turn first. `lead` is that street, which the start drives before
+ * the first leg and the rival line must include. A few lanes at the map's edge
+ * reach a junction whose every gate in range is back up the street you came
+ * down, which a leg may not reuse: 4 of 638 lanes drew no race at all (2026-09-15),
+ * one of them on Moth's loop, where two of her four corners hand a flash that lane.
+ * A start that draws from its own junction draws exactly what it did before; only
+ * starts that drew nothing take the street on, so no stored race moves.
+ */
+export function generateRaceFrom(graph: RoutingGraph, seed: number, streets: readonly Street[], start: RoadWorld["start"],
+  turf: Turf | null = null, circuit = false): { race: GeneratedRace; origin: string; lead: Drive[] } {
+  const approach = startApproach(streets, start);
+  try {
+    return { race: generateRace(graph, seed, approach.node, approach.arriving, [approach.street.id], turf, circuit), origin: approach.node, lead: [] };
+  } catch (error) {
+    const onward = graph.drives
+      .filter(d => d.from === approach.node && d.id !== approach.street.id && degreesBetween(approach.arriving, d.leaving) <= GENERATOR.flow.turn)
+      .map(d => ({ d, turn: degreesBetween(approach.arriving, d.leaving) }))
+      .sort((a, b) => a.turn - b.turn || (a.d.id < b.d.id ? -1 : a.d.id > b.d.id ? 1 : Number(a.d.reversed) - Number(b.d.reversed)));
+    for (const { d } of onward) {
+      try {
+        return { race: generateRace(graph, seed, d.to, d.arriving, [approach.street.id, d.id], turf, circuit), origin: d.to, lead: [d] };
+      } catch { /* the next street on */ }
+    }
+    throw error;
+  }
+}
+
 /** Where a start pose's street leads: the street, the junction ahead, the
  *  street's points from the start onward in the direction of travel, and the
  *  heading the junction is reached on (the street's last segment). */
@@ -297,7 +327,7 @@ export function startApproach(streets: readonly Street[], start: RoadWorld["star
  * vertices, which every arm's points contain exactly.
  */
 export function rivalLineFor(graph: RoutingGraph, race: GeneratedRace, streets: readonly Street[],
-  start: RoadWorld["start"], height: (x: number, z: number) => number): RivalDefinition {
+  start: RoadWorld["start"], height: (x: number, z: number) => number, lead: readonly Drive[] = []): RivalDefinition {
   const approach = startApproach(streets, start);
   // Seven metres ahead in the other lane, in the start's own frame: on the
   // grid, facing north, that is x - 4.5, z - 7, as it always was.
@@ -318,6 +348,7 @@ export function rivalLineFor(graph: RoutingGraph, race: GeneratedRace, streets: 
     }
     for (const point of ordered) push(point);
   };
+  for (const drive of lead) append(drive);
   for (const leg of race.legs) for (const drive of leg.via) append(drive);
   // Past the finish: the straightest way on, by the same turn arithmetic.
   const finish = race.legs[race.legs.length - 1]!;

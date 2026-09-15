@@ -54,6 +54,18 @@ tries eight seeds; a pending stage that no longer draws is replaced from where t
 flash is, keeping wins and cash; with nothing drawable Moth's card says "No race
 from here". Draw a race here tries eight seeds the same way, and a link to a course
 that cannot be drawn opens the garage with the reason instead of an error screen.
+Shawn then found Moth unflashable anywhere but near the garage: two of her four
+corners, where you catch her, hand a flash that southbound lane. From its junction
+every gate in range is back up the street you came down, which a leg may not
+reuse, so 161 gates were too far and none remained. 4 of 638 lanes on the map drew
+no race. A start that draws nothing from its own junction now draws from the next
+junction one street on, the smallest turn first (`generateRaceFrom`), and the
+rival's line drives that street. Starts that drew before take no lead street, so no
+stored race moved and the per-kind pins held. All 14 flash points on Moth's loop
+draw every kind; 2 of 638 lanes still draw nothing, both waterfront dead ends in
+Bollard's and Deuce's turfs (Alaskan Way at -506, -640 heading north; Elliott Ave
+into W Denny Way, whose only way on is a 136° turn). A rival's cruise route should
+not run those two.
 Invalid storage
 is reported without replacing existing data, and a slot changed by another tab
 must be selected again before replacement.
