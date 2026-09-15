@@ -88,6 +88,7 @@ test("the draw over 60 seeds: most first legs have a choice, and few draws are m
     });
   }
   // Measured 196 of 300 first legs and 59 of 1183 dead draws with Freight Cut; 0 and 382 without.
+  // Since the pace calibration (2026-09-15): 198 and 50 of 1189 with it, 0 and 369 without.
   assert.ok(first >= 30, `only ${first} of 60 first legs have a choice`);
   assert.ok(dead / drawn < 0.15, `${dead} of ${drawn} draws made at a dead spot`);
   assert.ok(through >= 20, `only ${through} legs use an alley`);

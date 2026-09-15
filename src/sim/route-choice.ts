@@ -27,9 +27,12 @@ import { blockCorners, type BuildingBlock } from "./building-footprint.ts";
 import type { Street } from "./street-path.ts";
 
 export const RISK_WEIGHTS = { narrow: 0.35, bends: 0.25, grade: 0.2, blind: 0.2 } as const;
-/** Metres of sight that count as clear: the stopping distance from PACE.top at
- *  about 0.85 g. Blindness is 1 − sight / SIGHT_CLEAR, floored at 0, so an
- *  approach that first sees the cross street 30 m out scores 0.5. A proposal. */
+/** Metres of sight that count as clear. Blindness is 1 − sight / SIGHT_CLEAR,
+ *  floored at 0, so an approach that first sees the cross street 30 m out scores
+ *  0.5. A proposal. It was the stopping distance from the first guess at
+ *  PACE.top (32 m/s at about 0.85 g) and stays 60 m now the pace is calibrated:
+ *  from 50 m/s that distance is 154 m, which makes nearly every approach blind
+ *  and the term a constant. Nothing measured it; driving could. */
 export const SIGHT_CLEAR = 60;
 export const blindness = (sight: number): number => Math.max(0, Math.min(1, 1 - sight / SIGHT_CLEAR));
 
@@ -64,9 +67,15 @@ export function sightDistance(at: Corner, back: Dir, arm: Dir, corners: readonly
 /** Width barely touches pace — the lane count is the same on a 16 m street as
  *  on a 24 m one — so it lives in risk. With width cutting pace to 78%, every
  *  narrow street was dominated by construction, and the first report found 78
- *  priced legs in 1050; that was the model, not the map. */
+ *  priced legs in 1050; that was the model, not the map.
+ *
+ *  `top` and the 90-degree cost are fitted to recorded Uptown Circuit laps
+ *  (2026-09-15, `pnpm pace`): 153 corner windows put the pace at 50.7 m/s and a
+ *  90-degree turn at 2.47 s, where the guesses were 32 m/s and 2.5 s. Exponent
+ *  1 fitted a little better than 1.5, mostly on one downhill hairpin; kept at
+ *  1.5. Width and grade are still proposals: one loop cannot separate them. */
 export const PACE = {
-  top: 32,
+  top: 50,
   widthFactor: (width: number) => 0.94 + 0.06 * Math.max(0, Math.min(1, (width - 16) / 8)),
   bend: (degrees: number) => 2.5 * Math.pow(degrees / 90, 1.5),
   gradeFactor: (grade: number) => 1 + 1.5 * grade,

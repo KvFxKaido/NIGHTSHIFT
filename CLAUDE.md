@@ -329,6 +329,7 @@ pnpm test             # deterministic simulation checks (~7 min)
 pnpm build            # typecheck + build (what CI runs)
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
+pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

@@ -245,8 +245,9 @@ the faster way should be the riskier way.
   grade (steepest metre over 12%), blind corners as sight distance (below).
   Weights 0.35 / 0.25 / 0.2 / 0.2, a proposal.
 - **Reward per leg**, as time, not length: on a grid two ways round a block
-  are the same length. A committed pace of 32 m/s, a 90 degree turn costing
-  2.5 s, a climb 1 + 1.5 x grade, routed on the line graph so a turn at a
+  are the same length. A committed pace of 50 m/s, a 90 degree turn costing
+  2.5 s (both fitted to driven laps, below; the pace was guessed at 32 m/s
+  until 2026-09-15), a climb 1 + 1.5 x grade, routed on the line graph so a turn at a
   junction costs and straight-through is free. Width barely touches pace: the
   lane count is the same on a 16 m street, so width lives in risk. With width
   cutting pace to 78%, every narrow street was dominated by construction —
@@ -281,7 +282,9 @@ the line to a point d down the other arm clears a corner whose projection
 on the wedge's bisector is p iff d ≤ p / cos(φ/2), φ the interior angle
 between the arms; straight on is always open. Blindness is 1 − sight / 60 m,
 60 m being the stopping distance from the 32 m/s top speed at about 0.85 g,
-a proposal like the other constants. It lives on the `Drive` for the
+a proposal like the other constants. It stayed 60 m when the pace was
+calibrated to 50 m/s, from which the same arithmetic gives 154 m and nearly
+every approach blind; nothing has measured it. It lives on the `Drive` for the
 junction it arrives at, since it belongs to a direction, and `routeRisk`
 adds it per drive; a street's own `blind` is now its worst bend's. Measured
 on the expanded map: 41 of 216 approaches see the cross street only inside
@@ -293,6 +296,46 @@ the term small. It is live, and a corner building pulled in to the pavement
 is now something the report can see; `pnpm alder:critique` lists the
 blindest approaches. `tests/route-choice.test.ts` holds the geometry and
 the map facts.
+
+**Pace, calibrated (2026-09-15).** The pace model's two constants were
+guesses (`design/PROCEDURAL_RACES.md`, step 3). `pnpm pace` fits them to the
+recorded Uptown Circuit laps: each valid lap is cut at the midpoints between
+turn gates, so a window holds one junction turn and the straights either side,
+and in the model's own terms a window costs straight-equivalent metres over the
+pace plus the 90-degree cost times the sum of (degrees / 90)^1.5 over its turns,
+junctions and bends inside streets alike. That is least squares in two unknowns.
+153 windows from 13 sessions, Cinder RWD on `four-wheel-v6`:
+
+| | pace | 90° turn | rms per window | Uptown lap |
+|---|---|---|---|---|
+| The guesses | 32 m/s | 2.5 s | 3.83 s | 123.0 s |
+| Fitted, clear streets (36) | 51.7 m/s | 2.51 s | 0.45 s | 84.2 s |
+| Fitted, traffic (117) | 50.4 m/s | 2.46 s | 0.61 s | 85.4 s |
+| Adopted | 50 m/s | 2.5 s | 0.59 s | 86.3 s |
+
+The turn guess was right and the pace guess 36% slow, so a 90-degree turn is
+worth about 125 m of street rather than 80. Exponent 1 fits a little better
+than 1.5 (rms 0.53 s against 0.58 s) and 2 worse (0.67 s); most of that is the
+129° hairpin at the foot of Dexter Way, which the fit prices 0.93 s slow, and
+which is downhill, where the grade factor charges a descent as it charges a
+climb. So 1.5 stays. What one loop cannot say: width and grade stay
+proposals, since Uptown has too few streets to separate them; and it is one
+driver, practised on the loop, in one car. Traffic cost that driver about a
+second a lap on Uptown.
+
+What it changed, measured with `pnpm alder:critique` and the draw over 300
+seeds. Of 9,058 legs of 300–1600 m, priced 1,075 → 1,113, even 2,175 → 2,225,
+free 1,526 → 1,510, twins 2,314 → 2,052, no choice 2,040 → 2,158: with turns
+dearer against distance, two ways round a block with different turn counts
+stop being twins. The priced corridors of the first reading held: Western
+over 1st Ave keeps all 15 of its priced legs, and the legs that moved mostly
+moved to priced. The draw's priced-or-even share rose from 62% to 68%, and
+draws made at a dead spot fell from 59 to 50 of about 1,185. The generator's
+second limits were scaled by 0.7 so races kept their distance (legs 8–28 s,
+races 32–112 s; median race 3.16 km → 3.23 km, now priced at 80 s, which is
+about what it takes to drive). Only 20 of 300 seeds draw the race they drew
+before, so rival measurements over generated seeds from before this date,
+including the 42-race tables below, describe races the seeds no longer draw.
 
 What this says to authoring: the grid has route choice but not shortcuts.
 Cut-throughs — diagonals, passages through the larger parcels, an alley that
@@ -338,10 +381,11 @@ funnel one junction on, and would need a released street split mid-block.
 The flash draws a new race every time. `src/sim/race-generator.ts` takes the
 same graph the critique measures, starts at the junction the race grid on
 1st Ave S leads to, and draws three to five gates at junctions: each next
-gate is chosen among the legs 12–40 s away whose fastest route reuses no
+gate is chosen among the legs 8–28 s away whose fastest route reuses no
 street already driven, weighted by the leg's class — priced 4, even 1.5,
 free 0.5, twin 0.3, none 0.4, plus 1.5 for a detour in the 10–25% sweet
-spot — until the race is 45–160 s long. The seed drives every draw through
+spot — until the race is 32–112 s long (12–40 s and 45–160 s against the
+guessed pace, until 2026-09-15). The seed drives every draw through
 the traffic's integer hash, so `?race=gen-<seed>` is the race and the same
 seed is the same race. The rival's line is the streets of every leg in the
 direction they are driven, joined at the junctions they share, with the

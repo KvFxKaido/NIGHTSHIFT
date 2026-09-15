@@ -70,9 +70,14 @@ These arrived as a possible "more elegant solution" to the shortcut rule
    race ignores `start`, since its line was authored from the grid, and a
    flash from off every street still starts on the grid.
 2. **Rival turf bias** on the draw, once there is a second rival to differ.
-3. **Calibrate the pace model** by driving the priced corridors (Western vs
-   1st, 6th Ave S vs 4th from Jackson): the model's 32 m/s and 2.5 s per
-   90 degrees are guesses, and the leg classes rest on them.
+3. **Calibrate the pace model.** *Done 2026-09-15*, from recorded Uptown
+   Circuit laps rather than the priced corridors, which nobody had driven for
+   the record (`pnpm pace`; `design/PORT_ALDER.md`, "Pace, calibrated"). The
+   2.5 s per 90 degrees held; the pace was 36% slow and is now 50 m/s. The
+   generator's second limits were scaled by 0.7 so races kept their distance,
+   and 280 of 300 seeds draw a different race. Width and grade are still
+   guesses, and the corridors named here were not driven: a recorded run down
+   Western against 1st would test the model where the generator most relies on it.
 4. **Playlists**: a saved list of seeds in `settings` (it is a preference,
    not a physics snapshot), with the world version they were drawn on.
 5. **The edge bank and learning rivals**, with a skill cap so the rival does

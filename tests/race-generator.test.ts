@@ -165,6 +165,8 @@ test("the draw prefers legs with a priced or even choice: well ahead of a unifor
     // Measured 39% against 26% with the flow rule (54% against 27% before it:
     // the priced corridors are few and the rule stops the draw turning back
     // for them); the map decides the level, the weighting decides the gap.
+    // On the expanded map 61% against 37%; since the pace calibration
+    // (2026-09-15), 72% against 41%.
     assert.ok(weighted >= uniform + 0.1, `weighted ${(weighted * 100).toFixed(0)}% vs uniform ${(uniform * 100).toFixed(0)}%`);
   } finally {
     Object.assign(GENERATOR.weight, saved);

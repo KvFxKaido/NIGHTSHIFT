@@ -21,9 +21,12 @@ import type { CoursePoint } from "./track.ts";
 
 export const GENERATOR = {
   gates: { min: 3, max: 5 },
-  /** Seconds a leg's fastest route may take. */
-  leg: { min: 12, max: 40 },
-  total: { min: 45, max: 160 },
+  /** Seconds a leg's fastest route may take. Scaled by 0.7 when the pace model
+   *  was calibrated (2026-09-15) from 12-40 and 45-160, which were set against
+   *  the 32 m/s guess, so races kept their distance: over 300 seeds the median
+   *  race is 3.23 km, against 3.16 km before. */
+  leg: { min: 8, max: 28 },
+  total: { min: 32, max: 112 },
   /** How much a leg's class weighs when the next gate is drawn. */
   weight: { priced: 4, even: 1.5, free: 0.5, twin: 0.3, none: 0.4, sweetSpot: 1.5 } as Record<string, number>,
   /** Flow, in degrees from the heading you arrive at a gate on: the next gate
