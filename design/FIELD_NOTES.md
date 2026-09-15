@@ -53,6 +53,16 @@ The accepted retirement rule supersedes post-pink-slip encounters. Learning is
 still future work and could affect later stages from earlier wins. Product docs
 now agree; the validation narrative belongs here rather than in BLACKLIST.md.
 
+PR review clarified that reopening the exact accepted course is an intended
+career retry, not a reward bypass. The progress store still requires the saved
+course/start/build and pays only once; an unaccepted matching link pays nothing.
+A regression exercises that boundary across store reloads. Driver-definition
+IDs are not Blacklist identities, so a Moth driver-ID gate was not added.
+The static Kestrel label now matches its runtime pink-slip label, and the legacy
+startup write is documented as intentional. All 21 focused progress/car tests
+and the production build passed; the full suite and browser harnesses were not
+rerun for these copy, comment and test changes.
+
 ## Port Alder: route choice, alleys, generated races, garage, editor (2026-09-10 to 09-11)
 
 explicitly retired the Blackglass map on September 10, 2026. Old world links

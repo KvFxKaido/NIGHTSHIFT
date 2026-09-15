@@ -60,6 +60,8 @@ export function ownsCar(progress: Pick<CareerProgress, "mothBeaten"> & Partial<P
 /** Profile-wide transactions: save cash, stage and ownership together.
  * Failed writes grant nothing and can be retried. Rebase every action on disk
  * so sequential actions from another tab cannot double-pay a completed stage.
+ * An accepted Moth course is the reward entitlement, including after reopening
+ * its link. A matching driver or a generated race alone grants no entitlement.
  */
 export function createProgressStore(storage: () => Disk, build: RaceBuild, legacyBulwark = false) {
   let progress = freshProgress(legacyBulwark);
@@ -85,6 +87,7 @@ export function createProgressStore(storage: () => Disk, build: RaceBuild, legac
       return true;
     } catch { unavailable = true; return false; }
   }
+  // Persist the legacy grant at boot so changing the selected car cannot lose it.
   if (legacyBulwark) preserveLegacyOwnership();
   else { try { progress = read(); } catch { unavailable = true; } }
   return {

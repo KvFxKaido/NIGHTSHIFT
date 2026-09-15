@@ -62,6 +62,23 @@ test("old wins cannot skip a stage or pay again, including from another tab", ()
   assert.equal(first.get().mothWins, 1);
 });
 
+test("reopening an accepted course can pay once, but the same link without acceptance cannot", () => {
+  const storage = disk();
+  const accepted = createProgressStore(() => storage).challenge(15, "-4.5,875.0,0.000")!;
+  const linkedResult = result(JSON.parse(JSON.stringify(accepted)) as MothRace);
+  const unacceptedStorage = disk();
+  const unaccepted = createProgressStore(() => unacceptedStorage);
+  assert.equal(unaccepted.complete(linkedResult), "none");
+  assert.equal(unacceptedStorage.writes, 0);
+  assert.equal(unaccepted.get().cash, 0);
+  assert.equal(unaccepted.get().mothWins, 0);
+  assert.equal(createProgressStore(() => storage).complete(linkedResult), "advanced");
+  const reopened = createProgressStore(() => storage);
+  assert.equal(reopened.complete(linkedResult), "recorded");
+  assert.equal(reopened.get().cash, 750);
+  assert.equal(reopened.get().mothWins, 1);
+});
+
 test("two wins fund a Bulwark, purchase and selection persist, and duplicate clicks cost nothing", () => {
   const storage = disk();
   const store = createProgressStore(() => storage);
