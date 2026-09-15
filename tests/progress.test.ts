@@ -211,4 +211,3 @@ test("unversioned schema-2 courses remain unknown, and failed replacement preser
   assert.equal(storage.getItem(PROGRESS_KEY), before);
   assert.ok(blocked.outdatedChallenge());
 });
-
