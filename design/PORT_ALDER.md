@@ -28,7 +28,24 @@ Slot data lives in `nightshift.saves` (schema 1), separate from global audio,
 controls, and last-used garage preferences. Load restores the selected build and
 clears conflicting preview URL fields. It starts stationary; race saves, old map
 versions, and obstructed/out-of-bounds locations return to the garage. This does
-not yet save race progress, rival state, money or career unlocks. Invalid storage
+not save in-progress races. Career data autosaves separately in `nightshift.progress`
+(schema 3), across all three drive slots: Moth's stage count and accepted race
+descriptors, cash, purchased Bulwark ownership, and the Kestrel pink-slip reward.
+Flash Moth to accept a sprint, then a circuit rematch, then an unordered pink slip.
+Losses retry the saved course/start. Each stage pays once ($750/$750/$1,500);
+only the third awards Kestrel and removes Moth from free roam. Other race links,
+old wins and other rivals do not pay or advance this first career slice.
+Fresh profiles start in Cinder; the garage sells Bulwark for $1,500. Purchases
+save cash and ownership together. Older one-win profiles retain their cars, and
+an existing selected Bulwark is durably granted when no career record exists.
+If that migration cannot be saved, car changes wait for a successful retry.
+Loading an older build never revokes ownership. Stray's challenge and a playlist
+are still unavailable. Race descriptors carry generator and world identity.
+Mismatched or unversioned courses are rejected. The garage can explicitly
+replace only the incompatible unfinished stage, preserving wins, money, cars
+and completed history. New challenge links carry the same version identity.
+Failed result writes offer a retry and grant no cash or progress until saved.
+Invalid storage
 is reported without replacing existing data, and a slot changed by another tab
 must be selected again before replacement.
 

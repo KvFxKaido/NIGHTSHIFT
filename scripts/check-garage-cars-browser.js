@@ -1,7 +1,7 @@
 // Run in an isolated Playwright CLI session; this uses that session's localStorage.
-async page => {
+// An optional base URL lets worktrees run against their own preview server.
+async (page, base = 'http://127.0.0.1:5173/') => {
   page.setDefaultTimeout(30000);
-  const base = 'http://127.0.0.1:5173/';
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const ready = () => page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready');
@@ -12,7 +12,13 @@ async page => {
   };
   await page.setViewportSize({width:1440,height:900});
   await page.goto(base + '?scene=garage&freeze=1'); await ready();
-  await page.evaluate(() => localStorage.removeItem('nightshift.settings'));
+  await page.evaluate(() => {
+    localStorage.removeItem('nightshift.settings');
+    // This harness tests owned-car selection/loading, not the purchase flow.
+    localStorage.setItem('nightshift.progress', JSON.stringify({
+      version: 3, mothWins: 0, mothRaces: [], cash: 0, bulwarkOwned: true,
+    }));
+  });
   await page.reload(); await ready();
   const initial = await page.evaluate(() => {
     if (__ns.state().carModel !== 'ns-cinder') throw Error('Default Cinder missing');

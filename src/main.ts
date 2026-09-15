@@ -8,6 +8,7 @@ import { addDragStrip } from "./render/drag-strip.ts";
 import { createGameMap } from "./ui/game-map.ts";
 import { createPerformanceOverlay } from "./ui/performance.ts";
 import { createSaveStore, isSaveId, type DriveSave } from "./settings/saves.ts";
+import { BULWARK_PRICE, MOTH_STAGES, createProgressStore, ownsCar, sameRaceBuild, type CareerResult } from "./settings/progress.ts";
 import { safeSavePosition } from "./settings/save-position.ts";
 import { createSavesPanel } from "./ui/saves.ts";
 import { ALDER_CRUISE, nearbyChallenge } from "./sim/encounter.ts";
@@ -31,8 +32,8 @@ import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
-import { createAlderWorld, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
-import { seedFromTick } from "./sim/race-generator.ts";
+import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderGeneratedRace, alderHeight } from "./sim/alder.ts";
+import { GENERATOR_REVISION, seedFromTick } from "./sim/race-generator.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION } from "./sim/rival.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
@@ -64,6 +65,9 @@ if (requestedSave !== null) {
   } catch { loadNotice = "Saved games could not be loaded. Your existing data is unchanged."; }
 }
 const restored = { ...settings.get(), ...loadedSave?.build };
+const raceBuild = { generator: GENERATOR_REVISION, world: ALDER_VERSION };
+const progress = createProgressStore(() => window.localStorage, raceBuild, settings.get().car === "bulwark" || restored.car === "bulwark");
+if (!ownsCar(progress.get(), restored.car)) restored.car = "cinder";
 
 const assetStatus = document.getElementById("asset-status")!;
 let carParts: CarView;
@@ -93,6 +97,17 @@ try {
   if (params.get("race") === "crane-to-crest") params.delete("race");
   params.set("world", "alder");
   params.delete("route"); params.delete("environment"); params.delete("rival");
+  const requestedRace = params.get("race");
+  if (requestedRace?.startsWith("gen-")) {
+    const tagged = params.has("generator") || params.has("raceWorld");
+    const linkedBuild = { generator: params.get("generator") ?? "", world: params.get("raceWorld") ?? "" };
+    if ((tagged && !sameRaceBuild(linkedBuild, raceBuild))
+      || progress.isOutdatedRace({ raceId: requestedRace, start: params.get("start") })) {
+      params.delete("race"); params.delete("start"); params.delete("generator"); params.delete("raceWorld");
+      params.set("scene", "garage");
+      loadNotice = "That saved course belongs to an older version. Your wins, cash and cars are unchanged.";
+    }
+  }
   history.replaceState(history.state, "", url);
   const raceId = params.get("race");
   // A generated race is its seed: ?race=gen-<seed> draws the same gates and
@@ -127,7 +142,7 @@ try {
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
   // The NS-01 became the car Sable drives. Old links still resolve, the way
   // ?world=seattle does, rather than failing to an asset-error screen.
-  const model = requestedCar === "blender" ? "cinder" : requestedCar;
+  const model = requestedCar === "blender" || (isBlenderCarId(requestedCar) && !ownsCar(progress.get(), requestedCar)) ? "cinder" : requestedCar;
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
   selectedCar = model;
   carParts = model === "classic" ? createCar()
@@ -135,7 +150,7 @@ try {
   {
     const opponent = raceOpponentCar();
     // A solo run has nobody to draw.
-    if (!circuit?.solo) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    if (!circuit?.solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
     if (!race) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
     if (!race || race.kind === "drift") sableParts = await loadBlenderCar(new URL(BLENDER_CARS.blender.path, document.baseURI).href, "blender");
   }
@@ -149,7 +164,7 @@ try {
 }
 
 const input = createInputController();
-if (loadedSave) settings.update(loadedSave.build);
+if (loadedSave && progress.preserveLegacyOwnership()) settings.update({ ...loadedSave.build, car: restored.car });
 const controls = createControlsPanel(input);
 const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
 const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
@@ -157,7 +172,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
-  : { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
+  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE] });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
@@ -282,13 +297,32 @@ const cars = new Map<string, CarView>([[selectedCar, carParts]]);
 let carLoading = false;
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
+  const career = progress.get();
   document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.car === selectedCar));
-    button.disabled = carLoading;
+    button.disabled = carLoading || !ownsCar(progress.get(), button.dataset.car);
+    if (button.dataset.car === "kestrel") button.textContent = career.mothBeaten ? "Kestrel" : "Kestrel · Pink slip";
+    if (button.dataset.car === "bulwark") button.textContent = career.bulwarkOwned ? "Bulwark" : "Bulwark · For sale";
   });
+  const buy = document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!;
+  buy.hidden = career.bulwarkOwned;
+  buy.disabled = career.cash < BULWARK_PRICE || carLoading;
+  document.querySelector<HTMLElement>("[data-cash]")!.textContent = `Cash · $${career.cash.toLocaleString("en-US")}`;
+  document.querySelector<HTMLButtonElement>("[data-replace-moth-race]")!.hidden = !progress.outdatedChallenge();
+  document.querySelector<HTMLElement>("[data-career-status]")!.textContent = progress.unavailable()
+    ? "Career progress could not be read or saved. Existing data has been left untouched."
+    : progress.outdatedChallenge()
+      ? "Your unfinished Moth course belongs to an older version. Replace it to continue; wins, cash and cars stay yours."
+    : career.mothBeaten
+      ? "#10 Moth retired · Kestrel owned. Next: #9 Stray — challenge coming soon."
+      : `#10 Moth · ${career.mothWins}/3 wins · Next: ${MOTH_STAGES[career.mothWins]!.name}. Win the pink slip to own her Kestrel. Cash and cars save automatically.`;
 }
 async function selectCar(id: string): Promise<void> {
-  if (carLoading || !isBlenderCarId(id)) return;
+  if (carLoading || !isBlenderCarId(id) || !ownsCar(progress.get(), id)) return;
+  if (!progress.preserveLegacyOwnership()) {
+    carNote.textContent = "Could not save your existing Bulwark ownership. Try selecting again before changing cars.";
+    return;
+  }
   carLoading = true;
   carNote.textContent = "Loading car…";
   renderCarSelection();
@@ -301,6 +335,10 @@ async function selectCar(id: string): Promise<void> {
     selectedCar = id;
     liveryEditor.refresh();
     saveSettings({ car: id }, ["car"]);
+    // A car choice replaces a carried race/developer drivetrain preview too.
+    const carUrl = new URL(location.href);
+    carUrl.searchParams.delete("drivetrain");
+    history.replaceState(history.state, "", carUrl);
     // The body carries the drivetrain, so a different car is a different drive.
     if (drivetrainFor(id) !== sim.state.drivetrain) {
       reset(drivetrainFor(id));
@@ -318,10 +356,24 @@ renderCarSelection();
 document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
   button.addEventListener("click", () => void selectCar(button.dataset.car!));
 });
+document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!.addEventListener("click", () => {
+  const outcome = progress.buyBulwark();
+  carNote.textContent = outcome === "purchased" ? "Bulwark purchased. Select it above to drive it."
+    : outcome === "owned" ? "You already own the Bulwark."
+    : outcome === "insufficient" ? "You need $1,500 to buy the Bulwark."
+    : "Purchase could not be saved. No cash was spent; try again.";
+  renderCarSelection();
+});
+document.querySelector<HTMLButtonElement>("[data-replace-moth-race]")!.addEventListener("click", () => {
+  carNote.textContent = progress.discardOutdatedChallenge()
+    ? "Old course replaced. Flash Moth to draw this stage again."
+    : "Could not replace the course. Existing progress is unchanged; try again.";
+  renderCarSelection();
+});
 
 const savePanel = createSavesPanel(saves, () => ({
   world: roadWorld.id,
-  build: { car: isBlenderCarId(selectedCar) ? selectedCar : "cinder", customization: { ...customization } },
+  build: { car: ownsCar(progress.get(), selectedCar) ? selectedCar : "cinder", customization: { ...customization } },
   position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
 }));
 const menu = createMenuController({
@@ -426,6 +478,7 @@ function showRivalCard(copy: CardCopy): void {
 let flashRemaining = 0;
 let challengePending = false;
 let challengeRival: string | null = null;
+let challengeNotice = "";
 const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encounter, sim.state.parkedRivals, !!sim.state.race);
 const flashLabel = () => input.activeGamepadName()
   ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName())
@@ -433,6 +486,10 @@ const flashLabel = () => input.activeGamepadName()
 function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null): void {
   const url = new URL(location.href);
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
+  if (raceId?.startsWith("gen-")) {
+    url.searchParams.set("generator", raceBuild.generator);
+    url.searchParams.set("raceWorld", raceBuild.world);
+  } else { url.searchParams.delete("generator"); url.searchParams.delete("raceWorld"); }
   if (start) url.searchParams.set("start", start); else url.searchParams.delete("start");
   url.searchParams.set("scene", scene);
   url.searchParams.set("car", selectedCar);
@@ -456,6 +513,7 @@ function cycleCamera(): void {
 function flashHeadlights(): void {
   if (!menu.isGameplayActive() || flashRemaining > 0) return;
   flashRemaining = .8;
+  challengeNotice = "";
   challengeRival = challengeTarget();
   challengePending = challengeRival !== null;
 }
@@ -475,13 +533,13 @@ function updateFlash(dt: number, active: boolean): void {
     challengePending = false;
     if (challengeRival === SABLE.id) { loadDrive(SABLE_DRIFT.id); return; }
     if (challengeRival === RIVET.id) { loadDrive(HARBOR_DRAG.id); return; }
-    // Every flash draws a new race; the seed comes from the tick of the flash,
-    // so a replay of the cruise would draw the same one. It starts where you
-    // are, snapped to your lane; off every street, it starts on the grid.
+    // A new stage draws once at the flash position; losses retry that same draw.
     const here = snapToLane(ALDER_STREETS, sim.state.vehicle, alderHeight);
     const seed = seedFromTick(sim.state.tick);
-    const kind = (["sprint", "circuit", "unordered"] as const)[seed % 3]!;
-    loadDrive(`gen-${seed}${kind === "sprint" ? "" : `-${kind}`}`, "track", here ? encodeStart(here) : null);
+    const challenge = progress.challenge(seed, here ? encodeStart(here) : null);
+    if (challenge) loadDrive(challenge.raceId, "track", challenge.start);
+    else challengeNotice = progress.unavailable() ? "Could not save challenge · Flash again to retry"
+      : progress.outdatedChallenge() ? "Course out of date · Replace it at the garage" : "Moth retired · Return to the garage";
   }
 }
 
@@ -572,7 +630,11 @@ function frame(now: number): void {
   // in tests/rival-card.test.ts is for.
   const contact = rivalCard(challengePending ? challengeRival : challengeTarget());
   rivalPrompt.hidden = !gameplayActive || !contact;
-  if (contact) showRivalCard(cardCopy(contact, challengePending, flashLabel()));
+  if (contact) {
+    const stage = contact.id === "moth" ? MOTH_STAGES[progress.get().mothWins] : undefined;
+    const copy = cardCopy(stage ? { ...contact, offer: `${stage.name} · ${stage.kind} · $${stage.payout}${stage.kind === "unordered" ? " + Kestrel" : ""}`, accepted: stage.name } : contact, challengePending, flashLabel());
+    showRivalCard(challengeNotice ? { ...copy, action: challengeNotice } : copy);
+  }
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
@@ -619,6 +681,7 @@ function frame(now: number): void {
       const reactionTicks = sim.state.vehicle.transmission?.reactionTicks;
       const dragTiming = race.kind === "drag" && reactionTicks != null
         ? ` / RT ${(reactionTicks / TICK_HZ).toFixed(3)} s / ET ${formatRaceTime(sim.state.race.ticks - reactionTicks, TICK_HZ, 3)}` : "";
+      saveRaceReward({ raceId: race.id, start: new URLSearchParams(location.search).get("start"), build: raceBuild, finished: sim.state.race.finished, disqualified: !!sim.state.race.disqualified, position });
       menu.finishRace(sim.state.race.disqualified ? "Disqualified" : position === 1 ? "You win" : "Second place",
         `${race.name} · ${sim.state.race.disqualified ? "Left the strip" : `P${position}/2`} · ${formatRaceTime(sim.state.race.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${dragTiming}`);
       accumulator = 0;
@@ -701,6 +764,24 @@ installDebugApi({
 });
 
 // Leaving a race returns to the same city in free roam.
+let pendingReward: CareerResult | null = null;
+const retryReward = document.querySelector<HTMLButtonElement>("[data-retry-reward]")!;
+function saveRaceReward(result: CareerResult): void {
+  const outcome = progress.complete(result);
+  const note = document.querySelector<HTMLElement>("[data-result-reward]")!;
+  note.hidden = outcome === "none";
+  note.textContent = outcome === "awarded"
+    ? "Pink slip won · +$1,500 · Kestrel added to your garage. Moth has left the streets. Next: #9 Stray — challenge coming soon."
+    : outcome === "advanced" ? `+$750 · ${progress.get().mothWins}/3 wins saved. Find Moth for the ${MOTH_STAGES[progress.get().mothWins]!.name.toLowerCase()}.`
+    : outcome === "recorded" ? "Stage already won · No additional payout."
+    : outcome === "incompatible" ? "That course belongs to an older version. No progress or payout changed; return to the garage."
+    : outcome === "unavailable" ? "Your win could not be saved. Retry before leaving to keep your progress and payout."
+    : "";
+  pendingReward = outcome === "unavailable" ? result : null;
+  retryReward.hidden = pendingReward === null;
+  renderCarSelection();
+}
+retryReward.addEventListener("click", () => { if (pendingReward) saveRaceReward(pendingReward); });
 document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button => {
   button.hidden = !race;
   button.addEventListener("click", () => loadDrive(null));
@@ -717,6 +798,7 @@ if (requestedSave !== null) {
 if (loadNotice) {
   document.querySelector<HTMLElement>("[data-save-summary]")!.textContent = loadNotice;
   document.querySelector<HTMLElement>("[data-settings-status]")!.textContent = loadNotice;
+  carNote.textContent = loadNotice;
 }
 renderSettingsStatus();
 

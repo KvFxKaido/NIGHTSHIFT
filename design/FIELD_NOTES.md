@@ -10,6 +10,49 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Moth career and shop: first validation and review (2026-09-15)
+
+Before the pace calibration was integrated, the worktree passed 475 tests and
+the production build. Browser checks exercised a fresh profile, a loss and
+same-course retry, all three flashes/results, buying and reloading Bulwark,
+winning and reloading Kestrel, Moth's departure, and a 390px garage layout.
+Repositioning and injected finishes checked application flow, not difficulty
+or economy balance. The existing favicon 404 and Rapier warning remained.
+
+Claude's review caught that the legacy Bulwark grant lived only in memory: a
+car switch followed by reload lost it. It now writes the grant before settings
+can switch cars, with a retry if storage fails. Ownership checks apply equally
+to Bulwark and Kestrel preview links. Saved course identity was also missing;
+unversioned prototype courses cannot be silently relabeled as a newer generator.
+The worktree was updated to master `656f7e0`, including the pace calibration and
+Claude's `generator-v1` fingerprint. Progress schema 3 stores generator/world
+identity, refuses stale course links, and lets the player explicitly replace an
+incompatible unfinished stage while keeping completed history, wins, cash and cars.
+
+After integration, 480 tests, the production build and `git diff --check` passed.
+Browser regression checks reproduced the Bulwark switch/reload case, tested both
+locked car links and a failed migration/retry, rejected an unversioned course,
+replaced only its pending stage, verified the new descriptor/link identity, and
+rejected a stale tagged bookmark. The mobile garage was inspected at 390px.
+A test-harness URL assertion failed outside the page; it was corrected and the
+remaining bookmark check passed. No new application exception appeared during
+these checks; the Rapier initialization warning remained.
+
+The second review caught two existing browser harnesses that still assumed a
+fresh profile could select Bulwark. Both now seed explicit schema-3 ownership
+in isolated profiles and accept a worktree preview URL. The actual
+`check-garage-cars-browser.js` and `check-encounter-browser.js` passed on port
+5174: car loading/retry, selection/reload, driving/reset, keyboard selection,
+flash/remapping/pause, race/free-roam transitions, and the simulated controller
+challenge. Their garage and encounter screenshots were inspected. Neither
+reported a page exception; the expected aborted asset request, favicon 404 and
+existing Rapier warning remained. This follow-up changed harnesses and docs
+only; the 480-test/build results above were not rerun.
+
+The accepted retirement rule supersedes post-pink-slip encounters. Learning is
+still future work and could affect later stages from earlier wins. Product docs
+now agree; the validation narrative belongs here rather than in BLACKLIST.md.
+
 ## Port Alder: route choice, alleys, generated races, garage, editor (2026-09-10 to 09-11)
 
 explicitly retired the Blackglass map on September 10, 2026. Old world links

@@ -89,20 +89,24 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   a reference experiment, not a migration.
 - Customization target: body parts, paint and a few simple performance
   upgrades. Today: paint, wheel finish, visual ride height, and a layered
-  NS-01 livery editor (`src/customization/livery.ts`); all visual only.
+  livery editor (`src/customization/livery.ts`); those appearance edits are visual
+  only. Car ownership and buying Bulwark are implemented separately.
 - **Surge** (GDD §3.6, 5.1, 8.4) is the proposed nitrous verb and is **not
   implemented**: a few finite tanks, capacity bought in the garage, full at
   every event start, no mid-race refill and no passive recharge. Style earns
   no reputation and converts into nothing; reputation unlocks performance
   parts, and a ten-name Blacklist that opens with losing the NS-01 gates the
-  career (GDD §5, 5.1; none of it implemented). The Live Cred style-to-speed
+  career (GDD §5, 5.1). Moth's three-stage career, cash and car ownership are
+  implemented; the opening, later chapters, reputation and Surge are not. The Live Cred style-to-speed
   economy it replaced was dropped on 2026-09-12 and kept, superseded, in
   `design/LIVE_CRED.md`; do not reintroduce it without a scope decision.
-- Procedural races are the direction (`design/PROCEDURAL_RACES.md`): every
-  flash a new race, playlists keep one, flashed rivals learn your line per
-  street. Read it before touching races or rivals.
+- Procedural races are the direction (`design/PROCEDURAL_RACES.md`). Moth draws
+  once per career stage; losses retry that course. Two wins unlock the pink
+  slip; the third retires her from the map. The future playlist keeps her races.
+  Learning from earlier wins remains unimplemented and could affect later
+  stages; retirement supersedes repeat street encounters after the pink slip.
 
-## What exists (2026-09-12)
+## What exists (2026-09-15)
 
 Port Alder is the only playable map and the default at `/`. Blackglass was
 retired on 2026-09-10; its geometry and GLB are developer regression
@@ -121,9 +125,10 @@ fixtures outside the playable bundle, and old world links redirect.
   past the pavement cost a 2WD car grip and pace (AWD exempt), wherever the
   world reports ground (`RoadWorld.ground`, `alderGround`).
 - **Free roam** starts at Wharf Garage in SoDo. Stop at the shutter to
-  enter; the garage has a fixed camera and offers Cinder and Bulwark bodies,
+  enter; the garage has a fixed camera, starts new profiles in Cinder, sells
+  Bulwark for $1,500 and allows the won Kestrel to be selected. It offers
   paint, wheel finish, visual stance and a livery editor whose panels derive
-  from each body (all visual only; liveries are a per-car browser profile,
+  from each body (appearance edits only; liveries are a per-car browser profile,
   not part of save slots).
 - **Encounters and generated races.** A rival cruises a freight-block loop
   near the garage; flash it (F / Square) to race. The generator draws gates
@@ -160,8 +165,17 @@ fixtures outside the playable bundle, and old world links redirect.
   names have a car asset (`BLENDER_CARS` in `src/render/blender-car.ts`, drives in
   `CAR_DRIVETRAIN`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
   Wager, Meridian, Skim and Reign (working names). They render only: no
-  encounter, unlock or per-car handling, and none is a saved player car. Build
+  encounter, unlock or per-car handling. Kestrel is now an earnable saved player
+  car; the other Blacklist bodies remain rival-only. Build
   notes and open review flags: `design/reference/cars/BLACKLIST_CARS.md`.
+- **Career/shop.** `src/settings/progress.ts` stores `nightshift.progress`
+  separately from manual slots: Moth's sprint/rematch/pink slip, accepted courses,
+  cash, purchased Bulwark and won Kestrel. Payouts are $750/$750/$1,500 once each.
+  A completed pink slip removes Moth from free roam. Old save slots never roll
+  ownership back; migration writes the legacy Bulwark grant before a car change.
+  Stored courses carry generator/world identity; incompatible pending courses
+  require explicit replacement in the garage. Playlists and later rivals' chains
+  are not implemented.
 - **Ridge Circuit** (working name) east of Madrona Ridge, off Pine East: one
   facility, three layouts (`arena.ts`), open edges, three-lap races with the
   rival on the centreline (`?race=arena-full|arena-east|arena-ridge`, `-solo`
@@ -285,7 +299,8 @@ fixtures outside the playable bundle, and old world links redirect.
   its throw sits outside the loop: one slot naming a value that only *recovers*
   discards every slot, not that one. Retiring a `PlayerCarId` therefore needs an
   entry in `RETIRED_CARS` (`settings.ts`), which migrates the old value without
-  reporting recovery. The NS-01 became Sable's car this way.
+  reporting recovery. The NS-01 became Sable's car this way. Rolling back to a
+  build that rejects Kestrel likewise makes every slot unreadable if one names it.
 - `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
   the phone. Do not add to it casually.
 - A lap recording replays only from an unbroken run: moving the car outside

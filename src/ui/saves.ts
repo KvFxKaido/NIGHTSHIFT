@@ -13,7 +13,7 @@ export function createSavesPanel(store: ReturnType<typeof createSaveStore>, snap
   let mode: "load" | "save" = "load";
   let selected: SaveId | null = null;
   let expectedTimestamp: number | undefined;
-  const CAR_NAMES: Record<string, string> = { cinder: "Cinder", bulwark: "Bulwark" };
+  const CAR_NAMES: Record<string, string> = { cinder: "Cinder", bulwark: "Bulwark", kestrel: "Kestrel" };
   // Falls back to the id rather than to a name: a retired body should read as
   // itself if one ever reaches here, not silently as some other car.
   const carName = (save: DriveSave) => `${CAR_NAMES[save.build.car] ?? save.build.car} / ${drivetrainFor(save.build.car).toUpperCase()}`;

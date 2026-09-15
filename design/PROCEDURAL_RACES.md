@@ -5,12 +5,13 @@ form of GDD §7.3's "Generated, not authored" paragraph.
 
 **Status.** The generator exists: `src/sim/race-generator.ts` draws a race
 from the city per seed, `?race=gen-<seed>` is the race, and the flash in
-free roam draws a new one every time (commit `c4a8b5b`). The flow rule
+free roam originally drew a new one every time (commit `c4a8b5b`). The career
+now draws once per Moth stage and retains that course for losses/retries. The flow rule
 (2026-09-11, `GENERATOR.flow`) keeps a draw from doubling back, and gates
 carry the direction the line leaves them for the marker's arrow; both are in
-`design/PORT_ALDER.md`. Everything under "Proposed" below is not implemented.
+`design/PORT_ALDER.md`. The ordered list below marks implemented and future work.
 
-## Shawn's two ideas (2026-09-10)
+## Shawn's two ideas (2026-09-10), revised by the career cadence below
 
 1. **Every flash is a new race.** When you flash a rival, the race is
    procedurally generated every time. A race repeats only if you save it to
@@ -22,20 +23,27 @@ carry the direction the line leaves them for the marker's arrow; both are in
 These arrived as a possible "more elegant solution" to the shortcut rule
 ("every shortcut has a cost"). The reading below is how they were taken.
 
+## Adopted career cadence (2026-09-15)
+
+Two wins unlock a rival's pink slip; the third win takes the car and removes
+the rival from the map. Moth implements sprint, circuit rematch, then unordered
+checkpoints. A new stage draws once, losses retry it, and old wins never advance
+or pay again. The future playlist is where retired rivals' races remain playable.
+This supersedes the original every-flash redraw and indefinite post-win encounters
+for career rivals. Edge-bank learning is still unimplemented; learning from the
+first two wins could affect later stages, not resurrect a retired street rival.
+
 ## How they fit together
 
-- **The seed is the race's identity.** `(world version, seed)` reproduces the
-  gates and the rival's line, so a playlist entry is that pair (plus the
-  rival, once rivals differ), and a saved ghost carries it the way debug
-  links carry world/route identity. Nothing else needs storing. *Since the
-  start-where-you-flashed and variant work the tuple is (world version, race
-  id, start): the id is the seed plus the variant, `gen-<seed>[-circuit|-unordered]`,
-  which a flash derives from the seed (`seed % 3`) but a link may name outright.*
-  *Since 2026-09-15 it also names the generator, `GENERATOR_REVISION`: the pace
-  calibration changed the race 280 of 300 seeds drew while the world version
-  stood still. The tuple is (world version, generator revision, race id, start),
-  and `tests/race-generator.test.ts` fails when the draw moves without a new name.* Every tick's
-  input is already logged (law 2), so "save this race" costs nothing new.
+- **The seed needs versioned context.** The course identity is
+  `(ALDER_VERSION, GENERATOR_REVISION, race id, start)`. The race id combines
+  seed and variant, `gen-<seed>[-circuit|-unordered]`; Moth's stage chooses the
+  variant, while a developer link may name it outright. A future playlist also
+  needs the rival once rivals differ; a ghost additionally needs physics/build
+  identity and its recorded run. The pace calibration changed the race 280 of
+  300 seeds drew while the world version stood still. `GENERATOR_REVISION`
+  names that dependency, and `tests/race-generator.test.ts` fingerprints the
+  draw so it cannot silently move under the same name.
 - **A rival is the distribution of races it proposes.** Bias the draw
   towards a rival's own streets and it has a personality before it has
   driven a metre: the SoDo rival drags you through the docks, the hill rival
@@ -69,8 +77,8 @@ These arrived as a possible "more elegant solution" to the shortcut rule
    again on load so the pose the URL carries is the pose driven. The
    generator's origin is the junction ahead of it and the rival starts 7 m
    ahead in the other lane, in the start's own frame. A race's identity is
-   now (world version, race id, start), the id being the seed plus its
-   variant; a playlist keeps all three. The authored
+   now (generator revision, world version, race id, start), the id being the seed plus its
+   variant; a playlist keeps all four. The authored
    race ignores `start`, since its line was authored from the grid, and a
    flash from off every street still starts on the grid.
 2. **Rival turf bias** on the draw, once there is a second rival to differ.
@@ -83,8 +91,10 @@ These arrived as a possible "more elegant solution" to the shortcut rule
    guesses, and the corridors named here were not driven: a recorded run down
    Western against 1st would test the model where the generator most relies on it.
 4. **Playlists**: a saved list of seeds in `settings` (it is a preference,
-   not a physics snapshot), with the world version and generator revision
-   they were drawn on.
+   not a physics snapshot), with generator/world identity. Moth's saved course
+   descriptors are groundwork only: they are rejected on mismatch or missing
+   identity, and an unfinished stage can be explicitly replaced without losing
+   wins, cash or cars. Completed history keeps its original identity.
 5. **The edge bank and learning rivals**, with a skill cap so the rival does
    not converge on the player's ceiling and climb past it.
 

@@ -68,9 +68,9 @@ test("the bodies drive differently enough to be worth winning", () => {
   assert.equal(CAR_DRIVETRAIN.kestrel, "awd", "Moth's rally hatch is not all-wheel drive");
 });
 
-test("the garage roster is the player's, and the rival bodies are not", () => {
-  for (const id of ["cinder", "bulwark"]) assert.ok(isPlayerCarId(id), `${id} should be a garage choice`);
-  for (const id of ["blender", "kestrel", "hammer"]) {
+test("the garage roster includes the earnable Kestrel, but not the other rival bodies", () => {
+  for (const id of ["cinder", "bulwark", "kestrel"]) assert.ok(isPlayerCarId(id), `${id} should be a garage choice`);
+  for (const id of ["blender", "hammer"]) {
     assert.equal(isPlayerCarId(id), false, `${id} is a rival body and must not be selectable`);
     assert.ok(CAR_DRIVETRAIN[id] !== undefined, `${id} still needs a profile even unselectable`);
   }

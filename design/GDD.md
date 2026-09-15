@@ -2,7 +2,7 @@
 
 Game Design Document
 
-Status: Playable PC browser prototype; career/progression remain design targets
+Status: Playable PC browser prototype; Moth's three-stage career and a small cash/car shop loop implemented
 Direction updated: 2026-09-10
 Working Title: Project Nightshift
 Genre: Arcade street racer
@@ -200,6 +200,20 @@ Plumb Meridian (AWD wagon), Crest Skim (FWD hardtop roadster), and Wake Reign
 `design/reference/cars/BLACKLIST_CARS.md`. These are renderable assets with
 base drivetrains; encounters, unlocks and individual handling remain separate.
 
+The first implemented career loop is Moth: win a generated sprint, a circuit
+rematch, and finally an unordered pink-slip race. The first two wins pay $750
+each; the last pays $1,500 and awards the Kestrel. She then leaves free roam.
+Each accepted stage retains its route for retries; old wins cannot advance or
+pay again. Cash and ownership survive reloads and older drive slots.
+The fresh-profile starter is Cinder. Bulwark costs $1,500, so the first two wins
+can buy it before the pink slip. These are provisional tuning prices.
+Stray is named next but has no challenge yet; reputation, chapter gates,
+rival learning and the replay playlist remain future work.
+
+Roster direction: 20 cars for the first complete roster, with room toward 30.
+Ten are guaranteed rival rewards; the remaining 10–20 are starter/shop cars.
+The current shop contains only Bulwark; no additional bodies are implied.
+
 Open, and unresolved in these documents:
 
 - **Whether the player has a portrait** in the opening's dialogue.
@@ -222,8 +236,9 @@ Proposed, not decided:
   drift.
 - Chapters open at list positions, opening who races in a district rather than
   which streets can be driven (§6.3).
-- Beaten names stay in the city as rivals to flash, having learned from the
-  races the player won against them (`design/PROCEDURAL_RACES.md`).
+- Beaten names leave the map after their pink slip. Their races will remain
+  available through a future playlist. Moth implements the departure; later
+  rival learning remains a separate proposal (`design/PROCEDURAL_RACES.md`).
 - Moth, who already cruises by the garage, is #10.
 - The full list, #10 to #1, with turf, car, accent, challenge and each name's
   characteristic mistake: `design/BLACKLIST.md` (a sketch; six of the ten are
@@ -241,8 +256,9 @@ Style earns no reputation. None of this is implemented.
 
 ### 5.1 Garage Economy
 
-Race payouts are cash. Cash buys performance parts and Surge capacity, and there
-is no second race-time currency to track.
+Race payouts are cash. Cash buys cars, performance parts and Surge capacity;
+there is no second race-time currency to track. The current shop sells Bulwark
+for $1,500; purchased performance parts and Surge capacity remain future work.
 
 Reputation is a non-spendable record. Crossing its thresholds unlocks
 performance parts for purchase; cash still buys them, and nothing spends
