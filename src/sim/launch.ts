@@ -3,7 +3,7 @@ import type { Input } from "./sim.ts";
 /**
  * The launch (2026-09-16, Shawn: MC3's start boost). Hold the handbrake and the
  * throttle through the countdown to charge it, let the handbrake go as the flag
- * drops, and the first seconds carry extra drive. Let it go late, or with a
+ * drops, and the first seconds carry extra traction. Let it go late, or with a
  * half-charge, and the launch costs you instead: the same scale and length of
  * penalty the drag strip already gives a bogged start (`transmission.ts`), whose
  * words this borrows so the two launches read alike.
@@ -40,8 +40,8 @@ export const LAUNCH = {
 /** An authored rival with no rank behind it: a decent start, neither late nor perfect. */
 export const RIVAL_LAUNCH_SKILL = .6;
 /**
- * How each Blacklist name launches. It climbs the list: Moth leaves half a second
- * of her lead on the line, Tally never does. The ladder itself is
+ * How each Blacklist name launches: the share of a full charge it holds. It climbs
+ * the list: Moth leaves on half the boost, Tally on all of it. The ladder itself is
  * `settings/blacklist.ts`, above the sim; a test holds these to its order.
  */
 export const BLACKLIST_LAUNCH: Readonly<Record<string, number>> = {

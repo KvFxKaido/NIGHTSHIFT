@@ -53,6 +53,15 @@ function segmentAt(along: readonly number[], distance: number): number {
   }
   return low;
 }
+/** The route's own height at a distance along it: the road under the line there. A loop wraps. */
+export function routeHeightAt(route: RivalDefinition, distance: number): number {
+  const length = route.along.at(-1)!;
+  distance = route.loop && length > 0 ? ((distance % length) + length) % length : clamp(distance, 0, length);
+  const i = segmentAt(route.along, distance);
+  const a = route.points[i]!, b = route.points[i + 1] ?? a;
+  const span = (route.along[i + 1] ?? route.along[i]!) - route.along[i]!;
+  return a.y + (b.y - a.y) * (span ? (distance - route.along[i]!) / span : 0);
+}
 export function sampleRivalPath(route: RivalDefinition, distance: number) {
   distance = clamp(distance, 0, route.along.at(-1)!);
   const i = segmentAt(route.along, distance);
@@ -249,8 +258,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * feedforward on streets, and lost meaning off the carriageway everywhere.
  * "full-line-v11": it launches out of the countdown like the player, by its own
  * skill (`launch.ts`), which moves it on the first lap of any raced recording.
+ * "full-line-v12": traffic is judged by height above the road, not raw height, so
+ * a car on the same climbing or falling street is no longer hidden by the grade.
  */
-export const RIVAL_REVISION = "full-line-v11";
+export const RIVAL_REVISION = "full-line-v12";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -508,10 +519,17 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // that is still the street being left, and on seed 17 it put a stopped truck
   // dead ahead 2.2 m to the side, out of the path, and the rival drove into it.
   const carOffset = (car.x - target.x) * normalX + (car.z - target.z) * normalZ;
+  // Heights are compared above the road, not raw (2026-09-16). A car is ignored when
+  // it sits more than 3 m off the route's height where it is, measured against how far
+  // this car sits off the route here: a bridge overhead, never the same road rising.
+  // Comparing raw heights hid a car on the same street whenever the road climbed or
+  // fell 3 m within the look-ahead, which at top speed is about a third of the city's
+  // streets; on Queen Anne Climb it hid an oncoming sedan until it was 54 m away.
+  const aboveRoute = car.y - routeHeightAt(route, driver.along);
   for (const obstacle of hazards) {
-    if (Math.abs(obstacle.y-car.y)>3) continue;
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
+    if (Math.abs(obstacle.y - routeHeightAt(route, driver.along + ahead) - aboveRoute) > 3) continue;
     const offRoute=side+carOffset;
     const length=(obstacle.length??4.2)/2+2.1;
     if (ahead < -length || ahead > 15+car.speed*1.6) continue;

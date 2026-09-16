@@ -743,7 +743,49 @@ against 59 for crossing ones). Swerving round them instead was tried and was
 worse (187.2 s, 119 contact ticks) and is not shipped. The cause is the line:
 rival routes run down the street's centreline (`rivalLineFor`, `alder-rival.ts`),
 so an oncoming car in its own lane is often genuinely in the rival's way.
-Driving its own lane is the next fix. Separately, even on empty streets the
+Driving its own lane is the next fix.
+
+**Traffic on a grade (2026-09-16, `full-line-v12`).** The rival skipped any car
+more than 3 m above or below itself, meant for a bridge overhead. Comparing raw
+heights also hid a car on the same street whenever the road climbed or fell 3 m
+within the rival's look-ahead (15 m + 1.6 s): on the same street, that is 12% of
+the city's street length at 20 m/s, 26% at 40 and 32% at 55, worst on Valley
+Parkway, Roy Street and Galer Terrace. On Queen Anne Climb it hid an oncoming
+sedan until 54 m, where 102 m was due. Heights are now compared above the road:
+a car is skipped when it sits more than 3 m off the route's height where it is
+(`routeHeightAt`), relative to how far the rival sits off the route itself. A
+bridge is still skipped; a climb no longer hides anyone.
+
+Found by a separate investigation the same day, which also measured and rejected
+braking for traffic from the rival's actual position (worse: running wide, it
+braked and slid further out) and an escape-feasibility rule (fewer rear-ends but
+two regressions, one start timing). Measured here on the 82-race set (Sound to
+Sky, Queen Anne seed 2, grid seeds 1-80), rival alone in traffic, player parked,
+each at four start timings (0, -13, +7, +19 ticks), before and after:
+
+| | Race time | Contact | Hard hits (oncoming / same / crossing) | Past 16 m |
+|---|---|---|---|---|
+| Before | 30,119 s | 3,399 ticks | 56 (23 / 32 / 1) | 29 |
+| After | 30,101 s | 3,497 ticks | 45 (19 / 25 / 1) | 28 |
+
+A hard hit is contact above 25 m/s losing more than 10 m/s. Thirteen hard hits
+went and two arrived, mostly on seeds 68 and 54, which share a road (68 alone is
+32 s faster across its timings). No race newly strays past 16 m. Contact rose in
+14 races and fell in 21; three runs carry 467 of the 657 added ticks, seed 38
+twice (all of it same-direction contact, about 1.8 s each, not traced) and Queen
+Anne once.
+
+It does not fix Queen Anne, and was not expected to. Over 25 start timings from
+-60 to +60 ticks the rival meets the sedan in all 25 before and after, hard in
+14 both times; it ends past 16 m in 5 before and 4 after, but individual timings
+move both ways (+30 ticks: 25.0 to 11.7 m; -5: 9.3 to 18.4 m). That crash is the
+rival running wide on a fast 394 m bend at 54.6 m/s and sliding into the
+oncoming half; seeing the sedan sooner does not stop it. It needs a cornering
+pass, which will also move Ridge Circuit and clear-street times. The racing block
+that reads the player still compares raw heights (`rival.ts`, the opponent check
+above the traffic loop), unmeasured and unchanged here.
+
+Separately, even on empty streets the
 rival spent 66 s of 170 braking: it planned corners at 62% of its grip and 5 m/s²
 of braking. That was corner commitment, not traffic, and it was tuned from
 recorded laps the same day (below: **Cornering, tuned to recorded laps**). Racing uses the player's shared 62.6 m/s

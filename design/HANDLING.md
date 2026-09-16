@@ -69,11 +69,16 @@ whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
     second past the flag. That gave a wide spread (41.9 m at skill 0 to 62.0 m at
     1) and two bad things with it: a rival visibly parked at the lights, and a
     start-timing shift that walked `tests/race-start.test.ts` into a crash it used
-    to miss — the rival rear-ended traffic at 122 mph on Queen Anne Climb and slid
-    32 m off the road. That crash is a rival weakness of its own (its braking plan
-    for traffic at 120 mph), not a launch bug: the stray was 16.4 m at skill 0,
-    6.9 m at 0.2 and 32.0 m at 0.6, so which timing hits the traffic car is
+    to miss: at 122 mph on Queen Anne Climb the rival hit a car and slid 32 m off
+    the road. That crash is a rival weakness of its own, not a launch bug: the stray
+    was 16.4 m at skill 0, 6.9 m at 0.2 and 32.0 m at 0.6, so which timing hits is
     chance. Charging never disturbs it, and the invariant holds at 7.6 m.
+    *Corrected 2026-09-16:* this note first called it a rear-end and blamed the
+    braking plan for traffic. It was an oncoming sedan — the trace closed at about
+    69 m/s while the rival did 54, which only a car coming the other way can — met
+    while the rival ran wide on a fast bend, and the sedan was hidden until 54 m by
+    the rival comparing raw heights on the climb (`design/PORT_ALDER.md`, "Traffic
+    on a grade").
 - **No physics revision.** Throttle is ignored during a countdown, so a player
   holding only the gas — which is every lap recorded before today, checked —
   charges nothing and drives exactly as they did. Rival behaviour did change, so

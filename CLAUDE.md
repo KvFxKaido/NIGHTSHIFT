@@ -361,6 +361,10 @@ fixtures outside the playable bundle, and old world links redirect.
   a race handed to `createSim` with no rival and no exits has no arrows.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
+- Compare heights above the road, never raw. The rival's 3 m filter meant for
+  bridges compared raw heights and hid same-street traffic on about a third of the
+  city at top speed; it now reads `routeHeightAt`. The check on the racing player
+  above the traffic loop still compares raw heights.
 - A launch buys grip, not torque. Off the line the tyres are at their limit, so
   multiplying engine drive there changes nothing at all; the launch rides
   `driveGripScale`. Anything that moves a rival, the countdown included, is a
