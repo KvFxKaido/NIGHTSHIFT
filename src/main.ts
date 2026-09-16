@@ -648,12 +648,18 @@ function updateHud(): void {
     { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) : null;
   const lastLap = recorder?.laps.at(-1);
   const lapNote = lastLap ? ` · LAST ${formatRaceTime(lastLap.endTick - lastLap.startTick, TICK_HZ)}${lastLap.valid ? "" : " OFF"}` : "";
+  // The launch (src/sim/launch.ts): what it is worth while charging, how it went once the flag drops.
+  const launch = car.launch;
+  const launchNote = !launch ? ""
+    : launch.charge > 0 ? ` · LAUNCH ${Math.round(launch.charge * 100)}%`
+    : raceState && raceState.countdown > 0 ? " · HOLD HANDBRAKE + GAS"
+    : launch.feedbackTicks > 0 ? ` · ${launch.feedback}` : "";
   hud.update(car, race && raceState ? {
     progressLabel: raceProgressLabel(race, raceState), targets: race.kind === "drift" ? [race.drift!.zones[raceState.drift!.nextZone]!] : raceState.targets,
     checkpoint: raceState.checkpoint, total: race.checkpoints.length, next: raceState.next,
-    label: raceState.countdown > 0 ? String(Math.ceil(raceState.countdown / TICK_HZ))
+    label: raceState.countdown > 0 ? `${Math.ceil(raceState.countdown / TICK_HZ)}${launchNote}`
       : race.kind === "drift" ? `${Math.ceil(Math.max(0, race.drift!.durationTicks - raceState.ticks) / TICK_HZ)}s LEFT`
-      : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}${lapNote}`,
+      : `${raceState.disqualified ? "DQ " : raceState.finished ? position === 1 ? "WIN " : "FIN " : ""}${formatRaceTime(raceState.ticks, TICK_HZ, race.kind === "drag" ? 3 : 1)}${position ? ` · P${position}/2` : ""}${rival?.race.finished && !raceState.finished ? (rival.race.disqualified ? " · RIVAL DQ" : " · RIVAL FIN") : ""}${lapNote}${launchNote}`,
   } : null,
   // Every rival gets a blip, pinned to the minimap rim when off the disc, as in Midnight Club 3.
   [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle), ...sim.state.cruisers.map(cruiser => cruiser.vehicle)]

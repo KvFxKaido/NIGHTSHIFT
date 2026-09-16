@@ -160,6 +160,13 @@ fixtures outside the playable bundle, and old world links redirect.
   than waiting to be over it; streets keep the old brake, which strays less in
   traffic. A route must get its line once: drawing a line
   through a route that already carries one doubles the offsets.
+- **The launch.** Hold the handbrake and the gas through a race countdown, let
+  the handbrake go at the flag, and the first 1.6 s carry extra traction: about
+  two car lengths by five seconds, less the later you release, a penalty if you
+  bog or spin (`src/sim/launch.ts`, `design/HANDLING.md`). Rivals launch by
+  Blacklist rank (`BLACKLIST_LAUNCH`): about 3 m to a rival, 0.7 m of that from
+  rank, so it removes the player's free gap without being a difficulty lever.
+  Drag races keep the gearbox's own launch.
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring
@@ -354,6 +361,11 @@ fixtures outside the playable bundle, and old world links redirect.
   a race handed to `createSim` with no rival and no exits has no arrows.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
+- A launch buys grip, not torque. Off the line the tyres are at their limit, so
+  multiplying engine drive there changes nothing at all; the launch rides
+  `driveGripScale`. Anything that moves a rival, the countdown included, is a
+  `RIVAL_REVISION` bump, or raced recordings diverge instead of being refused:
+  check with `pnpm laps --verify` before and after, never only after.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
   that breaks the tests is green on GitHub. Run `pnpm test` yourself.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not

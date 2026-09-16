@@ -531,6 +531,15 @@ The controller should support several overlapping states:
 
 Transitions between states should be predictable and forgiving.
 
+**The launch** is implemented (2026-09-16, Shawn: MC3's start boost). Holding the
+handbrake and the throttle through a race countdown charges it, and letting the
+handbrake go as the flag drops buys extra traction off the line — about two car
+lengths by five seconds. Releasing late, or with half a charge, costs more than
+not trying. Rivals launch by Blacklist rank, so the start is a skill check rather
+than a gift to the player. Drag races keep their own gearbox launch. Details and
+tuning: `design/HANDLING.md`, "The launch". This is not Surge (§8.4), which is
+still unimplemented.
+
 ### 8.4 Surge
 
 Surge is the player-controlled nitrous verb.

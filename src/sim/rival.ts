@@ -16,6 +16,8 @@ export interface RivalDefinition {
   /** Each point's offset from the road's centre, positive to the right, when the
    *  route is a racing line (`racing-line.ts`). Absent means the points are the centre. */
   readonly lateral?: readonly number[];
+  /** How well this driver launches, 0-1 (`launch.ts`). Absent is `RIVAL_LAUNCH_SKILL`. */
+  readonly launch?: number;
 }
 export interface RivalDriver {
   along: number;
@@ -245,8 +247,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v9": street corners rounded (RIVAL_STREET_CORNERS). "full-line-v10":
  * a corner's arc measured against the straight run either side, steering
  * feedforward on streets, and lost meaning off the carriageway everywhere.
+ * "full-line-v11": it launches out of the countdown like the player, by its own
+ * skill (`launch.ts`), which moves it on the first lap of any raced recording.
  */
-export const RIVAL_REVISION = "full-line-v10";
+export const RIVAL_REVISION = "full-line-v11";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */

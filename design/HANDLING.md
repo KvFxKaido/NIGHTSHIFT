@@ -34,6 +34,53 @@ calculation; steering away supplies forces instead of requesting a new slide.
 Fresh tire forces replace the previous tick's forces, since Rapier retains
 user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/user_guides/javascript/rigid_body_forces_and_impulses/).
 
+## The launch (2026-09-16)
+
+Shawn asked for MC3's start boost. Hold the handbrake **and** the gas through a
+race countdown to charge it (`LAUNCH` in `src/sim/launch.ts`), let the handbrake
+go as the flag drops, and the first 1.6 s carry extra traction. Drag races are
+untouched: they launch through the gearbox's rev window (`transmission.ts`),
+whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
+
+- **It buys traction, not torque.** The first version multiplied engine drive and
+  did *nothing*: off the line the tyres are already at their limit, so the extra
+  force was clamped away (measured, to the metre). It now rides `driveGripScale`,
+  the same powered-axis scale the 2WD assist uses, so the longitudinal envelope
+  grows and steering authority does not.
+- **What it is worth.** Tuned to about two car lengths: a perfect launch gains
+  **+5.3 m at 3 s and +8.9 m at 5 s** over a standing start (Sound to Sky's grid,
+  RWD, `boost: .35`). Releasing 0.15 s late still pays in full; by 0.5 s there is
+  nothing left. It never raises the governed top speed — it is a launch.
+- **Botching it costs.** Under half charge bogs; still on the handbrake 0.75 s
+  after the flag spins the tyres. Either way drive falls to 0.85 for 75 ticks,
+  lighter than the strip's 0.65 because sitting on the handbrake has already cost
+  23 m by five seconds on its own. A bog lands about a car length behind a plain
+  start; a spin, seven. Never touching the handbrake is a plain start and costs
+  nothing, so the mechanic is opt-in and the penalty is only for trying badly.
+- **Rivals launch too**, by Blacklist rank (`BLACKLIST_LAUNCH`, 0.5 at #10 rising
+  to 1.0 at #1). Rank is how well they hook up, not how late they react: a rival
+  charges for its share of the countdown and lets the handbrake go **at** the flag.
+  An authored rival uses `RIVAL_LAUNCH_SKILL` (0.6). Measured on `gen-moth-12` at
+  three seconds: 58.3 m not launching, 61.3 m at Moth's rank, 62.0 m at Tally's.
+  So launching is worth about 3 m to a rival and rank is worth 0.7 m of that: it
+  closes the free gap the player would otherwise take at every start, and it is
+  not a difficulty lever. Their pace is (`RIVAL_CORNERING`, `design/PORT_ALDER.md`).
+  - Rank first graded *reaction* instead, holding the handbrake up to half a
+    second past the flag. That gave a wide spread (41.9 m at skill 0 to 62.0 m at
+    1) and two bad things with it: a rival visibly parked at the lights, and a
+    start-timing shift that walked `tests/race-start.test.ts` into a crash it used
+    to miss — the rival rear-ended traffic at 122 mph on Queen Anne Climb and slid
+    32 m off the road. That crash is a rival weakness of its own (its braking plan
+    for traffic at 120 mph), not a launch bug: the stray was 16.4 m at skill 0,
+    6.9 m at 0.2 and 32.0 m at 0.6, so which timing hits the traffic car is
+    chance. Charging never disturbs it, and the invariant holds at 7.6 m.
+- **No physics revision.** Throttle is ignored during a countdown, so a player
+  holding only the gas — which is every lap recorded before today, checked —
+  charges nothing and drives exactly as they did. Rival behaviour did change, so
+  `RIVAL_REVISION` went to `full-line-v11`: the one raced session that still
+  replayed is now refused by name instead of quietly diverging, and the solo
+  recordings still replay exactly.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

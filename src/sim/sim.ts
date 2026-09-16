@@ -1,4 +1,5 @@
 import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionState } from "./transmission.ts";
+import { createLaunch, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
 import { dragLaneInput } from "./drag-rules.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
@@ -44,6 +45,8 @@ export interface WheelState extends AxleState {
 
 export interface VehicleState {
   transmission?: TransmissionState;
+  /** The start boost, on every race but a drag, which launches through the gearbox (`launch.ts`). */
+  launch?: LaunchState;
   x: number;
   y: number;
   z: number;
@@ -489,6 +492,10 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   if (raceDefinition?.kind === "drag") {
     vehicle.transmission = createTransmission();
     if (rival) rival.vehicle.transmission = createTransmission();
+  } else if (raceDefinition) {
+    // Every other race starts from a countdown the player can launch out of.
+    vehicle.launch = createLaunch();
+    if (rival) rival.vehicle.launch = createLaunch();
   }
   return {
     roadWorld,
@@ -682,6 +689,8 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const manualAcceleration = car.transmission ? sim.state.race?.finished ? 0
     : stepTransmission(car.transmission, rawInput, Math.max(0, forwardSpeed), sim.state.race?.countdown ?? 0,
       sim.state.race?.ticks ?? 0, HANDLING.mass, DT) : null;
+  const launchScale = car.launch && sim.state.race
+    ? stepLaunch(car.launch, rawInput, sim.state.race.countdown, sim.state.race.ticks) : 1;
   const effectiveThrottle = input.handbrake > 0.05 ? 0 : input.throttle * (1 - input.brake);
   // The player chooses the direction and amount. Slip only opens the manual
   // countersteering envelope; it never steers on the player's behalf.
@@ -738,8 +747,12 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const driveGripProgress = clamp((forwardSpeed - HANDLING.twoWheelDriveGripStartSpeed) /
     (HANDLING.twoWheelDriveGripFullSpeed - HANDLING.twoWheelDriveGripStartSpeed), 0, 1);
   const driveGripBlend = driveGripProgress * driveGripProgress * (3 - 2 * driveGripProgress);
-  const driveGripScale = sim.state.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
-    ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1;
+  // A launch buys traction, not torque: off the line the tyres are already at their
+  // limit, so extra drive alone is clamped away and changes nothing (measured
+  // 2026-09-16). It rides the same powered-axis scale, so steering is untouched.
+  const driveGripScale = (sim.state.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
+    ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1)
+    * (driveForce > 0 && input.brake === 0 ? launchScale : 1);
   const angles = frontWheelAngles(car.steeringAngle);
   let forceX = 0;
   let forceZ = 0;
@@ -830,6 +843,10 @@ export function step(sim: Sim, rawInput: Input): void {
     rival.input = rivalInput(sim.rivalDefinition, rival,
       (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
       sim.state.vehicle);
+    // It launches as the player does, from its own skill: it holds the line for as
+    // much of the countdown as its rank is worth, and lets go at the flag (`launch.ts`).
+    const charge = rivalLaunchCharge(sim.rivalDefinition.launch ?? RIVAL_LAUNCH_SKILL);
+    if (rival.race.countdown > 0 && rival.race.countdown <= charge) rival.input = { ...rival.input, throttle: 1, handbrake: 1 };
   }
   if (sim.race?.drag && sim.state.race) {
     rawInput = dragLaneInput(sim.race.drag, sim.state.race, sim.state.vehicle, rawInput);
@@ -915,7 +932,10 @@ function resetStalledRival(sim: Sim): void {
   const rival = sim.state.rival, body = sim.rivalBody, route = sim.rivalDefinition;
   if (!rival || !body || !route || !sim.race || sim.race.kind === "drag" || rival.race.countdown > 0 || rival.race.finished) return;
   const place = (vehicle: VehicleState, driver: RivalDriver) => {
-    rival.vehicle = vehicle; rival.driver = driver;
+    // A reset builds a fresh vehicle: carry the powertrain state across it rather
+    // than silently dropping the launch (and, if a drag ever resets, the gearbox).
+    rival.vehicle = { ...vehicle, launch: rival.vehicle.launch, transmission: rival.vehicle.transmission };
+    rival.driver = driver;
     rival.input = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   };
   const unseen = Math.hypot(rival.vehicle.x - sim.state.vehicle.x, rival.vehicle.z - sim.state.vehicle.z) > UNSEEN_RECOVERY.sight;
