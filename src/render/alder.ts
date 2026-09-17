@@ -9,8 +9,23 @@ import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
-import { addNightBuildings, glowTexture } from "./night.ts";
+import { addNightBuildings, glowTexture, type FrontageReach } from "./night.ts";
+import { buildingFrontage } from "../sim/frontage.ts";
 import type { DistrictLighting } from "./scene.ts";
+
+/** Metres from a wall to the carriageway it faces. Port Alder's setbacks are
+ *  deep (median 22 m), so these are measured to the kerb, not the centreline. */
+export const ALDER_REACH: FrontageReach = { signs: 40, shopfronts: 30 };
+/** The city's one lamp, never replaced: sodium, the portraits' key light (design/LOOK.md). */
+const SODIUM_HEAD = 0xffa24a;
+const SODIUM_POOL = 0xc8782f;
+/** Chosen from the chase camera: at the old 0.28, or at 0.5, the pool is a
+ *  brown smudge 30 m ahead; at 1 it reads as sodium without washing the lane. */
+const SODIUM_POOL_OPACITY = 1;
+/** Metres the pool's centre sits from the post toward the centreline. Centred
+ *  on the post, 1.7 m past the kerb, its bright core lit the pavement and the
+ *  road got the faint rim, so sodium could not be seen from the driving line. */
+const SODIUM_POOL_INSET = 4;
 
 export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
@@ -60,7 +75,10 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   addGarageExterior(scene,ALDER_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(31,40),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(6.5,2.012,910);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
-  if(night) addNightBuildings(scene,buildings.map((b,index)=>({...b,decorationIndex:index,faceDistances:[0,0,0,0] as const})),alderHeight);
+  if(night){
+    const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
+    addNightBuildings(scene,buildings.map((b,index)=>({...b,decorationIndex:index,faceDistances:frontage[index]!})),alderHeight,ALDER_REACH);
+  }
   else {
     const blocks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x778991}),buildings.length);
     const pose=new THREE.Object3D();
@@ -103,8 +121,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   }
   // Additive pools follow the same ground height as the road and car.
   const pools: THREE.BufferGeometry[]=[];
-  const poolMaterial=new THREE.MeshBasicMaterial({color:0xc09b65,map:glowTexture(),transparent:true,
-    blending:THREE.AdditiveBlending,depthWrite:false,opacity:.28,toneMapped:false});
+  const poolMaterial=new THREE.MeshBasicMaterial({color:SODIUM_POOL,map:glowTexture(),transparent:true,
+    blending:THREE.AdditiveBlending,depthWrite:false,opacity:SODIUM_POOL_OPACITY,toneMapped:false});
   const lamps: THREE.BufferGeometry[]=[];
   const bulbs: THREE.BufferGeometry[]=[];
   // Where a kerb prop stands is the sim's decision now (sim/kerb-props.ts).
@@ -117,8 +135,9 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     if(night){
       const pool=new THREE.PlaneGeometry(25,32,5,6);pool.rotateX(-Math.PI/2);
       const position=pool.getAttribute('position');
+      const cx=x-pose.outX*SODIUM_POOL_INSET,cz=z-pose.outZ*SODIUM_POOL_INSET;
       for(let j=0;j<position.count;j++){
-        const px=position.getX(j)+x,pz=position.getZ(j)+z;
+        const px=position.getX(j)+cx,pz=position.getZ(j)+cz;
         position.setXYZ(j,px,alderHeight(px,pz)+.045,pz);
       }
       pools.push(pool);
@@ -128,7 +147,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   // __ns.pick reads them and so does the chunker -- and these three were the
   // only unnamed meshes in Port Alder, 106k triangles of them drawn city-wide.
   for(const [name,parts,material] of [['alder-lamp-posts',lamps,concrete],
-    ['alder-lamp-heads',bulbs,new THREE.MeshBasicMaterial({color:0xffd38a})]] as const){
+    ['alder-lamp-heads',bulbs,new THREE.MeshBasicMaterial({color:SODIUM_HEAD})]] as const){
     const geometry=mergeGeometries([...parts]);
     if(geometry){const mesh=new THREE.Mesh(geometry,material);mesh.name=name;scene.add(mesh);}
     parts.forEach(g=>g.dispose());

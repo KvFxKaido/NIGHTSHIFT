@@ -140,14 +140,26 @@ function facadePanel(width: number, height: number, phase: number): THREE.PlaneG
   return geometry;
 }
 
-const SIGN_COLORS = ["#ff2d6f", "#39f0c2", "#ffb03a", "#5ac8ff", "#c46bff", "#ff5f3c"] as const;
+/**
+ * Neon is where something is still open, and it never borrows a colour that
+ * means something else (design/LOOK.md): cyan is the race's, red is cars and the
+ * rival, amber is the city's sodium and the objective.
+ */
+const SIGN_COLORS = ["#c46bff", "#ff4fd8", "#8cff5a", "#6f6bff"] as const;
 
 export interface BuildingSite extends RoadSolid {
   /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
   readonly decorationIndex?: number;
-  /** How far the nearest street is from each face centre, outward order +Z, -Z, +X, -X. */
+  /** How far a street is from each face centre, outward order +Z, -Z, +X, -X.
+   *  Blackglass measures the nearest centreline, facing or not; Port Alder
+   *  measures to the carriageway along the wall's own normal, Infinity where
+   *  none is in reach (sim/frontage.ts). Each passes its own `FrontageReach`. */
   readonly faceDistances: readonly [number, number, number, number];
 }
+
+/** How near a face's street must be for the face to carry signs, and a lit shopfront. */
+export interface FrontageReach { readonly signs: number; readonly shopfronts: number }
+const CENTRELINE_REACH: FrontageReach = { signs: 56, shopfronts: 40 };
 
 /**
  * How far the adjacent road may sit above a block's base before its ground
@@ -162,7 +174,7 @@ const SHOPFRONT_MAX_LIFT = 3;
  * boxes and one draw call each would cost more than the entire car.
  */
 export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSite[],
-  groundAt: (x: number, z: number) => number = () => 0): void {
+  groundAt: (x: number, z: number) => number = () => 0, reach: FrontageReach = CENTRELINE_REACH): void {
   const { map, emissiveMap } = facadeTextures();
   const facadeMaterial = new THREE.MeshStandardMaterial({
     color: map ? 0xffffff : 0x39434d, map, emissiveMap,
@@ -213,7 +225,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
       // courtyard nobody drives past is cost with no image behind it.
-      if (face.width < 8 || site.faceDistances[side]! > 56) return;
+      if (face.width < 8 || site.faceDistances[side]! > reach.signs) return;
       if (hash01(index * 9.7 + side * 2.3) < 0.2) return;
       for (let slot = 0; slot < 2; slot++) {
         const seed = index * 9.7 + side * 2.3 + slot * 31.4;
@@ -244,7 +256,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // eye level, not by the lamps: without this row the street reads as a canyon
     // of dark slab with a few signs floating on it.
     faces.forEach((face, side) => {
-      if (site.faceDistances[side]! > 40 || face.width < 8) return;
+      if (site.faceDistances[side]! > reach.shopfronts || face.width < 8) return;
       // Where the road climbs away from the block's base — the bridge crown is
       // 24 m up, and 27 of the district's 165 street-facing blocks sit under
       // some lift — there is no ground floor to light. Dressing one anyway put
