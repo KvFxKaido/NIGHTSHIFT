@@ -82,7 +82,9 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
 - Treat the released SoDo/Belltown/Alder Center area as the southwest corner
   of the eventual map and preserve its driving geometry. Newer areas favour
   shorter blocks, varied streets and connected routes north and east.
-- Graphics resemble upscaled/emulated MC3 rather than photorealism.
+- Graphics resemble upscaled/emulated MC3 rather than photorealism. The city is
+  a working port on the night shift, with sodium lamps and dry streets; its
+  rules, and the check anything new passes first, are `design/LOOK.md`.
 - Preserve the current handling in Three.js/Rapier. PC prototype first;
   RedMagic 10 Pro is the eventual device, port and testing later. Capacitor
   is an option, not a decision. The Godot workshop in `godot-prototype/` is
@@ -241,7 +243,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
-| Rendering | `src/render/` | `design/DISTRICT.md` (night dressing) |
+| Rendering, and the city's look | `src/render/` | `design/LOOK.md` (what may enter the city), `design/DISTRICT.md` (night dressing) |
 | Race list: playlist store, list model and screen | `src/settings/playlist.ts`, `race-build.ts`, `src/ui/race-list.ts`, `race-list-panel.ts` | `design/PORT_ALDER.md` |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
