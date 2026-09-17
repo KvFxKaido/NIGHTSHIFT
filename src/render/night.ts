@@ -155,11 +155,34 @@ export interface BuildingSite extends RoadSolid {
    *  measures to the carriageway along the wall's own normal, Infinity where
    *  none is in reach (sim/frontage.ts). Each passes its own `FrontageReach`. */
   readonly faceDistances: readonly [number, number, number, number];
+  /** What this building's street walls do at night; `STREET_DRESSING` when absent. */
+  readonly dressing?: NightDressing;
 }
 
 /** How near a face's street must be for the face to carry signs, and a lit shopfront. */
 export interface FrontageReach { readonly signs: number; readonly shopfronts: number }
 const CENTRELINE_REACH: FrontageReach = { signs: 56, shopfronts: 40 };
+
+/**
+ * How busy a building's street walls are after dark, each a probability. The
+ * difference between neighbourhoods is density, not a new language
+ * (design/LOOK.md, Districts).
+ */
+export interface NightDressing {
+  /** A reached wall carries neon. */
+  readonly signs: number;
+  /** A wall with neon carries a second sign. */
+  readonly secondSign: number;
+  /** One unit of a shopfront row is lit. */
+  readonly shopfronts: number;
+  /** A lit unit glows in a sign colour rather than white. */
+  readonly coloured: number;
+  /** A white unit is warm rather than cool. */
+  readonly warm: number;
+}
+
+/** The dressing every building had before neighbourhoods; Blackglass keeps it. */
+export const STREET_DRESSING: NightDressing = { signs: 0.8, secondSign: 0.55, shopfronts: 0.82, coloured: 0.2, warm: 0.5 };
 
 /**
  * How far the adjacent road may sit above a block's base before its ground
@@ -202,6 +225,9 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // roads, through rails and, on the loop, five metres into the tunnel bore.
     // The sign is the blockout's: rotation.y = -rotation matches blockCorners.
     const yaw = -(site.rotation ?? 0);
+    // Each chance is taken as `hash < 1 - p`, so STREET_DRESSING keeps the
+    // thresholds Blackglass was dressed with (0.2, 0.45, 0.18, 0.8, 0.5).
+    const dressing = site.dressing ?? STREET_DRESSING;
     const finish = <T extends THREE.BufferGeometry>(geometry: T): T => {
       geometry.rotateY(yaw);
       geometry.translate(site.x, 0, site.z);
@@ -226,10 +252,10 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       // Signage goes on the faces a driver can actually read: a neon strip in a
       // courtyard nobody drives past is cost with no image behind it.
       if (face.width < 8 || site.faceDistances[side]! > reach.signs) return;
-      if (hash01(index * 9.7 + side * 2.3) < 0.2) return;
+      if (hash01(index * 9.7 + side * 2.3) < 1 - dressing.signs) return;
       for (let slot = 0; slot < 2; slot++) {
         const seed = index * 9.7 + side * 2.3 + slot * 31.4;
-        if (slot === 1 && hash01(seed) < 0.45) continue;
+        if (slot === 1 && hash01(seed) < 1 - dressing.secondSign) continue;
         const color = new THREE.Color(SIGN_COLORS[Math.floor(hash01(seed * 4.4) * SIGN_COLORS.length)]!);
         const blade = hash01(seed * 6.6) > 0.5;
         const width = blade ? 1.3 : Math.min(face.width * 0.42, 7.2);
@@ -273,12 +299,14 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       const units = Math.max(3, Math.round(face.width / 6));
       const unitWidth = face.width / units;
       let warm = new THREE.Color("#ffd9a2");
+      let lit = 0;
       for (let unit = 0; unit < units; unit++) {
         const seed = index * 11.3 + side * 3.7 + unit * 17.9;
-        if (hash01(seed) < 0.18) continue;
-        warm = new THREE.Color(hash01(seed * 1.9) > 0.8
+        if (hash01(seed) < 1 - dressing.shopfronts) continue;
+        lit++;
+        warm = new THREE.Color(hash01(seed * 1.9) > 1 - dressing.coloured
           ? SIGN_COLORS[Math.floor(hash01(seed * 12.1) * SIGN_COLORS.length)]!
-          : hash01(seed * 5.3) > 0.5 ? "#ffd9a2" : "#e8f0ff");
+          : hash01(seed * 5.3) > 1 - dressing.warm ? "#ffd9a2" : "#e8f0ff");
         const glass = new THREE.PlaneGeometry(unitWidth * 0.82, 1.9);
         glass.rotateY(face.rotation);
         const across = (unit + 0.5) / units * face.width - face.width / 2;
@@ -287,6 +315,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
           -Math.sin(face.rotation) * across + Math.cos(face.rotation) * 0.22);
         signs.push(tint(finish(glass), warm.clone().multiplyScalar(0.34)));
       }
+      // A row with every shop shut throws no light on the pavement.
+      if (!lit) return;
 
       const bloom = new THREE.PlaneGeometry(face.width * 1.35, 9);
       bloom.rotateY(face.rotation);

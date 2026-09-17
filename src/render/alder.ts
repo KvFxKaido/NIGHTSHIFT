@@ -9,9 +9,30 @@ import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
 import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
-import { addNightBuildings, glowTexture, type FrontageReach } from "./night.ts";
+import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing } from "./night.ts";
 import { buildingFrontage } from "../sim/frontage.ts";
+import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
 import type { DistrictLighting } from "./scene.ts";
+
+/** Asleep: a corner shop still open, no neon. */
+const ASLEEP: NightDressing = { signs: 0, secondSign: 0, shopfronts: 0.15, coloured: 0, warm: 0.8 };
+/**
+ * Each neighbourhood's lighting sentence (design/LOOK.md, Districts) as a density.
+ * The strip is Capitol Hill, and it is the only place neon is dense.
+ */
+export const NEIGHBOURHOOD_DRESSING: Readonly<Record<AlderNeighbourhoodId, NightDressing>> = {
+  // Freight after hours: strip-lit docks, almost no neon.
+  "sodo": { signs: 0.08, secondSign: 0, shopfronts: 0.3, coloured: 0, warm: 0.25 },
+  // Offices with the cleaners in: cool lobbies, very little colour.
+  "alder-center": { signs: 0.2, secondSign: 0.15, shopfronts: 0.65, coloured: 0.05, warm: 0.35 },
+  // The corner bar.
+  "belltown": { signs: 0.45, secondSign: 0.3, shopfronts: 0.75, coloured: 0.15, warm: 0.7 },
+  // The strip that is still open.
+  "capitol-hill": { signs: 0.95, secondSign: 0.75, shopfronts: 0.9, coloured: 0.35, warm: 0.6 },
+  "queen-anne": ASLEEP,
+  "central-district": ASLEEP,
+  "madrona-ridge": ASLEEP,
+};
 
 /** Metres from a wall to the carriageway it faces. Port Alder's setbacks are
  *  deep (median 22 m), so these are measured to the kerb, not the centreline. */
@@ -77,7 +98,10 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(6.5,2.012,910);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
   if(night){
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
-    addNightBuildings(scene,buildings.map((b,index)=>({...b,decorationIndex:index,faceDistances:frontage[index]!})),alderHeight,ALDER_REACH);
+    addNightBuildings(scene,buildings.map((b,index)=>{
+      const place=alderNeighbourhoodAt(b.x,b.z);
+      return {...b,decorationIndex:index,faceDistances:frontage[index]!,dressing:place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP};
+    }),alderHeight,ALDER_REACH);
   }
   else {
     const blocks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x778991}),buildings.length);

@@ -1,8 +1,8 @@
 # Port Alder's look
 
 Design note, 2026-09-16. **Adopted the same day:** Shawn chose the night shift,
-sodium lamps, keeping amber, and dry streets. Two questions stay open at the
-end, and the district rules wait on them.
+sodium lamps, keeping amber, and dry streets; on 2026-09-17, Capitol Hill for
+the strip and neighbourhood polygons for district identity.
 
 The rival portraits have a look in one sentence and rules that exclude
 (`design/CHARACTERS.md`); the city they are lit by did not. GDD §15.1 listed
@@ -92,17 +92,24 @@ Colour means something here, as it already does in the HUD.
 - **Each district compresses to one lighting sentence, and the difference is
   density, not a new language.** Same lamp, same wall family, same window tile
   family. What changes is how many windows are lit, how much neon there is, and
-  what the rooflines carry. These are proposals, with Seattle's character as the
-  starting point rather than the brief:
+  what the rooflines carry. A building's neighbourhood is the polygon its centre
+  stands in (`src/sim/alder-neighbourhoods.ts`), with boundaries along streets,
+  so a street's two sides can belong to different places. Seattle's character
+  is the starting point rather than the brief:
   - **SoDo and the port:** freight after hours. Lamps and dock floods, lit
     cranes, container colour, almost no neon, dark lots.
   - **Alder Center:** offices with the cleaners in. Towers lit in floor bands;
     nothing above the ground floor glows in colour.
   - **Belltown:** the corner bar. Some neon, low-rise, lit ground floors.
   - **Capitol Hill:** the strip that is still open, and the only place neon is
-    dense (GDD §6.1's "neon commercial strip").
+    dense (GDD §6.1's "neon commercial strip"). Broadway is on the Hill from both
+    sides, and Pike/Pine is its south edge.
   - **Queen Anne, the Central District, Madrona Ridge:** asleep. Few lit rooms,
     porch lights, evergreens black against the haze. No neon.
+
+  The neon and shopfront part of each sentence is built as a density
+  (`NEIGHBOURHOOD_DRESSING` in `src/render/alder.ts`). Windows, cranes and dock
+  floods are not yet.
 - **Landmarks are infrastructure, seen above the roofs.** The Broadcast Tower is
   the model: a steel lattice, red beacons, the city's own name. A district earns
   at most one, and it should help a driver learn the city (GDD §3.2): a row of
@@ -154,7 +161,7 @@ the Central District, Madrona Ridge, the waterfront and the garage.
 | Cyan belongs to the race | Neon is `#c46bff #ff4fd8 #8cff5a #6f6bff`: violet, magenta, green, indigo (`SIGN_COLORS` in `night.ts`). It was `#ff2d6f #39f0c2 #ffb03a #5ac8ff #c46bff #ff5f3c`, two cyans, the objective's amber and two reds beside the rival's, with only the violet free. Shopfront glass stays warm and cool white. | holds |
 | Neon is an accent on faces a driver reads | Each wall's frontage is measured along its own normal to the carriageway it faces, and a building in the way blocks it (`src/sim/frontage.ts`). Signs go on walls within 40 m, shopfronts within 30 m (`ALDER_REACH` in `alder.ts`): 2,097 and 1,597 of 6,912 walls. In the running game that is 4,112 glow quads and 1,540 shopfront spills, down from 15,260 and 6,740, when `alder.ts` passed zero for every wall and neon hung on back walls and hillsides. `tests/frontage.test.ts` checks the wall under every drawn sign triangle, and fails with 36,770 of 52,568 off if the zeros come back. | holds |
 | Signs name places | Where there is text, yes: PORT ALDER, WHARF GARAGE, RIDGE CIRCUIT, SOUTH WHARF / DRIFT YARD. The neon is blank. | holds |
-| Districts differ | Nothing in the renderer knows which district it is in. The street `zone` (`src/sim/alder.ts:49`) is a Blackglass-era three-way split (freight / waterfront / old-quarter) that the renderer never reads, and the data has four map labels. | open |
+| Districts differ | Seven neighbourhood polygons hold every building exactly once: SoDo 127, Alder Center 118, Belltown 131, Queen Anne 191, Capitol Hill 538, the Central District 285, Madrona Ridge 339. Neon and shopfronts follow each one's sentence: neon quads are Capitol Hill 1,103, Belltown 79, Alder Center 38, SoDo 17, and none in the three asleep. `tests/alder-neighbourhoods.test.ts` checks the coverage, that the map labels and Blacklist turfs land in their named places, and the neon rule. Windows are still one tile everywhere, so the difference is at street level only. | partial |
 | Landmarks are infrastructure | The Broadcast Tower is the only landmark, and it is the model. | holds |
 | Red is cars | Traffic paint is muted on purpose (`traffic.ts:34-35`), so tail lights own the red. | holds |
 
@@ -163,9 +170,10 @@ District and Madrona Ridge read as one block repeated: dark boxes, cream window
 cells, and blade signs in every colour at street level. The city was coherent
 everywhere and specific nowhere; the garage and the Broadcast Tower were the two
 places that looked authored. After it, streets carry a sodium pool every 55 m and
-neon only on the walls that face them, but every district still has the same
-density of it, because setbacks are much the same everywhere. That is the
-district rules' job, and they wait on decision 6.
+neon only on the walls that face them. After the neighbourhoods (2026-09-17),
+Broadway reads as a strip from both kerbs and a Central District avenue is dark
+but for its lamps. Above street level every district still looks the same,
+because the window tile does not know where it is.
 
 ## Decisions
 
@@ -179,14 +187,12 @@ Decided by Shawn, 2026-09-16:
    lamp.
 4. **Dry streets:** wet pavement is struck from GDD §15.1.
 
-Open:
+Decided by Shawn, 2026-09-17:
 
-5. **The neon strip.** Capitol Hill is proposed; the map may have a better
-   street for it.
-6. **Where district identity comes from.** Every district rule needs a district
-   per building, and the Blackglass `zone` split is not one. Neighbourhood
-   polygons or the turf centres in `src/sim/alder-turf.ts` are candidates. This
-   is engineering, and it blocks every district rule.
+5. **The neon strip:** Capitol Hill.
+6. **District identity:** neighbourhood polygons, not the Blackglass `zone`
+   split or the turf centres. Drawn in game coordinates along streets, since the
+   hill districts were authored and Seattle's real boundaries would not line up.
 
 GDD §15.1 points here, and CLAUDE.md names this page beside the renderer, so
 anything made for the city is checked against it first.
