@@ -42,9 +42,14 @@ morning; the city of the people who work nights, not the people who go out.
 - **The cars are drawn, like the rival portraits.** Their light is cut into
   three flat bands of their own colour, with an ink outline, one hard highlight
   shape on the paint and the race's cyan on the flanks (`src/render/cel.ts`).
-  Traffic is not drawn, which keeps it in the city rather than the race. Tyre
-  smoke is drawn too: flat puffs, a halftone shadow side and an ink ring. The
-  smoke is a first pass; the cars are the decision.
+  Traffic is not drawn, which keeps it in the city rather than the race.
+- **Tyre smoke is drawn the same way** (`src/render/smoke.ts`, after NFS
+  Unbound's, 2026-09-18). Lumps of mid warm grey that billow into one cloud
+  with one thin ink edge, lit like the portraits: sodium along the top, cyan
+  down a flank, a halftone underside. Nothing fades; a lump dies by eroding into
+  ink-rimmed tatters. A burnout or a held launch stays around the wheels, so the
+  car and the road ahead stay in view. Near-black, it read as coal; white, it
+  would out-shout the car at night.
 
 ### Light
 

@@ -31,7 +31,8 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
-import { addCelSmoke, drawnEffects, setLook } from "./render/cel.ts";
+import { drawnEffects, setLook } from "./render/cel.ts";
+import { addCelSmoke } from "./render/smoke.ts";
 import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
 import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setParkedRivalCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
@@ -807,6 +808,8 @@ function frame(now: number): void {
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
   audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen);
+  // E-brake and gas at a standstill smokes like a launch, anywhere (render/smoke.ts).
+  view.celSmoke?.holding(menu.isGameplayActive() && !frozen && lastInput.handbrake > .05 && lastInput.throttle > .1);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,

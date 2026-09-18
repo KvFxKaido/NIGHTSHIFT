@@ -15,7 +15,7 @@ import {
   type ChaseCameraId,
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
-import type { CelSmoke } from "./cel.ts";
+import type { CelSmoke } from "./smoke.ts";
 import { createGarageScene } from "./garage.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 

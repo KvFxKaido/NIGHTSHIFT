@@ -389,8 +389,10 @@ menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
 `?scene=track&visit=rivet`, `?race=sable-yard-drift`. Browser harnesses:
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
-The cars are drawn by default (`src/render/cel.ts`); `?look=plain` shows them
-undrawn and `?look=fx` undrawn with the drawn smoke, for comparison, never saved.
+The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
+`src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`
+undrawn with the drawn smoke, for comparison, never saved. E-brake and gas at a
+standstill throws burnout smoke anywhere, which is the quick way to look at it.
 Live play draws each car between its last two ticks (`src/render/interpolate.ts`),
 up to one tick late; `?smooth=0` draws the last tick, which shakes on displays
 faster than 60 Hz.

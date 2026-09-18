@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
-import { CAR_GEOMETRY, type CarView } from "./car.ts";
-import type { SimState, VehicleState, WheelId } from "../sim/sim.ts";
+import type { CarView } from "./car.ts";
 
 /**
  * The cars are drawn: `cel`, the default since 2026-09-18. At night the
@@ -20,7 +19,7 @@ import type { SimState, VehicleState, WheelId } from "../sim/sim.ts";
  *
  * The bands are a patch on the cars' own standard materials, not a swap, so
  * paint, wheel finish and livery edits keep working on the same objects. The
- * smoke is a first pass and needs work.
+ * drawn tyre smoke is its own module, render/smoke.ts.
  */
 export type Look = "fx" | "cel";
 let look: Look | null = null;
@@ -151,132 +150,4 @@ export function celCar(parts: CarView): CarView {
     mesh.add(inkFor(mesh));
   }
   return parts;
-}
-
-const PUFFS = 192;
-const WHEELS: readonly [WheelId, number, number][] = [
-  ["front-left", -1, -1], ["front-right", 1, -1], ["rear-left", -1, 1], ["rear-right", 1, 1],
-];
-/** Metres per second a tyre slides across itself before it smokes, and at which it smokes hardest. */
-const SMOKE_FROM = 3, SMOKE_FULL = 10;
-/** Puffs a second from one tyre sliding flat out. */
-const SMOKE_RATE = 40;
-
-export interface CelSmoke { update(state: SimState, frameDelta: number): void }
-
-/**
- * Tyre smoke drawn as a cartoon: flat discs with a lit crescent and an ink ring,
- * which swell and then pop rather than fade, since a flat colour cannot fade
- * without turning into a gradient. Read from the tick's state, like everything
- * the renderer draws; it decides nothing.
- */
-export function addCelSmoke(scene: THREE.Scene): CelSmoke {
-  const material = new THREE.ShaderMaterial({
-    name: "cel-smoke",
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      puffShade: { value: new THREE.Color(0x6f7789) },
-      puffLit: { value: new THREE.Color(0xb9bfcc) },
-      inkColor: { value: new THREE.Color(0x06080d) },
-    }]),
-    vertexShader: /* glsl */ `
-      varying vec2 vDisc;
-      #include <common>
-      #include <fog_pars_vertex>
-      void main() {
-        vDisc = uv * 2.0 - 1.0;
-        vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-        mvPosition.xy += position.xy * length(instanceMatrix[0].xyz);
-        gl_Position = projectionMatrix * mvPosition;
-        #include <fog_vertex>
-      }`,
-    fragmentShader: /* glsl */ `
-      varying vec2 vDisc;
-      uniform vec3 puffShade;
-      uniform vec3 puffLit;
-      uniform vec3 inkColor;
-      #include <common>
-      #include <fog_pars_fragment>
-      void main() {
-        float r = length(vDisc);
-        if (r > 1.0) discard;
-        vec3 color = puffLit;
-        if (length(vDisc - vec2(-0.3, 0.34)) >= 0.6) {
-          // The shadow side is printed, not shaded: a halftone screen fixed to
-          // the screen, so it reads as ink on paper rather than a texture.
-          vec2 cell = fract(gl_FragCoord.xy / 7.0) - 0.5;
-          color = length(cell) < 0.3 ? inkColor : puffShade;
-        }
-        if (r > 0.86) color = inkColor;
-        gl_FragColor = vec4(color, 1.0);
-        #include <colorspace_fragment>
-        #include <fog_fragment>
-      }`,
-    fog: true,
-  });
-  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), material, PUFFS);
-  mesh.name = "cel-smoke";
-  mesh.frustumCulled = false;
-  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  scene.add(mesh);
-
-  const position = new Float32Array(PUFFS * 3), velocity = new Float32Array(PUFFS * 3);
-  const age = new Float32Array(PUFFS).fill(1), life = new Float32Array(PUFFS).fill(1), grow = new Float32Array(PUFFS);
-  let next = 0, seed = 0x2545f491;
-  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-  // Keyed by slot, not by object: a drawn state may be a fresh object every
-  // frame (render/interpolate.ts), and a map of those would only ever grow.
-  const debt: number[] = [];
-  const pose = new THREE.Matrix4(), scale = new THREE.Vector3(), at = new THREE.Vector3(), none = new THREE.Quaternion();
-
-  function emit(vehicle: VehicleState, slot: number, frameDelta: number): void {
-    const cos = Math.cos(vehicle.heading), sin = Math.sin(vehicle.heading);
-    const vx = -sin * vehicle.forwardSpeed + cos * vehicle.lateralSpeed;
-    const vz = -cos * vehicle.forwardSpeed - sin * vehicle.lateralSpeed;
-    for (const [id, side, end] of WHEELS) {
-      const wheel = vehicle.wheels[id];
-      const slide = Math.abs(wheel.lateralSpeed);
-      if (slide < SMOKE_FROM || vehicle.speed < 2) continue;
-      const strength = Math.min(1, (slide - SMOKE_FROM) / (SMOKE_FULL - SMOKE_FROM));
-      let owed = (debt[slot] ?? 0) + strength * SMOKE_RATE * frameDelta;
-      const lx = side * CAR_GEOMETRY.halfTrack, lz = end * CAR_GEOMETRY.axleZ;
-      while (owed >= 1) {
-        owed -= 1;
-        const i = next; next = (next + 1) % PUFFS;
-        position[i * 3] = vehicle.x + cos * lx + sin * lz + (random() - 0.5) * 0.4;
-        position[i * 3 + 1] = vehicle.y + 0.35;
-        position[i * 3 + 2] = vehicle.z - sin * lx + cos * lz + (random() - 0.5) * 0.4;
-        // Carried along with most of the car's speed and gone within a second, so
-        // the smoke hugs the tyres; left standing, it drifted into the chase
-        // camera 7 m back and filled the frame.
-        velocity[i * 3] = vx * 0.65 + (random() - 0.5) * 1.2;
-        velocity[i * 3 + 1] = 0.4 + random() * 0.5;
-        velocity[i * 3 + 2] = vz * 0.65 + (random() - 0.5) * 1.2;
-        age[i] = 0; life[i] = 0.5 + random() * 0.4; grow[i] = 0.5 + random() * 0.7 * strength;
-      }
-      debt[slot] = owed;
-    }
-  }
-
-  return {
-    update(state, frameDelta) {
-      if (frameDelta <= 0) return;
-      const vehicles = [state.vehicle, state.rival?.vehicle ?? state.encounter ?? null, ...state.cruisers.map(c => c.vehicle)];
-      vehicles.forEach((vehicle, slot) => { if (vehicle) emit(vehicle, slot, frameDelta); });
-      const drag = Math.exp(-2.2 * frameDelta);
-      for (let i = 0; i < PUFFS; i++) {
-        if (age[i]! >= life[i]!) { mesh.setMatrixAt(i, pose.makeScale(0, 0, 0)); continue; }
-        age[i]! += frameDelta;
-        for (let k = 0; k < 3; k++) {
-          velocity[i * 3 + k]! *= drag;
-          position[i * 3 + k]! += velocity[i * 3 + k]! * frameDelta;
-        }
-        // Swell to full size, hold, then pop in the last fifth of its life.
-        const t = Math.min(1, age[i]! / life[i]!);
-        const size = (0.3 + grow[i]! * Math.min(1, t / 0.6)) * (t > 0.8 ? Math.max(0, 1 - (t - 0.8) / 0.2) : 1);
-        at.set(position[i * 3]!, position[i * 3 + 1]!, position[i * 3 + 2]!);
-        mesh.setMatrixAt(i, pose.compose(at, none, scale.setScalar(size)));
-      }
-      mesh.instanceMatrix.needsUpdate = true;
-    },
-  };
 }
