@@ -195,6 +195,12 @@ function facadePanel(width: number, height: number, phase: number, rowsPerTile: 
  */
 const SIGN_COLORS = ["#c46bff", "#ff4fd8", "#8cff5a", "#6f6bff"] as const;
 
+/** Dock doors: shut steel, or open on a strip-lit inside. */
+const DOCK_SHUT = new THREE.Color("#1c2229");
+const DOCK_INSIDE = new THREE.Color("#b9c9e6").multiplyScalar(0.45);
+/** A dock floodlight: white, because somebody private pays for it (design/LOOK.md). */
+const FLOOD = new THREE.Color("#eef3ff");
+
 export interface BuildingSite extends RoadSolid {
   /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
   readonly decorationIndex?: number;
@@ -356,6 +362,40 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       const spillWorld = toWorld(spillLocalX, spillLocalZ);
       const street = groundAt(spillWorld.x, spillWorld.z);
       if (Math.abs(street - base) > SHOPFRONT_MAX_LIFT) return;
+      if (windows === "freight") {
+        // A warehouse lights its docks, not its walls (design/LOOK.md): roller
+        // doors along the street wall, a few open on a strip-lit inside, and
+        // floodlights over them throwing white across the apron. White because
+        // somebody private pays for it; the street's own light is sodium.
+        const onFace = (geometry: THREE.BufferGeometry, across: number, depth: number, y: number) => {
+          geometry.rotateY(face.rotation);
+          geometry.translate(face.x + Math.cos(face.rotation) * across + Math.sin(face.rotation) * depth, base + y,
+            face.z - Math.sin(face.rotation) * across + Math.cos(face.rotation) * depth);
+          return finish(geometry);
+        };
+        const doors = Math.max(2, Math.round(face.width / 9));
+        const doorWidth = Math.min(4.6, face.width / doors * 0.72);
+        for (let door = 0; door < doors; door++) {
+          const open = hash01(index * 13.1 + side * 5.3 + door * 19.7) >= 1 - dressing.shopfronts;
+          const across = (door + 0.5) / doors * face.width - face.width / 2;
+          signs.push(tint(onFace(new THREE.PlaneGeometry(doorWidth, 4.2), across, 0.22, 2.1), open ? DOCK_INSIDE : DOCK_SHUT));
+        }
+        const floods = Math.max(1, Math.round(face.width / 22));
+        for (let flood = 0; flood < floods; flood++) {
+          const across = (flood + 0.5) / floods * face.width - face.width / 2;
+          signs.push(tint(onFace(new THREE.PlaneGeometry(1.3, 0.4), across, 0.4, 6.4), FLOOD));
+          glows.push(tint(onFace(new THREE.PlaneGeometry(4.5, 2.6), across, 0.55, 6.4), FLOOD.clone().multiplyScalar(0.3)));
+        }
+        // The apron in front, lit on the ground the dock stands on.
+        const apron = new THREE.PlaneGeometry(face.width * 1.1, 18);
+        apron.rotateX(-Math.PI / 2);
+        apron.rotateY(face.rotation);
+        apron.translate(face.x + Math.sin(face.rotation) * 9, street + 0.06, face.z + Math.cos(face.rotation) * 9);
+        finish(apron);
+        apron.setAttribute("base", new THREE.Float32BufferAttribute(new Array(apron.getAttribute("position").count).fill(base), 1));
+        spills.push(tint(apron, FLOOD.clone().multiplyScalar(0.3)));
+        return;
+      }
       // A block front stands in for a row of shops, so light it as a row: one
       // unbroken strip of glass reads as a lightbox, not as a street.
       const units = Math.max(3, Math.round(face.width / 6));

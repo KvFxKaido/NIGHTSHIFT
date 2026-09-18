@@ -142,11 +142,38 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   }
   box('alder-seawall',data.shore,2,(data.bounds[1]!+data.bounds[3]!)/2,1.2,2.6,data.bounds[3]!-data.bounds[1]!,concrete);
   // Port silhouettes sit beyond the seawall, out of the drivable street network.
+  // After dark (design/LOOK.md, SoDo: lit cranes): a red aviation beacon over
+  // the legs and at the boom's sea end, drawn through the haze because a beacon
+  // is what a port is from 500 m away, and white work lights under the boom
+  // lighting the pier deck.
+  const beacon=new THREE.MeshBasicMaterial({color:0xff3a2a,fog:false});
+  const beaconGlow=new THREE.SpriteMaterial({map:glowTexture(),color:0xff3a2a,blending:THREE.AdditiveBlending,
+    depthWrite:false,transparent:true,fog:false});
+  const workLight=new THREE.MeshBasicMaterial({color:0xf1f5ff});
+  const workGlow=new THREE.SpriteMaterial({map:glowTexture(),color:0xdfe8ff,blending:THREE.AdditiveBlending,
+    depthWrite:false,transparent:true,opacity:.75,fog:false});
+  const deckPools:THREE.BufferGeometry[]=[];
   for(const z of [-320,80,470,810]) {
     box('port-pier',data.shore-42,1,z,84,2,55,concrete);
     for(const dz of [-13,13])box('port-crane-leg',data.shore-35,19,z+dz,3,36,3,red);
     box('port-crane-boom',data.shore-43,38,z,72,3,3,red);
     box('port-crane-crossbar',data.shore-35,35,z,4,3,32,red);
+    if(!night)continue;
+    for(const [bx,by] of [[data.shore-35,40.2],[data.shore-78,39.8]] as const){
+      box('port-crane-beacon',bx,by,z,.9,.9,.9,beacon);
+      // Sized to read from the waterfront road, 500 m off: at 7 m it was a pinprick.
+      const glow=new THREE.Sprite(beaconGlow);glow.position.set(bx,by,z);glow.scale.set(16,16,1);glow.name='port-crane-beacon-glow';scene.add(glow);
+    }
+    for(const dx of [-62,-48,-34]){
+      box('port-crane-lamp',data.shore+dx,36.2,z,1.6,.3,1.6,workLight);
+      const glow=new THREE.Sprite(workGlow);glow.position.set(data.shore+dx,35.8,z);glow.scale.set(9,9,1);glow.name='port-crane-lamp-glow';scene.add(glow);
+      deckPools.push(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2).translate(data.shore+dx,2.06,z));
+    }
+  }
+  if(deckPools.length){
+    const geometry=mergeGeometries(deckPools);deckPools.forEach(g=>g.dispose());
+    if(geometry){const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xdfe6f2,map:glowTexture(),transparent:true,
+      blending:THREE.AdditiveBlending,depthWrite:false,opacity:.55,toneMapped:false}));mesh.name='port-deck-pools';scene.add(mesh);}
   }
   // Additive pools follow the same ground height as the road and car.
   const pools: THREE.BufferGeometry[]=[];

@@ -43,8 +43,8 @@ test("the map's labels and the rivals' turfs are where the neighbourhoods say", 
 
 // design/LOOK.md: Capitol Hill is the strip that is still open and the only
 // place neon is dense; Queen Anne, the Central District and Madrona Ridge are
-// asleep. Neon is told from shopfront glass by brightness: glass is tinted at
-// a third, signs at full.
+// asleep. Neon is told from everything else on the wall by being bright and
+// saturated: shop glass is tinted at a third, and a dock's floodlight is white.
 test("neon is dense on Capitol Hill and absent where the city is asleep", () => {
   const scene = new THREE.Scene();
   addAlder(scene, "night");
@@ -55,7 +55,9 @@ test("neon is dense on Capitol Hill and absent where the city is asleep", () => 
     const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry;
     const positions = geometry.getAttribute("position"), colors = geometry.getAttribute("color");
     for (let i = 0; i < positions.count; i += 3) {
-      if (Math.max(colors.getX(i), colors.getY(i), colors.getZ(i)) <= 0.5) continue;
+      const high = Math.max(colors.getX(i), colors.getY(i), colors.getZ(i));
+      const low = Math.min(colors.getX(i), colors.getY(i), colors.getZ(i));
+      if (high <= 0.5 || high - low < 0.3) continue;
       position.fromBufferAttribute(positions, i);
       const id = alderNeighbourhoodAt(position.x, position.z)?.id ?? "none";
       neon.set(id, (neon.get(id) ?? 0) + 1);
@@ -93,5 +95,31 @@ test("each building's windows say who is in it", () => {
   }
   assert.deepEqual(Object.fromEntries([...drawn].sort()), Object.fromEntries([...expected].sort()));
   assert.ok((expected.get("district-facades-office") ?? 0) > 0 && (expected.get("district-facades-freight") ?? 0) > 0);
+  scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+});
+
+// design/LOOK.md, SoDo: freight after hours, lit by its docks rather than its
+// walls. A dock's floodlight is the one bright white thing hung on a wall (shop
+// glass is tinted at a third, neon is saturated), and only warehouses have one.
+test("SoDo's warehouses light their docks, and nothing else floodlights a wall", () => {
+  const scene = new THREE.Scene();
+  addAlder(scene, "night");
+  const floods = new Map<string, number>();
+  const position = new THREE.Vector3();
+  scene.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || !object.name.startsWith("district-signage:")) return;
+    const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry;
+    const positions = geometry.getAttribute("position"), colors = geometry.getAttribute("color");
+    for (let i = 0; i < positions.count; i += 3) {
+      const high = Math.max(colors.getX(i), colors.getY(i), colors.getZ(i));
+      const low = Math.min(colors.getX(i), colors.getY(i), colors.getZ(i));
+      if (high < 0.8 || high - low > 0.2) continue;
+      position.fromBufferAttribute(positions, i);
+      const id = alderNeighbourhoodAt(position.x, position.z)?.id ?? "none";
+      floods.set(id, (floods.get(id) ?? 0) + 1);
+    }
+  });
+  assert.ok((floods.get("sodo") ?? 0) >= 100, `only ${floods.get("sodo") ?? 0} floodlight triangles in SoDo`);
+  assert.deepEqual([...floods.keys()], ["sodo"], `floodlights outside SoDo: ${JSON.stringify(Object.fromEntries(floods))}`);
   scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
 });

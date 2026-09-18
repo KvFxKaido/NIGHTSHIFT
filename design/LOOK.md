@@ -122,8 +122,11 @@ Colour means something here, as it already does in the HUD.
   The neon, shopfront and window parts of each sentence are built
   (`NEIGHBOURHOOD_DRESSING` in `src/render/alder.ts`, `WINDOW_PATTERNS` in
   `src/render/night.ts`); a tower of 40 m or more is offices wherever it stands
-  but among SoDo's warehouses. Cranes and dock floods are not yet, so SoDo is
-  dark where it should be lit by its docks.
+  but among SoDo's warehouses. SoDo's warehouses dress their street walls as
+  docks instead of shopfronts: roller doors, some open on a strip-lit inside,
+  and white floodlights over them lighting the apron. The port cranes carry red
+  beacons and white work lights, drawn through the haze so they read from the
+  waterfront road 500 m off.
 - **Landmarks are infrastructure, seen above the roofs.** The Broadcast Tower is
   the model: a steel lattice, red beacons, the city's own name. A district earns
   at most one, and it should help a driver learn the city (GDD §3.2): a row of
@@ -169,13 +172,13 @@ the Central District, Madrona Ridge, the waterfront and the garage.
 | Plain masses | 1,728 generated boxes with flat roofs: no setbacks, parapets or roof detail (the `faces` loop in `night.ts:214`). Silhouette is the unused lever. | partial |
 | Script-built surfaces | One canvas facade tile, canvas text signs, no image textures anywhere in the world. | holds |
 | Lit means occupied | Four window patterns (`WINDOW_PATTERNS` in `night.ts`), chosen by neighbourhood and height: offices 207 buildings, ribbon windows dark but for two cleaners' floors in a 24-floor tile and a few late desks, each building starting the tile on its own floor so a lit floor runs round all four walls; residential 778, a few warm rooms; freight 126 (SoDo), small high windows almost none lit; scattered 617 (Belltown, Capitol Hill), the tile every building had before. `tests/alder-neighbourhoods.test.ts` counts each building into its pattern's mesh. | holds |
-| Dark has an edge | Elliott Bay is a flat dark plane with no streaks (`water` in `alder.ts`); the port cranes are unlit. From the waterfront the city is a thin strip on a black horizon. | open |
+| Dark has an edge | Elliott Bay is a flat dark plane with no streaks (`water` in `alder.ts`). The four port cranes are lit (2026-09-18): a red beacon over the legs and at the boom's end, three white work lights under the boom with pools on the pier deck, the beacons and lamps fog-exempt so the port reads on the horizon. There are no pier lamps or seawall lights, so the rest of the waterfront edge is still dark. | partial |
 | Sky is not black | No sky in Port Alder: flat background `#05080f` behind fog `#070c16`, so the horizon is a hard band (`scene.ts:121-122`). | open |
 | Dry streets | By omission: no environment map and no wet roughness. The wet asphalt was Blackglass's. | holds |
 | Cyan belongs to the race | Neon is `#c46bff #ff4fd8 #8cff5a #6f6bff`: violet, magenta, green, indigo (`SIGN_COLORS` in `night.ts`). It was `#ff2d6f #39f0c2 #ffb03a #5ac8ff #c46bff #ff5f3c`, two cyans, the objective's amber and two reds beside the rival's, with only the violet free. Shopfront glass stays warm and cool white. | holds |
 | Neon is an accent on faces a driver reads | Each wall's frontage is measured along its own normal to the carriageway it faces, and a building in the way blocks it (`src/sim/frontage.ts`). Signs go on walls within 40 m, shopfronts within 30 m (`ALDER_REACH` in `alder.ts`): 2,097 and 1,597 of 6,912 walls. In the running game that is 4,112 glow quads and 1,540 shopfront spills, down from 15,260 and 6,740, when `alder.ts` passed zero for every wall and neon hung on back walls and hillsides. `tests/frontage.test.ts` checks the wall under every drawn sign triangle, and fails with 36,770 of 52,568 off if the zeros come back. | holds |
 | Signs name places | Where there is text, yes: PORT ALDER, WHARF GARAGE, RIDGE CIRCUIT, SOUTH WHARF / DRIFT YARD. The neon is blank. | holds |
-| Districts differ | Seven neighbourhood polygons hold every building exactly once: SoDo 127, Alder Center 118, Belltown 131, Queen Anne 191, Capitol Hill 538, the Central District 285, Madrona Ridge 339. Neon and shopfronts follow each one's sentence: neon quads are Capitol Hill 1,103, Belltown 79, Alder Center 38, SoDo 17, and none in the three asleep. `tests/alder-neighbourhoods.test.ts` checks the coverage, that the map labels and Blacklist turfs land in their named places, and the neon rule. The windows follow too (the row above). SoDo's docks and cranes do not exist yet. | partial |
+| Districts differ | Seven neighbourhood polygons hold every building exactly once: SoDo 127, Alder Center 118, Belltown 131, Queen Anne 191, Capitol Hill 538, the Central District 285, Madrona Ridge 339. Neon and shopfronts follow each one's sentence: neon quads are Capitol Hill 1,103, Belltown 79, Alder Center 38, SoDo 17, and none in the three asleep. `tests/alder-neighbourhoods.test.ts` checks the coverage, that the map labels and Blacklist turfs land in their named places, and the neon rule. The windows follow too (the row above), and SoDo's walls are docks. `tests/alder-neighbourhoods.test.ts` holds floodlights to SoDo's warehouses. | holds |
 | Landmarks are infrastructure | The Broadcast Tower is the only landmark, and it is the model. | holds |
 | Red is cars | Traffic paint is muted on purpose (`traffic.ts:34-35`), so tail lights own the red. | holds |
 
@@ -188,9 +191,10 @@ neon only on the walls that face them. After the neighbourhoods (2026-09-17),
 Broadway reads as a strip from both kerbs and a Central District avenue is dark
 but for its lamps. After the windows (2026-09-18), Alder Center's towers are dark
 but for the floors the cleaners are on, the hills show a few warm rooms, and
-Capitol Hill is the busiest thing in sight. SoDo, where the game starts, is the
-darkest: freight windows went out and the dock floods and lit cranes that should
-replace them are not built.
+Capitol Hill is the busiest thing in sight. SoDo, where the game starts, went
+dark with its freight windows and is lit again by its docks: rows of roller
+doors under white floodlights, and cranes on the horizon with red beacons and
+white work lights. The start view up 1st Ave S still passes open lots.
 
 ## Decisions
 
