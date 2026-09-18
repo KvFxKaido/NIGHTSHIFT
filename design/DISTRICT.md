@@ -957,30 +957,33 @@ so another prop costs data rather than code:
 
 | | spacing | offset past the kerb | ends cleared | side | density | off solids | off roads |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Lamps | 55 m | 1.7 m | 20 / 15 m | left | all | none | none |
+| Lamps | 55 m | 1.7 m | 20 / 15 m | left | all | none | 0.5 m |
 | Bins | 34 m | 1.35 m | 26 / 20 m | right | 55% | 1.1 m | 0.5 m |
 
-That places 1265 lamps — the same 1265, in the same places, as the inline loop
-did — and 1150 bins out of 2116 candidates. Streets only meet at junctions, so
+That places 1257 lamps — the inline loop's 1265 in the same places, less the
+eight it stood in a roadway (below) — and 1150 bins out of 2116 candidates. Streets only meet at junctions, so
 a street's ends *are* its crossings, which is why clearing a fixed distance from
 each end is the right primitive rather than something cleverer.
 
 Clearance comes in two kinds because a prop can be wrong in two ways. Solid
-clearance keeps it out of walls. Road clearance keeps it out of *other* streets:
-`project()` answers with the nearest street, and near a junction a prop can sit
-correctly on its own kerb and still stand inside a wider road's carriageway.
-Measured before the check existed, that was 12 bins and 8 lamps — 0.7% and 0.6%,
-the worst of them 9 m into the road. It costs ten bins to fix and it is left off
-for the lamps, so their seven stay exactly where the renderer has always put
-them; `tests/kerb-props.test.ts` asserts the bins are clear, and that the lamps
-are *not*, which is what catches the default being flipped on.
+clearance keeps it out of walls. Road clearance keeps it out of every roadway,
+its own street's included: a prop can sit correctly on its own kerb and still
+stand in a carriageway, inside a bend where one leg's kerb is the other leg's
+road, or in a wider street near a junction. Measured before the check existed,
+that was 12 bins and 8 lamps — 0.7% and 0.6%, the worst of them 9 m into the
+road. Five of the seven lamps in a carriageway were in their own street's bend.
+The check was left off for the lamps at first so the extraction moved nothing;
+on 2026-09-18 a lamp drawn in the middle of Alaskan Way, 8.9 m into it on the
+inside of its bend, turned it on for them too. `tests/kerb-props.test.ts`
+asserts that no bin and no lamp is in a carriageway, and that the lamps' rule
+without the check still puts seven there, so the check is what clears them.
 
 Two more decisions worth keeping. Thinning is keyed to the pose's world position
 rather than to a loop index, so authoring a new street cannot shuffle the props
 on an existing one; `tests/kerb-props.test.ts` proves it by reversing the street
-order and demanding the same set back. And clearance is opt-in, because the
-lamps never had any: switching it on for them would move them, and the same
-test pins them to the arithmetic the renderer used to run, to the bit.
+order and demanding the same set back. And clearance is opt-in, and the
+same test pins the lamps to the arithmetic the renderer used to run, to the bit,
+less the eight the road check removes.
 
 Nothing here collides. These are dressing, and a prop that should stop a car has
 to be put in the sim's solids deliberately, the way an evergreen trunk is. That

@@ -5,23 +5,41 @@ import { pathLength, pathSamples } from "../src/sim/lanes.ts";
 import { ALDER_STREETS, ALDER_BLOCKS } from "../src/sim/alder.ts";
 import { pointFootprintDistance, type BuildingBlock } from "../src/sim/building-footprint.ts";
 
+const SEGMENTS = ALDER_STREETS.flatMap(street =>
+  street.points.slice(1).map((b, i) => ({ a: street.points[i]!, b })));
+
+/** How many of these stand within `clearance` of any carriageway, own street
+ *  included. Brute force over every segment, independent of the anchor's index. */
+function inCarriageway(poses: readonly { x: number; z: number }[], clearance = 0): number {
+  return poses.filter(pose => SEGMENTS.some(({ a, b }) => {
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const t = Math.max(0, Math.min(1,
+      ((pose.x - a.x) * dx + (pose.z - a.z) * dz) / Math.max(1e-9, dx * dx + dz * dz)));
+    return Math.hypot(pose.x - a.x - t * dx, pose.z - a.z - t * dz) < Math.max(a.width, b.width) / 2 + clearance;
+  })).length;
+}
+
 // The extraction gate. The lamps were placed inline in render/alder.ts, and
 // nothing in the suite pinned them, so this recomputes that exact arithmetic
-// and demands the anchor agree to the bit. If this drifts, the street lamps
-// moved, and moving them is a visual change nobody asked for.
-test("the anchor reproduces the lamps the renderer used to place inline", () => {
-  const expected: { street: string; x: number; z: number }[] = [];
+// and demands the anchor agree to the bit, less the lamps that rule stood in a
+// roadway (2026-09-18). If this drifts, the street lamps moved, and moving them
+// is a visual change nobody asked for.
+test("the anchor reproduces the lamps the renderer used to place inline, less those in the road", () => {
+  const inline: { street: string; x: number; z: number }[] = [];
   for (const street of ALDER_STREETS) {
     const length = pathLength(street.points);
     for (const sample of pathSamples(street.points, 55)) {
       if (sample.distance < 20 || sample.distance > length - 15) continue;
-      expected.push({
+      inline.push({
         street: street.id,
         x: sample.x - sample.dirZ * (sample.width / 2 + 1.7),
         z: sample.z + sample.dirX * (sample.width / 2 + 1.7),
       });
     }
   }
+  const expected = inline.filter(lamp => inCarriageway([lamp], 0.5) === 0);
+  // One stood 8.9 m into Alaskan Way, on the inside of its bend.
+  assert.equal(inline.length - expected.length, 8, "the inline rule no longer stands eight lamps in the road");
   const poses = kerbPoses(ALDER_STREETS, ALDER_LAMPS);
   assert.ok(expected.length > 100, `only ${expected.length} lamps to compare`);
   assert.equal(poses.length, expected.length);
@@ -54,8 +72,10 @@ test("poses clear the junctions at both ends and stand off the carriageway", () 
 });
 
 test("sides are opposite kerbs, and the pose faces away from the road", () => {
-  const left = kerbPoses(ALDER_STREETS, { ...ALDER_LAMPS, sides: [1] });
-  const right = kerbPoses(ALDER_STREETS, { ...ALDER_LAMPS, sides: [-1] });
+  // Without road clearance, which drops different poses on each kerb and would
+  // leave the two lists out of step.
+  const left = kerbPoses(ALDER_STREETS, { ...ALDER_LAMPS, sides: [1], roadClearance: 0 });
+  const right = kerbPoses(ALDER_STREETS, { ...ALDER_LAMPS, sides: [-1], roadClearance: 0 });
   assert.equal(left.length, right.length);
   for (let i = 0; i < left.length; i++) {
     // Mirrored normals: the two kerbs of one street point opposite ways.
@@ -111,25 +131,14 @@ function countInside(poses: readonly { x: number; z: number }[], block: Building
 
 // Measured before this existed: 0.7% of bins and 0.6% of lamps stood inside a
 // carriageway, because a prop can sit correctly on its own kerb and still be in
-// a wider street's roadway near a junction. Checked here against every segment
-// by brute force, independently of the spatial index the anchor uses.
-test("road clearance keeps props out of every carriageway, not just their own", () => {
-  const segments = ALDER_STREETS.flatMap(street =>
-    street.points.slice(1).map((b, i) => ({ a: street.points[i]!, b })));
-  const inCarriageway = (poses: readonly { x: number; z: number }[]) => poses.filter(pose =>
-    segments.some(({ a, b }) => {
-      const dx = b.x - a.x, dz = b.z - a.z;
-      const t = Math.max(0, Math.min(1,
-        ((pose.x - a.x) * dx + (pose.z - a.z) * dz) / Math.max(1e-9, dx * dx + dz * dz)));
-      return Math.hypot(pose.x - a.x - t * dx, pose.z - a.z - t * dz) < Math.max(a.width, b.width) / 2;
-    })).length;
-
+// a roadway: inside a bend of its own street, or in a wider street near a
+// junction. Checked here against every segment by brute force, independently
+// of the spatial index the anchor uses.
+test("road clearance keeps props out of every carriageway, their own included", () => {
   assert.equal(inCarriageway(kerbPoses(ALDER_STREETS, ALDER_BINS, ALDER_BLOCKS)), 0,
     "a bin stands in the road");
-
-  // Off by default, and the lamps are why: they have always had a few in the
-  // road at junctions, and reproducing them exactly means keeping those. If
-  // this ever reads zero, the default changed and the lamps moved.
-  assert.ok(inCarriageway(kerbPoses(ALDER_STREETS, ALDER_LAMPS)) > 0,
-    "lamps are unexpectedly clear of the road — is roadClearance on by default?");
+  assert.equal(inCarriageway(kerbPoses(ALDER_STREETS, ALDER_LAMPS)), 0,
+    "a lamp stands in the road");
+  // Off by default: without it the lamps' rule stands seven in the road.
+  assert.equal(inCarriageway(kerbPoses(ALDER_STREETS, { ...ALDER_LAMPS, roadClearance: 0 })), 7);
 });

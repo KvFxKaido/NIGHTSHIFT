@@ -40,12 +40,11 @@ export interface KerbSpec {
   /** How much room the prop needs; poses closer than this to a solid are
    *  dropped. Needs `solids` to be passed, and defaults to no clearance. */
   readonly radius?: number;
-  /** Metres of carriageway to keep out of, measured against every street
-   *  rather than the one the prop belongs to. A prop can sit correctly on its
-   *  own kerb and still be inside a wider street's roadway near a junction;
-   *  measured, that was 0.7% of them. Must be smaller than `offset`, or a prop
-   *  rejects itself. Off by default: switching it on for the lamps would move
-   *  them, and their poses are pinned to the rule the renderer used to run. */
+  /** Metres of carriageway to keep out of, measured against every street,
+   *  its own included. A prop can sit correctly on its own kerb and still be
+   *  in a roadway: inside a bend, where the kerb of one leg is the carriageway
+   *  of the other, or in a wider street near a junction. Must be smaller than
+   *  `offset`, or a prop rejects itself. Off by default. */
   readonly roadClearance?: number;
   /** Restrict to some road classes. Omitted means every street. */
   readonly kinds?: readonly StreetClass[];
@@ -123,9 +122,12 @@ function blockBounds(block: BuildingBlock) {
   return { minX: block.x - reach, maxX: block.x + reach, minZ: block.z - reach, maxZ: block.z + reach };
 }
 
-/** The lamps, exactly as the renderer placed them before this module existed. */
+/** The lamps as the renderer placed them before this module existed, less the
+ *  eight that rule stood in a roadway (2026-09-18): one was 8.9 m into Alaskan
+ *  Way, on the inside of its bend, drawn in the middle of the road. */
 export const ALDER_LAMPS: KerbSpec = {
   id: "lamp", spacing: 55, offset: 1.7, clearStart: 20, clearEnd: 15, sides: [1],
+  roadClearance: 0.5,
 };
 
 /** The second prop, which is the point: it is only data. Opposite kerb from the
