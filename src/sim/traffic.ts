@@ -33,7 +33,7 @@ export function mix(n: number): number {
   return (x ^ (x >>> 16)) >>> 0;
 }
 
-export type TrafficKind = "sedan" | "taxi" | "van" | "box-truck";
+export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 
 /**
  * How traffic drives, for anything replayed through it: a recording made in
@@ -42,7 +42,8 @@ export type TrafficKind = "sedan" | "taxi" | "van" | "box-truck";
  * "traffic-v3": nothing slower than 35 mph. "traffic-v4":
  * junctions held for a racer that could not stop before reaching them.
  */
-export const TRAFFIC_REVISION = "traffic-v4";
+// v5 adds SUVs to the deterministic fleet, with their own collision dimensions.
+export const TRAFFIC_REVISION = "traffic-v5";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -83,11 +84,12 @@ export const TRAFFIC_KINDS: Readonly<Record<TrafficKind, TrafficKindSpec>> = {
   // 35. At 25-35 mph the trucks and vans were what clogged a street for a racer.
   sedan: { length: 4.4, width: 1.85, height: 1.42, cruise: 17.9 },
   taxi: { length: 4.6, width: 1.88, height: 1.5, cruise: 17 },
+  suv: { length: 4.85, width: 1.98, height: 1.82, cruise: 17 },
   van: { length: 5.4, width: 2, height: 2.25, cruise: 16.1 },
   "box-truck": { length: 7.2, width: 2.4, height: 3.1, cruise: 15.7 },
 };
 
-const KIND_ORDER: readonly TrafficKind[] = ["sedan", "sedan", "sedan", "taxi", "van", "box-truck"];
+const KIND_ORDER: readonly TrafficKind[] = ["sedan", "sedan", "suv", "taxi", "van", "box-truck"];
 
 export interface TrafficLane {
   readonly id: number;

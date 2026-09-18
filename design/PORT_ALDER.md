@@ -1683,3 +1683,21 @@ Tried and not shipped:
 angle resampled every 29 m gets the arc its straight runs allow, the rival holds a
 35 degree bend at over 40 m/s within 2 m of its line, and 5.5 m off a street
 centreline, still on the road, is not lost.
+
+## Traffic bodies (2026-09-18)
+
+The traffic fleet has sedan, SUV, panel van and box truck bodies, plus the
+existing yellow taxi as a sedan variant. `src/render/traffic-body.ts` builds
+shared low-poly geometry with glass, tyres, steel hubs, trim and distinct cargo
+shapes. Traffic keeps ordinary city lighting; the drawn-car shader is for racers.
+Paint, fixed-colour details, running lamps, two indicators and brake lamps use
+six instanced sets per kind, independent of vehicle count. Dimensions derive
+from `TRAFFIC_KINDS`, also used by the colliders; shallow trim and the taxi sign
+are the only allowances outside that envelope. Wheels are static geometry.
+
+`traffic-v5` adds the SUV to the deterministic spawn mix, replacing one of three
+sedan weights: sedan 2, taxi 1, SUV 1, van 1, truck 1. Its cruise is 17 m/s.
+Vehicle count, routing and yielding rules are unchanged. Hatchback and bus are
+possible later additions, not part of this slice. The presentation harness is
+`scripts/check-traffic-roster-browser.js`; it captures a live street and a
+separate front/rear inspection lineup, with the rear brakes lit.

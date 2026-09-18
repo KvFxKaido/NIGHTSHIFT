@@ -10,6 +10,23 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Traffic roster (2026-09-18)
+
+The first fleet pass replaces stacked boxes with sedan, SUV, panel van and
+box-truck silhouettes; the existing taxi remains a signed yellow sedan variant.
+The procedural instancing path was retained rather than using garage GLBs.
+Fixed-colour glass, tyres and trim share one additional draw set per kind.
+The front/rear review lineup rendered at 31 draw calls including its ground,
+3,674 triangles including lamps and the ground, and no page exceptions. Both
+lineup captures and the live SoDo street capture were inspected; the rear view
+exercises brake lights. Wheels are static low-poly geometry, not articulated.
+
+The 19 existing traffic tests passed with the new deterministic SUV mixture.
+Two new render tests cover collision-envelope bounds, finite geometry, a triangle
+budget, all kinds spawning, attachment matrices on slopes, braking and render
+purity. The production build passed with the existing chunk-size warning.
+The full suite then passed all 563 tests; the final whitespace check passed.
+
 ## Moth career and shop: first validation and review (2026-09-15)
 
 Before the pace calibration was integrated, the worktree passed 475 tests and
