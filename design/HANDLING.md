@@ -85,6 +85,53 @@ whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
   `RIVAL_REVISION` went to `full-line-v11`: the one raced session that still
   replayed is now refused by name instead of quietly diverging, and the solo
   recordings still replay exactly.
+- **Letting go early is a plain start** (2026-09-18, Shawn, as MC3 does it: it
+  blocks a false start and gives a normal gas start). The charge is gone the
+  moment the handbrake comes up before the flag and the HUD says TOO EARLY; no
+  boost and no bog. It used to bleed away at twice the charging rate, so letting
+  go a tenth of a second early kept most of the boost. A rival never lets go
+  before the flag, so its launch is unchanged, and no recording held the
+  handbrake at a start.
+
+## The burnout (2026-09-18)
+
+Shawn asked for MC3's: stopped, hold the e-brake and the gas, swing the car round
+on the stick, and let the handbrake go for a start better than just gassing it.
+It is the launch's hold anywhere a countdown is not running (`stepBurnout` in
+`src/sim/launch.ts`), so one mechanic covers both, and the HUD shows it the way
+MC3 does, on the boost bar: the right-hand meter fills with the charge and drains
+through the boost (`launchMeter` in `src/ui/hud-state.ts`).
+
+- **When.** Below 1.5 m/s (`LAUNCH.burnoutSpeed`), outside a countdown, with no
+  boost or penalty still running, and only for the player: an AI car holding both
+  at rest does what it always did, and a race start's WHEELSPIN cannot be held
+  into a burnout. At speed, e-brake and gas is still a handbrake turn. Free roam
+  and a stopped car mid-race both qualify; a finished race and a drag do not.
+- **The swing is an assist, and says so.** The tyre model at rest has nothing to
+  swing the car with, so the burnout holds the front axle where it is (a force
+  cancelling its velocity over 0.05 s, at most 1.2 g, so contact still shoves the
+  car) and turns the body toward `burnoutYawRate` with a yaw torque sized for
+  the inertia about that axle. Forces, never a velocity written, and the tyres
+  are still sampled, so their telemetry and the scrub the audio hears are what
+  the swing does to them. Measured from Wharf Garage: full stick turns the car
+  188 degrees in two seconds at up to 99 degrees a second, the front axle
+  wandering 0.15 m; stick right turns it right. The rate is a guess at MC3's and
+  is the number to tune on the pad.
+- **What it is worth.** Letting the handbrake go on the gas launches with the
+  hold's charge as the boost's quality, timed perfectly since there is no flag:
+  a full charge (1.1 s, the same `chargeTicks`) is the race launch exactly. From
+  Wharf Garage, RWD: **+5.1 m at 3 s and +7.9 m at 5 s** over a plain start,
+  beside the race launch's +5.3 m and +8.9 m; AWD +3.4 m and FWD +4.0 m at 3 s.
+  A short hold is a small launch, never a bog; letting the gas go first is only
+  stopping. Released while still swinging, the car carries the yaw into the
+  launch and slides; centred first, the swing stops in about a fifth of a
+  second and the launch runs dead straight.
+- **No physics revision.** The handbrake cuts the throttle everywhere outside a
+  burnout, so nothing changes for any input a recording holds unless it holds
+  both at rest; two sessions hold both for 11 and 2 ticks, all mid-lap at speed.
+  `pnpm laps --verify` gave the same result before and after: the two sessions
+  that replayed still replay exactly, the other eleven are refused by rival
+  revision as before. Rivals are untouched, so no `RIVAL_REVISION` either.
 
 ## Deliberate sim-cade assists
 

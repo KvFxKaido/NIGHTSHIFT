@@ -1,5 +1,5 @@
 import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionState } from "./transmission.ts";
-import { createLaunch, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
+import { createLaunch, LAUNCH, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
 import { dragLaneInput } from "./drag-rules.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
@@ -45,7 +45,8 @@ export interface WheelState extends AxleState {
 
 export interface VehicleState {
   transmission?: TransmissionState;
-  /** The start boost, on every race but a drag, which launches through the gearbox (`launch.ts`). */
+  /** The start boost, on every race but a drag, which launches through the gearbox;
+   *  and the player's burnout, which is the same hold anywhere else (`launch.ts`). */
   launch?: LaunchState;
   x: number;
   y: number;
@@ -499,6 +500,9 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
     // Every other race starts from a countdown the player can launch out of.
     vehicle.launch = createLaunch();
     if (rival) rival.vehicle.launch = createLaunch();
+  } else {
+    // Free roam has no flag, only the burnout.
+    vehicle.launch = createLaunch(true);
   }
   return {
     roadWorld,
@@ -660,7 +664,31 @@ function summarizeAxle(left: WheelState, right: WheelState, axle: AxleState): vo
   });
 }
 
-function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
+/**
+ * The burnout (`launch.ts`): the front wheels hold their spot and the stick swings
+ * the tail round them, as MC3's cars do. Forces, never a velocity written: a hold
+ * at the front axle against whatever moves it, bounded by what front tyres could
+ * grip, and a yaw torque toward the rate the stick asks for. Contact still shoves
+ * the car; the hold is how hard it pushes back. The tyres are still sampled, so
+ * their telemetry (and the scrub the audio hears) is what the swing does to them.
+ */
+function applyBurnout(sim: VehicleRig, steer: number, heading: number): void {
+  const { body } = sim;
+  const mass = body.mass(), position = body.translation(), velocity = body.linvel(), yaw = body.angvel().y;
+  const reach = HANDLING.frontAxleDistance;
+  const rx = -Math.sin(heading) * reach, rz = -Math.cos(heading) * reach;
+  // The front axle's own velocity: the body's, plus its yaw carried out to the axle.
+  let fx = -(velocity.x + yaw * rz) * mass / LAUNCH.burnoutHoldTime;
+  let fz = -(velocity.z - yaw * rx) * mass / LAUNCH.burnoutHoldTime;
+  const most = LAUNCH.burnoutHoldGrip * mass * HANDLING.gravityAlongGrade, size = Math.hypot(fx, fz);
+  if (size > most) { fx *= most / size; fz *= most / size; }
+  body.addForceAtPoint({ x: fx, y: 0, z: fz }, { x: position.x + rx, y: position.y, z: position.z + rz }, true);
+  // Swung round the front axle, so the torque meets the body's own inertia plus its mass carried out there.
+  const inertia = body.principalInertia().y + mass * reach * reach;
+  body.addTorque({ x: 0, y: (-steer * LAUNCH.burnoutYawRate - yaw) * inertia / LAUNCH.burnoutYawTime, z: 0 }, true);
+}
+
+function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): void {
   const input: Input = {
     throttle: raceHolding(sim.state.race) ? 0 : clamp(rawInput.throttle, 0, 1),
     brake: raceHolding(sim.state.race) ? 0 : clamp(rawInput.brake, 0, 1),
@@ -692,8 +720,10 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
   const manualAcceleration = car.transmission ? sim.state.race?.finished ? 0
     : stepTransmission(car.transmission, rawInput, Math.max(0, forwardSpeed), sim.state.race?.countdown ?? 0,
       sim.state.race?.ticks ?? 0, HANDLING.mass, DT) : null;
-  const launchScale = car.launch && sim.state.race
-    ? stepLaunch(car.launch, rawInput, sim.state.race.countdown, sim.state.race.ticks) : 1;
+  const race = sim.state.race;
+  // Only the player burns out, and never once a race is over.
+  const launchScale = car.launch && (race || player)
+    ? stepLaunch(car.launch, rawInput, race?.countdown ?? 0, race?.ticks ?? 0, player && !race?.finished ? { speed } : null) : 1;
   const effectiveThrottle = input.handbrake > 0.05 ? 0 : input.throttle * (1 - input.brake);
   // The player chooses the direction and amount. Slip only opens the manual
   // countersteering envelope; it never steers on the player's behalf.
@@ -785,6 +815,15 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input): void {
         (onGround[index] && groundPenalty > 0 ? HANDLING.groundGripScale : 1),
     }, car.wheels[wheel.id]);
   });
+  if (car.launch?.burnout) {
+    for (const patch of patches) patch.telemetry.longitudinalForce = 0;
+    summarizeAxle(car.wheels["front-left"], car.wheels["front-right"], car.frontAxle);
+    summarizeAxle(car.wheels["rear-left"], car.wheels["rear-right"], car.rearAxle);
+    car.longitudinalAcceleration = 0;
+    car.lateralAcceleration = 0;
+    applyBurnout(sim, input.steer, heading);
+    return;
+  }
   for (const [left, right] of [[patches[0]!, patches[1]!], [patches[2]!, patches[3]!]] as const) {
     // Equal-radius open-differential/traction-control approximation. Both sides
     // receive the same drive torque, bounded by the weaker tyre. Do not turn
@@ -863,7 +902,7 @@ export function step(sim: Sim, rawInput: Input): void {
         { throttle, brake: 0, handbrake: rival.race.finished || (rival.race.countdown === 0 && rival.race.ticks < 9) ? 1 : 0, steer: 0, shiftUp });
     }
   }
-  applyVehicleInput(sim, rawInput);
+  applyVehicleInput(sim, rawInput, true);
   if (rig && rival) applyVehicleInput(rig, rival.input);
   // Traffic advances before the solver runs, so the player's contact this tick
   // is against where the traffic actually is rather than where it was.

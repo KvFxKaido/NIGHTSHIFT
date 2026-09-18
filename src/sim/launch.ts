@@ -8,17 +8,24 @@ import type { Input } from "./sim.ts";
  * penalty the drag strip already gives a bogged start (`transmission.ts`), whose
  * words this borrows so the two launches read alike.
  *
+ * The burnout (2026-09-18, Shawn: MC3 again) is the same hold anywhere else. Stopped
+ * outside a countdown, e-brake and gas hold the front wheels and spin the rears,
+ * the stick swings the tail round them (sim.ts, `applyBurnout`), and letting the
+ * handbrake go on the gas launches with the boost the hold has charged. At a race
+ * start the car is held until the flag, as MC3 holds it: letting go early is a
+ * plain start, never a jump and never a penalty.
+ *
  * The handbrake is the switch on purpose. Throttle is ignored during a countdown
- * (`raceHolding`), so a player who only holds the gas, as every lap recorded
- * before today does, charges nothing and launches exactly as they always have:
- * no physics revision, and `pnpm laps --verify` still replays those sessions.
+ * (`raceHolding`) and cut by the handbrake everywhere else, so a player who only
+ * holds the gas, as every lap recorded before today does, charges nothing and
+ * launches exactly as they always have: no physics revision, and
+ * `pnpm laps --verify` still replays those sessions.
  *
  * Drag races keep their own launch through the gearbox and never use this one.
  */
 export const LAUNCH = {
-  /** Ticks of holding both to charge fully, and how fast a release bleeds it away. */
+  /** Ticks of holding both to charge fully: at the line or in a burnout. */
   chargeTicks: 66,
-  dischargeScale: 2,
   /** Release this close to the flag for the whole boost; past `windowTicks` there is none. */
   perfectTicks: 9,
   windowTicks: 30,
@@ -35,6 +42,17 @@ export const LAUNCH = {
    *  adds about 5 m to a spin and costs a bog a car length against a plain start. */
   penaltyScale: .85,
   penaltyTicks: 75,
+  /** Below this speed, e-brake and gas outside a countdown is a burnout rather
+   *  than a handbrake turn; once started it lasts as long as both are held. */
+  burnoutSpeed: 1.5,
+  /** How fast full stick swings the tail round the front wheels (100 degrees a
+   *  second; a guess at MC3's, to be tuned on the pad), and how quickly it gets there. */
+  burnoutYawRate: 1.75,
+  burnoutYawTime: .12,
+  /** How quickly the front wheels cancel anything moving them, and the most they
+   *  hold against, in g: a car in a burnout can still be shoved. */
+  burnoutHoldTime: .05,
+  burnoutHoldGrip: 1.2,
 } as const;
 
 /** An authored rival with no rank behind it: a decent start, neither late nor perfect. */
@@ -61,10 +79,13 @@ export interface LaunchState {
   penaltyTicks: number;
   feedback: string;
   feedbackTicks: number;
+  /** In a burnout: held off the line, front wheels planted, swinging on the stick. */
+  burnout: boolean;
 }
 
-export const createLaunch = (): LaunchState =>
-  ({ heldTicks: 0, charge: 0, resolved: false, quality: 0, boostTicks: 0, penaltyTicks: 0, feedback: "", feedbackTicks: 0 });
+/** A race's launch is unresolved until its flag; the player's everywhere else has no flag to wait for. */
+export const createLaunch = (resolved = false): LaunchState =>
+  ({ heldTicks: 0, charge: 0, resolved, quality: 0, boostTicks: 0, penaltyTicks: 0, feedback: "", feedbackTicks: 0, burnout: false });
 
 /** What the launch does to drive this tick: over 1 while boosting, under it while paying for a bad one. */
 export function launchDrive(state: LaunchState): number {
@@ -75,18 +96,24 @@ export function launchDrive(state: LaunchState): number {
 
 /**
  * One fixed tick of the launch, before the flag and through the boost. `countdown`
- * and `raceTicks` are the race's own; a vehicle in no race holds still at rest.
+ * and `raceTicks` are the race's own, both 0 outside a race. `burnout` carries the
+ * car's speed for a vehicle that may burn out, which is the player's alone: an AI
+ * car holding both at rest keeps doing exactly what it did before burnouts existed.
  */
-export function stepLaunch(state: LaunchState, input: Input, countdown: number, raceTicks: number): number {
+export function stepLaunch(state: LaunchState, input: Input, countdown: number, raceTicks: number,
+  burnout: { speed: number } | null = null): number {
   const holding = input.handbrake > .05 && input.throttle > .1;
   const say = (feedback: string, ticks = 105) => { state.feedback = feedback; state.feedbackTicks = ticks; };
   if (countdown > 0) {
-    // Charging. Releasing early bleeds it away, so anticipating the flag is fine and idling on the brake is not.
-    state.heldTicks = holding
-      ? Math.min(LAUNCH.chargeTicks, state.heldTicks + 1)
-      : Math.max(0, state.heldTicks - LAUNCH.dischargeScale);
+    // Charging, held at the line. Letting go before the flag is a plain start, as
+    // MC3 blocks a false start: the car cannot go early and the charge is gone.
+    if (holding) state.heldTicks = Math.min(LAUNCH.chargeTicks, state.heldTicks + 1);
+    else {
+      if (state.heldTicks > 0) say("TOO EARLY", 60);
+      state.heldTicks = 0;
+    }
     state.charge = state.heldTicks / LAUNCH.chargeTicks;
-    Object.assign(state, { resolved: false, quality: 0, boostTicks: 0, penaltyTicks: 0 });
+    Object.assign(state, { resolved: false, quality: 0, boostTicks: 0, penaltyTicks: 0, burnout: false });
     if (state.charge > 0) say(`LAUNCH ${Math.round(state.charge * 100)}%`, 2);
     return 1;
   }
@@ -111,11 +138,41 @@ export function stepLaunch(state: LaunchState, input: Input, countdown: number, 
       state.heldTicks = 0;
     }
   }
+  if (burnout && state.resolved) stepBurnout(state, input, holding, burnout.speed, say);
   const drive = launchDrive(state);
   state.boostTicks = Math.max(0, state.boostTicks - 1);
   state.penaltyTicks = Math.max(0, state.penaltyTicks - 1);
   state.feedbackTicks = Math.max(0, state.feedbackTicks - 1);
   return drive;
+}
+
+/**
+ * The burnout: the launch's hold with no flag to wait for. It starts only from
+ * rest and never over a boost or a penalty still running, so holding through a
+ * spun race start cannot turn the spin into a launch. Letting the handbrake go
+ * on the gas launches with what the hold charged, timed perfectly because there
+ * is no flag to be late for; letting the gas go first is only stopping.
+ */
+function stepBurnout(state: LaunchState, input: Input, holding: boolean, speed: number,
+  say: (feedback: string) => void): void {
+  if (!state.burnout) {
+    if (!holding || speed >= LAUNCH.burnoutSpeed || state.boostTicks > 0 || state.penaltyTicks > 0) return;
+    state.burnout = true;
+    state.heldTicks = 0;
+  }
+  if (holding) {
+    state.heldTicks = Math.min(LAUNCH.chargeTicks, state.heldTicks + 1);
+    state.charge = state.heldTicks / LAUNCH.chargeTicks;
+    return;
+  }
+  state.burnout = false;
+  if (input.throttle > .1 && state.charge > 0) {
+    state.quality = state.charge;
+    state.boostTicks = LAUNCH.boostTicks;
+    say(state.charge === 1 ? "PERFECT LAUNCH" : "LAUNCH");
+  }
+  state.heldTicks = 0;
+  state.charge = 0;
 }
 
 /**
