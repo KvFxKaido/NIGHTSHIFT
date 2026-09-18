@@ -337,6 +337,13 @@ JavaScript trigonometry in setup/forces is also part of that boundary. Future
 persisted ghosts need physics version, build/tuning identity and an explicit
 compatibility check. See [Rapier determinism requirements](https://rapier.rs/docs/user_guides/javascript/determinism/).
 
+What the player sees is drawn between the last two ticks (2026-09-18,
+`src/render/interpolate.ts`), up to one tick (17 ms) behind the simulation.
+Drawn at the last tick, the car moved on some frames and not others above
+60 Hz while the camera glided: at 120 fps its screen position jerked 3.5 px a
+frame at 25 m/s, and 0.02 px blended. The handling is unchanged; if a pad ever
+feels a tick late, compare with `?smooth=0`.
+
 Automated gates establish behavior, not enjoyment. Controller feel still needs
 a human lap, especially brake/steer overlap, release after a handbrake turn,
 and steering away while accelerating from a scraped barrier.

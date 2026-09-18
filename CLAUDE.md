@@ -84,7 +84,9 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   shorter blocks, varied streets and connected routes north and east.
 - Graphics resemble upscaled/emulated MC3 rather than photorealism. The city is
   a working port on the night shift, with sodium lamps and dry streets; its
-  rules, and the check anything new passes first, are `design/LOOK.md`.
+  rules, and the check anything new passes first, are `design/LOOK.md`. The cars
+  are drawn like the rival portraits: three flat bands of their own colour, an
+  ink outline, the race's cyan on the rim (`src/render/cel.ts`).
 - Preserve the current handling in Three.js/Rapier. PC prototype first;
   RedMagic 10 Pro is the eventual device, port and testing later. Capacitor
   is an option, not a decision. The Godot workshop in `godot-prototype/` is
@@ -387,6 +389,11 @@ menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
 `?scene=track&visit=rivet`, `?race=sable-yard-drift`. Browser harnesses:
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
+The cars are drawn by default (`src/render/cel.ts`); `?look=plain` shows them
+undrawn and `?look=fx` undrawn with the drawn smoke, for comparison, never saved.
+Live play draws each car between its last two ticks (`src/render/interpolate.ts`),
+up to one tick late; `?smooth=0` draws the last tick, which shakes on displays
+faster than 60 Hz.
 Staged poses are visual checks, not a driven lap; the reference-lap test is
 the driving gate, and screenshots do not certify mobile GPU performance.
 

@@ -2,6 +2,7 @@ import * as THREE from "three";
 export { isPlayerCarId as isBlenderCarId } from "../customization/cars.ts";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CAR_GEOMETRY, type CarView } from "./car.ts";
+import { celCar } from "./cel.ts";
 
 export const BLENDER_CAR_PATH = "assets/cars/ns-coupe-01.glb";
 
@@ -150,5 +151,7 @@ export function createBlenderCar(asset: THREE.Group, rootName = "ns-coupe-01", m
 export async function loadBlenderCar(url: string, car: BlenderCarId = "blender"): Promise<CarView> {
   const gltf = await new GLTFLoader().loadAsync(url);
   const { root, model } = BLENDER_CARS[car];
-  return createBlenderCar(gltf.scene, root, model);
+  // Every loaded body is drawn (render/cel.ts) unless ?look=plain; the headless
+  // asset tests build with createBlenderCar and never see it.
+  return celCar(createBlenderCar(gltf.scene, root, model));
 }

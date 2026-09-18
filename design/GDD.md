@@ -751,7 +751,7 @@ The camera should enhance speed without interfering with steering precision.
 
 The graphics target is approximately MC3 upscaled on an emulator: simple, readable geometry and materials presented cleanly at modern resolution. Use nighttime lighting, silhouettes and selected authored details to carry Port Alder’s identity. This is not a photorealism or expensive-reflection target.
 
-Port Alder is a working port on the night shift: plain hard-edged masses under one warm municipal lamp, lit where somebody is working and dark where nobody is, with colour only where something is still open. Its streets are lit by sodium lamps and stay dry: no wet pavement, rain or environment reflections. The city's rules, and the check anything new passes before it enters the city, are in `design/LOOK.md` (adopted 2026-09-16); this list defers to it.
+Port Alder is a working port on the night shift: plain hard-edged masses under one warm municipal lamp, lit where somebody is working and dark where nobody is, with colour only where something is still open. Its streets are lit by sodium lamps and stay dry: no wet pavement, rain or environment reflections. The city's rules, and the check anything new passes before it enters the city, are in `design/LOOK.md` (adopted 2026-09-16); this list defers to it. The cars are drawn rather than rendered, like the rival portraits: their light cut into three flat bands of their own colour, an ink outline and the race's cyan on the rim, with drawn tyre smoke (decided 2026-09-18). At night the rendered cars read only as two tail lights.
 
 Potential characteristics:
 

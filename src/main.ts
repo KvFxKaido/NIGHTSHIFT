@@ -31,6 +31,8 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
+import { addCelSmoke, drawnEffects, setLook } from "./render/cel.ts";
+import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
 import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setParkedRivalCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
@@ -102,6 +104,10 @@ let circuit: CircuitEvent | null = null;
 /** A generated race or Sound to Sky raced with nobody: `?solo=1`. Circuits carry solo in their race id. */
 let solo = false;
 let lighting: DistrictLighting = "night";
+/** Draw between the last two ticks rather than at the last; `?smooth=0` turns it off. */
+let smooth = true;
+/** The tick before the last, taken before each live step; null when there is none to blend from. */
+let previousPoses: Poses | null = null;
 try {
   const url = new URL(location.href);
   const params = url.searchParams;
@@ -168,6 +174,13 @@ try {
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
+  // The cars are drawn (render/cel.ts), set before any body loads. ?look=plain
+  // shows them undrawn and ?look=fx undrawn with the drawn smoke, to compare.
+  const look = params.get("look") ?? "cel";
+  if (look !== "cel" && look !== "fx" && look !== "plain") throw new Error(`Unknown look '${look}'`);
+  setLook(look === "plain" ? null : look);
+  // Draw between ticks (render/interpolate.ts); ?smooth=0 draws the last tick, to compare.
+  smooth = params.get("smooth") !== "0";
   await RAPIER.init();
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
   // The NS-01 became the car Sable drives. Old links still resolve, the way
@@ -212,6 +225,7 @@ const view = createView(document.getElementById("view") as HTMLCanvasElement, ca
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
+if (drawnEffects()) view.celSmoke = addCelSmoke(view.scene);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
 for (const [id, parts] of cruiserParts) setParkedRivalCar(view, id, parts);
@@ -293,6 +307,7 @@ function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
 }
 
 function reset(drivetrain = sim.state.drivetrain): void {
+  previousPoses = null;
   challengePending = false;
   flashRemaining = 0;
   resetSim(sim, drivetrain);
@@ -745,6 +760,7 @@ function frame(now: number): void {
   while (gameplayActive && accumulator >= DT) {
     const tickInput = input.sample();
     lastInput = tickInput;
+    if (smooth) previousPoses = capturePoses(sim.state);
     step(sim, tickInput);
     recordStep(tickInput);
     accumulator -= DT;
@@ -794,7 +810,8 @@ function frame(now: number): void {
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,
-    sim.state,
+    // Live play only: paused, frozen or scripted, the last tick is drawn exactly.
+    smooth && previousPoses && gameplayActive && !frozen ? blendPoses(previousPoses, sim.state, accumulator / DT) : sim.state,
     frameDelta,
     gameplayActive || garageActive ? input.cameraLook() : { x: 0, y: 0 },
   );
@@ -824,6 +841,8 @@ installDebugApi({
   // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {
     for (let index = 0; index < ticks; index++) { step(sim, tickInput); recordStep(tickInput); }
+    // Nothing to blend from across a scripted jump.
+    previousPoses = null;
     // A scripted run should sound like a driven one as well.
     lastInput = tickInput;
   },

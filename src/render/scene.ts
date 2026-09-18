@@ -15,6 +15,7 @@ import {
   type ChaseCameraId,
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
+import type { CelSmoke } from "./cel.ts";
 import { createGarageScene } from "./garage.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 
@@ -45,6 +46,8 @@ export interface View extends CarView {
   race: RaceView;
   /** Road surface height, for things that stand on the road. */
   surface: (x: number, z: number) => number;
+  /** The drawn tyre smoke; absent only under `?look=plain`. */
+  celSmoke?: CelSmoke;
 }
 
 /** Place the selected body from simulation state. */
@@ -273,8 +276,10 @@ export function render(
 
   const car = state.vehicle;
   if (view.sky) view.sky.position.set(car.x, 0, car.z);
-  // Traffic is drawn from the state the tick left behind, never interpolated or
-  // guessed at: the renderer still only draws what a tick decided.
+  // Traffic is drawn from the state the tick left behind, never guessed at: the
+  // renderer only draws what a tick decided. In live play main.ts hands this a
+  // state blended between the last two ticks (render/interpolate.ts), which is
+  // still only what ticks decided, shown up to one tick late.
   if (view.traffic && state.traffic) updateTraffic(view.traffic, state.traffic, frameDelta);
   placeCar(view, car);
   for (const rival of [...state.parkedRivals, ...state.cruisers]) {
@@ -329,6 +334,7 @@ export function render(
   view.camera.updateProjectionMatrix();
   // After the camera: the beacon's sign faces it and points the exit its way.
   updateRaceBeacon(view.race, state.race, view.surface, view.camera);
+  view.celSmoke?.update(state, frameDelta);
 
   view.renderer.render(view.scene, view.camera);
 }

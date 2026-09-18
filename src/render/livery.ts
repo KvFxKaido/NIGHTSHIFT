@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js";
 import type { CarView } from "./car.ts";
+import { celMaterial } from "./cel.ts";
 import type { Livery, LiveryLayer, Panel } from "../customization/livery.ts";
 
 /**
@@ -189,8 +190,8 @@ export function createLiveryRenderer() {
       for (const panel of panels) {
         const surface = surfaces[panel] ??= liverySurface(car, panel);
         const geometry = projectedLayer(surface, layer, zones!, panel);
-        const material = new THREE.MeshStandardMaterial({ map: graphicTexture(layer, zones![panel]), transparent: true, depthWrite: false,
-          polygonOffset: true, polygonOffsetFactor: -1 - index, polygonOffsetUnits: -1 - index, roughness: .5, metalness: .05 });
+        const material = celMaterial(new THREE.MeshStandardMaterial({ map: graphicTexture(layer, zones![panel]), transparent: true, depthWrite: false,
+          polygonOffset: true, polygonOffsetFactor: -1 - index, polygonOffsetUnits: -1 - index, roughness: .5, metalness: .05 }));
         const mesh = new THREE.Mesh(geometry, material); mesh.name = `livery-${layer.id}-${panel}`; mesh.renderOrder = 10 + index; overlay.add(mesh);
       }
     });

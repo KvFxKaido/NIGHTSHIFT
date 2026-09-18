@@ -302,7 +302,8 @@ export function installDebugApi(bridge: DebugBridge): void {
   function link(): string {
     const url = new URL(location.href);
     const world = url.searchParams.get("world"), route = url.searchParams.get("route");
-    const race = url.searchParams.get("race"), lighting = url.searchParams.get("lighting");
+    const race = url.searchParams.get("race"), lighting = url.searchParams.get("lighting"), look = url.searchParams.get("look"),
+      smooth = url.searchParams.get("smooth");
     url.search = "";
     if (world === "district" || world === "alder" || world === "seattle" || world === "blackglass") {
       url.searchParams.set("world", world);
@@ -310,6 +311,8 @@ export function installDebugApi(bridge: DebugBridge): void {
     }
     if (race) url.searchParams.set("race", race);
     if (lighting) url.searchParams.set("lighting", lighting);
+    if (look) url.searchParams.set("look", look);
+    if (smooth) url.searchParams.set("smooth", smooth);
     // Round-trip whichever body is loaded, not just "is it the coupe".
     const loaded = view.car.userData.model;
     // The NS-01 is two ids for one model; a link names the one a player can drive.

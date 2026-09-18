@@ -2,7 +2,8 @@
 
 Design note, 2026-09-16. **Adopted the same day:** Shawn chose the night shift,
 sodium lamps, keeping amber, and dry streets; on 2026-09-17, Capitol Hill for
-the strip and neighbourhood polygons for district identity.
+the strip and neighbourhood polygons for district identity; on 2026-09-18,
+drawn cars.
 
 The rival portraits have a look in one sentence and rules that exclude
 (`design/CHARACTERS.md`); the city they are lit by did not. GDD §15.1 listed
@@ -38,6 +39,12 @@ morning; the city of the people who work nights, not the people who go out.
   lane paint, one bollard, and put them everywhere. A second lamp design is a
   rule change, not an asset. This is Port Alder's blandness, and it is specific:
   dull on purpose, and the same dull everywhere.
+- **The cars are drawn, like the rival portraits.** Their light is cut into
+  three flat bands of their own colour, with an ink outline, one hard highlight
+  shape on the paint and the race's cyan on the flanks (`src/render/cel.ts`).
+  Traffic is not drawn, which keeps it in the city rather than the race. Tyre
+  smoke is drawn too: flat puffs, a halftone shadow side and an ink ring. The
+  smoke is a first pass; the cars are the decision.
 
 ### Light
 
@@ -193,6 +200,14 @@ Decided by Shawn, 2026-09-17:
 6. **District identity:** neighbourhood polygons, not the Blackglass `zone`
    split or the turf centres. Drawn in game coordinates along streets, since the
    hill districts were authored and Seattle's real boundaries would not line up.
+
+Decided by Shawn, 2026-09-18:
+
+7. **Drawn cars, by default.** Chosen from screenshots of the same Broadway
+   spot and slide in three looks: today's rendered cars (at night, two tail
+   lights and a dark shape), Driving Rogue's recipe of rendered cars under drawn
+   effects (`?look=fx`), and drawn cars. `?look=plain` keeps the rendered cars
+   reachable for comparison.
 
 GDD §15.1 points here, and CLAUDE.md names this page beside the renderer, so
 anything made for the city is checked against it first.
