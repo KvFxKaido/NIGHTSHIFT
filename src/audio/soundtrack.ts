@@ -72,14 +72,25 @@ export interface Soundtrack {
   /** True once every track in turn has failed to load: the files are not where
    *  the manifest says. Play tries them all again. */
   failed(): boolean;
+  isShuffled(): boolean;
+  /** Shuffle on or off. The track loaded now keeps playing; the order after it changes. */
+  setShuffle(on: boolean): void;
   /** Fires whenever the track or play state changes, for the menu label. */
   onChange(listener: () => void): void;
+}
+
+export interface SoundtrackOptions {
+  /** On by default: the soundtrack always shuffled before it could be turned off. */
+  shuffle?: boolean;
+  /** The shuffle's randomness; tests pass a seeded one. */
+  pick?: () => number;
 }
 
 export async function loadSoundtrack(
   context: AudioContext,
   destination: AudioNode,
   base = document.baseURI,
+  options: SoundtrackOptions = {},
 ): Promise<Soundtrack> {
   let tracks: MusicTrack[] = [];
   try {
@@ -96,15 +107,37 @@ export async function loadSoundtrack(
   const source = context.createMediaElementSource(element);
   source.connect(destination);
 
-  let order = shuffleOrder(tracks.length, Math.random);
+  const pick = options.pick ?? Math.random;
+  let shuffle = options.shuffle ?? true;
+  /** Name order, which is the manifest's: the scan sorts it. */
+  const named = () => tracks.map((_, index) => index);
+  /** A fresh shuffle that does not open on `after`, the track that just
+   *  played, so a new lap never plays the same song twice running. */
+  function shuffled(after?: number): number[] {
+    const next = shuffleOrder(tracks.length, pick);
+    if (next.length > 1 && next[0] === after) [next[0], next[1]] = [next[1]!, next[0]!];
+    return next;
+  }
+  // One order for the whole session used to repeat, lap after lap.
+  let order = shuffle ? shuffled() : named();
   let position = 0;
   let playing = false;
   let failures = 0;
   const listeners: (() => void)[] = [];
   const changed = () => { for (const listener of listeners) listener(); };
 
-  const current = (): MusicTrack | null =>
-    tracks.length ? tracks[order[position % order.length]!] ?? null : null;
+  const current = (): MusicTrack | null => tracks[order[position] ?? -1] ?? null;
+
+  /** One track on or back. Past the end of a shuffled lap comes a new shuffle. */
+  function advance(step: 1 | -1): void {
+    if (!tracks.length) return;
+    const played = order[position];
+    position += step;
+    if (position >= order.length) {
+      position = 0;
+      if (shuffle) order = shuffled(played);
+    } else if (position < 0) position = order.length - 1;
+  }
 
   // Only a refused autoplay stops the soundtrack here. A file that cannot be
   // read rejects play() too, but its error event (below) decides what happens
@@ -125,7 +158,7 @@ export async function loadSoundtrack(
     changed();
   }
 
-  element.addEventListener("ended", () => { position++; load(true); });
+  element.addEventListener("ended", () => { advance(1); load(true); });
   element.addEventListener("playing", () => { failures = 0; });
   // A file that will not decode should skip, not silently end the soundtrack;
   // but once every track has failed in a row, stop. A manifest older than a
@@ -134,7 +167,7 @@ export async function loadSoundtrack(
   element.addEventListener("error", () => {
     if (!playing) return;
     if (++failures >= tracks.length) { playing = false; changed(); return; }
-    position++; load(true);
+    advance(1); load(true);
   });
 
   return {
@@ -145,16 +178,30 @@ export async function loadSoundtrack(
       if (!tracks.length) return;
       playing = !playing;
       if (playing) {
-        if (failures >= tracks.length) { failures = 0; position++; load(true); }
+        if (failures >= tracks.length) { failures = 0; advance(1); load(true); }
         else if (!element.src) load(true);
         else start();
       } else element.pause();
       changed();
     },
-    next() { if (!tracks.length) return; position++; load(playing); },
-    previous() { if (!tracks.length) return; position = (position - 1 + order.length) % order.length; load(playing); },
+    next() { if (!tracks.length) return; advance(1); load(playing); },
+    previous() { if (!tracks.length) return; advance(-1); load(playing); },
     stop() { playing = false; element.pause(); changed(); },
     failed: () => failures >= tracks.length && tracks.length > 0,
+    isShuffled: () => shuffle,
+    setShuffle(on) {
+      if (on === shuffle) return;
+      shuffle = on;
+      if (tracks.length) {
+        // Whatever is loaded stays where it is: a shuffle starts from it, and
+        // name order carries on from its place in the list.
+        const now = element.src ? order[position] : undefined;
+        order = on ? shuffled() : named();
+        if (on && now !== undefined) order = [now, ...order.filter(index => index !== now)];
+        position = now === undefined ? 0 : order.indexOf(now);
+      }
+      changed();
+    },
     onChange(listener) { listeners.push(listener); },
   };
 }

@@ -31,8 +31,8 @@ interface MenuCallbacks {
   getAudioLevels(): AudioLevels;
   setAudioLevel(channel: keyof AudioLevels, value: number): void;
   /** What the soundtrack row should say: track title, or why there is none. */
-  soundtrackLabel(): { note: string; playing: boolean; enabled: boolean };
-  soundtrack(command: "toggle" | "next" | "previous"): void;
+  soundtrackLabel(): { note: string; playing: boolean; enabled: boolean; shuffle: boolean };
+  soundtrack(command: "toggle" | "next" | "previous" | "shuffle"): void;
 }
 
 export interface MenuController {
@@ -79,13 +79,17 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       const value = levels[channel];
       if (value !== undefined) slider.value = String(value);
     });
-    const { note, playing, enabled } = callbacks.soundtrackLabel();
+    const { note, playing, enabled, shuffle } = callbacks.soundtrackLabel();
     root.querySelectorAll<HTMLElement>("[data-soundtrack-note]").forEach((element) => {
       element.textContent = note;
     });
     root.querySelectorAll<HTMLButtonElement>("[data-soundtrack]").forEach((button) => {
       button.disabled = !enabled;
       if (button.dataset.soundtrack === "toggle") button.textContent = playing ? "Pause" : "Play";
+      if (button.dataset.soundtrack === "shuffle") {
+        button.textContent = shuffle ? "Shuffle on" : "Shuffle off";
+        button.setAttribute("aria-pressed", String(shuffle));
+      }
     });
   }
 
@@ -229,7 +233,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     const soundtrackButton = event.target.closest<HTMLButtonElement>("[data-soundtrack]");
     if (soundtrackButton) {
       const command = soundtrackButton.dataset.soundtrack;
-      if (command === "toggle" || command === "next" || command === "previous") {
+      if (command === "toggle" || command === "next" || command === "previous" || command === "shuffle") {
         callbacks.soundtrack(command);
         renderAudio();
       }

@@ -40,6 +40,7 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setPark
   type DistrictLighting } from "./render/scene.ts";
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
+import { loadMusicPreference, saveMusicPreference } from "./settings/music-preference.ts";
 import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
   type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
@@ -271,6 +272,7 @@ const liveryEditor = createLiveryEditor({ car: () => view,
 let audio: CarAudio | null = null;
 let soundtrack: Soundtrack | null = null;
 let audioLevels: AudioLevels = restored.audio;
+let musicPreference = loadMusicPreference(() => window.localStorage);
 let lastInput: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
 
 async function startAudio(): Promise<void> {
@@ -280,7 +282,7 @@ async function startAudio(): Promise<void> {
     // Chrome hands back a suspended context unless the gesture is still live.
     if (context.state === "suspended") await context.resume();
     audio = createCarAudio(context, audioLevels);
-    soundtrack = await loadSoundtrack(context, audio.musicBus);
+    soundtrack = await loadSoundtrack(context, audio.musicBus, document.baseURI, { shuffle: musicPreference.shuffle });
     soundtrack.onChange(() => menu.refreshAudio());
     menu.refreshAudio();
   } catch {
@@ -493,17 +495,19 @@ const menu = createMenuController({
     saveSettings({ audio: { [channel]: value } }, []);
   },
   soundtrackLabel: () => {
-    if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false };
+    const shuffle = soundtrack?.isShuffled() ?? musicPreference.shuffle;
+    if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false, shuffle };
     const tracks = soundtrack?.tracks() ?? [];
     if (!tracks.length) {
       return {
         note: "No soundtrack tracks are installed.",
         playing: false,
         enabled: false,
+        shuffle,
       };
     }
     if (soundtrack?.failed()) {
-      return { note: "None of the tracks would load. Run pnpm music:scan and reload.", playing: false, enabled: true };
+      return { note: "None of the tracks would load. Run pnpm music:scan and reload.", playing: false, enabled: true, shuffle };
     }
     const playing = soundtrack?.isPlaying() ?? false;
     const current = soundtrack?.nowPlaying();
@@ -511,10 +515,15 @@ const menu = createMenuController({
       note: current ? `Now playing: ${current.title}` : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ready.`,
       playing,
       enabled: true,
+      shuffle,
     };
   },
   soundtrack: (command) => {
-    if (command === "toggle") soundtrack?.toggle();
+    if (command === "shuffle") {
+      musicPreference = { shuffle: !(soundtrack?.isShuffled() ?? musicPreference.shuffle) };
+      soundtrack?.setShuffle(musicPreference.shuffle);
+      saveMusicPreference(() => window.localStorage, musicPreference);
+    } else if (command === "toggle") soundtrack?.toggle();
     else if (command === "next") soundtrack?.next();
     else soundtrack?.previous();
   },

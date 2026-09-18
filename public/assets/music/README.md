@@ -7,7 +7,11 @@ pnpm music:scan
 ```
 
 That writes `manifest.json` next to them, and the game picks them up on the next
-reload. Shuffle, skip and pause live in the pause menu under **Audio**.
+reload. Shuffle, skip and pause live in the pause menu under **Audio**; D-pad
+Left / Right skip while driving. Shuffle is on until you turn it off, and the
+choice saves on this browser (`nightshift.music`): on, each time the list comes
+round it is shuffled again, never opening on the song that just ended; off, it
+plays in name order, which is the manifest's.
 
 Supported: `.mp3`, `.ogg`, `.m4a`, `.aac`, `.flac`, `.wav`, `.opus` — whatever
 the browser will decode. A track is named from its own tags, "Artist - Title",

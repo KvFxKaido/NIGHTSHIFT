@@ -5,7 +5,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { editedTitle, parseId3v1, parseId3v2, readTrackTags, scannedTitle } from "../scripts/music-tags.mjs";
-import { loadSoundtrack, trackPath } from "../src/audio/soundtrack.ts";
+import { loadSoundtrack, trackPath, type SoundtrackOptions } from "../src/audio/soundtrack.ts";
+import { decodeMusicPreference, loadMusicPreference, MUSIC_KEY, saveMusicPreference } from "../src/settings/music-preference.ts";
 
 // ID3 tags built by hand, one version and encoding at a time.
 const synchsafe = (n: number) => Buffer.from([(n >> 21) & 0x7f, (n >> 14) & 0x7f, (n >> 7) & 0x7f, n & 0x7f]);
@@ -121,9 +122,12 @@ test("the scan names tracks from their tags and keeps hand edits across a rescan
  * refused autoplay only rejects, with NotAllowedError. `outcome` decides per file.
  */
 async function withFakeAudio(files: string[], outcome: (file: string) => "plays" | "unreadable" | "refused",
-  body: (soundtrack: Awaited<ReturnType<typeof loadSoundtrack>>, loads: string[]) => Promise<void>): Promise<void> {
+  body: (soundtrack: Awaited<ReturnType<typeof loadSoundtrack>>, loads: string[], end: () => Promise<void>) => Promise<void>,
+  options: SoundtrackOptions = {}): Promise<void> {
   const loads: string[] = [];
+  let element: EventTarget | null = null;
   class FakeAudio extends EventTarget {
+    constructor() { super(); element = this; }
     preload = ""; src = "";
     play() {
       const file = decodeURIComponent(this.src.split("/").pop()!);
@@ -144,7 +148,10 @@ async function withFakeAudio(files: string[], outcome: (file: string) => "plays"
   });
   try {
     const context = { createMediaElementSource: () => ({ connect() {} }) } as unknown as AudioContext;
-    await body(await loadSoundtrack(context, {} as AudioNode, "http://localhost/"), loads);
+    const soundtrack = await loadSoundtrack(context, {} as AudioNode, "http://localhost/", options);
+    // The track playing now runs out.
+    const end = async () => { element!.dispatchEvent(new Event("ended")); await Promise.resolve(); };
+    await body(soundtrack, loads, end);
   } finally {
     Object.assign(globalThis, saved);
   }
@@ -202,4 +209,68 @@ test("a track's filename is one URL path segment the dev server can serve", () =
   assert.equal(trackPath("WORTH SOMETHING (feat. Big Sean & Skilla Baby).mp3"), "WORTH%20SOMETHING%20(feat.%20Big%20Sean%20&%20Skilla%20Baby).mp3");
   // What a path cannot carry stays escaped.
   assert.equal(trackPath("a#b?c/d%e.mp3"), "a%23b%3Fc%2Fd%25e.mp3");
+});
+
+/** A seeded stand-in for Math.random, so a shuffle test draws the same orders every run. */
+function seeded(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 4294967296;
+}
+
+test("shuffle off plays the list in name order and comes round to the first", async () => {
+  await withFakeAudio(["a.mp3", "b.mp3", "c.mp3", "d.mp3"], () => "plays", async (soundtrack, loads, end) => {
+    assert.equal(soundtrack.isShuffled(), false);
+    soundtrack.toggle(); await settle();
+    for (let i = 0; i < 5; i++) await end();
+    assert.deepEqual(loads, ["a.mp3", "b.mp3", "c.mp3", "d.mp3", "a.mp3", "b.mp3"]);
+    soundtrack.previous(); assert.equal(loads.at(-1), "a.mp3");
+    soundtrack.previous(); assert.equal(loads.at(-1), "d.mp3", "back from the first is the last");
+  }, { shuffle: false });
+});
+
+// The soundtrack drew one order a session and repeated it, lap after lap.
+test("shuffle plays every track once a lap, draws a new order each lap, and never one song twice running", async () => {
+  const files = ["a.mp3", "b.mp3", "c.mp3", "d.mp3", "e.mp3"];
+  await withFakeAudio(files, () => "plays", async (soundtrack, loads, end) => {
+    assert.equal(soundtrack.isShuffled(), true, "shuffle is the default");
+    soundtrack.toggle(); await settle();
+    for (let i = 1; i < files.length * 60; i++) await end();
+    const laps = Array.from({ length: 60 }, (_, lap) => loads.slice(lap * files.length, (lap + 1) * files.length));
+    for (const lap of laps) assert.deepEqual([...lap].sort(), files, `a lap missed or repeated a track: ${lap}`);
+    loads.forEach((file, i) => assert.notEqual(file, loads[i - 1], `${file} twice running at ${i}`));
+    assert.ok(new Set(laps.map(lap => lap.join())).size > 30, "the laps are not being reshuffled");
+  }, { pick: seeded(7) });
+});
+
+test("turning shuffle off or on keeps the playing track and changes only what follows it", async () => {
+  const files = ["a.mp3", "b.mp3", "c.mp3", "d.mp3", "e.mp3"];
+  await withFakeAudio(files, () => "plays", async (soundtrack, loads, end) => {
+    soundtrack.toggle(); await settle();
+    await end(); await end();
+    const playing = loads.at(-1)!, loaded = loads.length;
+    soundtrack.setShuffle(false);
+    assert.equal(loads.length, loaded, "switching reloaded the track");
+    assert.equal(soundtrack.nowPlaying()?.file, playing);
+    await end();
+    assert.equal(loads.at(-1), files[(files.indexOf(playing) + 1) % files.length], "off carries on in name order");
+    soundtrack.setShuffle(true);
+    const from = loads.at(-1)!;
+    for (let i = 0; i < files.length - 1; i++) await end();
+    assert.deepEqual([from, ...loads.slice(-(files.length - 1))].sort(), files, "a shuffle starts from the playing track");
+  }, { shuffle: true, pick: seeded(3) });
+});
+
+test("the shuffle choice saves apart from settings and anything unreadable is shuffle on", () => {
+  const disk = new Map<string, string>();
+  const storage = { getItem: (key: string) => disk.get(key) ?? null, setItem: (key: string, value: string) => void disk.set(key, value) };
+  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: true }, "a fresh browser shuffles");
+  assert.equal(saveMusicPreference(() => storage, { shuffle: false }), true);
+  assert.deepEqual([...disk.keys()], [MUSIC_KEY]);
+  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: false });
+  for (const raw of ["{", "null", '{"version":2,"shuffle":false}', '{"version":1,"shuffle":"no"}']) {
+    assert.deepEqual(decodeMusicPreference(raw), { shuffle: true }, raw);
+  }
+  const blocked = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
+  assert.equal(saveMusicPreference(() => blocked, { shuffle: false }), false);
+  assert.deepEqual(loadMusicPreference(() => blocked), { shuffle: true });
 });
