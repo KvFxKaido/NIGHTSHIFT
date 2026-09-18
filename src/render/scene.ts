@@ -55,6 +55,7 @@ export function placeCar(car: CarView, vehicle: VehicleState): void {
   car.car.position.set(vehicle.x, vehicle.y, vehicle.z);
   car.car.rotation.x = vehicle.pitch;
   car.car.rotation.y = vehicle.heading;
+  car.car.rotation.z = vehicle.roll;
   const speedRatio = Math.min(1, vehicle.speed / HANDLING.topSpeed);
   car.carVisual.rotation.z = -vehicle.steering * speedRatio * 0.045;
   car.carVisual.rotation.x = -Math.sign(vehicle.forwardSpeed) * speedRatio * 0.018;
@@ -165,7 +166,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     mode: "track",
     rivalCar: null, parkedRivalCars: new Map(),
     sky: null,
-    traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null) : null,
+    traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null, roadWorld.grade ?? null) : null,
     race: addRaceBeacon(scene, gateRadius),
     surface: (x, z) => roadWorld.project(x, z).height,
   };

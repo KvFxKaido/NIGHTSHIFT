@@ -83,9 +83,12 @@ export function projectOntoAlder(x: number, z: number): CourseProjection {
   const road = best!;
   // The surface is a continuous landform, independent of which street wins
   // nearest-path selection. Kerb crossings cannot switch elevation profiles.
-  const dx = (alderHeight(x+.1,z)-alderHeight(x-.1,z))/.2;
-  const dz = (alderHeight(x,z+.1)-alderHeight(x,z-.1))/.2;
-  return { ...road, height: alderHeight(x,z), pitch: Math.atan(dx*road.ux+dz*road.uz) };
+  const { gradeX: dx, gradeZ: dz } = alderGrade(x, z);
+  return { ...road, height: alderHeight(x,z), pitch: Math.atan(dx*road.ux+dz*road.uz), gradeX: dx, gradeZ: dz };
+}
+/** The landform's slope at a point: rise per metre east and south. */
+export function alderGrade(x: number, z: number): { gradeX: number; gradeZ: number } {
+  return { gradeX: (alderHeight(x+.1,z)-alderHeight(x-.1,z))/.2, gradeZ: (alderHeight(x,z+.1)-alderHeight(x,z-.1))/.2 };
 }
 const startSegment = ALDER_STREETS.filter(street=>street.name==='1St Ave S')
   .flatMap(street=>street.points.slice(1).map((b,i)=>({a:street.points[i]!,b})))
@@ -212,7 +215,7 @@ export function createAlderWorld(racing = false, from: RoadWorld["start"] = star
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],
-    project: projectOntoAlder, surface: projectOntoAlder, ground: alderGround,
+    project: projectOntoAlder, surface: projectOntoAlder, ground: alderGround, grade: alderGrade,
     get traffic() { return network ??= buildStreetTrafficNetwork(ALDER_STREETS, alderHeight); } };
 }
 

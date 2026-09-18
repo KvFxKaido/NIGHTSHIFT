@@ -52,6 +52,9 @@ export interface VehicleState {
   z: number;
   heading: number;
   pitch: number;
+  /** Lean across the ground, right side up positive. Drawn only, like pitch:
+   *  no force reads either. */
+  roll: number;
   speed: number;
   forwardSpeed: number;
   lateralSpeed: number;
@@ -386,7 +389,7 @@ function drivenSurface(roadWorld: RoadWorld, x: number, z: number) {
 function initialVehicle(roadWorld: RoadWorld): VehicleState {
   return {
     x: roadWorld.start.x, y: roadWorld.start.y, z: roadWorld.start.z,
-    heading: roadWorld.start.heading, pitch: roadWorld.start.pitch,
+    heading: roadWorld.start.heading, pitch: roadWorld.start.pitch, roll: 0,
     speed: 0, forwardSpeed: 0, lateralSpeed: 0, yawRate: 0,
     steering: 0, steeringAngle: 0, driveDirection: 1, slipAngle: 0,
     longitudinalAcceleration: 0, lateralAcceleration: 0,
@@ -1024,9 +1027,20 @@ function syncState(sim: VehicleRig): void {
     tyre.lateralSpeed = wheelVelocity.x * Math.cos(wheelHeading) - wheelVelocity.z * Math.sin(wheelHeading);
     tyre.rollingDistance += tyre.longitudinalSpeed * DT;
   }
+  // The body follows the ground, drawn only: the grade force reads the road
+  // (gradeAccelerationFor), not this. On a landform the lean is the ground's own
+  // slope along the nose and across it, so a road cut across a hillside tilts
+  // the car with it; Queen Anne Climb falls 8 degrees across the carriageway,
+  // and the car used to sit level on it. Authored track has no slope across it,
+  // so there the car keeps the road's pitch and stays level.
+  const landform = road.gradeX !== undefined && road.gradeZ !== undefined;
+  const pitchTarget = landform ? Math.atan(-road.gradeX! * Math.sin(heading) - road.gradeZ! * Math.cos(heading)) : road.pitch * alignment;
+  const rollTarget = landform ? Math.atan(road.gradeX! * Math.cos(heading) - road.gradeZ! * Math.sin(heading)) : 0;
+  const settle = Math.min(1, HANDLING.pitchResponse * DT);
   Object.assign(car, {
     x: position.x, y: road.height, z: position.z, heading,
-    pitch: car.pitch + (road.pitch * alignment - car.pitch) * Math.min(1, HANDLING.pitchResponse * DT),
+    pitch: car.pitch + (pitchTarget - car.pitch) * settle,
+    roll: car.roll + (rollTarget - car.roll) * settle,
     speed: Math.hypot(velocity.x, velocity.z), forwardSpeed, lateralSpeed,
     yawRate: sim.body.angvel().y, slipAngle: Math.atan2(lateralSpeed, Math.abs(forwardSpeed) + 0.5),
   });

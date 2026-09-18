@@ -24,6 +24,10 @@ export interface TrafficView {
   readonly network: TrafficNetwork | null;
   /** Seconds into the indicators' flash. Presentation only. */
   blink: number;
+  /** The ground's slope under a point, so a vehicle leans with a hillside the
+   *  way the player's car does. The traffic state carries only a heading, and
+   *  keeping the lean here leaves it, and TRAFFIC_REVISION, alone. */
+  readonly ground: ((x: number, z: number) => { gradeX?: number; gradeZ?: number }) | null;
 }
 
 /** Indicator rate: about 90 flashes a minute, lit a little over half of each. */
@@ -111,7 +115,8 @@ function indicatorGeometry(kind: TrafficKind, side: "left" | "right"): THREE.Buf
   return merged;
 }
 
-export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: TrafficNetwork | null = null): TrafficView {
+export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: TrafficNetwork | null = null,
+  ground: TrafficView["ground"] = null): TrafficView {
   const root = new THREE.Group();
   root.name = "district-traffic";
   const bodies = new Map<TrafficKind, THREE.InstancedMesh>();
@@ -170,10 +175,11 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
   for (const body of bodies.values()) if (body.instanceColor) body.instanceColor.needsUpdate = true;
 
   scene.add(root);
-  return { root, bodies, lamps, indicators, brakes, slots, network, blink: 0 };
+  return { root, bodies, lamps, indicators, brakes, slots, network, blink: 0, ground };
 }
 
 const placement = new THREE.Object3D();
+placement.rotation.order = "YXZ";
 const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 
 /** `elapsed` is the frame's seconds, for the indicators' flash; where cars are is the tick's alone. */
@@ -182,7 +188,10 @@ export function updateTraffic(view: TrafficView, traffic: TrafficState, elapsed 
   const lit = view.blink < BLINK_LIT;
   traffic.vehicles.forEach((vehicle, index) => {
     placement.position.set(vehicle.x, vehicle.y, vehicle.z);
-    placement.rotation.set(0, vehicle.heading, 0);
+    const slope = view.ground?.(vehicle.x, vehicle.z);
+    const gx = slope?.gradeX ?? 0, gz = slope?.gradeZ ?? 0;
+    const sin = Math.sin(vehicle.heading), cos = Math.cos(vehicle.heading);
+    placement.rotation.set(Math.atan(-gx * sin - gz * cos), vehicle.heading, Math.atan(gx * cos - gz * sin));
     placement.updateMatrix();
     const slot = view.slots[index]!;
     view.bodies.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);

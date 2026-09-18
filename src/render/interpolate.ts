@@ -16,7 +16,7 @@ import type { SimState, VehicleState } from "../sim/sim.ts";
  */
 
 interface Pose {
-  x: number; y: number; z: number; heading: number; pitch: number;
+  x: number; y: number; z: number; heading: number; pitch: number; roll: number;
   steering: number; speed: number; forwardSpeed: number; lateralSpeed: number;
   wheels: Record<string, { steeringAngle: number; rollingDistance: number }>;
 }
@@ -36,7 +36,7 @@ const TELEPORT = 8;
 function pose(vehicle: VehicleState): Pose {
   const wheels: Pose["wheels"] = {};
   for (const [id, wheel] of Object.entries(vehicle.wheels)) wheels[id] = { steeringAngle: wheel.steeringAngle, rollingDistance: wheel.rollingDistance };
-  return { x: vehicle.x, y: vehicle.y, z: vehicle.z, heading: vehicle.heading, pitch: vehicle.pitch, steering: vehicle.steering,
+  return { x: vehicle.x, y: vehicle.y, z: vehicle.z, heading: vehicle.heading, pitch: vehicle.pitch, roll: vehicle.roll, steering: vehicle.steering,
     speed: vehicle.speed, forwardSpeed: vehicle.forwardSpeed, lateralSpeed: vehicle.lateralSpeed, wheels };
 }
 
@@ -75,7 +75,7 @@ function mix(from: Pose | null | undefined, to: VehicleState, t: number): Vehicl
       rollingDistance: lerp(a.rollingDistance, wheels[id].rollingDistance, t) };
   }
   return { ...to, wheels, x: lerp(from.x, to.x, t), y: lerp(from.y, to.y, t), z: lerp(from.z, to.z, t),
-    heading: lerpAngle(from.heading, to.heading, t), pitch: lerp(from.pitch, to.pitch, t),
+    heading: lerpAngle(from.heading, to.heading, t), pitch: lerp(from.pitch, to.pitch, t), roll: lerp(from.roll, to.roll, t),
     steering: lerp(from.steering, to.steering, t), speed: lerp(from.speed, to.speed, t),
     forwardSpeed: lerp(from.forwardSpeed, to.forwardSpeed, t), lateralSpeed: lerp(from.lateralSpeed, to.lateralSpeed, t) };
 }

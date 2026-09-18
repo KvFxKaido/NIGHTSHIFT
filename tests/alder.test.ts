@@ -176,3 +176,29 @@ test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
   assert.ok(!offGround,`traffic left the road surface: ${offGround}`);
   assert.ok(traffic.vehicles.filter(v=>v.turns>0).length>traffic.vehicles.length*.5,"most traffic never crossed a junction");
 });
+
+// A road cut across a hillside tilts the car with it. Queen Anne Climb falls
+// 8 degrees across its carriageway here and hardly at all along it, and the car
+// used to sit level on it: pitch came from the slope along the road and nothing
+// read the slope across. Roll is drawn only, like pitch; the authored course,
+// with no ground under it to slope, keeps the car level across.
+test("a car on a hillside leans with it; on authored track it stays level", () => {
+  const x = -974, z = -2468, road = projectOntoAlder(x, z);
+  // A race world, since only a race honours a start of its own; free roam starts at the garage.
+  const world = createAlderWorld(true, { x, y: road.height, z, heading: Math.atan2(-road.ux, -road.uz), pitch: 0 });
+  const sim = createSim("rwd", world, { traffic: false });
+  try {
+    for (let i = 0; i < 120; i++) step(sim, { throttle: 0, brake: 1, steer: 0, handbrake: 1 });
+    const car = sim.state.vehicle, ground = projectOntoAlder(car.x, car.z);
+    const across = Math.atan(ground.gradeX! * Math.cos(car.heading) - ground.gradeZ! * Math.sin(car.heading));
+    const along = Math.atan(-ground.gradeX! * Math.sin(car.heading) - ground.gradeZ! * Math.cos(car.heading));
+    assert.ok(Math.abs(across) > 0.12, `the test spot is not the hillside it was: ${across.toFixed(3)} rad across`);
+    assert.ok(Math.abs(car.roll - across) < 0.002, `roll ${car.roll.toFixed(4)} against the ground's ${across.toFixed(4)}`);
+    assert.ok(Math.abs(car.pitch - along) < 0.002, `pitch ${car.pitch.toFixed(4)} against the ground's ${along.toFixed(4)}`);
+  } finally { sim.world.free(); }
+  const track = createSim("awd");
+  try {
+    for (let i = 0; i < 240; i++) step(track, { throttle: 1, brake: 0, steer: 0.3, handbrake: 0 });
+    assert.equal(track.state.vehicle.roll, 0);
+  } finally { track.world.free(); }
+});

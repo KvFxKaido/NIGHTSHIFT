@@ -344,6 +344,17 @@ Drawn at the last tick, the car moved on some frames and not others above
 frame at 25 m/s, and 0.02 px blended. The handling is unchanged; if a pad ever
 feels a tick late, compare with `?smooth=0`.
 
+The body leans with the ground (2026-09-18). On a landform, pitch and roll are
+the ground's own slope along the car's nose and across it (`syncState`,
+`RoadWorld.grade`), smoothed at `pitchResponse`; before, pitch came from the
+slope along the road and nothing read the slope across, so on Queen Anne Climb,
+8 degrees across the carriageway, the car sat level. Both are drawn only: the
+grade force still reads the road (`gradeAccelerationFor`), no force reads either,
+and the lap recordings that replayed before replay after (2 of 13, the same
+two). Across a hillside nothing pulls the car downhill; that would be handling.
+Authored track has no slope across it and keeps its pitch. Traffic leans the same
+way in the renderer, which keeps its state and `TRAFFIC_REVISION` unchanged.
+
 Automated gates establish behavior, not enjoyment. Controller feel still needs
 a human lap, especially brake/steer overlap, release after a handbrake turn,
 and steering away while accelerating from a scraped barrier.

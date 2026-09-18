@@ -81,6 +81,11 @@ export interface CourseProjection {
   ux: number;
   uz: number;
   width: number;
+  /** The ground's rise per metre east (x) and south (z) here, where the surface
+   *  is a landform (Port Alder). Absent on authored track, whose height is the
+   *  road's own and has no slope across it. */
+  gradeX?: number;
+  gradeZ?: number;
 }
 
 export const COURSE_SCALE = 1.08;

@@ -40,6 +40,10 @@ export interface RoadWorld {
    *  there (`HANDLING.ground*`). Absent on a world with no ground to leave
    *  onto, which then drives exactly as it did before ground existed. */
   ground?(x: number, z: number): boolean;
+  /** The ground's rise per metre east (x) and south (z) at a point, where the
+   *  surface is a landform. Cheaper than `surface`, which also finds the
+   *  nearest road: a caller that wants only the slope asks this. */
+  grade?(x: number, z: number): { gradeX: number; gradeZ: number };
 }
 
 export const BLACKGLASS_WORLD: RoadWorld = {
