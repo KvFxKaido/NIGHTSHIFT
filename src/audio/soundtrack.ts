@@ -41,6 +41,35 @@ export function decodeManifest(data: unknown): MusicTrack[] {
 }
 
 /**
+ * A spoken clip the station plays between songs, from `dj/` beside the music
+ * (public/assets/music/README.md). An ident names the station; talk is the host.
+ */
+export interface DjClip {
+  file: string;
+  kind: "ident" | "talk";
+}
+
+/** A clip whose name has an `id` word in it (kald-id-tower.wav) is an ident. */
+export function djKind(file: string): DjClip["kind"] {
+  return /(^|[-_ ])id([-_ .]|$)/i.test(file) ? "ident" : "talk";
+}
+
+/** The manifest's DJ clips, untrusted like its tracks: bare filenames only. */
+export function decodeDjClips(data: unknown): DjClip[] {
+  if (!record(data) || data.version !== MUSIC_MANIFEST_VERSION || !Array.isArray(data.dj)) return [];
+  const clips: DjClip[] = [];
+  for (const entry of data.dj) {
+    const file = record(entry) ? entry.file : undefined;
+    if (typeof file !== "string" || !file || file.includes("/") || file.includes("\\") || file.includes("..")) continue;
+    clips.push({ file, kind: djKind(file) });
+  }
+  return clips;
+}
+
+/** How often the booth talks: after two or three songs, an ident half the time. */
+export const DJ_BREAK = { minSongs: 2, maxSongs: 3, identShare: .5 } as const;
+
+/**
  * A filename as one URL path segment. encodeURIComponent also escapes the
  * characters a path carries as they are (& $ + , ; = : @), and Vite's dev
  * server answers those escaped with the game's page instead of the file: every
@@ -63,7 +92,10 @@ export function shuffleOrder(count: number, pick: () => number): number[] {
 
 export interface Soundtrack {
   tracks(): readonly MusicTrack[];
+  /** The song playing; null while stopped, and during a DJ break. */
   nowPlaying(): MusicTrack | null;
+  /** The DJ clip playing between songs, if one is. */
+  onAir(): DjClip | null;
   isPlaying(): boolean;
   toggle(): void;
   next(): void;
@@ -93,11 +125,16 @@ export async function loadSoundtrack(
   options: SoundtrackOptions = {},
 ): Promise<Soundtrack> {
   let tracks: MusicTrack[] = [];
+  let clips: DjClip[] = [];
   try {
     const response = await fetch(new URL(MUSIC_MANIFEST_PATH, base).href);
     // No manifest is the ordinary state, not a failure: most people will never
     // add music, and an empty music folder must not look like a broken game.
-    if (response.ok) tracks = decodeManifest(await response.json());
+    if (response.ok) {
+      const manifest = await response.json();
+      tracks = decodeManifest(manifest);
+      clips = decodeDjClips(manifest);
+    }
   } catch {
     tracks = [];
   }
@@ -123,6 +160,11 @@ export async function loadSoundtrack(
   let position = 0;
   let playing = false;
   let failures = 0;
+  // The DJ: a clip after every two or three songs, never the same one twice running.
+  const breakGap = () => DJ_BREAK.minSongs + Math.floor(pick() * (DJ_BREAK.maxSongs - DJ_BREAK.minSongs + 1));
+  let songsUntilBreak = clips.length ? breakGap() : 0;
+  let onAir: DjClip | null = null;
+  let lastClip: DjClip | null = null;
   const listeners: (() => void)[] = [];
   const changed = () => { for (const listener of listeners) listener(); };
 
@@ -153,12 +195,34 @@ export async function loadSoundtrack(
   function load(autoplay: boolean): void {
     const track = current();
     if (!track) return;
+    onAir = null;
     element.src = new URL(`assets/music/${trackPath(track.file)}`, base).href;
     if (autoplay) start();
     changed();
   }
 
-  element.addEventListener("ended", () => { advance(1); load(true); });
+  /** An ident or the host, as `DJ_BREAK` shares them out, never the last clip again. */
+  function chooseClip(): DjClip {
+    const fresh = clips.filter(clip => clip !== lastClip);
+    const pool = fresh.length ? fresh : clips;
+    const kind = pick() < DJ_BREAK.identShare ? "ident" : "talk";
+    const ofKind = pool.filter(clip => clip.kind === kind);
+    const from = ofKind.length ? ofKind : pool;
+    return from[Math.min(from.length - 1, Math.floor(pick() * from.length))]!;
+  }
+
+  // A song that ends may hand over to the booth; a clip that ends always hands back.
+  element.addEventListener("ended", () => {
+    if (!onAir && clips.length && --songsUntilBreak <= 0) {
+      songsUntilBreak = breakGap();
+      onAir = lastClip = chooseClip();
+      element.src = new URL(`assets/music/dj/${trackPath(onAir.file)}`, base).href;
+      start();
+      changed();
+      return;
+    }
+    advance(1); load(true);
+  });
   element.addEventListener("playing", () => { failures = 0; });
   // A file that will not decode should skip, not silently end the soundtrack;
   // but once every track has failed in a row, stop. A manifest older than a
@@ -166,13 +230,16 @@ export async function loadSoundtrack(
   // one after another for as long as the game ran.
   element.addEventListener("error", () => {
     if (!playing) return;
+    // A clip that will not load is skipped, and it is not a song failing.
+    if (onAir) { advance(1); load(true); return; }
     if (++failures >= tracks.length) { playing = false; changed(); return; }
     advance(1); load(true);
   });
 
   return {
     tracks: () => tracks,
-    nowPlaying: () => (playing ? current() : null),
+    nowPlaying: () => (playing && !onAir ? current() : null),
+    onAir: () => (playing ? onAir : null),
     isPlaying: () => playing,
     toggle() {
       if (!tracks.length) return;
@@ -184,8 +251,9 @@ export async function loadSoundtrack(
       } else element.pause();
       changed();
     },
+    // Through a break, next is the song after it and previous the song before it.
     next() { if (!tracks.length) return; advance(1); load(playing); },
-    previous() { if (!tracks.length) return; advance(-1); load(playing); },
+    previous() { if (!tracks.length) return; if (!onAir) advance(-1); load(playing); },
     stop() { playing = false; element.pause(); changed(); },
     failed: () => failures >= tracks.length && tracks.length > 0,
     isShuffled: () => shuffle,

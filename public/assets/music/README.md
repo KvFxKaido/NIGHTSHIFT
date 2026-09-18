@@ -21,6 +21,16 @@ track something else: each entry also records the title the scan gave it
 (`scanned`), and a title that differs from that is yours, so it survives a
 rescan while untouched titles follow the tags.
 
+## The DJ
+
+Spoken clips go in `dj/` inside this folder, never beside the songs, where
+they would shuffle in as tracks. After every two or three songs the soundtrack
+plays one before the next song: a station ident half the time, the host talking
+the rest, and never the same clip twice running. A clip whose name has an `id`
+word in it (`kald-id-tower.wav`) is an ident; any other name is talk. Skipping
+during a break goes on to the next song; going back returns to the song before
+it. With no `dj/` folder the songs play back to back, as they always did.
+
 `pnpm dev` runs the scan as it starts. Rename, add or retag files while it is
 running and the game keeps the old list until you run `pnpm music:scan` and
 reload; if none of the listed files load, Play stops and the Audio menu says so.

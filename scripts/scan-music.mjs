@@ -46,13 +46,24 @@ for (const file of files) {
   tracks.push({ file, title: editedTitle(existing.get(file), file) ?? scanned, scanned });
 }
 
-await writeFile(manifestPath, `${JSON.stringify({ version: VERSION, tracks }, null, 2)}\n`);
+// Spoken clips for between songs live in dj/ beside the music, so they never
+// shuffle in as songs. A name with an `id` word in it is a station ident.
+let dj = [];
+try {
+  dj = (await readdir(join(folder, 'dj'), { withFileTypes: true }))
+    .filter(entry => entry.isFile() && EXTENSIONS.has(entry.name.slice(entry.name.lastIndexOf('.')).toLowerCase()))
+    .map(entry => entry.name)
+    .sort((a, b) => a.localeCompare(b))
+    .map(file => ({ file }));
+} catch { /* no dj folder: the soundtrack plays songs back to back */ }
+
+await writeFile(manifestPath, `${JSON.stringify({ version: VERSION, tracks, dj }, null, 2)}\n`);
 // The one thing a filename can do that no URL encoding gets past the dev server.
-const unservable = files.filter(file => /[#?]/.test(file));
+const unservable = [...files, ...dj.map(clip => `dj/${clip.file}`)].filter(file => /[#?]/.test(file));
 if (unservable.length) {
   console.log(`Soundtrack: the dev server cannot serve a # or ? in a filename; rename these or they will be skipped:\n${unservable.map(file => `  ${file}`).join('\n')}`);
 }
 const dropped = [...existing.keys()].filter(file => !files.includes(file)).length;
 console.log(tracks.length
-  ? `Soundtrack: ${tracks.length} track${tracks.length === 1 ? '' : 's'}${dropped ? ` (${dropped} no longer in the folder, dropped)` : ''}\n${tracks.map(t => `  ${t.title}`).join('\n')}`
+  ? `Soundtrack: ${tracks.length} track${tracks.length === 1 ? '' : 's'}${dj.length ? `, ${dj.length} DJ clip${dj.length === 1 ? '' : 's'}` : ''}${dropped ? ` (${dropped} no longer in the folder, dropped)` : ''}\n${tracks.map(t => `  ${t.title}`).join('\n')}`
   : 'Soundtrack: no audio files found in the music folder. Drop some in and rerun.');

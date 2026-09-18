@@ -512,7 +512,8 @@ const menu = createMenuController({
     const playing = soundtrack?.isPlaying() ?? false;
     const current = soundtrack?.nowPlaying();
     return {
-      note: current ? `Now playing: ${current.title}` : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ready.`,
+      note: current ? `Now playing: ${current.title}` : soundtrack?.onAir() ? "On air: the DJ, between songs."
+        : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ready.`,
       playing,
       enabled: true,
       shuffle,

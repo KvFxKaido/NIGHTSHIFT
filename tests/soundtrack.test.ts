@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { editedTitle, parseId3v1, parseId3v2, readTrackTags, scannedTitle } from "../scripts/music-tags.mjs";
-import { loadSoundtrack, trackPath, type SoundtrackOptions } from "../src/audio/soundtrack.ts";
+import { decodeDjClips, djKind, DJ_BREAK, loadSoundtrack, trackPath, type SoundtrackOptions } from "../src/audio/soundtrack.ts";
 import { decodeMusicPreference, loadMusicPreference, MUSIC_KEY, saveMusicPreference } from "../src/settings/music-preference.ts";
 
 // ID3 tags built by hand, one version and encoding at a time.
@@ -123,14 +123,15 @@ test("the scan names tracks from their tags and keeps hand edits across a rescan
  */
 async function withFakeAudio(files: string[], outcome: (file: string) => "plays" | "unreadable" | "refused",
   body: (soundtrack: Awaited<ReturnType<typeof loadSoundtrack>>, loads: string[], end: () => Promise<void>) => Promise<void>,
-  options: SoundtrackOptions = {}): Promise<void> {
+  options: SoundtrackOptions & { dj?: string[] } = {}): Promise<void> {
   const loads: string[] = [];
   let element: EventTarget | null = null;
   class FakeAudio extends EventTarget {
     constructor() { super(); element = this; }
     preload = ""; src = "";
     play() {
-      const file = decodeURIComponent(this.src.split("/").pop()!);
+      // Its path in the music folder: a song's filename, or dj/ and a clip's.
+      const file = decodeURIComponent(new URL(this.src).pathname.replace(/^\/assets\/music\//, ""));
       loads.push(file);
       // Capped, so an endless skip fails the test instead of hanging it.
       if (loads.length > 100) return Promise.resolve();
@@ -144,7 +145,7 @@ async function withFakeAudio(files: string[], outcome: (file: string) => "plays"
   const saved = { Audio: globalThis.Audio, fetch: globalThis.fetch };
   Object.assign(globalThis, {
     Audio: FakeAudio,
-    fetch: async () => ({ ok: true, json: async () => ({ version: 1, tracks: files.map(file => ({ file })) }) }),
+    fetch: async () => ({ ok: true, json: async () => ({ version: 1, tracks: files.map(file => ({ file })), dj: (options.dj ?? []).map(file => ({ file })) }) }),
   });
   try {
     const context = { createMediaElementSource: () => ({ connect() {} }) } as unknown as AudioContext;
@@ -273,4 +274,97 @@ test("the shuffle choice saves apart from settings and anything unreadable is sh
   const blocked = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
   assert.equal(saveMusicPreference(() => blocked, { shuffle: false }), false);
   assert.deepEqual(loadMusicPreference(() => blocked), { shuffle: true });
+});
+
+// The DJ (public/assets/music/README.md, "The DJ"): spoken clips from dj/,
+// played between songs, an ident half the time.
+test("a clip's kind comes from its name, and the manifest's clips are bare filenames", () => {
+  assert.equal(djKind("kald-id-tower.wav"), "ident");
+  assert.equal(djKind("KALD_ID_2.wav"), "ident");
+  assert.equal(djKind("id.wav"), "ident");
+  assert.equal(djKind("kald-dock-crews.wav"), "talk");
+  assert.equal(djKind("kald-idle-hands.wav"), "talk", "idle is not an ident");
+  assert.deepEqual(decodeDjClips({ version: 1, tracks: [], dj: [{ file: "a-id.wav" }, { file: "b.wav" }, { file: "../c.wav" }, { file: "sub/d.wav" }, "e.wav", {}] }),
+    [{ file: "a-id.wav", kind: "ident" }, { file: "b.wav", kind: "talk" }]);
+  assert.deepEqual(decodeDjClips({ version: 1, tracks: [] }), [], "no dj folder, no breaks");
+});
+
+const SONGS = ["a.mp3", "b.mp3", "c.mp3", "d.mp3", "e.mp3"];
+const CLIPS = ["kald-id-one.wav", "kald-id-two.wav", "kald-docks.wav", "kald-roads.wav"];
+const isClip = (load: string) => load.startsWith("dj/");
+
+test("the DJ talks after every two or three songs, then the next song, never the same clip twice running", async () => {
+  await withFakeAudio(SONGS, () => "plays", async (soundtrack, loads, end) => {
+    soundtrack.toggle(); await settle();
+    for (let i = 0; i < 90; i++) {
+      await end();
+      if (isClip(loads.at(-1)!)) {
+        assert.equal(soundtrack.nowPlaying(), null, "a song is named during a break");
+        assert.equal("dj/" + soundtrack.onAir()?.file, loads.at(-1));
+      } else assert.equal(soundtrack.onAir(), null);
+    }
+    const clipAt = loads.flatMap((load, i) => isClip(load) ? [i] : []);
+    assert.ok(clipAt.length > 15, `only ${clipAt.length} breaks in ${loads.length} loads`);
+    // Two or three songs before each break, counting from the first song.
+    [-1, ...clipAt].slice(0, -1).forEach((from, k) => {
+      const songs = clipAt[k]! - from - 1;
+      assert.ok(songs >= DJ_BREAK.minSongs && songs <= DJ_BREAK.maxSongs, `${songs} songs before break ${k}`);
+    });
+    for (let k = 1; k < clipAt.length; k++) assert.notEqual(loads[clipAt[k]!], loads[clipAt[k - 1]!], "the same clip twice running");
+    const kinds = new Set(clipAt.map(i => djKind(loads[i]!)));
+    assert.deepEqual([...kinds].sort(), ["ident", "talk"], "both idents and the host should be heard");
+    // A break costs no song: in name order the songs still run a, b, c, d, e, a...
+    loads.filter(load => !isClip(load)).forEach((song, i) => assert.equal(song, SONGS[i % SONGS.length]));
+  }, { shuffle: false, pick: seeded(11), dj: CLIPS });
+});
+
+test("through a break, next is the song after it and previous the song before it", async () => {
+  await withFakeAudio(SONGS, () => "plays", async (soundtrack, loads, end) => {
+    soundtrack.toggle(); await settle();
+    const toBreak = async () => { for (let i = 0; i < 10 && !isClip(loads.at(-1)!); i++) await end(); };
+    await toBreak();
+    const before = loads.at(-2)!;
+    soundtrack.next();
+    assert.equal(loads.at(-1), SONGS[(SONGS.indexOf(before) + 1) % SONGS.length], "next skipped a song along with the break");
+    await end(); await toBreak();
+    const played = loads.at(-2)!;
+    soundtrack.previous();
+    assert.equal(loads.at(-1), played, "previous from a break is the song before it");
+    assert.equal(soundtrack.onAir(), null);
+  }, { shuffle: false, pick: seeded(5), dj: CLIPS });
+});
+
+test("a clip that will not load is skipped, and is not a song failing", async () => {
+  await withFakeAudio(SONGS, load => isClip(load) ? "unreadable" : "plays", async (soundtrack, loads, end) => {
+    soundtrack.toggle(); await settle();
+    for (let i = 0; i < 12; i++) { await end(); await settle(); }
+    assert.ok(loads.some(isClip), "no break was tried");
+    assert.equal(soundtrack.isPlaying(), true);
+    assert.equal(soundtrack.failed(), false);
+    loads.filter(load => !isClip(load)).forEach((song, i) => assert.equal(song, SONGS[i % SONGS.length]));
+  }, { shuffle: false, pick: seeded(2), dj: CLIPS });
+  // With one song, a bad clip counted as a failed song would be every song failing.
+  await withFakeAudio(["only.mp3"], load => isClip(load) ? "unreadable" : "plays", async (soundtrack, loads, end) => {
+    soundtrack.toggle(); await settle();
+    for (let i = 0; i < 8; i++) { await end(); await settle(); }
+    assert.ok(loads.some(isClip), "no break was tried");
+    assert.equal(soundtrack.isPlaying(), true, "one bad clip stopped a one-song soundtrack");
+  }, { pick: seeded(2), dj: CLIPS });
+});
+
+test("the scan lists dj/ apart from the songs", async () => {
+  const folder = await mkdtemp(join(tmpdir(), "nightshift-dj-"));
+  try {
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(join(folder, "dj"));
+    await writeFile(join(folder, "Song.mp3"), Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    for (const clip of ["kald-id-one.wav", "kald-docks.wav", "notes.txt"]) await writeFile(join(folder, "dj", clip), "RIFF");
+    execFileSync(process.execPath, ["scripts/scan-music.mjs", folder], { stdio: "pipe" });
+    const manifest = JSON.parse(await readFile(join(folder, "manifest.json"), "utf8"));
+    assert.deepEqual(manifest.tracks.map((track: { file: string }) => track.file), ["Song.mp3"]);
+    assert.deepEqual(manifest.dj, [{ file: "kald-docks.wav" }, { file: "kald-id-one.wav" }]);
+    assert.deepEqual(decodeDjClips(manifest).map(clip => clip.kind), ["talk", "ident"]);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
 });
