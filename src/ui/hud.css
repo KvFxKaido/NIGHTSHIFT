@@ -33,6 +33,26 @@ canvas { display: block; width: 100%; height: 100%; }
 /* An author display beats the [hidden] attribute's display:none, so the
    readout showed GATE 1/3 in free roam on every screen. Say it explicitly. */
 #race[hidden] { display: none; }
+/* The neighbourhood's name as you cross into it (ui/district-banner.ts): free
+   roam only, top centre, where a race's readout sits. It fades by class rather
+   than the [hidden] attribute, which an author display would beat. */
+#district-name {
+  position: fixed; top: 20px; left: 50%; transform: translate(-50%, -6px); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  opacity: 0; transition: opacity 500ms ease, transform 500ms ease;
+  text-transform: uppercase; text-align: center;
+}
+#district-name.shown { opacity: 1; transform: translate(-50%, 0); }
+#district-name span { font-size: 10px; font-weight: 800; letter-spacing: .32em; color: rgba(242, 238, 227, .55); }
+#district-name strong {
+  font-size: 30px; font-weight: 800; letter-spacing: .18em; color: var(--ui-ink);
+  text-shadow: 0 0 22px rgba(0, 0, 0, .8);
+}
+/* Cyan, because a place's name is where you are going: the race's colour. */
+#district-name strong::after {
+  content: ""; display: block; width: 44px; height: 2px; margin: 6px auto 0;
+  background: var(--ui-navigation); box-shadow: 0 0 12px var(--ui-navigation);
+}
 #race-gate { font-size: 10px; font-weight: 800; letter-spacing: .26em; color: var(--ui-objective); }
 #race-time {
   font: 800 26px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -54,6 +74,7 @@ canvas { display: block; width: 100%; height: 100%; }
 #telemetry.visible { opacity: 1; transform: translateX(0); }
 @media (max-width: 900px) {
   #race { top: 88px; width: calc(100vw - 32px); }
+  #district-name { top: 88px; }
   #brand { max-width: calc(100vw - 52px); }
 }
 @media (max-width: 640px) {

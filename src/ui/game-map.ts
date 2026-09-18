@@ -5,6 +5,8 @@ import { ALDER_DATA, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ARENA_ROADS, ALD
 import { ARENA, ARENA_BOUNDS } from "../sim/arena.ts";
 import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 import type { Sim } from "../sim/sim.ts";
+import { ALDER_NEIGHBOURHOODS } from "../sim/alder-neighbourhoods.ts";
+import { keepReadable, readable } from "./map-labels.ts";
 
 /** A view of the live world. Opening the menu pauses it without replacing it. */
 export function createGameMap(sim: Sim) {
@@ -25,7 +27,7 @@ export function createGameMap(sim: Sim) {
     transform:`rotate(${b.rotation*180/Math.PI} ${b.x} ${b.z})`,fill:"#456068",opacity:.55});
   for (const b of [DRIFT_YARD.bounds, DRIFT_YARD.driveway]) shape(svg, "rect", { x: b.minX, y: b.minZ, width: b.maxX - b.minX, height: b.maxZ - b.minZ, fill: "#38685e", opacity: .8 });
   for (const b of YARD_STRUCTURES) shape(svg, "rect", { x: b.x - b.width / 2, y: b.z - b.depth / 2, width: b.width, height: b.depth, fill: "#93aaa4" });
-  shape(svg, "text", { x: -460, y: 1145, "font-size": 25, fill: "#96ebce", "text-anchor": "middle" }, "South Wharf / Drift Yard");
+  shape(svg, "text", { x: -460, y: 1145, "font-size": 25, fill: "#96ebce", "text-anchor": "middle", ...readable(10, 25) }, "South Wharf / Drift Yard");
   for (const street of ALDER_STREETS) {
     const path=shape(svg,"polyline",{points:street.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
       stroke:street.added?"#bca879":"#66858e","stroke-width":street.points[0]!.width,"stroke-linejoin":"round"});
@@ -36,12 +38,13 @@ export function createGameMap(sim: Sim) {
       stroke:"#7c8f99","stroke-width":road.points[0]!.width+3,"stroke-linejoin":"round"});
     shape(path,"title",{},road.name);
   }
-  shape(svg,"text",{x:(ARENA_BOUNDS.minX+ARENA_BOUNDS.maxX)/2+80,y:ARENA_BOUNDS.minZ-40,"font-size":30,fill:"#d8d2bd","text-anchor":"middle"},ARENA.name);
+  shape(svg,"text",{x:(ARENA_BOUNDS.minX+ARENA_BOUNDS.maxX)/2+80,y:ARENA_BOUNDS.minZ-40,"font-size":30,fill:"#d8d2bd","text-anchor":"middle",...readable(11,30)},ARENA.name);
   const garage=ALDER_GARAGE.entrance, tower=landmarks.broadcastTower;
-  for (const area of ALDER_DATA.neighborhoods) shape(svg,"text",{x:area.x,y:area.z,"font-size":30,fill:"#b9bda9","text-anchor":"middle"},area.name);
-  shape(svg,"text",{x:garage.x,y:garage.z+10,fill:uiColor("navigation"),"font-size":40,"text-anchor":"middle"},"G");
-  shape(svg,"circle",{cx:tower.x,cy:tower.z,r:16,fill:"#b6c9ff"});
-  shape(svg,"text",{x:tower.x+25,y:tower.z+8,fill:"#c9d5ff","font-size":28},"Broadcast Tower");
+  // All seven, from the polygons the rest of the game uses (sim/alder-neighbourhoods.ts).
+  for (const area of ALDER_NEIGHBOURHOODS) shape(svg,"text",{x:area.label[0],y:area.label[1],"font-size":30,fill:"#b9bda9","text-anchor":"middle",...readable(14,30)},area.name.toUpperCase());
+  shape(svg,"text",{x:garage.x,y:garage.z+10,fill:uiColor("navigation"),"font-size":40,"text-anchor":"middle",...readable(16,40)},"G");
+  shape(svg,"circle",{cx:tower.x,cy:tower.z,r:16,fill:"#b6c9ff",...readable(4,16)});
+  shape(svg,"text",{x:tower.x+25,y:tower.z+8,fill:"#c9d5ff","font-size":28,...readable(11,28)},"Broadcast Tower");
   const markers=shape(svg,"g",{"data-map-markers":""});
   const [minX,minZ,maxX,maxZ]=ALDER_DRIVE_BOUNDS;
   let cx=(minX+maxX)/2, cz=(minZ+maxZ)/2, zoom=1;
@@ -49,7 +52,9 @@ export function createGameMap(sim: Sim) {
     const w=(maxX-minX)/zoom, h=(maxZ-minZ)/zoom;
     cx=Math.max(minX,Math.min(maxX,cx));cz=Math.max(minZ,Math.min(maxZ,cz));
     svg.setAttribute("viewBox",`${cx-w/2} ${cz-h/2} ${w} ${h}`);
+    keepReadable(svg);
   }
+  addEventListener("resize",()=>keepReadable(svg));
   function wholeCity() {cx=(minX+maxX)/2;cz=(minZ+maxZ)/2;zoom=1;view();}
   document.querySelectorAll<HTMLButtonElement>("[data-map-view]").forEach(button=>button.addEventListener("click",()=>{
     switch(button.dataset.mapView) {
@@ -83,22 +88,24 @@ export function createGameMap(sim: Sim) {
       const passed=progress?.drift ? i < progress.drift.nextZone : progress?.collected.includes(i) ?? false;
       const next=!passed && !progress?.finished && (progress?.drift ? i === progress.drift.nextZone : sim.race?.kind === "unordered" || i===progress?.checkpoint);
       shape(markers,"circle",{cx:gate.x,cy:gate.z,r:next?30:22,fill:passed?"#52616b":next?uiColor("objective"):"#bc976b",
-        stroke:next?"#fff1bf":"#172c35","stroke-width":5,"data-map-gate":i});
-      shape(markers,"text",{x:gate.x,y:gate.z+9,"text-anchor":"middle","font-size":28,fill:"#10202b"},String(i % perLap + 1));
+        stroke:next?"#fff1bf":"#172c35","stroke-width":5,"data-map-gate":i,...readable(next?9:7,next?30:22)});
+      shape(markers,"text",{x:gate.x,y:gate.z+9,"text-anchor":"middle","font-size":28,fill:"#10202b",...readable(10,28)},String(i % perLap + 1));
     });
     for (const rival of sim.state.parkedRivals) {
       const { x, z } = rival.vehicle;
-      shape(markers, "circle", { cx: x, cy: z, r: 24, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-parked-rival": rival.id });
-      shape(markers, "text", { x: x + 34, y: z + 10, fill: "#ffdb9c", "font-size": 28 }, `${rival.name} / ${rival.id === SABLE.id ? "Drift" : "Drag"}`);
+      shape(markers, "circle", { cx: x, cy: z, r: 24, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-parked-rival": rival.id, ...readable(6, 24) });
+      shape(markers, "text", { x: x + 34, y: z + 10, fill: "#ffdb9c", "font-size": 28, ...readable(11, 28) }, `${rival.name} / ${rival.id === SABLE.id ? "Drift" : "Drag"}`);
     }
     for (const cruiser of sim.state.cruisers) {
       const { x, z } = cruiser.vehicle;
-      shape(markers, "circle", { cx: x, cy: z, r: 22, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-cruiser": cruiser.id });
-      shape(markers, "text", { x: x + 32, y: z + 10, fill: "#ffdb9c", "font-size": 28 }, cruiser.name);
+      shape(markers, "circle", { cx: x, cy: z, r: 22, fill: uiColor("rival"), stroke: "#491b2c", "stroke-width": 5, "data-map-cruiser": cruiser.id, ...readable(6, 22) });
+      shape(markers, "text", { x: x + 32, y: z + 10, fill: "#ffdb9c", "font-size": 28, ...readable(11, 28) }, cruiser.name);
     }
-    if(opponent)shape(markers,"circle",{cx:opponent.x,cy:opponent.z,r:20,fill:uiColor("rival"),stroke:"#491b2c","stroke-width":5,"data-map-rival":""});
+    if(opponent)shape(markers,"circle",{cx:opponent.x,cy:opponent.z,r:20,fill:uiColor("rival"),stroke:"#491b2c","stroke-width":5,"data-map-rival":"",...readable(6,20)});
     shape(markers,"path",{d:"M 0 -30 L 20 22 L 0 12 L -20 22 Z",fill:"#f4f7fa",stroke:"#162631","stroke-width":5,
-      transform:`translate(${player.x} ${player.z}) rotate(${-player.heading*180/Math.PI})`,"data-map-player":""});
+      transform:`translate(${player.x} ${player.z}) rotate(${-player.heading*180/Math.PI})`,"data-map-player":"",...readable(12,30)});
+    // Sized now if the map is already on screen, and again once it is.
+    keepReadable(svg);requestAnimationFrame(()=>keepReadable(svg));
     status.textContent=sim.race&&progress?`${sim.race.name} · ${progress.finished?"Finished":raceProgressLabel(sim.race, progress)} · Paused`
       :`Free roam · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² Port Alder · Paused${sim.state.parkedRivals.length ? " · Rivet / Drag & Sable / Drift: southern Harbor Way" : ""}`;
   }};

@@ -34,6 +34,8 @@ import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-c
 import { drawnEffects, setLook } from "./render/cel.ts";
 import { addCelSmoke } from "./render/smoke.ts";
 import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
+import { createDistrictBanner } from "./ui/district-banner.ts";
+import { ALDER_NEIGHBOURHOODS, alderNeighbourhoodAt } from "./sim/alder-neighbourhoods.ts";
 import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setParkedRivalCar, setViewMode,
   type DistrictLighting } from "./render/scene.ts";
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
@@ -573,6 +575,19 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
 }
 /** Seconds the brand line keeps naming the camera after a change. */
 let cameraNoticeRemaining = 0;
+const districtBanner = createDistrictBanner();
+const districtName = document.getElementById("district-name")!;
+let districtShown: string | null = null;
+/** The neighbourhood's name as you cross in (ui/district-banner.ts). Free roam
+ *  only: a race's readout sits where it would. */
+function updateDistrictName(frameDelta: number, driving: boolean): void {
+  const here = alderNeighbourhoodAt(sim.state.vehicle.x, sim.state.vehicle.z)?.id ?? null;
+  const named = driving && !race ? districtBanner.update(here, frameDelta) : null;
+  if (named === districtShown) return;
+  if (named) districtName.querySelector("strong")!.textContent = ALDER_NEIGHBOURHOODS.find(n => n.id === named)!.name;
+  districtName.classList.toggle("shown", named !== null);
+  districtShown = named;
+}
 function cycleCamera(): void {
   view.chaseCamera = nextChaseCamera(view.chaseCamera);
   saveCameraPreference(() => window.localStorage, view.chaseCamera);
@@ -741,6 +756,7 @@ function frame(now: number): void {
   }
   garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
+  updateDistrictName(frameDelta, gameplayActive && !frozen);
   garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();

@@ -222,8 +222,10 @@ fixtures outside the playable bundle, and old world links redirect.
   if it does, it reads no more than the indicators show the player. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
   which is still sparse. The density-24 and ceiling-55 figures in
   `design/FIELD_NOTES.md` are the retired district's 192 lanes, not this map.
-- **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), a city
-  map overlay (M), named save slots, versioned browser-local settings,
+- **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), the
+  neighbourhood's name as you cross into it in free roam (`district-banner.ts`,
+  after 1.2 s so a border street never flickers), a city map overlay (M) naming
+  all seven neighbourhoods from their polygons, named save slots, versioned browser-local settings,
   Controls remapping, performance overlay, telemetry toggle.
 - **Editor** at `editor.html` places buildings in Port Alder; validated saves
   go to `src/sim/alder-layout.json`. Read `design/EDITOR.md` first.

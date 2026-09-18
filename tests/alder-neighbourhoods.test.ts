@@ -123,3 +123,18 @@ test("SoDo's warehouses light their docks, and nothing else floodlights a wall",
   assert.deepEqual([...floods.keys()], ["sodo"], `floodlights outside SoDo: ${JSON.stringify(Object.fromEntries(floods))}`);
   scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
 });
+
+// The maps print each neighbourhood's name at its label (ui/game-map.ts,
+// ui/alder-map.ts). A label outside its own polygon names the wrong place: the
+// map board once printed ALDER CENTER on the Broadcast Tower campus, Belltown.
+test("every neighbourhood's map label stands inside it", () => {
+  for (const neighbourhood of ALDER_NEIGHBOURHOODS) {
+    const [x, z] = neighbourhood.label;
+    assert.equal(alderNeighbourhoodAt(x, z)?.id, neighbourhood.id, `${neighbourhood.name}'s label is at ${x},${z}`);
+  }
+  const hills = ALDER_DATA.neighborhoods.map(label => `${label.x},${label.z}`);
+  for (const id of ["queen-anne", "capitol-hill", "central-district", "madrona-ridge"]) {
+    const label = ALDER_NEIGHBOURHOODS.find(n => n.id === id)!.label;
+    assert.ok(hills.includes(label.join(",")), `${id}'s label moved off the data's own, which the rival turfs read`);
+  }
+});
