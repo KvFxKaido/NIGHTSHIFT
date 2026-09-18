@@ -81,7 +81,8 @@ export const CHUNKED_SCENERY = [
   "alder-asphalt", "alder-pavement", "alder-ground", "alder-outskirts", "alder-lane-paint",
   "alder-lamp-posts", "alder-lamp-heads", "alder-lamp-pools",
   "alder-kerb-bins",
-  "district-facades", "district-roofs", "district-signage", "district-signage-glow", "district-shop-spill",
+  "district-facades", "district-facades-office", "district-facades-residential", "district-facades-freight",
+  "district-roofs", "district-signage", "district-signage-glow", "district-shop-spill",
 ] as const;
 
 export function chunkAlderScenery(scene: THREE.Scene, size = CHUNK_SIZE): void {

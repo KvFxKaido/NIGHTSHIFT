@@ -41,22 +41,68 @@ function textureFrom(context: CanvasRenderingContext2D | null,
 }
 
 const TILE_COLUMNS = 4;
-const TILE_ROWS = 6;
 /** Metres per window, which is what sets how many tiles a facade repeats. */
 const WINDOW_PITCH_X = 3.4;
 const WINDOW_PITCH_Y = 3.6;
 
+const WARM_ROOM = "#ffcb87";
+const COLD_ROOM = "#a8ccff";
+/** Strip lights left on for a cleaning crew. */
+const CLEANERS = "#dfe9ff";
+
+/**
+ * What the windows of a building say about who is in it (design/LOOK.md, "Lit
+ * means occupied"). The difference between them is which cells are lit and the
+ * shape of the glass, never a new wall.
+ * - `scattered`: rooms lit here and there, warm outnumbering cold. Every
+ *   building had this before neighbourhoods, and Blackglass still does.
+ * - `office`: ribbon windows, dark but for whole floors lit where the cleaners
+ *   are, one or two floors a tower, and a late desk or two.
+ * - `residential`: smaller windows, a few warm rooms: the city asleep.
+ * - `freight`: small high windows, almost none lit: warehouses light their
+ *   docks, not their walls, and the docks are the shopfront row.
+ */
+export type WindowKind = "scattered" | "office" | "residential" | "freight";
+
+interface WindowPattern {
+  /** Floors in one tile; an office's is tall, so a tower's lit floors never repeat. */
+  readonly rows: number;
+  /** The glass in its cell, as fractions of the cell. */
+  readonly glass: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+  /** The colour a cell's room is lit, or null for dark glass. */
+  lit(n: number, row: number): string | null;
+}
+
+/** The floors of an office tile the cleaners are on; each building starts the tile on a floor of its own. */
+const CLEANED_FLOORS = [4, 15];
+
+const WINDOW_PATTERNS: Readonly<Record<WindowKind, WindowPattern>> = {
+  scattered: { rows: 6, glass: { x: 0.2, y: 0.18, width: 0.6, height: 0.5 },
+    // Warm rooms outnumber the cold office floors, which is what stops a
+    // block of flats from reading as a single strip-lit office tower.
+    lit: n => hash01(n * 3.3) < 0.46 ? null : hash01(n * 7.7) > 0.34 ? WARM_ROOM : COLD_ROOM },
+  office: { rows: 24, glass: { x: 0.04, y: 0.24, width: 0.92, height: 0.44 },
+    lit: (n, row) => CLEANED_FLOORS.includes(row) ? CLEANERS : hash01(n * 5.9) > 0.94 ? WARM_ROOM : null },
+  residential: { rows: 6, glass: { x: 0.28, y: 0.2, width: 0.44, height: 0.46 },
+    lit: n => hash01(n * 4.1) < 0.86 ? null : hash01(n * 2.3) > 0.2 ? WARM_ROOM : COLD_ROOM },
+  freight: { rows: 6, glass: { x: 0.3, y: 0.12, width: 0.4, height: 0.22 },
+    lit: n => hash01(n * 6.1) > 0.96 ? COLD_ROOM : null },
+};
+
 interface FacadeTextures { map: THREE.Texture | null; emissiveMap: THREE.Texture | null }
-let facadeCache: FacadeTextures | null = null;
+const facadeCache = new Map<WindowKind, FacadeTextures>();
 
 /**
  * One tile of a lit facade, painted twice: an albedo pass so the dark windows
  * read as glass in the moonlight, and an emissive pass carrying only the lit
  * ones so a room switches on without lifting the whole wall.
  */
-function facadeTextures(): FacadeTextures {
-  if (facadeCache) return facadeCache;
-  const size = { width: 256, height: 384 };
+function facadeTextures(kind: WindowKind): FacadeTextures {
+  const cached = facadeCache.get(kind);
+  if (cached) return cached;
+  const pattern = WINDOW_PATTERNS[kind];
+  const cellWidth = 64, cellHeight = 64;
+  const size = { width: cellWidth * TILE_COLUMNS, height: cellHeight * pattern.rows };
   const base = offscreen(size.width, size.height);
   const glow = offscreen(size.width, size.height);
   if (base && glow) {
@@ -64,21 +110,17 @@ function facadeTextures(): FacadeTextures {
     base.fillRect(0, 0, size.width, size.height);
     glow.fillStyle = "#000000";
     glow.fillRect(0, 0, size.width, size.height);
-    const cellWidth = size.width / TILE_COLUMNS;
-    const cellHeight = size.height / TILE_ROWS;
-    for (let row = 0; row < TILE_ROWS; row++) {
+    for (let row = 0; row < pattern.rows; row++) {
       for (let column = 0; column < TILE_COLUMNS; column++) {
         const n = row * TILE_COLUMNS + column;
-        const x = column * cellWidth + cellWidth * 0.2;
-        const y = row * cellHeight + cellHeight * 0.18;
-        const width = cellWidth * 0.6;
-        const height = cellHeight * 0.5;
+        const x = column * cellWidth + cellWidth * pattern.glass.x;
+        const y = row * cellHeight + cellHeight * pattern.glass.y;
+        const width = cellWidth * pattern.glass.width;
+        const height = cellHeight * pattern.glass.height;
         base.fillStyle = "#10161e";
         base.fillRect(x, y, width, height);
-        if (hash01(n * 3.3) < 0.46) continue;
-        // Warm rooms outnumber the cold office floors, which is what stops a
-        // block of flats from reading as a single strip-lit office tower.
-        const lit = hash01(n * 7.7) > 0.34 ? "#ffcb87" : "#a8ccff";
+        const lit = pattern.lit(n, row);
+        if (!lit) continue;
         base.fillStyle = lit;
         base.fillRect(x, y, width, height);
         glow.fillStyle = lit;
@@ -86,8 +128,9 @@ function facadeTextures(): FacadeTextures {
       }
     }
   }
-  facadeCache = { map: textureFrom(base), emissiveMap: textureFrom(glow) };
-  return facadeCache;
+  const textures = { map: textureFrom(base), emissiveMap: textureFrom(glow) };
+  facadeCache.set(kind, textures);
+  return textures;
 }
 
 let glowCache: THREE.Texture | null | undefined;
@@ -129,14 +172,19 @@ function mergedMesh(name: string, parts: THREE.BufferGeometry[], material: THREE
   return mesh;
 }
 
-/** A wall panel whose UVs repeat one window grid per `WINDOW_PITCH` metres. */
-function facadePanel(width: number, height: number, phase: number): THREE.PlaneGeometry {
+/**
+ * A wall panel whose UVs repeat one window grid per `WINDOW_PITCH` metres.
+ * `floor` starts the tile on a floor of its own; a building's faces share it, so
+ * a lit floor runs round the whole building rather than along one wall.
+ */
+function facadePanel(width: number, height: number, phase: number, rowsPerTile: number, floor = 0): THREE.PlaneGeometry {
   const geometry = new THREE.PlaneGeometry(width, height);
   const columns = Math.max(1, Math.round(width / WINDOW_PITCH_X)) / TILE_COLUMNS;
-  const rows = Math.max(1, Math.round(height / WINDOW_PITCH_Y)) / TILE_ROWS;
+  const rows = Math.max(1, Math.round(height / WINDOW_PITCH_Y)) / rowsPerTile;
   const uv = geometry.getAttribute("uv");
   const offset = Math.round(phase * TILE_COLUMNS) / TILE_COLUMNS;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * columns + offset, uv.getY(i) * rows);
+  const lift = Math.round(floor * rowsPerTile) / rowsPerTile;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * columns + offset, uv.getY(i) * rows + lift);
   return geometry;
 }
 
@@ -179,7 +227,12 @@ export interface NightDressing {
   readonly coloured: number;
   /** A white unit is warm rather than cool. */
   readonly warm: number;
+  /** What the windows above say about who is in; `scattered` when absent. */
+  readonly windows?: WindowKind;
 }
+
+/** A facade mesh's name: `district-facades` for the scattered windows every building once had. */
+export const facadeMeshName = (kind: WindowKind) => kind === "scattered" ? "district-facades" : `district-facades-${kind}`;
 
 /** The dressing every building had before neighbourhoods; Blackglass keeps it. */
 export const STREET_DRESSING: NightDressing = { signs: 0.8, secondSign: 0.55, shopfronts: 0.82, coloured: 0.2, warm: 0.5 };
@@ -198,13 +251,16 @@ const SHOPFRONT_MAX_LIFT = 3;
  */
 export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSite[],
   groundAt: (x: number, z: number) => number = () => 0, reach: FrontageReach = CENTRELINE_REACH): void {
-  const { map, emissiveMap } = facadeTextures();
-  const facadeMaterial = new THREE.MeshStandardMaterial({
-    color: map ? 0xffffff : 0x39434d, map, emissiveMap,
-    emissive: emissiveMap ? 0xffffff : 0x000000, emissiveIntensity: 1.35, roughness: 0.82,
-  });
+  const facadeMaterial = (kind: WindowKind) => {
+    const { map, emissiveMap } = facadeTextures(kind);
+    return new THREE.MeshStandardMaterial({
+      color: map ? 0xffffff : 0x39434d, map, emissiveMap,
+      emissive: emissiveMap ? 0xffffff : 0x000000, emissiveIntensity: 1.35, roughness: 0.82,
+    });
+  };
   const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x232b33, roughness: 1 });
-  const facades: THREE.BufferGeometry[] = [];
+  // One mesh per kind of window, so each is one material and one draw a chunk.
+  const facades = new Map<WindowKind, THREE.BufferGeometry[]>();
   const roofs: THREE.BufferGeometry[] = [];
   const signs: THREE.BufferGeometry[] = [];
   const glows: THREE.BufferGeometry[] = [];
@@ -243,11 +299,17 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       { rotation: Math.PI / 2, x: site.width / 2, z: 0, width: site.depth },
       { rotation: -Math.PI / 2, x: -site.width / 2, z: 0, width: site.depth },
     ];
+    const windows = dressing.windows ?? "scattered";
+    // Which floor this building's tile starts on, the same on every face. The
+    // scattered tile keeps the start it always had.
+    const floor = windows === "scattered" ? 0 : hash01(index * 3.7);
     faces.forEach((face, side) => {
-      const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side));
+      const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side), WINDOW_PATTERNS[windows].rows, floor);
       panel.rotateY(face.rotation);
       panel.translate(face.x, base + site.height / 2, face.z);
-      facades.push(finish(panel));
+      const walls = facades.get(windows) ?? [];
+      walls.push(finish(panel));
+      facades.set(windows, walls);
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
       // courtyard nobody drives past is cost with no image behind it.
@@ -345,8 +407,10 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     roofs.push(finish(roof));
   });
 
-  const facadeMesh = mergedMesh("district-facades", facades, facadeMaterial);
-  if (facadeMesh) { facadeMesh.castShadow = true; facadeMesh.receiveShadow = true; scene.add(facadeMesh); }
+  for (const [kind, walls] of facades) {
+    const facadeMesh = mergedMesh(facadeMeshName(kind), walls, facadeMaterial(kind));
+    if (facadeMesh) { facadeMesh.castShadow = true; facadeMesh.receiveShadow = true; scene.add(facadeMesh); }
+  }
   const roofMesh = mergedMesh("district-roofs", roofs, roofMaterial);
   if (roofMesh) scene.add(roofMesh);
   const signMesh = mergedMesh("district-signage", signs,

@@ -14,21 +14,23 @@ import { buildingFrontage } from "../sim/frontage.ts";
 import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
 import type { DistrictLighting } from "./scene.ts";
 
-/** Asleep: a corner shop still open, no neon. */
-const ASLEEP: NightDressing = { signs: 0, secondSign: 0, shopfronts: 0.15, coloured: 0, warm: 0.8 };
+/** Asleep: a corner shop still open, no neon, a few warm rooms. */
+const ASLEEP: NightDressing = { signs: 0, secondSign: 0, shopfronts: 0.15, coloured: 0, warm: 0.8, windows: "residential" };
+/** Metres from which a building is a tower, and a tower is offices, lit in the cleaners' floors. */
+const TOWER = 40;
 /**
  * Each neighbourhood's lighting sentence (design/LOOK.md, Districts) as a density.
  * The strip is Capitol Hill, and it is the only place neon is dense.
  */
 export const NEIGHBOURHOOD_DRESSING: Readonly<Record<AlderNeighbourhoodId, NightDressing>> = {
-  // Freight after hours: strip-lit docks, almost no neon.
-  "sodo": { signs: 0.08, secondSign: 0, shopfronts: 0.3, coloured: 0, warm: 0.25 },
-  // Offices with the cleaners in: cool lobbies, very little colour.
-  "alder-center": { signs: 0.2, secondSign: 0.15, shopfronts: 0.65, coloured: 0.05, warm: 0.35 },
-  // The corner bar.
-  "belltown": { signs: 0.45, secondSign: 0.3, shopfronts: 0.75, coloured: 0.15, warm: 0.7 },
+  // Freight after hours: strip-lit docks, almost no neon, dark walls.
+  "sodo": { signs: 0.08, secondSign: 0, shopfronts: 0.3, coloured: 0, warm: 0.25, windows: "freight" },
+  // Offices with the cleaners in: cool lobbies, very little colour, lit floors.
+  "alder-center": { signs: 0.2, secondSign: 0.15, shopfronts: 0.65, coloured: 0.05, warm: 0.35, windows: "office" },
+  // The corner bar, and flats above it still up.
+  "belltown": { signs: 0.45, secondSign: 0.3, shopfronts: 0.75, coloured: 0.15, warm: 0.7, windows: "scattered" },
   // The strip that is still open.
-  "capitol-hill": { signs: 0.95, secondSign: 0.75, shopfronts: 0.9, coloured: 0.35, warm: 0.6 },
+  "capitol-hill": { signs: 0.95, secondSign: 0.75, shopfronts: 0.9, coloured: 0.35, warm: 0.6, windows: "scattered" },
   "queen-anne": ASLEEP,
   "central-district": ASLEEP,
   "madrona-ridge": ASLEEP,
@@ -100,7 +102,10 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
     addNightBuildings(scene,buildings.map((b,index)=>{
       const place=alderNeighbourhoodAt(b.x,b.z);
-      return {...b,decorationIndex:index,faceDistances:frontage[index]!,dressing:place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP};
+      const dressing=place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP;
+      // A tower is offices wherever it stands, except among SoDo's warehouses.
+      const tower=b.height>=TOWER&&place?.id!=="sodo";
+      return {...b,decorationIndex:index,faceDistances:frontage[index]!,dressing:tower?{...dressing,windows:"office" as const}:dressing};
     }),alderHeight,ALDER_REACH);
   }
   else {

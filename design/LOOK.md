@@ -119,9 +119,11 @@ Colour means something here, as it already does in the HUD.
   - **Queen Anne, the Central District, Madrona Ridge:** asleep. Few lit rooms,
     porch lights, evergreens black against the haze. No neon.
 
-  The neon and shopfront part of each sentence is built as a density
-  (`NEIGHBOURHOOD_DRESSING` in `src/render/alder.ts`). Windows, cranes and dock
-  floods are not yet.
+  The neon, shopfront and window parts of each sentence are built
+  (`NEIGHBOURHOOD_DRESSING` in `src/render/alder.ts`, `WINDOW_PATTERNS` in
+  `src/render/night.ts`); a tower of 40 m or more is offices wherever it stands
+  but among SoDo's warehouses. Cranes and dock floods are not yet, so SoDo is
+  dark where it should be lit by its docks.
 - **Landmarks are infrastructure, seen above the roofs.** The Broadcast Tower is
   the model: a steel lattice, red beacons, the city's own name. A district earns
   at most one, and it should help a driver learn the city (GDD §3.2): a row of
@@ -166,14 +168,14 @@ the Central District, Madrona Ridge, the waterfront and the garage.
 | One municipal lamp | 1,265 identical lamps: head `SODIUM_HEAD #ffa24a`, additive pool `SODIUM_POOL #c8782f` at opacity 1, centred 4 m in from the post (`alder.ts`). Before, the pool was `#c09b65` at 0.28 and centred on the post, 1.7 m past the kerb, so its core lit the pavement and sodium could not be seen from the driving line. Ridge Circuit's lamps are near-white `#fff0cf` (`arena.ts:180-201`), which fits "private light is white". | holds |
 | Plain masses | 1,728 generated boxes with flat roofs: no setbacks, parapets or roof detail (the `faces` loop in `night.ts:214`). Silhouette is the unused lever. | partial |
 | Script-built surfaces | One canvas facade tile, canvas text signs, no image textures anywhere in the world. | holds |
-| Lit means occupied | One 24-cell window tile with 10 lit cells for every building in the city; only its horizontal phase shifts (`facadePanel` in `night.ts`). | open |
+| Lit means occupied | Four window patterns (`WINDOW_PATTERNS` in `night.ts`), chosen by neighbourhood and height: offices 207 buildings, ribbon windows dark but for two cleaners' floors in a 24-floor tile and a few late desks, each building starting the tile on its own floor so a lit floor runs round all four walls; residential 778, a few warm rooms; freight 126 (SoDo), small high windows almost none lit; scattered 617 (Belltown, Capitol Hill), the tile every building had before. `tests/alder-neighbourhoods.test.ts` counts each building into its pattern's mesh. | holds |
 | Dark has an edge | Elliott Bay is a flat dark plane with no streaks (`water` in `alder.ts`); the port cranes are unlit. From the waterfront the city is a thin strip on a black horizon. | open |
 | Sky is not black | No sky in Port Alder: flat background `#05080f` behind fog `#070c16`, so the horizon is a hard band (`scene.ts:121-122`). | open |
 | Dry streets | By omission: no environment map and no wet roughness. The wet asphalt was Blackglass's. | holds |
 | Cyan belongs to the race | Neon is `#c46bff #ff4fd8 #8cff5a #6f6bff`: violet, magenta, green, indigo (`SIGN_COLORS` in `night.ts`). It was `#ff2d6f #39f0c2 #ffb03a #5ac8ff #c46bff #ff5f3c`, two cyans, the objective's amber and two reds beside the rival's, with only the violet free. Shopfront glass stays warm and cool white. | holds |
 | Neon is an accent on faces a driver reads | Each wall's frontage is measured along its own normal to the carriageway it faces, and a building in the way blocks it (`src/sim/frontage.ts`). Signs go on walls within 40 m, shopfronts within 30 m (`ALDER_REACH` in `alder.ts`): 2,097 and 1,597 of 6,912 walls. In the running game that is 4,112 glow quads and 1,540 shopfront spills, down from 15,260 and 6,740, when `alder.ts` passed zero for every wall and neon hung on back walls and hillsides. `tests/frontage.test.ts` checks the wall under every drawn sign triangle, and fails with 36,770 of 52,568 off if the zeros come back. | holds |
 | Signs name places | Where there is text, yes: PORT ALDER, WHARF GARAGE, RIDGE CIRCUIT, SOUTH WHARF / DRIFT YARD. The neon is blank. | holds |
-| Districts differ | Seven neighbourhood polygons hold every building exactly once: SoDo 127, Alder Center 118, Belltown 131, Queen Anne 191, Capitol Hill 538, the Central District 285, Madrona Ridge 339. Neon and shopfronts follow each one's sentence: neon quads are Capitol Hill 1,103, Belltown 79, Alder Center 38, SoDo 17, and none in the three asleep. `tests/alder-neighbourhoods.test.ts` checks the coverage, that the map labels and Blacklist turfs land in their named places, and the neon rule. Windows are still one tile everywhere, so the difference is at street level only. | partial |
+| Districts differ | Seven neighbourhood polygons hold every building exactly once: SoDo 127, Alder Center 118, Belltown 131, Queen Anne 191, Capitol Hill 538, the Central District 285, Madrona Ridge 339. Neon and shopfronts follow each one's sentence: neon quads are Capitol Hill 1,103, Belltown 79, Alder Center 38, SoDo 17, and none in the three asleep. `tests/alder-neighbourhoods.test.ts` checks the coverage, that the map labels and Blacklist turfs land in their named places, and the neon rule. The windows follow too (the row above). SoDo's docks and cranes do not exist yet. | partial |
 | Landmarks are infrastructure | The Broadcast Tower is the only landmark, and it is the model. | holds |
 | Red is cars | Traffic paint is muted on purpose (`traffic.ts:34-35`), so tail lights own the red. | holds |
 
@@ -184,8 +186,11 @@ everywhere and specific nowhere; the garage and the Broadcast Tower were the two
 places that looked authored. After it, streets carry a sodium pool every 55 m and
 neon only on the walls that face them. After the neighbourhoods (2026-09-17),
 Broadway reads as a strip from both kerbs and a Central District avenue is dark
-but for its lamps. Above street level every district still looks the same,
-because the window tile does not know where it is.
+but for its lamps. After the windows (2026-09-18), Alder Center's towers are dark
+but for the floors the cleaners are on, the hills show a few warm rooms, and
+Capitol Hill is the busiest thing in sight. SoDo, where the game starts, is the
+darkest: freight windows went out and the dock floods and lit cranes that should
+replace them are not built.
 
 ## Decisions
 

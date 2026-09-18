@@ -69,3 +69,29 @@ test("neon is dense on Capitol Hill and absent where the city is asleep", () => 
   assert.ok(hill > 3 * elsewhere, `Capitol Hill carries ${hill} neon triangles and the rest of the city ${elsewhere}`);
   scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
 });
+
+// design/LOOK.md, "Lit means occupied": offices light the cleaners' floors,
+// the asleep hills a few rooms, SoDo's warehouses almost nothing, and the busy
+// neighbourhoods keep the scattered windows. A tower of 40 m or more is offices
+// wherever it stands but among SoDo's warehouses. Each building draws four wall
+// panels, six vertices apiece once chunked, into the mesh of its kind.
+test("each building's windows say who is in it", () => {
+  const scene = new THREE.Scene();
+  addAlder(scene, "night");
+  const drawn = new Map<string, number>();
+  scene.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || !object.name.startsWith("district-facades")) return;
+    const name = object.name.split(":")[0]!;
+    drawn.set(name, (drawn.get(name) ?? 0) + object.geometry.getAttribute("position").count);
+  });
+  const expected = new Map<string, number>();
+  for (const block of ALDER_BLOCKS.filter(b => b !== ALDER_GARAGE.building)) {
+    const place = alderNeighbourhoodAt(block.x, block.z)!;
+    const kind = block.height >= 40 && place.id !== "sodo" ? "office" : NEIGHBOURHOOD_DRESSING[place.id].windows ?? "scattered";
+    const name = kind === "scattered" ? "district-facades" : `district-facades-${kind}`;
+    expected.set(name, (expected.get(name) ?? 0) + 24);
+  }
+  assert.deepEqual(Object.fromEntries([...drawn].sort()), Object.fromEntries([...expected].sort()));
+  assert.ok((expected.get("district-facades-office") ?? 0) > 0 && (expected.get("district-facades-freight") ?? 0) > 0);
+  scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+});
