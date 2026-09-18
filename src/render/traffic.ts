@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { trafficBodyGeometry, trafficCabin } from "./traffic-body.ts";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, type TrafficState } from "../sim/traffic.ts";
 
@@ -6,7 +7,7 @@ import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, ty
  * Traffic, drawn. The sim decides where every vehicle is and which way it
  * points; this turns that into instances and nothing else.
  *
- * One instanced body and one instanced lamp set per kind — eight draw calls for
+ * Six instanced sets per kind (paint, trim, lamps, two signals, brakes) for
  * the lot — because the count is fixed at load and never changes, which is the
  * same property that keeps the simulation's collider set constant.
  */
@@ -14,6 +15,7 @@ import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, ty
 export interface TrafficView {
   readonly root: THREE.Group;
   readonly bodies: Map<TrafficKind, THREE.InstancedMesh>;
+  readonly details: Map<TrafficKind, THREE.InstancedMesh>;
   readonly lamps: Map<TrafficKind, THREE.InstancedMesh>;
   /** Amber indicators, one set per side, shown per vehicle by `trafficSignal`. */
   readonly indicators: Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>;
@@ -39,24 +41,6 @@ const BRAKE_RED = new THREE.Color(0xff3322);
 // brighter than the buildings behind it; the lamps do the announcing.
 const PAINT: readonly number[] = [0x6b7581, 0x272e38, 0x5c2618, 0x18304a, 0x8a867b, 0x2a4033];
 const TAXI_PAINT = 0xb9861f;
-
-/** Body and cabin, sized from the same spec the collider uses. */
-function bodyGeometry(kind: TrafficKind): THREE.BufferGeometry {
-  const spec = TRAFFIC_KINDS[kind];
-  const parts: THREE.BufferGeometry[] = [];
-  const lower = new THREE.BoxGeometry(spec.width, spec.height * 0.55, spec.length);
-  lower.translate(0, spec.height * 0.275, 0);
-  parts.push(lower);
-  // A van and a lorry are a box on the load bed; a car has a cabin set back.
-  const boxy = kind === "van" || kind === "box-truck";
-  const cabin = new THREE.BoxGeometry(spec.width * (boxy ? 1 : 0.86),
-    spec.height * 0.45, spec.length * (boxy ? 0.72 : 0.5));
-  cabin.translate(0, spec.height * 0.775, boxy ? -spec.length * 0.1 : spec.length * 0.02);
-  parts.push(cabin);
-  const merged = mergeGeometries(parts)!;
-  parts.forEach(part => part.dispose());
-  return merged;
-}
 
 /**
  * Head and tail lamps. Cross traffic has to be readable before the vehicle
@@ -96,7 +80,10 @@ function brakeGeometry(kind: TrafficKind): THREE.BufferGeometry {
     return lamp;
   });
   const high = new THREE.BoxGeometry(spec.width * 0.3, 0.08, 0.08);
-  high.translate(0, spec.height * 0.96, spec.length / 2 * (kind === "van" || kind === "box-truck" ? 0.42 : 0.1) + 0.06);
+  const cabin = trafficCabin(kind);
+  const commercial = kind === "van" || kind === "box-truck";
+  const rearGlass = (cabin.front + cabin.rear) / 2 + (cabin.rear - cabin.front) * .39;
+  high.translate(0, spec.height * (commercial ? .91 : .85), commercial ? spec.length * .505 + .04 : rearGlass + .04);
   parts.push(high);
   const merged = mergeGeometries(parts)!;
   parts.forEach(part => part.dispose());
@@ -120,6 +107,7 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
   const root = new THREE.Group();
   root.name = "district-traffic";
   const bodies = new Map<TrafficKind, THREE.InstancedMesh>();
+  const details = new Map<TrafficKind, THREE.InstancedMesh>();
   const lamps = new Map<TrafficKind, THREE.InstancedMesh>();
   const indicators = new Map<TrafficKind, Record<"left" | "right", THREE.InstancedMesh>>();
   const brakes = new Map<TrafficKind, THREE.InstancedMesh>();
@@ -133,13 +121,21 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
 
   const paint = new THREE.Color();
   for (const [kind, count] of counts) {
-    const body = new THREE.InstancedMesh(bodyGeometry(kind),
+    const geometry = trafficBodyGeometry(kind);
+    const body = new THREE.InstancedMesh(geometry.paint,
       new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.15 }), count);
     body.name = `traffic-body-${kind}`;
     body.castShadow = true;
     body.frustumCulled = false;
     bodies.set(kind, body);
     root.add(body);
+    const detail = new THREE.InstancedMesh(geometry.detail,
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, metalness: .1 }), count);
+    detail.name = `traffic-detail-${kind}`;
+    detail.castShadow = true;
+    detail.frustumCulled = false;
+    details.set(kind, detail);
+    root.add(detail);
 
     const lamp = new THREE.InstancedMesh(lampGeometry(kind),
       new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }), count);
@@ -175,7 +171,7 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
   for (const body of bodies.values()) if (body.instanceColor) body.instanceColor.needsUpdate = true;
 
   scene.add(root);
-  return { root, bodies, lamps, indicators, brakes, slots, network, blink: 0, ground };
+  return { root, bodies, details, lamps, indicators, brakes, slots, network, blink: 0, ground };
 }
 
 const placement = new THREE.Object3D();
@@ -195,6 +191,7 @@ export function updateTraffic(view: TrafficView, traffic: TrafficState, elapsed 
     placement.updateMatrix();
     const slot = view.slots[index]!;
     view.bodies.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);
+    view.details.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);
     view.lamps.get(vehicle.kind)!.setMatrixAt(slot, placement.matrix);
     const signal = lit && view.network ? trafficSignal(view.network, vehicle) : null;
     const sides = view.indicators.get(vehicle.kind)!;
@@ -203,7 +200,7 @@ export function updateTraffic(view: TrafficView, traffic: TrafficState, elapsed 
     view.brakes.get(vehicle.kind)!.setMatrixAt(slot, vehicle.braking ? placement.matrix : hidden);
   });
   const indicatorMeshes = [...view.indicators.values()].flatMap(sides => [sides.left, sides.right]);
-  for (const mesh of [...view.bodies.values(), ...view.lamps.values(), ...indicatorMeshes, ...view.brakes.values()]) {
+  for (const mesh of [...view.bodies.values(), ...view.details.values(), ...view.lamps.values(), ...indicatorMeshes, ...view.brakes.values()]) {
     mesh.instanceMatrix.needsUpdate = true;
   }
 }
