@@ -167,10 +167,15 @@ fixtures outside the playable bundle, and old world links redirect.
 - **The launch.** Hold the handbrake and the gas through a race countdown, let
   the handbrake go at the flag, and the first 1.6 s carry extra traction: about
   two car lengths by five seconds, less the later you release, a penalty if you
-  bog or spin (`src/sim/launch.ts`, `design/HANDLING.md`). Rivals launch by
+  bog or spin, a plain start if you let go early (`src/sim/launch.ts`,
+  `design/HANDLING.md`). Rivals launch by
   Blacklist rank (`BLACKLIST_LAUNCH`): about 3 m to a rival, 0.7 m of that from
   rank, so it removes the player's free gap without being a difficulty lever.
-  Drag races keep the gearbox's own launch.
+  Drag races keep the gearbox's own launch. The **burnout** is the same hold
+  anywhere else, the player's only: stopped, e-brake and gas hold the front
+  wheels, the stick swings the tail round them (an assist, `applyBurnout`), and
+  letting the handbrake go launches on what the hold charged. The HUD's right
+  meter, MC3's boost bar, shows the charge and the boost (`launchMeter`).
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring
@@ -393,8 +398,9 @@ menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
 The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
 `src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`
-undrawn with the drawn smoke, for comparison, never saved. E-brake and gas at a
-standstill throws burnout smoke anywhere, which is the quick way to look at it.
+undrawn with the drawn smoke, for comparison, never saved. A burnout (e-brake
+and gas at a standstill) smokes anywhere, which is the quick way to look at it;
+Wharf Garage's apron is walled, so line up with the street before letting go.
 Live play draws each car between its last two ticks (`src/render/interpolate.ts`),
 up to one tick late; `?smooth=0` draws the last tick, which shakes on displays
 faster than 60 Hz.

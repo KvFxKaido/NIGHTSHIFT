@@ -855,8 +855,6 @@ function frame(now: number): void {
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
   audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen);
-  // E-brake and gas at a standstill smokes like a launch, anywhere (render/smoke.ts).
-  view.celSmoke?.holding(menu.isGameplayActive() && !frozen && lastInput.handbrake > .05 && lastInput.throttle > .1);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,

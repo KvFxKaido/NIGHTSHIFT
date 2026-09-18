@@ -26,11 +26,9 @@ import type { Drivetrain, SimState, VehicleState, WheelId } from "../sim/sim.ts"
  *
  * Read from the tick's state, like everything the renderer draws; it decides
  * nothing. It smokes when a tyre slides across itself, and at a launch: while
- * the start is held (the charge shows as smoke at the line), through the boost,
- * and hardest when a late release lights the tyres up. Outside a race the same
- * hold, e-brake and gas at a standstill, is a burnout and smokes the same way;
- * that part reads the driver's input, as the engine audio does, because free
- * roam has no launch state to read.
+ * the start is held (the charge shows as smoke at the line, or in a burnout
+ * anywhere else), through the boost, and hardest when a late release lights the
+ * tyres up. All of it is the sim's launch state (`sim/launch.ts`).
  */
 
 const PUFFS = 512;
@@ -51,13 +49,7 @@ const INK_GROW = 1.07;
 
 export interface CelSmoke {
   update(state: SimState, frameDelta: number): void;
-  /** Whether the driver is holding e-brake and gas this frame; false when not driving. */
-  holding(held: boolean): void;
 }
-/** Below this speed, e-brake and gas is a burnout rather than a handbrake turn. */
-const BURNOUT_SPEED = 3;
-/** Seconds of holding to smoke at full burnout strength, like a launch's full charge. */
-const BURNOUT_BUILD = 1.1;
 
 const VERTEX = /* glsl */ `
   attribute vec2 aPuff;
@@ -180,17 +172,13 @@ export function addCelSmoke(scene: THREE.Scene): CelSmoke {
   const debt: number[] = [];
   const pose = new THREE.Matrix4(), scale = new THREE.Vector3(), at = new THREE.Vector3(), none = new THREE.Quaternion();
 
-  let held = false, burnout = 0;
-
   /** 0-1 per tyre: how hard each one slides, and how hard it spins held or launching. */
-  function strengths(vehicle: VehicleState, drivetrain: Drivetrain, player: boolean): [number, number][] {
+  function strengths(vehicle: VehicleState, drivetrain: Drivetrain): [number, number][] {
     const launch = vehicle.launch;
     let driven = 0;
-    // A race's own launch state covers the countdown; this is the same hold anywhere else.
-    // Held at the line the smoke is capped low: a full cloud there hid the car
-    // and the road ahead from the chase camera.
-    if (player && burnout > 0 && !(launch && !launch.resolved)) driven = 0.15 + 0.2 * Math.min(1, burnout / BURNOUT_BUILD);
-    else if (launch && !launch.resolved && launch.heldTicks > 0) driven = 0.15 + 0.2 * launch.charge;
+    // Held, at the line or in a burnout, the smoke is capped low: a full cloud
+    // there hid the car and the road ahead from the chase camera.
+    if (launch && launch.heldTicks > 0 && (launch.burnout || !launch.resolved)) driven = 0.15 + 0.2 * launch.charge;
     else if (launch?.penaltyTicks && launch.feedback === "WHEELSPIN") driven = 1;
     else if (launch?.boostTicks) driven = 0.55 * launch.boostTicks / LAUNCH.boostTicks;
     return WHEELS.map(([id, , end]) => {
@@ -201,11 +189,10 @@ export function addCelSmoke(scene: THREE.Scene): CelSmoke {
   }
 
   function emit(vehicle: VehicleState, drivetrain: Drivetrain, slot: number, frameDelta: number): void {
-    const player = slot === 0;
     const cos = Math.cos(vehicle.heading), sin = Math.sin(vehicle.heading);
     const vx = -sin * vehicle.forwardSpeed + cos * vehicle.lateralSpeed;
     const vz = -cos * vehicle.forwardSpeed - sin * vehicle.lateralSpeed;
-    strengths(vehicle, drivetrain, player).forEach(([slide, spin], w) => {
+    strengths(vehicle, drivetrain).forEach(([slide, spin], w) => {
       const key = slot * 4 + w;
       const strength = Math.max(slide, spin);
       if (strength <= 0) { debt[key] = 0; return; }
@@ -243,10 +230,8 @@ export function addCelSmoke(scene: THREE.Scene): CelSmoke {
   }
 
   return {
-    holding(value) { held = value; },
     update(state, frameDelta) {
       if (frameDelta <= 0) return;
-      burnout = held && state.vehicle.speed < BURNOUT_SPEED ? burnout + frameDelta : 0;
       const others = [state.rival?.vehicle ?? state.encounter ?? null, ...state.cruisers.map(c => c.vehicle)];
       emit(state.vehicle, state.drivetrain, 0, frameDelta);
       // Nobody else's drivetrain is in the state; every rival body smokes from the rear.

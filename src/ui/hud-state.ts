@@ -4,6 +4,7 @@
  * cluster is a readout, and a readout that could change the run would be a
  * renderer making a decision.
  */
+import { LAUNCH, type LaunchState } from "../sim/launch.ts";
 
 /** Where the gauge arc starts, measured clockwise from three o'clock. */
 export const GAUGE_START_DEGREES = 130;
@@ -127,4 +128,16 @@ export function segmentWithinMinimap(camera: MinimapCamera,
     ? Math.max(0, Math.min(1, ((camera.x - ax) * dx + (camera.z - az) * dz) / lengthSquared))
     : 0;
   return Math.hypot(ax + dx * along - camera.x, az + dz * along - camera.z) <= camera.range * margin;
+}
+
+/**
+ * The right-hand meter, MC3's boost bar: the launch charge while it is held, at
+ * the line or in a burnout (sim/launch.ts), then what is left of the boost once it
+ * is let go. Null when there is neither, and the meter hides.
+ */
+export function launchMeter(launch: Pick<LaunchState, "heldTicks" | "charge" | "burnout" | "resolved" | "boostTicks" | "quality"> | undefined): number | null {
+  if (!launch) return null;
+  if (launch.heldTicks > 0 && (launch.burnout || !launch.resolved)) return launch.charge;
+  if (launch.boostTicks > 0) return launch.quality * launch.boostTicks / LAUNCH.boostTicks;
+  return null;
 }

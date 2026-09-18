@@ -201,6 +201,10 @@ canvas { display: block; width: 100%; height: 100%; }
 .meter-segment.spent { stroke: rgba(255, 179, 71, .18); }
 .meter-badge { fill: rgba(4, 8, 14, .85); stroke: var(--ui-objective); stroke-width: 2; }
 .meter-count { fill: var(--ui-ink); font: 800 16px/1 "Arial Narrow", Arial, sans-serif; text-anchor: middle; dominant-baseline: central; }
+/* The right meter is the launch's until Surge exists (GDD 3.6): the charge in
+   the redline's red, the car's own heat, and no tanks or count to show yet. */
+#meter-right .meter-fill { stroke: var(--ui-danger); filter: drop-shadow(0 0 5px rgba(255, 49, 88, .8)); }
+#meter-right-segments, #meter-right .meter-badge, #meter-right-count { display: none; }
 
 @media (max-width: 640px) {
   :root { --speedo-size: 132px; --minimap-size: 118px; }

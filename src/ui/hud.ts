@@ -1,7 +1,8 @@
+import type { LaunchState } from "../sim/launch.ts";
 import { uiColor } from "./theme.ts";
 import { TRANSMISSION, type TransmissionState } from "../sim/transmission.ts";
 import {
-  dialAngle, gaugeReading, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
+  dialAngle, gaugeReading, launchMeter, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
   SPEED_DIAL_MAX_MPH, SPEED_DIAL_STEP_MPH,
   GAUGE_CIRCUMFERENCE, GAUGE_SWEEP_DEGREES, type MinimapCamera,
 } from "./hud-state.ts";
@@ -27,6 +28,7 @@ export interface HudPolyline {
 
 export interface HudVehicle {
   transmission?: TransmissionState;
+  launch?: LaunchState;
   x: number;
   z: number;
   heading: number;
@@ -68,6 +70,8 @@ export function createHud(options: HudOptions): Hud {
   const sweep = root.getElementById("gauge-sweep") as SVGCircleElement | null;
   const needle = root.getElementById("gauge-needle");
   const tachNeedle = root.getElementById("tacho-needle");
+  const launchBar = root.getElementById("meter-right");
+  const launchFill = root.getElementById("meter-right-fill");
   const tachRed = root.getElementById("tacho-red");
   const canvas = root.getElementById("minimap") as HTMLCanvasElement | null;
   const context = canvas?.getContext("2d") ?? null;
@@ -324,6 +328,11 @@ export function createHud(options: HudOptions): Hud {
         sweep.style.strokeDasharray = `${arcLength * Math.min(1, speedRatio)} ${GAUGE_CIRCUMFERENCE}`;
         sweep.classList.toggle("redline", reading.redline);
       }
+      // MC3's boost bar: the launch charge building, at the line or in a burnout,
+      // then the boost draining away once it is let go.
+      const launched = launchMeter(vehicle.launch);
+      launchBar?.toggleAttribute("hidden", launched === null);
+      if (launched !== null) launchFill?.setAttribute("stroke-dasharray", `${(launched * 100).toFixed(1)} 100`);
       // The tachometer: the drag gearbox when there is one, otherwise the engine you hear.
       const tach = transmission ? tachReading(transmission.rpm, TRANSMISSION.redline)
         : engine ? tachReading(engine.rpm, engine.redlineRpm) : null;

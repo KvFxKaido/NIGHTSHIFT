@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
-  dialAngle, gaugeReading, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
+  dialAngle, gaugeReading, launchMeter, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
   SPEED_DIAL_MAX_MPH, SPEED_DIAL_STEP_MPH,
   GAUGE_REDLINE, GAUGE_START_DEGREES, GAUGE_SWEEP_DEGREES, GAUGE_CIRCUMFERENCE,
 } from "../src/ui/hud-state.ts";
 import { HANDLING } from "../src/sim/sim.ts";
 import { REDLINE_RPM } from "../src/audio/audio-mix.ts";
 import { TRANSMISSION } from "../src/sim/transmission.ts";
+import { LAUNCH } from "../src/sim/launch.ts";
 
 test("the dial reports transmission state and clamps its sweep", () => {
   assert.deepEqual(gaugeReading(0, 0, 70), { mph: 0, ratio: 0, gear: "N", redline: false });
@@ -95,6 +96,18 @@ test("a street segment is drawn whenever any part of it crosses the disc", () =>
 // The HUD module reaches into the page by id. If the markup and the module
 // disagree the cluster silently stops updating, which no unit test of the
 // arithmetic above would catch.
+// MC3's boost bar (design/HANDLING.md, "The burnout"): the right meter shows the
+// launch charge while it is held and the boost draining after, and hides otherwise.
+test("the right meter is the launch charge building, then the boost draining", () => {
+  const launch = { heldTicks: 0, charge: 0, burnout: false, resolved: true, boostTicks: 0, quality: 0 };
+  assert.equal(launchMeter(undefined), null);
+  assert.equal(launchMeter(launch), null, "nothing held, nothing shown");
+  assert.equal(launchMeter({ ...launch, heldTicks: 33, charge: .5, burnout: true }), .5, "a burnout half charged");
+  assert.equal(launchMeter({ ...launch, heldTicks: 33, charge: .5, resolved: false }), .5, "held at the line");
+  assert.equal(launchMeter({ ...launch, boostTicks: LAUNCH.boostTicks, quality: 1 }), 1, "full as it is let go");
+  assert.ok(Math.abs(launchMeter({ ...launch, boostTicks: LAUNCH.boostTicks / 2, quality: .8 })! - .4) < 1e-9, "and draining");
+});
+
 test("index.html carries every element the cluster binds to", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "gauge-needle", "tacho-ticks", "tacho-needle",
@@ -107,8 +120,8 @@ test("index.html carries every element the cluster binds to", async () => {
   // in free roam on every screen, including three of Shawn's screenshots.
   const css = await readFile(new URL("../src/ui/hud.css", import.meta.url), "utf8");
   assert.ok(css.includes("#race[hidden] { display: none; }"), "the race readout cannot hide");
-  // The meter arcs are reserved for nitrous, slipstream and abilities. Nothing
-  // feeds them yet, so they ship hidden, and the rule has to be able to hide them.
+  // The meter arcs ship hidden until something feeds them (the right one is the
+  // launch's, the left is reserved), and the rule has to be able to hide them.
   assert.ok(css.includes(".hud-meter[hidden] { display: none; }"), "the reserved meters cannot hide");
   for (const id of ["meter-left", "meter-right"]) {
     // A bare hidden attribute, not the aria-hidden it sits beside.
