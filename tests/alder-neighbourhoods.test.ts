@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { ALDER_BLOCKS, ALDER_DATA, ALDER_GARAGE } from "../src/sim/alder.ts";
+import { ALDER_BLOCKS, ALDER_DATA, ALDER_GARAGE, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES } from "../src/sim/alder.ts";
+import { ALDER_LAMPS } from "../src/sim/kerb-props.ts";
 import { ALDER_TURFS } from "../src/sim/alder-turf.ts";
 import { ALDER_NEIGHBOURHOODS, alderNeighbourhoodAt, alderNeighbourhoodsAt } from "../src/sim/alder-neighbourhoods.ts";
 import { addAlder, NEIGHBOURHOOD_DRESSING } from "../src/render/alder.ts";
@@ -161,4 +162,39 @@ test("Port Alder's sky lifts from near-black overhead to the haze at the horizon
   addAlder(blockout, "blockout");
   assert.equal(blockout.getObjectByName(ALDER_SKY), undefined, "the blockout's work light grew a night sky");
   for (const s of [scene, blockout]) s.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+});
+
+// design/LOOK.md, "Dark is allowed, and it has an edge": no road comes within
+// 116 m of Elliott Bay, so the seawall carries the street lamp for its whole
+// length, and its lamps and the piers' glow through the haze, never smaller than
+// a few pixels, so the edge reads from Harbor Way, 500 m off.
+test("the waterfront ends in a line of light: the seawall's lamps and every pier's", () => {
+  const zs = ALDER_SEAWALL_LAMP_POSES.map(pose => pose.z);
+  assert.ok(zs[0]! - ALDER_DATA.bounds[1]! <= ALDER_LAMPS.spacing && ALDER_DATA.bounds[3]! - zs.at(-1)! <= ALDER_LAMPS.spacing,
+    "the line stops short of an end of the seawall");
+  for (let i = 1; i < zs.length; i++) assert.ok(Math.abs(zs[i]! - zs[i - 1]! - ALDER_LAMPS.spacing) < 1e-9, "a gap in the line");
+  for (const pose of ALDER_SEAWALL_LAMP_POSES) {
+    assert.ok(pose.x > ALDER_DATA.shore + .6 && pose.x < ALDER_DATA.shore + 4, `a seawall lamp at x ${pose.x} is not on the wall's land side`);
+  }
+  const scene = new THREE.Scene();
+  addAlder(scene, "night");
+  // The street lamp itself, one municipal fixture: drawn in its own meshes, a post for every pose.
+  const vertices = (prefix: string) => {
+    let count = 0;
+    scene.traverse(object => { if (object instanceof THREE.Mesh && object.name.startsWith(prefix)) count += object.geometry.getAttribute("position").count; });
+    return count;
+  };
+  const lamps = ALDER_LAMP_POSES.length + ALDER_SEAWALL_LAMP_POSES.length;
+  assert.equal(vertices("alder-lamp-posts") % lamps, 0);
+  assert.equal(vertices("alder-lamp-heads") / lamps, vertices("alder-lamp-posts") / lamps, "a seawall post without its sodium head");
+  for (const [name, count] of [["alder-seawall-lamp-glow", ALDER_SEAWALL_LAMP_POSES.length], ["port-pier-lamp-glow", 4 * 2 * 4]] as const) {
+    const glow = scene.getObjectByName(name) as THREE.Points | undefined;
+    assert.ok(glow, `no ${name}`);
+    assert.equal(glow.geometry.getAttribute("position").count, count);
+    assert.equal((glow.material as THREE.PointsMaterial).fog, false, `${name} fades into the haze, and 500 m of it takes 82%`);
+  }
+  const blockout = new THREE.Scene();
+  addAlder(blockout, "blockout");
+  assert.equal(blockout.getObjectByName("alder-seawall-lamp-glow"), undefined, "the blockout lit its seawall");
+  for (const s of [scene, blockout]) s.traverse(object => { if (object instanceof THREE.Mesh || object instanceof THREE.Points) object.geometry.dispose(); });
 });

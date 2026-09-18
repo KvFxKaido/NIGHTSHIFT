@@ -15,7 +15,7 @@ import type { RivalDefinition } from "./rival.ts";
 import { buildRoutingGraph, type RoutingGraph } from "./route-choice.ts";
 import { generateRaceFrom, withRaceKind, rivalLineFor, type GeneratedRace, type Turf } from "./race-generator.ts";
 import { createEvergreens } from "./alder-evergreens.ts";
-import { kerbPoses, ALDER_LAMPS, ALDER_BINS } from "./kerb-props.ts";
+import { kerbPoses, ALDER_LAMPS, ALDER_BINS, type KerbPose } from "./kerb-props.ts";
 import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
 import type { CoursePoint } from "./track.ts";
 
@@ -165,6 +165,18 @@ export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROA
  *  which is how the anchor earns its keep. Neither collides: they are dressing
  *  until something puts them in `solids` on purpose. */
 export const ALDER_LAMP_POSES = kerbPoses(ALDER_STREETS, ALDER_LAMPS);
+/** Metres inland of the seawall's line that its lamps stand: clear of the wall's face. */
+export const SEAWALL_LAMP_SETBACK = 1.5;
+/**
+ * The seawall's lamps (design/LOOK.md, "Dark is allowed, and it has an edge"):
+ * the street lamp itself, at the street lamps' spacing, along the land side of
+ * the seawall for its whole length, its pool falling inland. No road comes
+ * within 116 m of the water, so without them the city ended in void.
+ */
+export const ALDER_SEAWALL_LAMP_POSES: readonly KerbPose[] = Array.from(
+  { length: Math.floor((data.bounds[3]! - data.bounds[1]! - ALDER_LAMPS.spacing / 2) / ALDER_LAMPS.spacing) + 1 },
+  (_, i) => ({ street: "seawall", x: data.shore + SEAWALL_LAMP_SETBACK,
+    z: data.bounds[1]! + ALDER_LAMPS.spacing / 2 + i * ALDER_LAMPS.spacing, outX: -1, outZ: 0, heading: Math.PI / 2 }));
 export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS, ALDER_BINS,
   [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
     ...ALDER_EVERGREENS.map(tree => tree.trunk)]);

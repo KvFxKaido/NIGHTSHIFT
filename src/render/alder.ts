@@ -2,7 +2,7 @@ import { addBroadcastTower } from "./broadcast-tower.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
-  ALDER_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
+  ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
 import { addEvergreens } from "./evergreens.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
@@ -14,6 +14,36 @@ import { buildingFrontage } from "../sim/frontage.ts";
 import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
 import type { DistrictLighting } from "./scene.ts";
 import { addNightSky, ALDER_SKY } from "./sky.ts";
+
+/** The four piers, by their centre along the shore, and where each carries its edge lamps. */
+const PIERS = [-320, 80, 470, 810];
+const PIER_LAMP_XS = [-12, -32, -52, -72];
+const PIER_LAMP_EDGE = 26.5;
+
+/**
+ * Glows that must read from far off: the waterfront's lamps, seen from roads a
+ * hundred metres and more inland. Points in world size, fog-exempt like the
+ * cranes' sprites, and one draw call for the lot. Deliberately not chunked:
+ * a line of light on the horizon is the point, and a few hundred vertices cost
+ * nothing from anywhere on the map.
+ */
+function farGlow(name: string, positions: number[], color: number, size: number, opacity: number): THREE.Points {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  const material = new THREE.PointsMaterial({ map: glowTexture(), color, size, sizeAttenuation: true,
+    transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false });
+  // World-sized up close, but a light does not shrink to nothing with distance:
+  // sized by the world alone, a lamp 500 m off was a grey speck of 3 pixels.
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = shader.vertexShader.replace("#include <fog_vertex>",
+      `gl_PointSize = max(gl_PointSize, ${FAR_GLOW_MIN_PX.toFixed(1)});\n#include <fog_vertex>`);
+  };
+  const points = new THREE.Points(geometry, material);
+  points.name = name;
+  return points;
+}
+/** The fewest pixels a far glow is drawn across, however far off it is. */
+const FAR_GLOW_MIN_PX = 6;
 
 /** Asleep: a corner shop still open, no neon, a few warm rooms. */
 const ASLEEP: NightDressing = { signs: 0, secondSign: 0, shopfronts: 0.15, coloured: 0, warm: 0.8, windows: "residential" };
@@ -155,8 +185,19 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const workGlow=new THREE.SpriteMaterial({map:glowTexture(),color:0xdfe8ff,blending:THREE.AdditiveBlending,
     depthWrite:false,transparent:true,opacity:.75,fog:false});
   const deckPools:THREE.BufferGeometry[]=[];
-  for(const z of [-320,80,470,810]) {
+  // Each pier's edges carry a row of short white pole lamps (the port is private,
+  // so its light is white), their heads drawn through the haze like the cranes'.
+  const pierPosts:THREE.BufferGeometry[]=[],pierHeads:THREE.BufferGeometry[]=[],pierGlow:number[]=[];
+  for(const z of PIERS) {
     box('port-pier',data.shore-42,1,z,84,2,55,concrete);
+    for(const side of [-1,1])for(const dx of PIER_LAMP_XS){
+      const x=data.shore+dx,edge=z+side*PIER_LAMP_EDGE;
+      pierPosts.push(new THREE.BoxGeometry(.18,5,.18).translate(x,4.5,edge));
+      if(!night)continue;
+      pierHeads.push(new THREE.BoxGeometry(.7,.18,.7).translate(x,7,edge));
+      pierGlow.push(x,6.9,edge);
+      deckPools.push(new THREE.PlaneGeometry(9,9).rotateX(-Math.PI/2).translate(x,2.06,edge-side*3.5));
+    }
     for(const dz of [-13,13])box('port-crane-leg',data.shore-35,19,z+dz,3,36,3,red);
     box('port-crane-boom',data.shore-43,38,z,72,3,3,red);
     box('port-crane-crossbar',data.shore-35,35,z,4,3,32,red);
@@ -172,6 +213,11 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       deckPools.push(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2).translate(data.shore+dx,2.06,z));
     }
   }
+  for(const [name,parts,material] of [['port-pier-lamp-posts',pierPosts,concrete],['port-pier-lamp-heads',pierHeads,workLight]] as const){
+    const geometry=parts.length?mergeGeometries([...parts]):null;parts.forEach(g=>g.dispose());
+    if(geometry){const mesh=new THREE.Mesh(geometry,material);mesh.name=name;scene.add(mesh);}
+  }
+  if(pierGlow.length)scene.add(farGlow('port-pier-lamp-glow',pierGlow,0xdfe8ff,5,.8));
   if(deckPools.length){
     const geometry=mergeGeometries(deckPools);deckPools.forEach(g=>g.dispose());
     if(geometry){const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xdfe6f2,map:glowTexture(),transparent:true,
@@ -186,7 +232,10 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   // Where a kerb prop stands is the sim's decision now (sim/kerb-props.ts).
   // This turns each pose into geometry and nothing else; the poses are the same
   // ones this loop used to compute inline, which tests/kerb-props.test.ts pins.
-  for(const pose of ALDER_LAMP_POSES){
+  // The seawall's lamps are the street lamp itself (one municipal fixture), so
+  // they join its meshes; only their glow is extra, and only because no road
+  // is nearer the water than 116 m and the haze takes a bare lamp head by then.
+  for(const pose of [...ALDER_LAMP_POSES,...ALDER_SEAWALL_LAMP_POSES]){
     const x=pose.x,z=pose.z,y=alderHeight(x,z);
     lamps.push(new THREE.BoxGeometry(.22,7,.22).translate(x,y+3.5,z));
     bulbs.push(new THREE.BoxGeometry(1.6,.2,.5).translate(x,y+7,z));
@@ -215,6 +264,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     if(geometry){const mesh=new THREE.Mesh(geometry,poolMaterial);mesh.name='alder-lamp-pools';scene.add(mesh);}
     pools.forEach(g=>g.dispose());
   }
+  if(night)scene.add(farGlow('alder-seawall-lamp-glow',
+    ALDER_SEAWALL_LAMP_POSES.flatMap(pose=>[pose.x,alderHeight(pose.x,pose.z)+6.9,pose.z]),SODIUM_HEAD,6,.7));
   // The anchor's second consumer, and the whole point of extracting it: the
   // other kerb, from a spec rather than from another loop. placeCar's
   // convention is that rotation.y IS the heading, so a bin turns its back on
