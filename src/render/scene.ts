@@ -17,6 +17,7 @@ import {
 import type { CarView } from "./car.ts";
 import type { CelSmoke } from "./smoke.ts";
 import { createGarageScene } from "./garage.ts";
+import { ALDER_SKY, NIGHT_HAZE, NIGHT_ZENITH } from "./sky.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 
 export type ViewMode = "track" | "garage";
@@ -38,7 +39,7 @@ export interface View extends CarView {
   mode: ViewMode;
   rivalCar: CarView | null;
   parkedRivalCars: Map<string, CarView>;
-  /** The district's sky dome, which follows the camera. Null off the district. */
+  /** The sky dome, which follows the car (sky.ts). Null where a world has none. */
   sky: THREE.Object3D | null;
   /** Traffic instances, or null in a world with none. */
   traffic: TrafficView | null;
@@ -122,8 +123,11 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     // unlit geometry from going pure black, and the sky has to stay out of the
     // way of the signage.
     scene.add(new THREE.AmbientLight(0x2a3c58, 0.85));
-    scene.background = new THREE.Color(0x05080f);
-    scene.fog = new THREE.FogExp2(0x070c16, 0.0026);
+    // The sky dome (sky.ts) covers the background where a world has one. The
+    // fog is the haze at its horizon, so distance fades into haze, not black;
+    // it was a third colour of its own, matching neither.
+    scene.background = new THREE.Color(NIGHT_ZENITH);
+    scene.fog = new THREE.FogExp2(NIGHT_HAZE, 0.0026);
   }
 
   const nightDistrict = lighting === "night";
@@ -165,7 +169,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     chaseCamera: DEFAULT_CHASE_CAMERA,
     mode: "track",
     rivalCar: null, parkedRivalCars: new Map(),
-    sky: null,
+    sky: scene.getObjectByName(ALDER_SKY) ?? null,
     traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null, roadWorld.grade ?? null) : null,
     race: addRaceBeacon(scene, gateRadius),
     surface: (x, z) => roadWorld.project(x, z).height,
@@ -276,7 +280,9 @@ export function render(
   }
 
   const car = state.vehicle;
-  if (view.sky) view.sky.position.set(car.x, 0, car.z);
+  // At the car's height too: Queen Anne's roads climb 37 m, and a dome centred
+  // at sea level would put its horizon band below the skyline up there.
+  if (view.sky) view.sky.position.set(car.x, car.y, car.z);
   // Traffic is drawn from the state the tick left behind, never guessed at: the
   // renderer only draws what a tick decided. In live play main.ts hands this a
   // state blended between the last two ticks (render/interpolate.ts), which is

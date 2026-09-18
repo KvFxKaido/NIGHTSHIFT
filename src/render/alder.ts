@@ -13,6 +13,7 @@ import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing 
 import { buildingFrontage } from "../sim/frontage.ts";
 import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
 import type { DistrictLighting } from "./scene.ts";
+import { addNightSky, ALDER_SKY } from "./sky.ts";
 
 /** Asleep: a corner shop still open, no neon, a few warm rooms. */
 const ASLEEP: NightDressing = { signs: 0, secondSign: 0, shopfronts: 0.15, coloured: 0, warm: 0.8, windows: "residential" };
@@ -53,6 +54,7 @@ const SODIUM_POOL_INSET = 4;
 export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
   addBroadcastTower(scene, night);
+  if (night) addNightSky(scene, ALDER_SKY);
   if (night) scene.add(new THREE.HemisphereLight(0x9abbd0, 0x39444c, 1.0));
   function surface(name: string, points: number[], color: number, lift = 0): void {
     const positions = new Float32Array(points.length/2*3);

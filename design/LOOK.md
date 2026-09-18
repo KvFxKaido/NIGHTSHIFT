@@ -173,7 +173,7 @@ the Central District, Madrona Ridge, the waterfront and the garage.
 | Script-built surfaces | One canvas facade tile, canvas text signs, no image textures anywhere in the world. | holds |
 | Lit means occupied | Four window patterns (`WINDOW_PATTERNS` in `night.ts`), chosen by neighbourhood and height: offices 207 buildings, ribbon windows dark but for two cleaners' floors in a 24-floor tile and a few late desks, each building starting the tile on its own floor so a lit floor runs round all four walls; residential 778, a few warm rooms; freight 126 (SoDo), small high windows almost none lit; scattered 617 (Belltown, Capitol Hill), the tile every building had before. `tests/alder-neighbourhoods.test.ts` counts each building into its pattern's mesh. | holds |
 | Dark has an edge | Elliott Bay is a flat dark plane with no streaks (`water` in `alder.ts`). The four port cranes are lit (2026-09-18): a red beacon over the legs and at the boom's end, three white work lights under the boom with pools on the pier deck, the beacons and lamps fog-exempt so the port reads on the horizon. There are no pier lamps or seawall lights, so the rest of the waterfront edge is still dark. | partial |
-| Sky is not black | No sky in Port Alder: flat background `#05080f` behind fog `#070c16`, so the horizon is a hard band (`scene.ts:121-122`). | open |
+| Sky is not black | A dome of vertex colour follows the car (`sky.ts`, 2026-09-18): `NIGHT_ZENITH #05080f` overhead, the colour the whole sky used to be, lifting to `NIGHT_HAZE #1b2638` at the horizon, most of the lift within about 15 degrees of the skyline. The fog is the haze colour, so distance fades into haze rather than black. Before it the background was `#05080f` behind fog `#070c16`, a third colour, so the horizon was a hard band and roofs, evergreens and cranes had nothing to stand against. `tests/alder-neighbourhoods.test.ts` holds the two ends of the gradient. | holds |
 | Dry streets | By omission: no environment map and no wet roughness. The wet asphalt was Blackglass's. | holds |
 | Cyan belongs to the race | Neon is `#c46bff #ff4fd8 #8cff5a #6f6bff`: violet, magenta, green, indigo (`SIGN_COLORS` in `night.ts`). It was `#ff2d6f #39f0c2 #ffb03a #5ac8ff #c46bff #ff5f3c`, two cyans, the objective's amber and two reds beside the rival's, with only the violet free. Shopfront glass stays warm and cool white. | holds |
 | Neon is an accent on faces a driver reads | Each wall's frontage is measured along its own normal to the carriageway it faces, and a building in the way blocks it (`src/sim/frontage.ts`). Signs go on walls within 40 m, shopfronts within 30 m (`ALDER_REACH` in `alder.ts`): 2,097 and 1,597 of 6,912 walls. In the running game that is 4,112 glow quads and 1,540 shopfront spills, down from 15,260 and 6,740, when `alder.ts` passed zero for every wall and neon hung on back walls and hillsides. `tests/frontage.test.ts` checks the wall under every drawn sign triangle, and fails with 36,770 of 52,568 off if the zeros come back. | holds |
@@ -194,7 +194,9 @@ but for the floors the cleaners are on, the hills show a few warm rooms, and
 Capitol Hill is the busiest thing in sight. SoDo, where the game starts, went
 dark with its freight windows and is lit again by its docks: rows of roller
 doors under white floodlights, and cranes on the horizon with red beacons and
-white work lights. The start view up 1st Ave S still passes open lots.
+white work lights. The start view up 1st Ave S still passes open lots. After the
+sky (2026-09-18), rooflines, Madrona's evergreens and the cranes stand dark
+against a faint haze instead of vanishing into black.
 
 ## Remaining work
 
@@ -202,44 +204,39 @@ What the rules above still ask for, measured against the render on 2026-09-18,
 roughly in the order it would show. Each item names the rule it serves; none is
 scheduled.
 
-1. **The sky is not black** (Light). Still a flat `#05080f` behind a slightly
-   different fog colour, so the horizon is a hard band and roofs, evergreens and
-   the tower have nothing to stand against. A faint cold haze lifted near the
-   horizon, one gradient, is the whole job. The drawn cars' ink outlines need it
-   too: black ink against a black sky does not show.
-2. **Dark has an edge** (Light). The cranes are lit; the seawall, the piers and
+1. **Dark has an edge** (Light). The cranes are lit; the seawall, the piers and
    Elliott Bay are not. Pier lamps and a line of lights along the seawall, and a
    few static reflection streaks on the water, so the waterfront stops
    collapsing into void from the road 500 m in.
-3. **The start** (Districts, SoDo). The first view, up 1st Ave S from Wharf
+2. **The start** (Districts, SoDo). The first view, up 1st Ave S from Wharf
    Garage, passes open lots, so the first seconds of the game are the dimmest.
    A layout question more than a lighting one: framing the start, or building
    on those lots, through the editor and the plot rules.
-4. **Silhouettes** (Form). Every building is a box with a flat roof. Rooflines,
+3. **Silhouettes** (Form). Every building is a box with a flat roof. Rooflines,
    setbacks, water tanks and loading-dock canopies are where Port Alder's
    identity above the street would come from next, and a script can build all
    of them.
-5. **Signs name places** (Colour). The neon is blank quads. A few words (TIRES,
+4. **Signs name places** (Colour). The neon is blank quads. A few words (TIRES,
    DINER, 24 HR, PARKING) on the strip and at SoDo's docks, drawn by the canvas
    the facades already use.
-6. **Landmarks** (Districts). The Broadcast Tower is the only one. One per
+5. **Landmarks** (Districts). The Broadcast Tower is the only one. One per
    district at most, infrastructure seen above the roofs: a crane row, a water
    tower, a bridge.
-7. **Housekeeping the survey found** (2026-09-16), none of it visible alone:
-   the fog colour does not match the background; the Port Alder dressing mixes
-   tone-mapped and un-tone-mapped materials, so city lamp heads look dimmer
-   than the dressing beside them; the park trees are much darker than the
-   evergreens; the city's meshes still carry Blackglass names (`district-*`),
-   and a few comments still describe the retired bridge and tunnel.
-8. **The map at whole-city zoom.** Every label now reads, but a few crowd one
+6. **Housekeeping the survey found** (2026-09-16), none of it visible alone:
+   the Port Alder dressing mixes tone-mapped and un-tone-mapped materials, so
+   city lamp heads look dimmer than the dressing beside them; the park trees
+   are much darker than the evergreens; the city's meshes still carry
+   Blackglass names (`district-*`), and a few comments still describe the
+   retired bridge and tunnel.
+7. **The map at whole-city zoom.** Every label now reads, but a few crowd one
    another (Deuce under Broadcast Tower). Zooming in separates them; a
    collision pass would not need to.
-9. **Smoke colour as a choice.** Unbound lets a player pick a smoke colour.
+8. **Smoke colour as a choice.** Unbound lets a player pick a smoke colour.
    That would sit with paint and livery under "customization creates
    ownership", and is a scope decision before it is work.
-10. **The phone.** Ink outlines double each car's triangles, and the city now
-    has four facade materials a chunk. Fine on the PC; a budget question for the
-    RedMagic port, measured then, not guessed now.
+9. **The phone.** Ink outlines double each car's triangles, and the city now
+   has four facade materials a chunk. Fine on the PC; a budget question for the
+   RedMagic port, measured then, not guessed now.
 
 ## Decisions
 

@@ -138,3 +138,27 @@ test("every neighbourhood's map label stands inside it", () => {
     assert.ok(hills.includes(label.join(",")), `${id}'s label moved off the data's own, which the rival turfs read`);
   }
 });
+
+// design/LOOK.md, "The sky is not black": near-black overhead, lifting to a
+// cold haze at the horizon, the fog's own colour (render/sky.ts), so roofs and
+// trees have something to stand against.
+test("Port Alder's sky lifts from near-black overhead to the haze at the horizon", async () => {
+  const { ALDER_SKY, NIGHT_HAZE, NIGHT_ZENITH } = await import("../src/render/sky.ts");
+  const scene = new THREE.Scene();
+  addAlder(scene, "night");
+  const sky = scene.getObjectByName(ALDER_SKY) as THREE.Mesh;
+  assert.ok(sky, "Port Alder has no sky at night");
+  const position = sky.geometry.getAttribute("position"), color = sky.geometry.getAttribute("color");
+  let top = 0, horizon = 0;
+  for (let i = 1; i < position.count; i++) {
+    if (position.getY(i) > position.getY(top)) top = i;
+    if (Math.abs(position.getY(i)) < Math.abs(position.getY(horizon))) horizon = i;
+  }
+  const at = (i: number) => new THREE.Color(color.getX(i), color.getY(i), color.getZ(i)).getHex();
+  assert.equal(at(top), new THREE.Color(NIGHT_ZENITH).getHex());
+  assert.equal(at(horizon), new THREE.Color(NIGHT_HAZE).getHex());
+  const blockout = new THREE.Scene();
+  addAlder(blockout, "blockout");
+  assert.equal(blockout.getObjectByName(ALDER_SKY), undefined, "the blockout's work light grew a night sky");
+  for (const s of [scene, blockout]) s.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+});
