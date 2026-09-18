@@ -196,6 +196,51 @@ dark with its freight windows and is lit again by its docks: rows of roller
 doors under white floodlights, and cranes on the horizon with red beacons and
 white work lights. The start view up 1st Ave S still passes open lots.
 
+## Remaining work
+
+What the rules above still ask for, measured against the render on 2026-09-18,
+roughly in the order it would show. Each item names the rule it serves; none is
+scheduled.
+
+1. **The sky is not black** (Light). Still a flat `#05080f` behind a slightly
+   different fog colour, so the horizon is a hard band and roofs, evergreens and
+   the tower have nothing to stand against. A faint cold haze lifted near the
+   horizon, one gradient, is the whole job. The drawn cars' ink outlines need it
+   too: black ink against a black sky does not show.
+2. **Dark has an edge** (Light). The cranes are lit; the seawall, the piers and
+   Elliott Bay are not. Pier lamps and a line of lights along the seawall, and a
+   few static reflection streaks on the water, so the waterfront stops
+   collapsing into void from the road 500 m in.
+3. **The start** (Districts, SoDo). The first view, up 1st Ave S from Wharf
+   Garage, passes open lots, so the first seconds of the game are the dimmest.
+   A layout question more than a lighting one: framing the start, or building
+   on those lots, through the editor and the plot rules.
+4. **Silhouettes** (Form). Every building is a box with a flat roof. Rooflines,
+   setbacks, water tanks and loading-dock canopies are where Port Alder's
+   identity above the street would come from next, and a script can build all
+   of them.
+5. **Signs name places** (Colour). The neon is blank quads. A few words (TIRES,
+   DINER, 24 HR, PARKING) on the strip and at SoDo's docks, drawn by the canvas
+   the facades already use.
+6. **Landmarks** (Districts). The Broadcast Tower is the only one. One per
+   district at most, infrastructure seen above the roofs: a crane row, a water
+   tower, a bridge.
+7. **Housekeeping the survey found** (2026-09-16), none of it visible alone:
+   the fog colour does not match the background; the Port Alder dressing mixes
+   tone-mapped and un-tone-mapped materials, so city lamp heads look dimmer
+   than the dressing beside them; the park trees are much darker than the
+   evergreens; the city's meshes still carry Blackglass names (`district-*`),
+   and a few comments still describe the retired bridge and tunnel.
+8. **The map at whole-city zoom.** Every label now reads, but a few crowd one
+   another (Deuce under Broadcast Tower). Zooming in separates them; a
+   collision pass would not need to.
+9. **Smoke colour as a choice.** Unbound lets a player pick a smoke colour.
+   That would sit with paint and livery under "customization creates
+   ownership", and is a scope decision before it is work.
+10. **The phone.** Ink outlines double each car's triangles, and the city now
+    has four facade materials a chunk. Fine on the PC; a budget question for the
+    RedMagic port, measured then, not guessed now.
+
 ## Decisions
 
 Decided by Shawn, 2026-09-16:
