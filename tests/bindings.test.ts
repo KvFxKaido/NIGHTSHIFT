@@ -136,6 +136,16 @@ test("capture consumes input, waits for controller release, and keeps menu confi
     current = { ...pad(), axes: [0, -1, 0, 0] } as Gamepad; input.update();
     assert.equal(input.consumeCameraCycle(), false, "the left stick is steering and menu up, never the camera");
     current = pad(); input.update(); input.consumeMenuCommands();
+    current = pad({14:1}); input.update(); assert.equal(input.consumeTrackSkip(), -1, "D-pad Left goes back a track");
+    input.update(); assert.equal(input.consumeTrackSkip(), 0, "a held D-pad must not keep skipping");
+    current = pad(); input.update(); input.consumeMenuCommands();
+    current = pad({15:1}); input.update(); assert.equal(input.consumeTrackSkip(), 1, "D-pad Right skips forward");
+    assert.equal(input.consumeTrackSkip(), 0, "one press is one skip");
+    assert.equal(input.consumeCameraCycle(), false, "a skip is not a camera change");
+    current = pad(); input.update(); input.consumeMenuCommands();
+    current = { ...pad(), axes: [1, 0, 0, 0] } as Gamepad; input.update();
+    assert.equal(input.consumeTrackSkip(), 0, "the left stick is steering and menu right, never a skip");
+    current = pad(); input.update(); input.consumeMenuCommands();
     key("KeyF"); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
     current = pad({2:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
     input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held headlights must not retrigger");

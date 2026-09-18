@@ -575,6 +575,9 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
 }
 /** Seconds the brand line keeps naming the camera after a change. */
 let cameraNoticeRemaining = 0;
+/** And the track after a skip, or why nothing played. */
+let trackNoticeRemaining = 0;
+let trackNotice = "";
 const districtBanner = createDistrictBanner();
 const districtName = document.getElementById("district-name")!;
 let districtShown: string | null = null;
@@ -595,6 +598,18 @@ function cycleCamera(): void {
   const url = new URL(location.href);
   if (url.searchParams.has("camera")) { url.searchParams.delete("camera"); history.replaceState(history.state, "", url); }
   cameraNoticeRemaining = 1.6;
+}
+/** D-pad Left / Right on the road. A skip asks for music, so it starts the
+ *  soundtrack if it was off; the menu's Pause is still how it stops. */
+function skipTrack(direction: -1 | 1): void {
+  if (!soundtrack?.tracks().length) trackNotice = audio ? "NO MUSIC INSTALLED" : "CLICK OR PRESS A KEY FOR AUDIO";
+  else {
+    if (direction > 0) soundtrack.next(); else soundtrack.previous();
+    if (!soundtrack.isPlaying()) soundtrack.toggle();
+    const title = soundtrack.nowPlaying()?.title.toUpperCase() ?? "";
+    trackNotice = title.length > 48 ? `${title.slice(0, 47)}…` : title;
+  }
+  trackNoticeRemaining = 2.5;
 }
 function flashHeadlights(): void {
   if (!menu.isGameplayActive() || flashRemaining > 0) return;
@@ -671,7 +686,7 @@ function updateHud(): void {
     const bindings = input.bindings();
     const up = input.activeGamepadName() ? padLabel(bindings.gamepad.shiftUp, input.activeGamepadName()) : keyLabel(bindings.keyboard.shiftUp);
     const down = input.activeGamepadName() ? padLabel(bindings.gamepad.shiftDown, input.activeGamepadName()) : keyLabel(bindings.keyboard.shiftDown);
-    dragControls.textContent = `${up} UP / ${down} DOWN / ${input.activeGamepadName() ? "Stick or D-pad" : `${keyLabel(bindings.keyboard.left)} or ${keyLabel(bindings.keyboard.right)}`} lane`;
+    dragControls.textContent = `${up} UP / ${down} DOWN / ${input.activeGamepadName() ? "Stick" : `${keyLabel(bindings.keyboard.left)} or ${keyLabel(bindings.keyboard.right)}`} lane`;
   }
   const rival = sim.state.rival;
   const position = race && raceState && rival ? racePosition(race,
@@ -708,7 +723,8 @@ function updateHud(): void {
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
   modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`
-    + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "");
+    + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "")
+    + (trackNoticeRemaining > 0 ? ` / ${trackNotice}` : "");
   const gamepadName = input.activeGamepadName();
   deviceElement.textContent = gamepadName ? "PAD READY" : "KEYBOARD";
   deviceElement.title = gamepadName ?? "Keyboard controls active";
@@ -761,12 +777,15 @@ function frame(now: number): void {
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
   const cameraCycleRequested = input.consumeCameraCycle();
+  const trackSkip = input.consumeTrackSkip();
   const debugToggleRequested = input.consumeDebugToggle();
   if (gameplayActive && resetRequested) reset();
   if ((gameplayActive || garageActive) && cameraResetRequested) resetViewCamera(view);
   // The garage camera is fixed, so the cycle only means something on the street.
   if (gameplayActive && cameraCycleRequested) cycleCamera();
   cameraNoticeRemaining = Math.max(0, cameraNoticeRemaining - frameDelta);
+  if (gameplayActive && trackSkip) skipTrack(trackSkip);
+  trackNoticeRemaining = Math.max(0, trackNoticeRemaining - frameDelta);
   if (gameplayActive && debugToggleRequested) debugVisible = !debugVisible;
 
   if (gameplayActive && !frozen) accumulator += frameDelta;

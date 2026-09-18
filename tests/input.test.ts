@@ -112,19 +112,17 @@ test("steering ramps continuously and symmetrically outside the center buffer", 
   }
 });
 
-test("full stick still requests exactly the same lock as the D-pad", () => {
-  assert.equal(mapGamepad(gamepad([-1])).steer, mapGamepad(gamepad([0], { 14: 1 })).steer);
-  assert.equal(mapGamepad(gamepad([1])).steer, mapGamepad(gamepad([0], { 15: 1 })).steer);
+test("full stick requests full lock", () => {
   assert.equal(mapGamepad(gamepad([-1])).steer, -1);
   assert.equal(mapGamepad(gamepad([1])).steer, 1);
 });
 
-test("deliberate D-pad presses win over small stick offsets", () => {
-  assert.equal(mapGamepad(gamepad([0], { 14: 1 })).steer, -1);
-  assert.equal(mapGamepad(gamepad([0], { 15: 1 })).steer, 1);
-  assert.equal(mapGamepad(gamepad([0.04], { 14: 1 })).steer, -1);
-  assert.equal(mapGamepad(gamepad([-0.04], { 15: 1 })).steer, 1);
-  assert.equal(mapGamepad(gamepad([0.04], { 14: 1, 15: 1 })).steer, 0);
+// D-pad Left / Right steered until 2026-09-18; they skip the soundtrack now.
+test("the D-pad does not steer: the stick does, whatever the D-pad holds", () => {
+  assert.equal(mapGamepad(gamepad([0], { 14: 1 })).steer, 0);
+  assert.equal(mapGamepad(gamepad([0], { 15: 1 })).steer, 0);
+  assert.equal(mapGamepad(gamepad([0.5], { 14: 1 })).steer, mapGamepad(gamepad([0.5])).steer);
+  assert.equal(mapGamepad(gamepad([-1], { 15: 1 })).steer, -1);
 });
 
 test("the driving release gate adds no extra deadzone during play", () => {

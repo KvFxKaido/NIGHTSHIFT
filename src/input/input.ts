@@ -1,4 +1,7 @@
-import { CAMERA_VIEW_PAD_BUTTON, copyBindings, DEFAULT_BINDINGS, type Bindings, type BindingDevice } from "./bindings.ts";
+import {
+  CAMERA_VIEW_PAD_BUTTON, copyBindings, DEFAULT_BINDINGS, NEXT_TRACK_PAD_BUTTON, PREVIOUS_TRACK_PAD_BUTTON,
+  type Bindings, type BindingDevice,
+} from "./bindings.ts";
 import type { Input } from "../sim/sim.ts";
 
 export interface CameraLook {
@@ -24,6 +27,8 @@ export interface InputController {
   consumeCameraReset(): boolean;
   /** One press of the change-camera control (keyboard binding or D-pad Up). */
   consumeCameraCycle(): boolean;
+  /** One press of D-pad Left (-1) or Right (1): the previous or next track. */
+  consumeTrackSkip(): -1 | 0 | 1;
   consumeDebugToggle(): boolean;
   gamepadName(): string | null;
   activeGamepadName(): string | null;
@@ -84,15 +89,11 @@ function buttonPressed(gamepad: Gamepad | null, index: number): boolean {
 }
 
 export function mapGamepad(gamepad: Gamepad | null, bindings = DEFAULT_BINDINGS.gamepad): Input {
-  const analogSteer = deadzone(gamepad?.axes[0] ?? 0, STEERING_DEADZONE);
-  const dpadLeft = buttonPressed(gamepad, 14);
-  const dpadRight = buttonPressed(gamepad, 15);
-  const dpadSteer = (dpadLeft ? -1 : 0) + (dpadRight ? 1 : 0);
-
   return {
     throttle: triggerValue(buttonValue(gamepad, bindings.throttle)),
     brake: triggerValue(buttonValue(gamepad, bindings.brake)),
-    steer: dpadLeft || dpadRight ? dpadSteer : analogSteer,
+    // The stick alone: D-pad Left / Right skip the soundtrack (bindings.ts).
+    steer: deadzone(gamepad?.axes[0] ?? 0, STEERING_DEADZONE),
     handbrake: triggerValue(buttonValue(gamepad, bindings.handbrake)),
     ...(buttonPressed(gamepad, bindings.shiftUp) ? { shiftUp: true } : {}),
     ...(buttonPressed(gamepad, bindings.shiftDown) ? { shiftDown: true } : {}),
@@ -128,6 +129,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
   let resetRequested = false;
   let cameraResetRequested = false;
   let cameraCycleRequested = false;
+  let trackSkipRequested: -1 | 0 | 1 = 0;
   let debugToggleRequested = false;
   let gamepad: Gamepad | null = null;
   let previousButtons: readonly boolean[] = [];
@@ -144,6 +146,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     held.clear(); shiftUpRequested = shiftDownRequested = false;
     menuCommands.length = 0;
     resetRequested = cameraResetRequested = cameraCycleRequested = debugToggleRequested = false;
+    trackSkipRequested = 0;
     drivingInputGated = true;
     drivingGateSamples = 0;
     done?.(value);
@@ -219,6 +222,9 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     // The D-pad button itself, never the stick: menu "up" also reads the left
     // stick, and steering must not change the camera.
     if (justPressed(CAMERA_VIEW_PAD_BUTTON)) cameraCycleRequested = true;
+    // The buttons again, never the stick, which is steering and menu left/right.
+    if (justPressed(PREVIOUS_TRACK_PAD_BUTTON)) trackSkipRequested = -1;
+    if (justPressed(NEXT_TRACK_PAD_BUTTON)) trackSkipRequested = 1;
     if (justPressed(bindings.gamepad.map)) menuCommands.push("map");
     if (justPressed(bindings.gamepad.flash)) menuCommands.push("flash");
     if (justPressed(9)) menuCommands.push("pause");    // Menu / Options
@@ -311,6 +317,7 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     consumeReset: () => consume("reset"),
     consumeCameraReset: () => consume("camera"),
     consumeCameraCycle: () => consume("cycle"),
+    consumeTrackSkip: () => { const skip = trackSkipRequested; trackSkipRequested = 0; return skip; },
     consumeDebugToggle: () => consume("debug"),
     gamepadName: () => gamepad?.id ?? null,
     activeGamepadName: () => activeDevice === "gamepad" ? gamepad?.id ?? null : null,

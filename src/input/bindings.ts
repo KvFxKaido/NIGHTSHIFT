@@ -7,6 +7,10 @@ export const ACTIONS = {
 export type Action = keyof typeof ACTIONS;
 /** Every remappable pad button is taken, so the camera cycle is fixed to D-pad Up on a controller. */
 export const CAMERA_VIEW_PAD_BUTTON = 12;
+/** The soundtrack skips on D-pad Left / Right, fixed the same way. They steered
+ *  until 2026-09-18; the left stick steers. */
+export const PREVIOUS_TRACK_PAD_BUTTON = 14;
+export const NEXT_TRACK_PAD_BUTTON = 15;
 export type PadAction = Exclude<Action, "left" | "right" | "interact" | "cameraView">;
 export interface Bindings { keyboard: Record<Action, string>; gamepad: Record<PadAction, number> }
 export type BindingDevice = keyof Bindings;

@@ -218,13 +218,15 @@ trigger stops short of its maximum still reaches full throttle.
 Bindings save separately in `nightshift.controls` on this browser; blocked storage
 keeps changes usable for the session.
 
-Default controls: WASD/arrows or left stick/D-pad steer, W/RT accelerates, S/LT brakes,
+Default controls: WASD/arrows or the left stick steer, W/RT accelerates, S/LT brakes,
 and Space/A applies the handbrake. The right stick orbits the camera; R3/C
 recenters it. V (remappable) or D-pad Up (fixed) cycles the chase camera through
 Near, Standard and Far; the choice saves in `nightshift.camera` on this browser,
 apart from settings and save slots, and `?camera=near|standard|far` previews one
 without saving. Near and Far are fitted to Midnight Club 3's close and zoomed-out
-cameras. R/Y resets and H/LB toggles
+cameras. D-pad Left / Right (fixed) skip to the previous / next soundtrack track
+while driving, starting the music if it was off, and the HUD names the track;
+the D-pad steered until 2026-09-18. R/Y resets and H/LB toggles
 telemetry. Escape/Options pauses; arrows or the D-pad navigate menus, and
 Enter/Cross selects. The HUD confirms when a standard gamepad is ready.
 In the garage, the right stick rotates the car and its platform under a fixed
