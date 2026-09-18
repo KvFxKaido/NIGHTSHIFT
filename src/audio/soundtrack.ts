@@ -40,6 +40,17 @@ export function decodeManifest(data: unknown): MusicTrack[] {
   return tracks;
 }
 
+/**
+ * A filename as one URL path segment. encodeURIComponent also escapes the
+ * characters a path carries as they are (& $ + , ; = : @), and Vite's dev
+ * server answers those escaped with the game's page instead of the file: every
+ * track with an & in its name failed to open. `#` and `?` must stay escaped and
+ * still fail there, so the scan warns about them.
+ */
+export function trackPath(file: string): string {
+  return encodeURIComponent(file).replace(/%(24|26|2B|2C|3A|3B|3D|40)/gi, decodeURIComponent);
+}
+
 /** Deterministic given `pick`; the caller decides how random the order is. */
 export function shuffleOrder(count: number, pick: () => number): number[] {
   const order = Array.from({ length: count }, (_, index) => index);
@@ -58,6 +69,9 @@ export interface Soundtrack {
   next(): void;
   previous(): void;
   stop(): void;
+  /** True once every track in turn has failed to load: the files are not where
+   *  the manifest says. Play tries them all again. */
+  failed(): boolean;
   /** Fires whenever the track or play state changes, for the menu label. */
   onChange(listener: () => void): void;
 }
@@ -85,23 +99,43 @@ export async function loadSoundtrack(
   let order = shuffleOrder(tracks.length, Math.random);
   let position = 0;
   let playing = false;
+  let failures = 0;
   const listeners: (() => void)[] = [];
   const changed = () => { for (const listener of listeners) listener(); };
 
   const current = (): MusicTrack | null =>
     tracks.length ? tracks[order[position % order.length]!] ?? null : null;
 
+  // Only a refused autoplay stops the soundtrack here. A file that cannot be
+  // read rejects play() too, but its error event (below) decides what happens
+  // next; and a skip rejects the play() it interrupts. Letting either stop the
+  // soundtrack cut off the track that replaced it, so one unreadable file
+  // silenced the music instead of being skipped.
+  function start(): void {
+    void element.play().catch((error: unknown) => {
+      if ((error as { name?: string } | null)?.name === "NotAllowedError") { playing = false; changed(); }
+    });
+  }
+
   function load(autoplay: boolean): void {
     const track = current();
     if (!track) return;
-    element.src = new URL(`assets/music/${encodeURIComponent(track.file)}`, base).href;
-    if (autoplay) void element.play().catch(() => { playing = false; changed(); });
+    element.src = new URL(`assets/music/${trackPath(track.file)}`, base).href;
+    if (autoplay) start();
     changed();
   }
 
   element.addEventListener("ended", () => { position++; load(true); });
-  // A file that will not decode should skip, not silently end the soundtrack.
-  element.addEventListener("error", () => { if (playing && tracks.length > 1) { position++; load(true); } });
+  element.addEventListener("playing", () => { failures = 0; });
+  // A file that will not decode should skip, not silently end the soundtrack;
+  // but once every track has failed in a row, stop. A manifest older than a
+  // rename names files that are not there, and skipping on would request them
+  // one after another for as long as the game ran.
+  element.addEventListener("error", () => {
+    if (!playing) return;
+    if (++failures >= tracks.length) { playing = false; changed(); return; }
+    position++; load(true);
+  });
 
   return {
     tracks: () => tracks,
@@ -111,14 +145,16 @@ export async function loadSoundtrack(
       if (!tracks.length) return;
       playing = !playing;
       if (playing) {
-        if (!element.src) load(true);
-        else void element.play().catch(() => { playing = false; changed(); });
+        if (failures >= tracks.length) { failures = 0; position++; load(true); }
+        else if (!element.src) load(true);
+        else start();
       } else element.pause();
       changed();
     },
     next() { if (!tracks.length) return; position++; load(playing); },
     previous() { if (!tracks.length) return; position = (position - 1 + order.length) % order.length; load(playing); },
     stop() { playing = false; element.pause(); changed(); },
+    failed: () => failures >= tracks.length && tracks.length > 0,
     onChange(listener) { listeners.push(listener); },
   };
 }

@@ -10,9 +10,16 @@ That writes `manifest.json` next to them, and the game picks them up on the next
 reload. Shuffle, skip and pause live in the pause menu under **Audio**.
 
 Supported: `.mp3`, `.ogg`, `.m4a`, `.aac`, `.flac`, `.wav`, `.opus` — whatever
-the browser will decode. Filenames become track titles unless you edit the
-`title` field in the manifest yourself; the scan preserves titles you have
-already edited, so renaming a track by hand survives a rescan.
+the browser will decode. A track is named from its own tags, "Artist - Title",
+where it has them (ID3, so mp3s; any tag editor writes them), and from its
+filename where it does not. Edit the `title` field in the manifest to call a
+track something else: each entry also records the title the scan gave it
+(`scanned`), and a title that differs from that is yours, so it survives a
+rescan while untouched titles follow the tags.
+
+`pnpm dev` runs the scan as it starts. Rename, add or retag files while it is
+running and the game keeps the old list until you run `pnpm music:scan` and
+reload; if none of the listed files load, Play stops and the Audio menu says so.
 
 ## Nothing here is committed
 

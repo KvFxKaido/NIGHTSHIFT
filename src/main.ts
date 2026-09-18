@@ -502,6 +502,9 @@ const menu = createMenuController({
         enabled: false,
       };
     }
+    if (soundtrack?.failed()) {
+      return { note: "None of the tracks would load. Run pnpm music:scan and reload.", playing: false, enabled: true };
+    }
     const playing = soundtrack?.isPlaying() ?? false;
     const current = soundtrack?.nowPlaying();
     return {
