@@ -144,7 +144,8 @@ never uncatchable with full countersteer: the recovery gates below are the floor
 for every car, not a Cinder feature.
 
 - **Knobs.** Strength: `power` (drive below about 67 mph), `topEnd` (drive near
-  the governor), `topSpeed`. Temperament: `grip`, `balance` (rear against front
+  the governor), `topSpeed`, `drag` (air resistance; 2026-09-19, "The ceiling"
+  below). Temperament: `grip`, `balance` (rear against front
   cornering stiffness; above 1 the car settles, below it rotates), `brakes`,
   `steering` (how fast the wheels follow the stick in; unwinding and catches stay
   shared), `handbrake`. Strength may climb gently up the Blacklist; temperament
@@ -190,6 +191,38 @@ identical (2 of 13 replay exactly, the other 11 refused for the same reasons), a
 the suite passed. The golden master was then made to fail on purpose: 1% less
 grip on the Kestrel and 120 kg on the Latch changed exactly the runs those cars
 drive in (Moth's three, Stray's two) and none of the others.
+
+### The ceiling (measured 2026-09-19)
+
+The governor limits the engine's push, never the car's speed: downhill a car runs
+past it, and on the flat drag decides where a car actually stops gaining. On an
+unlimited flat world with the governor far out of the way (`topSpeed` 3), three
+minutes flat out:
+
+| Top-end power (`topEnd`) | ×1 | ×1.4 | ×2 and up |
+|---|---|---|---|
+| RWD, AWD | 143 mph | 151 mph | **161 mph**, tyres at 100% of their grip |
+| FWD | 143 mph | **146 mph**, tyres at 100% | 146 mph |
+
+- **The 140 mph governor was only ever trimming 3 mph.** Shared drag holds every
+  layout at 143 on stock power.
+- **Past that the tyres, not the engine, are the wall.** Drag rises with the
+  square of speed, and at about 161 mph (146 FWD, whose unloaded front tyres give
+  out first) it equals the most drive the tyres can put down, so no power helps.
+- **`drag` moves the wall.** Stock power: ×0.9 reaches 151 mph, ×0.8 160, a brick
+  at ×1.2 130. With `topEnd` ×2: ×0.9 170, ×0.8 180, ×0.7 192 (FWD 154 / 163 /
+  174). It is air, so it also sets how a car coasts (100 mph, five seconds off the
+  gas: 52 mph at ×1, 56 at ×0.8, 48 at ×1.2) and helps a little in a stop from
+  speed. The rival's braking plan reads its own car's drag.
+- **So a car's top speed is three knobs, not one.** Up to about 150 mph the
+  governor with a little `topEnd`; to 161 more `topEnd`; past 161 only `drag`.
+  The Vesper at 165 is `topSpeed` 1.18, `topEnd` 1.4 and `drag` 0.85 (165.2 mph
+  within a minute, as a `--try`; not a tune yet).
+
+Adding the knob moved nothing: no car sets it, the golden master's 14 runs stayed
+bit-identical, and every car's card was unchanged. The revision pins now
+fingerprint each car's tune rather than its resolved numbers, so a new knob leaves
+them alone; all thirteen were repinned once for that change, at their revisions.
 
 ### The card
 

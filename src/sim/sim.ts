@@ -272,6 +272,7 @@ export interface CarHandling {
   readonly brakeDeceleration: number;
   readonly steeringResponse: number;
   readonly handbrakeRearStiffness: number;
+  readonly aerodynamicDrag: number;
 }
 
 // An absent knob returns the shared value itself, not a product with 1, so an
@@ -315,6 +316,7 @@ export function tunedHandling(car: string | null, tune: CarTune | undefined, dri
     steeringResponse: bend(HANDLING.steeringResponse, tune?.steering),
     handbrakeRearStiffness: tune?.handbrake === undefined ? HANDLING.handbrakeRearStiffness
       : 1 - (1 - HANDLING.handbrakeRearStiffness) * tune.handbrake,
+    aerodynamicDrag: bend(HANDLING.aerodynamicDrag, tune?.drag),
   });
 }
 
@@ -879,7 +881,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   const reversing = !car.transmission && car.driveDirection === -1 && input.brake > 0 &&
     effectiveThrottle === 0 && input.handbrake < 0.05;
   const gradeAcceleration = gradeAccelerationFor(road.pitch, forwardX * road.ux + forwardZ * road.uz);
-  const dragAcceleration = -Math.sign(forwardSpeed) * HANDLING.aerodynamicDrag * forwardSpeed ** 2;
+  const dragAcceleration = -Math.sign(forwardSpeed) * handling.aerodynamicDrag * forwardSpeed ** 2;
   // Ground drag is not compensated by the governor, so it costs acceleration as
   // well as top speed. It fades out below 2 m/s so a car at rest cannot chatter.
   const groundDragAcceleration = -Math.sign(forwardSpeed) * HANDLING.groundRollingResistance * groundPenalty *

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { carHandling, createSim, handlingFor, HANDLING, resetSim, step, tunedHandling, PHYSICS_VERSION, TICK_HZ,
-  type CarHandling, type Input } from "../src/sim/sim.ts";
+  type Input } from "../src/sim/sim.ts";
 import { CAR_TUNES, type CarTune } from "../src/sim/car-handling.ts";
 import { measureCar } from "../src/sim/car-card.ts";
 import type { RoadWorld } from "../src/sim/road-world.ts";
@@ -21,7 +21,7 @@ await RAPIER.init();
 const flat = { along: 0, segmentIndex: 0, distance: 0, height: 0, pitch: 0, ux: 0, uz: -1, width: 10000 };
 const WORLD: RoadWorld = { id: "car-handling-check", start: { x: 0, y: 0.5, z: 0, heading: 0, pitch: 0 }, walls: [], project: () => flat };
 const NUMBERS = ["mass", "topSpeed", "engineAcceleration", "engineMidAcceleration", "highSpeedAcceleration", "maxLateralAcceleration",
-  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness"] as const;
+  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness", "aerodynamicDrag"] as const;
 const shared = (field: typeof NUMBERS[number]) => field === "mass" ? HANDLING.mass : HANDLING[field];
 
 test("a car with no knob is the shared model to the last bit", () => {
@@ -41,6 +41,7 @@ test("each knob moves only the numbers it names", () => {
     ["brakes", 1.1, ["brakeDeceleration"]],
     ["steering", 1.1, ["steeringResponse"]],
     ["handbrake", 1.1, ["handbrakeRearStiffness"]],
+    ["drag", 0.9, ["aerodynamicDrag"]],
   ];
   for (const [knob, value, moved] of knobs) {
     const car = tunedHandling("probe", { drivetrain: "rwd", revision: 1, [knob]: value });
@@ -100,36 +101,39 @@ test("in contact a heavier car shoves harder and keeps more of its own speed", (
   assert.ok(heavy.shoved > light.shoved * 1.3);
 });
 
-// A car's resolved numbers, pinned under its revision, the way generator draws are
-// pinned (race-generator.test.ts). Changing a tune without bumping its revision
-// would let an old recording replay against new numbers and diverge instead of
-// being refused. A car a rival drives also needs a RIVAL_REVISION bump.
-const fingerprint = (handling: CarHandling) => {
+// A car's tune, pinned under its revision, the way generator draws are pinned
+// (race-generator.test.ts). Changing a tune without bumping its revision would let
+// an old recording replay against new numbers and diverge instead of being refused.
+// A car a rival drives also needs a RIVAL_REVISION bump. The tune, not its resolved
+// numbers: a new knob leaves every existing pin alone, and a change to the shared
+// HANDLING is PHYSICS_VERSION's to name.
+const fingerprint = (tune: CarTune) => {
+  const { revision: _revision, ...knobs } = tune;
   let hash = 0x811c9dc5;
-  for (const char of JSON.stringify([handling.drivetrain, ...NUMBERS.map(field => handling[field])])) {
+  for (const char of JSON.stringify(Object.entries(knobs).sort(([a], [b]) => a < b ? -1 : 1))) {
     hash = Math.imul(hash ^ char.charCodeAt(0), 0x01000193) >>> 0;
   }
   return hash.toString(16).padStart(8, "0");
 };
 const PINNED: Record<string, { revision: number; fingerprint: string }> = {
-  cinder: { revision: 1, fingerprint: "8cce6480" },
-  bulwark: { revision: 2, fingerprint: "0565f10f" },
-  blender: { revision: 1, fingerprint: "8cce6480" },
-  ns01: { revision: 1, fingerprint: "8cce6480" },
-  kestrel: { revision: 1, fingerprint: "4a3c5049" },
-  vesper: { revision: 1, fingerprint: "8cce6480" },
-  latch: { revision: 1, fingerprint: "de77c90c" },
-  breakwater: { revision: 1, fingerprint: "4a3c5049" },
-  wager: { revision: 1, fingerprint: "8cce6480" },
-  meridian: { revision: 1, fingerprint: "4a3c5049" },
-  skim: { revision: 1, fingerprint: "de77c90c" },
-  reign: { revision: 1, fingerprint: "4a3c5049" },
-  hammer: { revision: 1, fingerprint: "8cce6480" },
+  cinder: { revision: 1, fingerprint: "5caa34f4" },
+  bulwark: { revision: 2, fingerprint: "eef80a98" },
+  blender: { revision: 1, fingerprint: "5caa34f4" },
+  ns01: { revision: 1, fingerprint: "5caa34f4" },
+  kestrel: { revision: 1, fingerprint: "fc966077" },
+  vesper: { revision: 1, fingerprint: "5caa34f4" },
+  latch: { revision: 1, fingerprint: "69049eb8" },
+  breakwater: { revision: 1, fingerprint: "fc966077" },
+  wager: { revision: 1, fingerprint: "5caa34f4" },
+  meridian: { revision: 1, fingerprint: "fc966077" },
+  skim: { revision: 1, fingerprint: "69049eb8" },
+  reign: { revision: 1, fingerprint: "fc966077" },
+  hammer: { revision: 1, fingerprint: "5caa34f4" },
 };
 test("a car's numbers change only with its revision", () => {
   assert.deepEqual(Object.keys(PINNED).sort(), Object.keys(CAR_TUNES).sort(), "every car is pinned, and only cars");
   for (const [car, tune] of Object.entries(CAR_TUNES)) {
-    const pin = PINNED[car]!, printed = fingerprint(carHandling(car));
+    const pin = PINNED[car]!, printed = fingerprint(tune);
     const repin = `repin PINNED.${car} to { revision: ${tune.revision}, fingerprint: "${printed}" }`;
     if (pin.revision !== tune.revision) assert.fail(`the ${car} has a new revision since it was pinned: ${repin}`);
     assert.equal(printed, pin.fingerprint, `the ${car}'s numbers changed on revision ${tune.revision}. If that was meant, ` +

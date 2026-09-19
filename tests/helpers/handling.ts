@@ -23,7 +23,7 @@ export function flatSim(speed = 0, sideways = 0, setup: Drivetrain | CarHandling
 }
 
 const TUNED = ["mass", "topSpeed", "engineAcceleration", "engineMidAcceleration", "highSpeedAcceleration", "maxLateralAcceleration",
-  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness"] as const;
+  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness", "aerodynamicDrag"] as const;
 
 /**
  * Every distinct way a car drives on these layouts: the shared model on each, and

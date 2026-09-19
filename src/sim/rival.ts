@@ -646,7 +646,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   if (route.lateral && profileDeceleration > RIVAL_BRAKING.zone && desiredSpeed >= profileSpeed - .5) {
     if (car.speed < desiredSpeed) throttle = 1;
     else if (car.speed > desiredSpeed) {
-      const wanted = Math.max(0, profileDeceleration - HANDLING.aerodynamicDrag * car.speed ** 2) / handling.brakeDeceleration;
+      const wanted = Math.max(0, profileDeceleration - handling.aerodynamicDrag * car.speed ** 2) / handling.brakeDeceleration;
       brake = clamp(Math.min(1, wanted) ** (1 / HANDLING.brakeResponseExponent) + (car.speed - desiredSpeed) / RIVAL_BRAKING.correction, 0, 1);
     }
   }

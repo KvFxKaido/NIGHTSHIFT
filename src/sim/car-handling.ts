@@ -9,7 +9,7 @@ import type { Drivetrain } from "./sim.ts";
  * never uncatchable with full countersteer.
  *
  * Two kinds of knob (design/HANDLING.md, "Cars"). Strength -- `power`,
- * `topEnd`, `topSpeed` -- may climb gently up the Blacklist; temperament --
+ * `topEnd`, `topSpeed`, `drag` -- may climb gently up the Blacklist; temperament --
  * `balance`, `steering`, `handbrake` -- varies freely. Each is a multiplier on
  * the shared value, absent meaning 1. `mass` is kilograms, and changes only what
  * happens in contact: every force the car makes scales with it, so on its own it
@@ -32,8 +32,14 @@ export interface CarTune {
   readonly power?: number;
   /** Drive as the car nears its governor. */
   readonly topEnd?: number;
-  /** The governor. */
+  /** The governor. It limits the engine's push, never the car's speed: downhill it
+   *  runs past, and on the flat drag stops a car short of a governor set too high. */
   readonly topSpeed?: number;
+  /** Air resistance. Below 1 the car slips through the air: a higher ceiling, a
+   *  stronger top end and a longer coast. On the flat the tyres can push against
+   *  drag only so hard, so past about 161 mph (146 FWD) no power helps and only
+   *  this does (design/HANDLING.md, "The ceiling"). */
+  readonly drag?: number;
   /** Lateral grip, and therefore how fast a corner can be taken. */
   readonly grip?: number;
   /** Rear against front cornering stiffness: above 1 the car settles, below it rotates. */

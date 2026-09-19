@@ -242,6 +242,11 @@ be #1's Vesper.
   that day was that strength climbs gently up the list with the Vesper the one
   outlier. Lifting her cap is still Phase 1 work: its own commit with
   `design/HANDLING.md`, under the determinism rules.
+- **Where the ceiling is** (measured 2026-09-19, `design/HANDLING.md`, "The
+  ceiling"). Shared drag holds every car at 143 mph on stock power, and the tyres
+  cannot push past 161 (146 front-drive) however much power a car has. A Vesper
+  at 165 needs less drag as well as a higher governor and top end: `drag` is
+  the knob for it, and a slippery wedge is a fair reading of her car.
 - **It changes the pace model.** Route choice and the race generator price
   shortcuts at one assumed speed (`design/PROCEDURAL_RACES.md`); a much faster
   car can make a priced alley not worth taking. Measure before tuning.
