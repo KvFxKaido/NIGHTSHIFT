@@ -26,7 +26,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import {
   updateCustomization,
 } from "./customization/customization.ts";
-import { drivetrainFor } from "./customization/cars.ts";
+import { PLAYER_CAR_IDS, drivetrainFor } from "./customization/cars.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
@@ -352,20 +352,70 @@ newRecording();
 // Cache each loaded body once; only the active body belongs to a scene.
 const cars = new Map<string, CarView>([[selectedCar, carParts]]);
 let carLoading = false;
+let previewCar = selectedCar;
+let previewRequest = 0;
+const carLoads = new Map<string, Promise<CarView>>();
+const equipCar = document.querySelector<HTMLButtonElement>("[data-equip-car]")!;
+function showCar(parts: CarView): void {
+  setPlayerCar(view, parts);
+  applyCarCustomization(view, customization);
+  liveryEditor.refresh();
+}
+async function previewGarageCar(id: typeof selectedCar): Promise<void> {
+  if (!isBlenderCarId(id)) return;
+  const request = ++previewRequest;
+  previewCar = id;
+  carLoading = true;
+  carNote.textContent = "Loading preview…";
+  renderCarSelection();
+  try {
+    let parts = cars.get(id);
+    if (!parts) {
+      let pending = carLoads.get(id);
+      if (!pending) {
+        pending = loadBlenderCar(new URL(BLENDER_CARS[id].path, document.baseURI).href, id);
+        carLoads.set(id, pending);
+        void pending.finally(() => carLoads.delete(id)).catch(() => {});
+      }
+      parts = await pending;
+      cars.set(id, parts);
+    }
+    if (request !== previewRequest) return;
+    showCar(parts);
+    carNote.textContent = id === selectedCar ? "Your equipped car." : "Preview only · Equip an owned car to take it to the street.";
+  } catch {
+    if (request !== previewRequest) return;
+    previewCar = selectedCar;
+    showCar(cars.get(selectedCar)!);
+    carNote.textContent = "Could not load that preview. Browse to it again to retry.";
+  } finally {
+    if (request === previewRequest) { carLoading = false; renderCarSelection(); }
+  }
+}
+function restoreEquippedCar(): void {
+  ++previewRequest;
+  previewCar = selectedCar;
+  carLoading = false;
+  showCar(cars.get(selectedCar)!);
+  carNote.textContent = "Your equipped car.";
+  renderCarSelection();
+}
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
   const career = progress.get();
   const current = progress.current();
-  document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.car === selectedCar));
-    button.disabled = carLoading || !ownsCar(career, button.dataset.car);
-    // Each Blacklist car says whose pink slip it is until it is yours.
-    const owner = BLACKLIST.find(name => name.car === button.dataset.car);
-    if (owner) button.textContent = ownsCar(career, owner.car) ? owner.carName : `${owner.carName} · #${owner.rank} ${owner.name}`;
-    if (button.dataset.car === "bulwark") button.textContent = career.bulwarkOwned ? "Bulwark" : "Bulwark · For sale";
-  });
+  const owner = BLACKLIST.find(name => name.car === previewCar);
+  const owned = ownsCar(career, previewCar);
+  document.querySelector<HTMLElement>("[data-car-name]")!.textContent = owner?.carName ?? (previewCar === "bulwark" ? "Bulwark" : "Cinder");
+  document.querySelector<HTMLElement>("[data-car-meta]")!.textContent = `${(PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar) + 1} / ${PLAYER_CAR_IDS.length} · ${drivetrainFor(previewCar).toUpperCase()}`;
+  document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (previewCar === selectedCar ? "Equipped" : "Owned")
+    : owner ? `Win the pink slip · #${owner.rank} ${owner.name}` : "For sale · $1,500";
+  equipCar.disabled = carLoading || !owned || previewCar === selectedCar;
+  equipCar.textContent = previewCar === selectedCar ? "Equipped" : owned ? "Drive this car" : "Locked";
+  document.querySelector<HTMLButtonElement>("[data-open-livery]")!.disabled = carLoading || previewCar !== selectedCar;
+  document.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
   const buy = document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!;
-  buy.hidden = career.bulwarkOwned;
+  buy.hidden = career.bulwarkOwned || previewCar !== "bulwark";
   buy.disabled = career.cash < BULWARK_PRICE || carLoading;
   document.querySelector<HTMLElement>("[data-cash]")!.textContent = `Cash · $${career.cash.toLocaleString("en-US")}`;
   const replace = document.querySelector<HTMLButtonElement>("[data-replace-stage-race]")!;
@@ -384,49 +434,38 @@ function blacklistStatus(): string {
   const wins = progress.get().names[current.id]!.wins;
   return `#${current.rank} ${current.name} · ${wins}/3 wins · Next: ${current.stages[wins]!.name}. Win the pink slip to own the ${current.carName}. Cash and cars save automatically.`;
 }
-async function selectCar(id: string): Promise<void> {
-  if (carLoading || !isBlenderCarId(id) || !ownsCar(progress.get(), id)) return;
+function selectCar(): void {
+  const id = previewCar;
+  if (carLoading || !ownsCar(progress.get(), id) || id === selectedCar) return;
   if (!progress.preserveLegacyOwnership()) {
-    carNote.textContent = "Could not save your existing Bulwark ownership. Try selecting again before changing cars.";
+    carNote.textContent = "Could not save your existing ownership. Try selecting again.";
     return;
   }
-  carLoading = true;
-  carNote.textContent = "Loading car…";
-  renderCarSelection();
-  try {
-    const parts = cars.get(id)
-      ?? await loadBlenderCar(new URL(BLENDER_CARS[id].path, document.baseURI).href, id);
-    cars.set(id, parts);
-    setPlayerCar(view, parts);
-    applyCarCustomization(view, customization);
-    selectedCar = id;
-    liveryEditor.refresh();
-    saveSettings({ car: id }, ["car"]);
-    // A car choice replaces a carried race/developer drivetrain preview too.
-    const carUrl = new URL(location.href);
-    carUrl.searchParams.delete("drivetrain");
-    history.replaceState(history.state, "", carUrl);
-    // The body carries its handling, so a different car is a different drive:
-    // a fresh run, as changing drivetrain always was.
-    if (carHandling(id) !== sim.state.handling) {
-      reset(carHandling(id));
-      input.armDrivingInputGate();
-    }
-    carNote.textContent = `Each car has its own drivetrain; this one is ${drivetrainFor(id).toUpperCase()}.`;
-  } catch {
-    carNote.textContent = "Could not load that car. Your current car is still ready; select again to retry.";
-  } finally {
-    carLoading = false;
-    renderCarSelection();
+  selectedCar = id;
+  saveSettings({ car: id }, ["car"]);
+  const carUrl = new URL(location.href);
+  carUrl.searchParams.delete("drivetrain");
+  history.replaceState(history.state, "", carUrl);
+  const yaw = view.garageYaw;
+  if (carHandling(id) !== sim.state.handling) {
+    reset(carHandling(id));
+    input.armDrivingInputGate();
   }
+  view.garageYaw = yaw;
+  carNote.textContent = "Equipped · Ready to drive out.";
+  renderCarSelection();
 }
 renderCarSelection();
-document.querySelectorAll<HTMLButtonElement>("[data-car]").forEach(button => {
-  button.addEventListener("click", () => void selectCar(button.dataset.car!));
+equipCar.addEventListener("click", selectCar);
+document.querySelectorAll<HTMLButtonElement>("[data-car-cycle]").forEach(button => {
+  button.addEventListener("click", () => {
+    const index = (PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar);
+    void previewGarageCar(PLAYER_CAR_IDS[(index + Number(button.dataset.carCycle) + PLAYER_CAR_IDS.length) % PLAYER_CAR_IDS.length]!);
+  });
 });
 document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!.addEventListener("click", () => {
   const outcome = progress.buyBulwark();
-  carNote.textContent = outcome === "purchased" ? "Bulwark purchased. Select it above to drive it."
+  carNote.textContent = outcome === "purchased" ? "Bulwark purchased. Choose Drive this car to equip it."
     : outcome === "owned" ? "You already own the Bulwark."
     : outcome === "insufficient" ? "You need $1,500 to buy the Bulwark."
     : "Purchase could not be saved. No cash was spent; try again.";
@@ -479,7 +518,10 @@ const menu = createMenuController({
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
   screenChanged: (screen) => {
-    if (screen !== "garage") liveryEditor.close(false);
+    if (screen !== "garage") {
+      liveryEditor.close(false);
+      restoreEquippedCar();
+    }
     performanceOverlay.reset();
     if (screen === "main") savePanel.refreshSummary();
     controls.screenChanged(screen);

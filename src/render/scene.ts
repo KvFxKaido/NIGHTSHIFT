@@ -230,8 +230,8 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   view.garageYaw = Math.atan2(Math.sin(view.garageYaw + cameraLook.x * 1.4 * frameDelta),
     Math.cos(view.garageYaw + cameraLook.x * 1.4 * frameDelta));
   view.garageScene.getObjectByName("garage-turntable")!.rotation.y = view.garageYaw;
-  const mobileLivery = view.garageLiveryEditing && view.renderer.domElement.clientWidth <= 720;
-  const distance = mobileLivery ? 12 : 7.7;
+  const mobileGarage = view.renderer.domElement.clientWidth <= 720;
+  const distance = mobileGarage ? (view.garageLiveryEditing ? 12 : 16) : 7.7;
   const orbitHeading = Math.PI * 0.75;
   const horizontalDistance = distance;
   const targetPosition = new THREE.Vector3(
@@ -260,7 +260,7 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   view.camera.position.copy(view.cameraPosition);
   view.camera.lookAt(view.cameraTarget);
   view.camera.fov = 48;
-  if (mobileLivery) {
+  if (mobileGarage) {
     const width = view.renderer.domElement.clientWidth, height = view.renderer.domElement.clientHeight;
     view.camera.setViewOffset(width, height, 0, height * .25, width, height);
   } else view.camera.clearViewOffset();

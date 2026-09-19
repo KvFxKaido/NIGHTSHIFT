@@ -689,3 +689,16 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
 
 #livery-editor > .livery-toolbar:first-child { position: sticky; top: 0; z-index: 2; padding: 6px 0; background: var(--ui-panel); }
 #livery-editor button:disabled { opacity: .4; cursor: default; }
+
+/* One live body on the platform; the selector stays compact beside it. */
+.car-selector { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
+.car-cycle { min-height: 48px; font-size: 28px; }
+.car-identity { display: grid; gap: 6px; text-align: center; }
+.car-identity strong { font-size: 22px; letter-spacing: .04em; }
+.car-identity span { color: var(--menu-muted); font-size: 11px; letter-spacing: .12em; }
+[data-equip-car] { width: 100%; margin-top: 12px; }
+.garage-menu button:disabled { opacity: .45; cursor: default; }
+
+@media (max-width: 720px) {
+  .menu-root[data-screen="garage"] .menu-screen { max-height: 55dvh; }
+}
