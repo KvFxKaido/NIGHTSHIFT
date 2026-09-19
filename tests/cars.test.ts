@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CAR_DRIVETRAIN, drivetrainFor, isPlayerCarId } from "../src/customization/cars.ts";
 import { BLENDER_CARS } from "../src/render/blender-car.ts";
-import { DEFAULT_DRIVETRAIN, isDrivetrain } from "../src/sim/sim.ts";
+import { carHandling, DEFAULT_DRIVETRAIN, handlingFor, isDrivetrain } from "../src/sim/sim.ts";
 import { defaultSettings } from "../src/settings/settings.ts";
 import { RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
 import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
@@ -31,11 +31,11 @@ test("the fallback for an unknown body matches the simulation default", () => {
   assert.equal(drivetrainFor("no-such-car"), DEFAULT_DRIVETRAIN);
 });
 
-// Not a restatement of the table. A RivalDefinition declares its own drivetrain
-// and nothing derives it from CAR_DRIVETRAIN, so a rival can contradict the body
-// it is drawn as -- which is exactly what Moth did until 2026-09-12, racing a
-// rally hatch on front-wheel drive. An undeclared drivetrain is not a neutral
-// default either: it silently means FWD.
+// Not a restatement of the table. A RivalDefinition names its car, and main.ts
+// draws the rival separately (raceOpponentCar), so a rival can still be drawn as
+// one body and driven as another -- which is what Moth did until 2026-09-12,
+// racing a rally hatch on front-wheel drive. A definition with no car is not a
+// neutral default either: it silently drives the shared model on FWD.
 test("every rival drives the body it is rendered as", () => {
   const driven: [string, string, RivalDefinition][] = [
     ["Rivet on the drag strip", "hammer", RIVET_DRAG_DRIVER],
@@ -44,9 +44,9 @@ test("every rival drives the body it is rendered as", () => {
     ["Moth in a generated race", "kestrel", alderGeneratedRace(11).rival],
   ];
   for (const [who, car, rival] of driven) {
-    assert.ok(rival.drivetrain !== undefined,
-      `${who} declares no drivetrain, so the sim runs the ${car} on FWD`);
-    assert.equal(rival.drivetrain, CAR_DRIVETRAIN[car], `${who} contradicts the ${car} body`);
+    assert.equal(rival.car, car, `${who} names ${rival.car ?? "no car"}, so the sim drives something other than the ${car}`);
+    assert.equal(handlingFor(rival), carHandling(car), `${who} does not get the ${car}'s numbers`);
+    assert.equal(handlingFor(rival).drivetrain, CAR_DRIVETRAIN[car]);
   }
 });
 

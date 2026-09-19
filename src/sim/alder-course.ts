@@ -13,7 +13,6 @@ import { ALDER_STREETS, alderGeneratedRace, alderHeight } from "./alder.ts";
 import { turfFor } from "./alder-turf.ts";
 import { cruiserFor } from "./alder-cruisers.ts";
 import { BLACKLIST_LAUNCH, RIVAL_LAUNCH_SKILL } from "./launch.ts";
-import { CAR_DRIVETRAIN } from "../customization/cars.ts";
 import { parseGeneratedRaceId } from "./race-id.ts";
 import { decodeStart, snapToLane } from "./race-start.ts";
 import type { RoadWorld } from "./road-world.ts";
@@ -41,8 +40,8 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
   // turf by the generator, but the id is how a load knows whose car to field.
   const race = drawn.race.id === raceId ? drawn.race : { ...drawn.race, id: raceId };
   const generated = drawn.generated.definition.id === raceId ? drawn.generated : { ...drawn.generated, definition: race };
-  // Raced in the rival's own car: its drivetrain, not the Kestrel every generated race used to field.
-  const rival = { ...drawn.rival, id: `${raceId}-driver`, drivetrain: cruiser ? CAR_DRIVETRAIN[cruiser.car] ?? drawn.rival.drivetrain : drawn.rival.drivetrain,
+  // Raced in the rival's own car and its handling, not the Kestrel every generated race used to field.
+  const rival = { ...drawn.rival, id: `${raceId}-driver`, car: cruiser?.car ?? drawn.rival.car,
     // Higher up the list, a cleaner start (`launch.ts`).
     launch: (id.rival ? BLACKLIST_LAUNCH[id.rival] : undefined) ?? RIVAL_LAUNCH_SKILL };
   return { race, generated, rival, start: pose };

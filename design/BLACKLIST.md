@@ -99,7 +99,8 @@ toward it.
 ## The cars (2026-09-12)
 
 **Body type is a rival's identity, so the list mixes types.** Every body shares
-one mass, wheelbase and handling model; only the drivetrain differs. A rival is
+one wheelbase and one handling model; since 2026-09-19 each drives its own tune
+of it and has its own mass (`design/HANDLING.md`, "Cars"). A rival is
 mostly seen from behind at chase-camera distance, where six '90s Japanese
 coupes would blur together and a truck, a wagon and a roadster do not. MC3's
 roster made the same point by mixing tuners with muscle, luxury and trucks.
@@ -157,9 +158,11 @@ actually does rather than from this sentence. Exists:
 
 Forties, a crane operator on the waterfront. *Silhouette:* ear defenders and a
 hi-vis collar. *Mistake:* she commits to a block early, so a feint one way
-opens the other. *Teaches:* racing through traffic and through contact. Every
-body shares one mass (`HANDLING.mass`), so her menace is aggression and line,
-never weight or grip. Portrait: `design/reference/characters/bollard/`; car asset built; cruises its turf; three stages of its race type.
+opens the other. *Teaches:* racing through traffic and through contact. Mass
+became each car's own on 2026-09-19 and is felt only in contact
+(`design/HANDLING.md`, "Cars"), so how heavy the Breakwater is decides how much of
+her menace is weight rather than aggression and line; that is the roster tune's
+call. Grip is the car's, never an AI's. Portrait: `design/reference/characters/bollard/`; car asset built; cruises its turf; three stages of its race type.
 
 ### #6 Deuce
 
@@ -220,10 +223,10 @@ works once. Exists: `design/reference/characters/tally/`, Vesper in
 has not driven is the only way past her, which is the lesson the list has been
 teaching; on an equal car the last race could be won by driving cleaner.
 
-## The 140 mph cap (proposed, 2026-09-13)
+## The 140 mph cap (proposed 2026-09-13; direction agreed 2026-09-19)
 
-Every body shares one handling model, and `HANDLING.topSpeed` in
-`src/sim/sim.ts` governs all of them at about 140 mph. Shawn thinks of that as
+No car goes past about 140 mph (`HANDLING.topSpeed` in `src/sim/sim.ts`); a
+car's tune may lower its own governor, and none yet raises it. Shawn thinks of that as
 a beginner cap: it holds while per-car handling models are worked out and it is
 decided which cars should be faster than which. The first car to lose it would
 be #1's Vesper.
@@ -234,9 +237,10 @@ be #1's Vesper.
   rubber-banding and grip changes, and none of those is a car's top speed.
   Vesper is also Tally's guaranteed reward, so the player ends the list with
   the uncapped car.
-- **It is handling work, not a constant.** Top speed is one value for every
-  body today; only the drivetrain differs (`CAR_DRIVETRAIN`). A faster car
-  needs per-car handling, which is Phase 1 work: its own commit with
+- **It is handling work, not a constant.** Per-car handling exists since
+  2026-09-19 (`src/sim/car-handling.ts`, the `topSpeed` knob), and Shawn's call
+  that day was that strength climbs gently up the list with the Vesper the one
+  outlier. Lifting her cap is still Phase 1 work: its own commit with
   `design/HANDLING.md`, under the determinism rules.
 - **It changes the pace model.** Route choice and the race generator price
   shortcuts at one assumed speed (`design/PROCEDURAL_RACES.md`); a much faster
@@ -261,9 +265,9 @@ the career gives the player is the pen.
   rim. Those pairs were measured on the portraits and pass (the new
   characters' READMEs have the numbers); the six new cars have their own
   in-game counts in `reference/cars/BLACKLIST_CARS.md`.
-- **Every body shares one wheelbase, track and mass.** `blender-car.ts` rejects
-  wheels off (±0.92, 0.40, ±1.48), a 2.96 m wheelbase, and `HANDLING.mass` is
-  one number. Every inspiration above has a shorter real wheelbase (roughly
+- **Every body shares one wheelbase and track.** `blender-car.ts` rejects
+  wheels off (±0.92, 0.40, ±1.48), a 2.96 m wheelbase. (Mass has been each car's
+  own since 2026-09-19, and is felt only in contact.) Every inspiration above has a shorter real wheelbase (roughly
   2.4–2.7 m, from memory), so each body is stretched as Vesper's was, the
   RX-7 most. Car variety lives in overhangs, height and silhouette, and
   character lives in driving behaviour.

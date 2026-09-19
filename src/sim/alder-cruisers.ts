@@ -18,7 +18,6 @@
  * nearest that exists: a rival duel or an uphill sprint is a sprint for now, and
  * Tally's citywide open checkpoint is an unordered race.
  */
-import { CAR_DRIVETRAIN } from "../customization/cars.ts";
 import { cruiseLoop } from "./encounter.ts";
 import type { GeneratedKind } from "./race-id.ts";
 import type { RivalDefinition } from "./rival.ts";
@@ -38,7 +37,7 @@ export interface CruisingRival {
 
 type Drives = readonly { street: string; reversed: boolean }[];
 const rival = (id: string, name: string, carName: string, car: string, turf: string, kind: GeneratedKind, drives: Drives): CruisingRival =>
-  ({ id, name, carName, car, turf, kind, route: cruiseLoop(`${id}-cruise`, drives, CAR_DRIVETRAIN[car] ?? "fwd") });
+  ({ id, name, carName, car, turf, kind, route: cruiseLoop(`${id}-cruise`, drives, car) });
 const loop = (...streets: [string, boolean][]): Drives => streets.map(([street, reversed]) => ({ street, reversed }));
 
 export const BLACKLIST_CRUISERS: readonly CruisingRival[] = [

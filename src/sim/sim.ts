@@ -8,6 +8,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
 import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficState } from "./traffic.ts";
 import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState } from "./race.ts";
+import { CAR_TUNES, type CarTune } from "./car-handling.ts";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -81,6 +82,8 @@ export interface ParkedRival {
   readonly id: string;
   readonly name: string;
   readonly start: RoadWorld["start"];
+  /** The car parked there (`car-handling.ts`). Absent is the shared model on RWD. */
+  readonly car?: string;
 }
 /** A rival who cruises a loop in free roam, as Moth does, and can be flashed from nearby. */
 export interface CruiseRival {
@@ -91,7 +94,10 @@ export interface CruiseRival {
 
 export interface SimState {
   physicsVersion: typeof PHYSICS_VERSION;
+  /** Always `handling.drivetrain`; kept for the many readers that only need the layout. */
   readonly drivetrain: Drivetrain;
+  /** The player's car: its numbers, and the revision a recording names. */
+  readonly handling: CarHandling;
   tick: number;
   vehicle: VehicleState;
   /** Null where the world has no lane graph, or where traffic is switched off
@@ -111,6 +117,8 @@ export interface SimState {
 
 export interface RivalState {
   readonly drivetrain: Drivetrain;
+  /** The car its definition names (`handlingFor`), the same numbers the player gets on winning it. */
+  readonly handling: CarHandling;
   vehicle: VehicleState;
   race: RaceState;
   driver: RivalDriver;
@@ -119,7 +127,7 @@ export interface RivalState {
 interface VehicleRig {
   roadWorld: RoadWorld;
   body: RAPIER.RigidBody;
-  state: { vehicle: VehicleState; drivetrain: Drivetrain; race: RaceState | null };
+  state: { vehicle: VehicleState; handling: CarHandling; race: RaceState | null };
 }
 
 export interface Sim {
@@ -241,6 +249,94 @@ export function isDrivetrain(value: unknown): value is Drivetrain {
   return typeof value === "string" && Object.hasOwn(HANDLING.frontDriveFraction, value);
 }
 
+/**
+ * One car's numbers: the shared `HANDLING` bent by its tune (`car-handling.ts`).
+ * Only these differ between cars; every other `HANDLING` value is the model and
+ * is read directly. Mass sets the body's weight in contact, and every force the
+ * car makes is an acceleration times it, so alone it changes nothing else.
+ */
+export interface CarHandling {
+  /** The car, or null for the shared model that `createSim(drivetrain)` and the fixtures drive. */
+  readonly car: string | null;
+  /** The car's tune revision (`CarTune.revision`); 1 for the shared model. */
+  readonly revision: number;
+  readonly drivetrain: Drivetrain;
+  readonly mass: number;
+  readonly topSpeed: number;
+  readonly engineAcceleration: number;
+  readonly engineMidAcceleration: number;
+  readonly highSpeedAcceleration: number;
+  readonly maxLateralAcceleration: number;
+  readonly frontCorneringStiffness: number;
+  readonly rearCorneringStiffness: number;
+  readonly brakeDeceleration: number;
+  readonly steeringResponse: number;
+  readonly handbrakeRearStiffness: number;
+}
+
+// An absent knob returns the shared value itself, not a product with 1, so an
+// untuned car is the shared model to the last bit.
+const bend = (value: number, factor: number | undefined) => factor === undefined ? value : value * factor;
+const resolvedHandling = new Map<string, CarHandling>();
+
+/**
+ * A car's handling, on its own drivetrain or, as a developer comparison
+ * (`?drivetrain=`), another. A body with no tune -- the primitive "classic", or
+ * null -- drives the shared model. Memoised: one car on one layout is one
+ * object, so compare by identity.
+ */
+export function carHandling(car: string | null, drivetrain?: Drivetrain): CarHandling {
+  const tune: CarTune | undefined = car === null || !Object.hasOwn(CAR_TUNES, car) ? undefined : CAR_TUNES[car];
+  const layout = drivetrain ?? tune?.drivetrain ?? DEFAULT_DRIVETRAIN;
+  const key = `${car ?? ""}/${layout}`;
+  const known = resolvedHandling.get(key);
+  if (known) return known;
+  const handling = tunedHandling(car, tune, layout);
+  resolvedHandling.set(key, handling);
+  return handling;
+}
+
+/** What a tune does to the shared numbers, knob by knob. `carHandling` is this for the real cars. */
+export function tunedHandling(car: string | null, tune: CarTune | undefined, drivetrain?: Drivetrain): CarHandling {
+  const layout = drivetrain ?? tune?.drivetrain ?? DEFAULT_DRIVETRAIN;
+  if (!isDrivetrain(layout)) throw new RangeError(`Unknown drivetrain: ${layout}`);
+  const balance = tune?.balance === undefined ? undefined : Math.sqrt(tune.balance);
+  return Object.freeze({
+    car, revision: tune?.revision ?? 1, drivetrain: layout,
+    mass: tune?.mass ?? HANDLING.mass,
+    topSpeed: bend(HANDLING.topSpeed, tune?.topSpeed),
+    engineAcceleration: bend(HANDLING.engineAcceleration, tune?.power),
+    engineMidAcceleration: bend(HANDLING.engineMidAcceleration, tune?.power),
+    highSpeedAcceleration: bend(HANDLING.highSpeedAcceleration, tune?.topEnd),
+    maxLateralAcceleration: bend(HANDLING.maxLateralAcceleration, tune?.grip),
+    frontCorneringStiffness: balance === undefined ? HANDLING.frontCorneringStiffness : HANDLING.frontCorneringStiffness / balance,
+    rearCorneringStiffness: bend(HANDLING.rearCorneringStiffness, balance),
+    brakeDeceleration: bend(HANDLING.brakeDeceleration, tune?.brakes),
+    steeringResponse: bend(HANDLING.steeringResponse, tune?.steering),
+    handbrakeRearStiffness: tune?.handbrake === undefined ? HANDLING.handbrakeRearStiffness
+      : 1 - (1 - HANDLING.handbrakeRearStiffness) * tune.handbrake,
+  });
+}
+
+/** The shared model on the default drivetrain: what the planning helpers assume when not told the car. */
+export const SHARED_HANDLING = carHandling(null);
+
+/**
+ * What a rival, cruiser or parked car drives: the car its definition names, else
+ * the shared model on its declared drivetrain. Naming a car and a contradicting
+ * drivetrain throws, as does naming a car with no tune: a rival must never drive
+ * a different car from the one it is.
+ */
+export function handlingFor(definition: { readonly car?: string; readonly drivetrain?: Drivetrain }): CarHandling {
+  if (definition.car === undefined) return carHandling(null, definition.drivetrain ?? DEFAULT_DRIVETRAIN);
+  if (!Object.hasOwn(CAR_TUNES, definition.car)) throw new RangeError(`Unknown car: ${definition.car}`);
+  const handling = carHandling(definition.car);
+  if (definition.drivetrain !== undefined && definition.drivetrain !== handling.drivetrain) {
+    throw new RangeError(`The ${definition.car} is ${handling.drivetrain}, not ${definition.drivetrain}`);
+  }
+  return handling;
+}
+
 const WHEELBASE = HANDLING.frontAxleDistance + HANDLING.rearAxleDistance;
 const STATIC_FRONT_LOAD = HANDLING.rearAxleDistance / WHEELBASE;
 const START_Y = 0.5;
@@ -263,8 +359,8 @@ function moveToward(current: number, target: number, maxDelta: number): number {
 }
 
 /** Steering assistance changes wheel angle, never chassis velocity or yaw. */
-export function steeringAngleFor(speed: number, steering = 1): number {
-  const gripAngle = Math.atan(WHEELBASE * HANDLING.maxLateralAcceleration *
+export function steeringAngleFor(speed: number, steering = 1, handling: CarHandling = SHARED_HANDLING): number {
+  const gripAngle = Math.atan(WHEELBASE * handling.maxLateralAcceleration *
     HANDLING.steerOverdrive / Math.max(speed * speed, 1));
   const slipAllowance = HANDLING.highSpeedSteerAllowance * clamp(Math.abs(speed) / 15, 0, 1);
   return clamp(steering, -1, 1) * Math.min(HANDLING.maxSteeringAngle, gripAngle + slipAllowance);
@@ -273,7 +369,7 @@ export function steeringAngleFor(speed: number, steering = 1): number {
 /** Driver-operated steering, with extra response/range only for a requested catch.
  * No slip-derived angle is added: centred input always targets centred wheels. */
 export function steeringControlFor(current: number, requested: number, forwardSpeed: number,
-  lateralSpeed = 0, yawRate = 0, recoveryLookahead = 0): { steering: number; steeringAngle: number } {
+  lateralSpeed = 0, yawRate = 0, recoveryLookahead = 0, handling: CarHandling = SHARED_HANDLING): { steering: number; steeringAngle: number } {
   const target = clamp(requested, -1, 1);
   const slipReference = Math.max(Math.abs(forwardSpeed), HANDLING.lowSpeedSlipReference);
   const bodySlip = Math.atan2(lateralSpeed, slipReference);
@@ -286,9 +382,9 @@ export function steeringControlFor(current: number, requested: number, forwardSp
     target * bodySlip > 0 && target * frontSlip > 0;
   const unwinding = current * target < 0 || Math.abs(target) < Math.abs(current);
   const response = countersteering ? HANDLING.countersteerResponse
-    : unwinding ? HANDLING.steeringReturnResponse : HANDLING.steeringResponse;
+    : unwinding ? HANDLING.steeringReturnResponse : handling.steeringResponse;
   const steering = moveToward(current, target, response * DT);
-  const normalLimit = steeringAngleFor(forwardSpeed);
+  const normalLimit = steeringAngleFor(forwardSpeed, 1, handling);
   let limit = normalLimit;
   if (countersteering && steering * bodySlip > 0) {
     // Ease extra manual lock as yaw begins closing the slide, before slip
@@ -317,38 +413,38 @@ export function frontWheelAngles(centerAngle: number): { left: number; right: nu
 }
 
 /** Concave load sensitivity: transferring weight cannot create total grip. */
-export function wheelGripFor(loadFraction: number): number {
-  return HANDLING.mass * HANDLING.maxLateralAcceleration * 0.25 *
+export function wheelGripFor(loadFraction: number, handling: CarHandling = SHARED_HANDLING): number {
+  return handling.mass * handling.maxLateralAcceleration * 0.25 *
     (Math.max(0, loadFraction) / 0.25) ** HANDLING.tyreLoadExponent;
 }
 
 /** Planning envelope, not a commanded yaw rate or a guarantee under braking. */
-export function minimumTurnRadiusAtSpeed(speed: number): number {
+export function minimumTurnRadiusAtSpeed(speed: number, handling: CarHandling = SHARED_HANDLING): number {
   if (Math.abs(speed) < 0.01) return 0;
   return Math.max(WHEELBASE / Math.tan(HANDLING.maxSteeringAngle),
-    speed * speed / HANDLING.maxLateralAcceleration);
+    speed * speed / handling.maxLateralAcceleration);
 }
 
-export function maxCorneringSpeed(radius: number): number {
-  return Math.sqrt(HANDLING.maxLateralAcceleration * Math.max(0, radius));
+export function maxCorneringSpeed(radius: number, handling: CarHandling = SHARED_HANDLING): number {
+  return Math.sqrt(handling.maxLateralAcceleration * Math.max(0, radius));
 }
 
-export function brakeDecelerationFor(brake: number): number {
-  return HANDLING.brakeDeceleration * clamp(brake, 0, 1) ** HANDLING.brakeResponseExponent;
+export function brakeDecelerationFor(brake: number, handling: CarHandling = SHARED_HANDLING): number {
+  return handling.brakeDeceleration * clamp(brake, 0, 1) ** HANDLING.brakeResponseExponent;
 }
 
 export function gradeAccelerationFor(pitch: number, courseAlignment = 1): number {
   return -HANDLING.gravityAlongGrade * Math.sin(pitch) * clamp(courseAlignment, -1, 1);
 }
 
-function engineAccelerationFor(speed: number): number {
+function engineAccelerationFor(speed: number, handling: CarHandling): number {
   if (speed <= HANDLING.engineMidSpeed) {
     const blend = clamp(speed / HANDLING.engineMidSpeed, 0, 1);
-    return HANDLING.engineAcceleration * (1 - blend) + HANDLING.engineMidAcceleration * blend;
+    return handling.engineAcceleration * (1 - blend) + handling.engineMidAcceleration * blend;
   }
   const blend = clamp((speed - HANDLING.engineMidSpeed) /
-    (HANDLING.topSpeed - HANDLING.engineMidSpeed), 0, 1);
-  return HANDLING.engineMidAcceleration * (1 - blend) + HANDLING.highSpeedAcceleration * blend;
+    (handling.topSpeed - HANDLING.engineMidSpeed), 0, 1);
+  return handling.engineMidAcceleration * (1 - blend) + handling.highSpeedAcceleration * blend;
 }
 
 function yawRotation(heading: number): RAPIER.Rotation {
@@ -373,10 +469,10 @@ function emptyAxle(): AxleState {
   return { slipAngle: 0, longitudinalForce: 0, lateralForce: 0, gripLimit: 0, longitudinalGripLimit: 0 };
 }
 
-function initialWheels(): Record<WheelId, WheelState> {
+function initialWheels(mass: number): Record<WheelId, WheelState> {
   return Object.fromEntries(WHEEL_LAYOUT.map(wheel => [wheel.id, {
     ...emptyAxle(), steeringAngle: 0, loadFraction: 0.25,
-    normalLoad: HANDLING.mass * HANDLING.gravityAlongGrade * 0.25,
+    normalLoad: mass * HANDLING.gravityAlongGrade * 0.25,
     longitudinalSpeed: 0, lateralSpeed: 0, rollingDistance: 0,
   }])) as Record<WheelId, WheelState>;
 }
@@ -387,19 +483,20 @@ function drivenSurface(roadWorld: RoadWorld, x: number, z: number) {
   return roadWorld.surface ? roadWorld.surface(x, z) : roadWorld.project(x, z);
 }
 
-function initialVehicle(roadWorld: RoadWorld): VehicleState {
+function initialVehicle(roadWorld: RoadWorld, handling: CarHandling): VehicleState {
   return {
     x: roadWorld.start.x, y: roadWorld.start.y, z: roadWorld.start.z,
     heading: roadWorld.start.heading, pitch: roadWorld.start.pitch, roll: 0,
     speed: 0, forwardSpeed: 0, lateralSpeed: 0, yawRate: 0,
     steering: 0, steeringAngle: 0, driveDirection: 1, slipAngle: 0,
     longitudinalAcceleration: 0, lateralAcceleration: 0,
-    frontLoadFraction: STATIC_FRONT_LOAD, rightLoadFraction: 0.5, groundContact: 0, wheels: initialWheels(),
+    frontLoadFraction: STATIC_FRONT_LOAD, rightLoadFraction: 0.5, groundContact: 0, wheels: initialWheels(handling.mass),
     frontAxle: emptyAxle(), rearAxle: emptyAxle(),
   };
 }
 
-function createVehicleBody(world: RAPIER.World, start: RoadWorld["start"]): RAPIER.RigidBody {
+/** One collider for every body; its mass is the car's, so a heavier car shoves a lighter one. */
+function createVehicleBody(world: RAPIER.World, start: RoadWorld["start"], mass: number): RAPIER.RigidBody {
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(start.x, start.y + START_Y, start.z)
@@ -409,14 +506,20 @@ function createVehicleBody(world: RAPIER.World, start: RoadWorld["start"]): RAPI
   body.setEnabledTranslations(true, false, true, true);
   body.setEnabledRotations(false, true, false, true);
   world.createCollider(RAPIER.ColliderDesc.cuboid(0.92, 0.38, 2.08)
-    .setMass(HANDLING.mass).setFriction(0.15).setRestitution(0.04), body);
+    .setMass(mass).setFriction(0.15).setRestitution(0.04), body);
 
   return body;
 }
 
-export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
+/**
+ * A car (`carHandling`), or a bare drivetrain for the shared model on that layout,
+ * which is what the regression fixtures drive.
+ */
+export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   roadWorld: RoadWorld = BLACKGLASS_WORLD, options: SimOptions = {}): Sim {
-  if (!isDrivetrain(drivetrain)) throw new RangeError(`Unknown drivetrain: ${drivetrain}`);
+  if (typeof setup === "string" && !isDrivetrain(setup)) throw new RangeError(`Unknown drivetrain: ${setup}`);
+  const handling = typeof setup === "string" ? carHandling(null, setup) : setup;
+  if (!isDrivetrain(handling.drivetrain)) throw new RangeError(`Unknown drivetrain: ${handling.drivetrain}`);
   if (options.rival && !options.race) throw new Error("A rival requires a race");
   if ((options.encounter || options.encounterRoute || options.cruisers?.length || (options.parkedRivals?.length && options.race?.kind !== "drift")) && options.race) throw new Error("A cruising encounter belongs in free roam");
   const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
@@ -451,7 +554,7 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
         .setFriction(0.25).setRestitution(0.08),
     );
   }
-  const body = createVehicleBody(world, roadWorld.start);
+  const body = createVehicleBody(world, roadWorld.start, handling.mass);
 
   // Traffic is kinematic: it drives its lane and is not pushed by an impact.
   // That makes it an immovable hazard rather than a second handling model, and
@@ -471,28 +574,31 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   });
 
   const parkedRivalDefinitions = options.parkedRivals ?? [];
-  const parkedRivalBodies = parkedRivalDefinitions.map(rival => createVehicleBody(world, rival.start));
+  const parkedRivalBodies = parkedRivalDefinitions.map(rival => createVehicleBody(world, rival.start, parkedHandling(rival).mass));
   const parkedRivals = parkedRivalDefinitions.map(rival => ({ id: rival.id, name: rival.name,
-    vehicle: initialVehicle({ ...roadWorld, start: rival.start }) }));
+    vehicle: initialVehicle({ ...roadWorld, start: rival.start }, parkedHandling(rival)) }));
   const encounterRoute = options.encounterRoute ?? null;
   const encounterStart = encounterRoute?.start ?? options.encounter ?? null;
-  const encounterBody = encounterStart ? createVehicleBody(world, encounterStart) : null;
-  const encounter = encounterStart ? initialVehicle({ ...roadWorld, start: encounterStart }) : null;
+  const encounterHandling = handlingFor(encounterRoute ?? {});
+  const encounterBody = encounterStart ? createVehicleBody(world, encounterStart, encounterHandling.mass) : null;
+  const encounter = encounterStart ? initialVehicle({ ...roadWorld, start: encounterStart }, encounterHandling) : null;
   const cruiserDefinitions = options.cruisers ?? [];
-  const cruiserBodies = cruiserDefinitions.map(cruiser => createVehicleBody(world, cruiser.route.start));
+  const cruiserBodies = cruiserDefinitions.map(cruiser => createVehicleBody(world, cruiser.route.start, handlingFor(cruiser.route).mass));
   const cruisers = cruiserDefinitions.map(cruiser => ({ id: cruiser.id, name: cruiser.name,
-    vehicle: initialVehicle({ ...roadWorld, start: cruiser.route.start }), driver: createRivalDriver() }));
+    vehicle: initialVehicle({ ...roadWorld, start: cruiser.route.start }, handlingFor(cruiser.route)), driver: createRivalDriver() }));
   const rivalDefinition = options.rival ?? null;
   // Paired with its rival's line, a race learns which way each gate is left:
   // the marker's arrow. A race without a rival has no reference route to read.
   const raceDefinition = options.race ? rivalDefinition ? withExits(options.race, rivalDefinition) : options.race : null;
-  const rivalBody = rivalDefinition ? createVehicleBody(world, rivalDefinition.start) : null;
-  const rival: RivalState | null = rivalDefinition && raceDefinition ? {
-    drivetrain: rivalDefinition.drivetrain ?? "fwd", vehicle: initialVehicle({ ...roadWorld, start: rivalDefinition.start }),
+  const rivalHandling = rivalDefinition ? handlingFor(rivalDefinition) : null;
+  const rivalBody = rivalDefinition && rivalHandling ? createVehicleBody(world, rivalDefinition.start, rivalHandling.mass) : null;
+  const rival: RivalState | null = rivalDefinition && rivalHandling && raceDefinition ? {
+    drivetrain: rivalHandling.drivetrain, handling: rivalHandling,
+    vehicle: initialVehicle({ ...roadWorld, start: rivalDefinition.start }, rivalHandling),
     race: createRace(raceDefinition), driver: createRivalDriver(),
     input: { throttle: 0, brake: 0, steer: 0, handbrake: 0 },
   } : null;
-  const vehicle = initialVehicle(roadWorld);
+  const vehicle = initialVehicle(roadWorld, handling);
   if (raceDefinition?.kind === "drag") {
     vehicle.transmission = createTransmission();
     if (rival) rival.vehicle.transmission = createTransmission();
@@ -506,17 +612,28 @@ export function createSim(drivetrain: Drivetrain = DEFAULT_DRIVETRAIN,
   }
   return {
     roadWorld,
-    state: { physicsVersion: PHYSICS_VERSION, drivetrain, tick: 0,
+    state: { physicsVersion: PHYSICS_VERSION, drivetrain: handling.drivetrain, handling, tick: 0,
       vehicle, traffic, rival, encounter, parkedRivals, cruisers, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
     world, body, rivalBody, rivalDefinition, encounterBody, encounterStart, encounterRoute, parkedRivalDefinitions, parkedRivalBodies, cruiserDefinitions, cruiserBodies, trafficBodies, race: raceDefinition,
   };
 }
 
-export function resetSim(sim: Sim, drivetrain: Drivetrain = sim.state.drivetrain): void {
+/** Parked cars have always been rear-drive; one that names its car drives that car. */
+function parkedHandling(parked: ParkedRival): CarHandling {
+  return handlingFor(parked.car !== undefined ? { car: parked.car } : { drivetrain: "rwd" });
+}
+
+/**
+ * A fresh run. A car replaces the car; a bare drivetrain keeps the car and changes
+ * only its layout, the developer comparison (`?drivetrain=`, `__ns.drivetrain`).
+ */
+export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.handling): void {
+  if (typeof setup === "string" && !isDrivetrain(setup)) throw new RangeError(`Unknown drivetrain: ${setup}`);
+  const handling = typeof setup === "string" ? carHandling(sim.state.handling.car, setup) : setup;
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(drivetrain, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
+  const fresh = createSim(handling, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
@@ -577,7 +694,8 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   const lateralSpeed = velocity.x * wheelRight.x + velocity.z * wheelRight.z;
   const slipAngle = Math.atan2(lateralSpeed,
     Math.max(Math.abs(longitudinalSpeed), HANDLING.lowSpeedSlipReference));
-  const gripLimit = wheelGripFor(tyre.loadFraction) * tyre.gripScale;
+  const handling = sim.state.handling;
+  const gripLimit = wheelGripFor(tyre.loadFraction, handling) * tyre.gripScale;
   const yawInertia = body.principalInertia().y;
   const lateralLever = offset.z * wheelRight.x - offset.x * wheelRight.z;
   const effectiveLateralMass = 1 / (1 / body.mass() + lateralLever * lateralLever / yawInertia);
@@ -590,7 +708,7 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   // erase steering"). For RWD driven rear wheels, share the friction budget
   // with drive propulsion so the rear axle does not starve or bog down in
   // corners and responds to throttle.
-  const driveDemand = (tyre.front || sim.state.drivetrain !== "rwd") ? 0 : Math.abs(tyre.driveForce);
+  const driveDemand = (tyre.front || handling.drivetrain !== "rwd") ? 0 : Math.abs(tyre.driveForce);
   let lateralBudget = gripLimit;
   if (driveDemand > 0) {
     // Power rotation is useful in slower corners. At highway speeds, reserve
@@ -636,7 +754,7 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   const longitudinalBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - lateralForce * lateralForce)) * tyre.driveGripScale;
   Object.assign(telemetry, { slipAngle, lateralForce, gripLimit, longitudinalGripLimit,
     steeringAngle: tyre.steeringAngle, loadFraction: tyre.loadFraction,
-    normalLoad: HANDLING.mass * HANDLING.gravityAlongGrade * tyre.loadFraction });
+    normalLoad: handling.mass * HANDLING.gravityAlongGrade * tyre.loadFraction });
   return { point, forward: wheelForward, right: wheelRight, lateralForce,
     brakingForce, driveForce: tyre.driveForce, longitudinalBudget, telemetry };
 }
@@ -696,6 +814,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   };
   const { body } = sim;
   const car = sim.state.vehicle;
+  const handling = sim.state.handling;
   const position = body.translation();
   const road = drivenSurface(sim.roadWorld, position.x, position.z);
   // Still a vertical road constraint; never reposition x/z or overwrite the
@@ -712,11 +831,13 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
     position.x + forwardX * wheel.forward + Math.cos(heading) * wheel.right,
     position.z + forwardZ * wheel.forward - Math.sin(heading) * wheel.right) ?? false);
   car.groundContact = onGround.filter(Boolean).length / onGround.length;
-  const groundPenalty = sim.state.drivetrain === "awd" ? 0 : car.groundContact;
-  const governedTopSpeed = HANDLING.topSpeed * (1 - groundPenalty * (1 - HANDLING.groundTopSpeedScale));
+  const groundPenalty = handling.drivetrain === "awd" ? 0 : car.groundContact;
+  const governedTopSpeed = handling.topSpeed * (1 - groundPenalty * (1 - HANDLING.groundTopSpeedScale));
   const velocity = body.linvel();
   const forwardSpeed = velocity.x * forwardX + velocity.z * forwardZ;
   const speed = Math.hypot(velocity.x, velocity.z);
+  // The gearbox turns torque into acceleration against the shared mass, not the
+  // car's: a car's weight is what it does in contact, never how it pulls.
   const manualAcceleration = car.transmission ? sim.state.race?.finished ? 0
     : stepTransmission(car.transmission, rawInput, Math.max(0, forwardSpeed), sim.state.race?.countdown ?? 0,
       sim.state.race?.ticks ?? 0, HANDLING.mass, DT) : null;
@@ -730,8 +851,8 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   const lateralSpeed = velocity.x * Math.cos(heading) - velocity.z * Math.sin(heading);
   const bodySlip = Math.atan2(lateralSpeed, Math.max(Math.abs(forwardSpeed), HANDLING.lowSpeedSlipReference));
   Object.assign(car, steeringControlFor(car.steering, input.steer, forwardSpeed, lateralSpeed, body.angvel().y,
-    sim.state.drivetrain === "rwd" ? HANDLING.rwdCountersteerLookahead : 0));
-  const countersteerRecovery = sim.state.drivetrain === "rwd" && forwardSpeed > HANDLING.countersteerMinSpeed &&
+    handling.drivetrain === "rwd" ? HANDLING.rwdCountersteerLookahead : 0, handling));
+  const countersteerRecovery = handling.drivetrain === "rwd" && forwardSpeed > HANDLING.countersteerMinSpeed &&
     input.steer * lateralSpeed > 0 && car.steering * lateralSpeed > 0
     ? Math.min(1, Math.abs(car.steering) / 0.5) *
       clamp((Math.abs(car.steeringAngle) / HANDLING.maxSteeringAngle - HANDLING.rwdCountersteerScrubLockStart) /
@@ -765,7 +886,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
     clamp(Math.abs(forwardSpeed) / 2, 0, 1);
   let driveAcceleration = reversing
     ? -HANDLING.reverseAcceleration * input.brake
-    : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed)) * effectiveThrottle;
+    : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed), handling) * effectiveThrottle;
   // Govern propulsion instead of hard-clamping impact/downhill velocity.
   if (driveAcceleration > 0) {
     driveAcceleration = Math.min(driveAcceleration,
@@ -774,16 +895,16 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
     driveAcceleration = Math.max(driveAcceleration,
       Math.min(0, (-HANDLING.reverseSpeed - forwardSpeed) / DT - dragAcceleration - gradeAcceleration));
   }
-  const serviceBrake = reversing ? 0 : brakeDecelerationFor(input.brake) * HANDLING.mass;
-  const rollingBrake = effectiveThrottle === 0 ? HANDLING.rollingResistance * HANDLING.mass : 0;
-  const driveForce = driveAcceleration * HANDLING.mass;
+  const serviceBrake = reversing ? 0 : brakeDecelerationFor(input.brake, handling) * handling.mass;
+  const rollingBrake = effectiveThrottle === 0 ? HANDLING.rollingResistance * handling.mass : 0;
+  const driveForce = driveAcceleration * handling.mass;
   const driveGripProgress = clamp((forwardSpeed - HANDLING.twoWheelDriveGripStartSpeed) /
     (HANDLING.twoWheelDriveGripFullSpeed - HANDLING.twoWheelDriveGripStartSpeed), 0, 1);
   const driveGripBlend = driveGripProgress * driveGripProgress * (3 - 2 * driveGripProgress);
   // A launch buys traction, not torque: off the line the tyres are already at their
   // limit, so extra drive alone is clamped away and changes nothing (measured
   // 2026-09-16). It rides the same powered-axis scale, so steering is untouched.
-  const driveGripScale = (sim.state.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
+  const driveGripScale = (handling.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
     ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1)
     * (driveForce > 0 && input.brake === 0 ? launchScale : 1);
   const angles = frontWheelAngles(car.steeringAngle);
@@ -792,7 +913,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   const patches = WHEEL_LAYOUT.map((wheel, index) => {
     const frontShare = wheel.front ? car.frontLoadFraction : 1 - car.frontLoadFraction;
     const sideShare = wheel.right > 0 ? car.rightLoadFraction : 1 - car.rightLoadFraction;
-    const frontDriveShare = HANDLING.frontDriveFraction[sim.state.drivetrain];
+    const frontDriveShare = HANDLING.frontDriveFraction[handling.drivetrain];
     const driveShare = wheel.front ? frontDriveShare : 1 - frontDriveShare;
     const brakeShare = wheel.front ? HANDLING.frontBrakeFraction : 1 - HANDLING.frontBrakeFraction;
     const rollingShare = wheel.front ? STATIC_FRONT_LOAD : 1 - STATIC_FRONT_LOAD;
@@ -808,9 +929,9 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
       loadFraction: frontShare * sideShare,
       driveForce: driveForce * driveShare * 0.5,
       brakeForce: (serviceBrake * brakeShare + rollingBrake * rollingShare +
-        HANDLING.handbrakeDrag * HANDLING.mass * handbrake) * 0.5,
-      stiffness: wheel.front ? HANDLING.frontCorneringStiffness :
-        HANDLING.rearCorneringStiffness * (1 - handbrake * (1 - HANDLING.handbrakeRearStiffness)),
+        HANDLING.handbrakeDrag * handling.mass * handbrake) * 0.5,
+      stiffness: wheel.front ? handling.frontCorneringStiffness :
+        handling.rearCorneringStiffness * (1 - handbrake * (1 - handling.handbrakeRearStiffness)),
       gripScale: (1 - handbrake * (1 - HANDLING.handbrakeRearGrip)) *
         (onGround[index] && groundPenalty > 0 ? HANDLING.groundGripScale : 1),
     }, car.wheels[wheel.id]);
@@ -841,28 +962,28 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   }
   summarizeAxle(car.wheels["front-left"], car.wheels["front-right"], car.frontAxle);
   summarizeAxle(car.wheels["rear-left"], car.wheels["rear-right"], car.rearAxle);
-  car.longitudinalAcceleration = (forceX * forwardX + forceZ * forwardZ) / HANDLING.mass;
-  car.lateralAcceleration = (forceX * Math.cos(heading) - forceZ * Math.sin(heading)) / HANDLING.mass;
-  body.addForce({ x: forwardX * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * HANDLING.mass,
-    y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * HANDLING.mass }, true);
+  car.longitudinalAcceleration = (forceX * forwardX + forceZ * forwardZ) / handling.mass;
+  car.lateralAcceleration = (forceX * Math.cos(heading) - forceZ * Math.sin(heading)) / handling.mass;
+  body.addForce({ x: forwardX * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * handling.mass,
+    y: 0, z: forwardZ * (dragAcceleration + gradeAcceleration + groundDragAcceleration) * handling.mass }, true);
 }
 
 export function step(sim: Sim, rawInput: Input): void {
   const parkedRigs: VehicleRig[] = sim.state.parkedRivals.map((rival, i) => ({
     roadWorld: sim.roadWorld, body: sim.parkedRivalBodies[i]!,
-    state: { vehicle: rival.vehicle, drivetrain: "rwd", race: null },
+    state: { vehicle: rival.vehicle, handling: parkedHandling(sim.parkedRivalDefinitions[i]!), race: null },
   }));
   for (const parked of parkedRigs) applyVehicleInput(parked, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
   const cruiserRigs: VehicleRig[] = sim.state.cruisers.map((cruiser, i) => ({
     roadWorld: sim.roadWorld, body: sim.cruiserBodies[i]!,
-    state: { vehicle: cruiser.vehicle, drivetrain: sim.cruiserDefinitions[i]!.route.drivetrain ?? "fwd", race: null },
+    state: { vehicle: cruiser.vehicle, handling: handlingFor(sim.cruiserDefinitions[i]!.route), race: null },
   }));
   const trafficObstacles = () => (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
   const encounterRig: VehicleRig | null = sim.state.encounter && sim.encounterBody
     ? { roadWorld: sim.roadWorld, body: sim.encounterBody,
-      // Read the route's own layout: hardcoding this quietly ignored a field
-      // RivalDefinition offers, so setting it on a cruise route did nothing.
-      state: { vehicle: sim.state.encounter, drivetrain: sim.encounterRoute?.drivetrain ?? "fwd", race: null } } : null;
+      // Read the route's own car: hardcoding the layout once quietly ignored a
+      // field RivalDefinition offers, so setting it on a cruise route did nothing.
+      state: { vehicle: sim.state.encounter, handling: handlingFor(sim.encounterRoute ?? {}), race: null } } : null;
   if (encounterRig) {
     const driver = sim.state.encounterDriver;
     const input = sim.encounterRoute && driver ? rivalInput(sim.encounterRoute,
@@ -1029,7 +1150,7 @@ function resetStalledDriver(sim: Sim, body: RAPIER.RigidBody, route: RivalDefini
       body.resetForces(true);
       body.resetTorques(true);
       reset(initialVehicle({ ...sim.roadWorld, start: { x, y: surface.height, z,
-        heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } }),
+        heading, pitch: surface.pitch * (point.ux * surface.ux + point.uz * surface.uz) } }, handlingFor(route)),
         { ...createRivalDriver(), along, progressMark: along, recoveries: driver.recoveries, resetAlong: along,
           resets: driver.resets + (unseen ? 0 : 1), unseenResets: driver.unseenResets + (unseen ? 1 : 0) });
       return;

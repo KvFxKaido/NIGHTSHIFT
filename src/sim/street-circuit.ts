@@ -181,8 +181,8 @@ export function streetCircuitEvent(laps = STREET_CIRCUIT_LAPS, traffic = true, s
   const checkpoints: Checkpoint[] = Array.from({ length: laps }, () => lap.gates.map((gate, g) => ({
     id: `${streetCircuitRaceId()}-${g + 1}`, name: gate.name, x: gate.x, z: gate.z, radius: STREET_GATE_RADIUS,
   }))).flat();
-  // Every road race fields Moth's Kestrel, driven all-wheel. On streets the rival drives the centreline.
-  const route: RivalDefinition = { id: `${streetCircuitRaceId()}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates };
+  // Every road race fields Moth's Kestrel. On streets the rival drives the centreline.
+  const route: RivalDefinition = { id: `${streetCircuitRaceId()}-driver`, car: "kestrel", start: rivalStart, points, along, gates };
   const race: RaceDefinition = { id, name: `${UPTOWN.name}${traffic ? "" : " / Clear"}${solo ? " / Solo" : ""}`, kind: "circuit", laps,
     gatesPerLap: lap.gates.length, countdownTicks: COUNTDOWN_TICKS, checkpoints };
   return {

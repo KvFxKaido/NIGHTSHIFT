@@ -257,9 +257,9 @@ export function alderGeneratedRace(seed: number, from: RoadWorld["start"] = star
   // A start that draws nothing from its own junction draws from one street on (generateRaceFrom).
   const { race: drawn, origin, lead } = generateRaceFrom(graph, seed, ALDER_STREETS, from, turf, kind === "circuit");
   const generated = kind === "unordered" ? withRaceKind(graph, drawn, origin, kind) : drawn;
-  // Every generated road race fields Moth's Kestrel (raceOpponentCar in
-  // main.ts), so the drawn line is driven all-wheel. rivalLineFor itself stays
-  // ignorant of who is driving it -- it draws a route, not a personality.
+  // A generated road race fields Moth's Kestrel (raceOpponentCar in main.ts)
+  // unless a flashed rival brings their own (alder-course.ts). rivalLineFor itself
+  // stays ignorant of who is driving it -- it draws a route, not a personality.
   return { race: generated.definition, generated,
-    rival: { ...rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight, lead), drivetrain: "awd" } };
+    rival: { ...rivalLineFor(graph, generated, ALDER_STREETS, from, alderHeight, lead), car: "kestrel" } };
 }

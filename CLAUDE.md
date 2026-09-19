@@ -116,12 +116,15 @@ Port Alder is the only playable map and the default at `/`. Blackglass was
 retired on 2026-09-10; its geometry and GLB are developer regression
 fixtures outside the playable bundle, and old world links redirect.
 
-- **Driving.** Four-tyre planar model. The drivetrain belongs to the body, not
-  to a menu: the Cinder is RWD and the Bulwark AWD (`CAR_DRIVETRAIN` in
-  `src/customization/cars.ts`), so changing car starts a fresh drive.
-  `createSim` still defaults to FWD, which is what the regression fixtures
-  measure, and `?drivetrain=` / `__ns.drivetrain()` stay developer controls
-  that do not persist. Physics revision `four-wheel-v6`; see
+- **Driving.** Four-tyre planar model. The handling belongs to the body, not
+  to a menu: each car is a tune of the one model (`CAR_TUNES` in
+  `src/sim/car-handling.ts`, 2026-09-19) — its drivetrain (the Cinder RWD, the
+  Bulwark AWD), a few multipliers and a mass that is felt only in contact — so
+  changing car starts a fresh drive. `pnpm cars` measures every car; the Cinder
+  is the anchor the others are tuned against. `createSim` still defaults to the
+  shared model on FWD, which is what the regression fixtures measure, and
+  `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car
+  and do not persist. Physics revision `four-wheel-v6`; see
   `design/HANDLING.md` for the
   model, executed gates and known limitations. Automatic countersteering has
   been off since v3; v5 added RWD slide-exit traction sharing and brought
@@ -185,10 +188,10 @@ fixtures outside the playable bundle, and old world links redirect.
   what the challenge is (`src/ui/rival-card.ts`). Rival portraits, and the
   style that keeps them one game: `design/CHARACTERS.md`. All ten Blacklist
   names have a car asset (`BLENDER_CARS` in `src/render/blender-car.ts`, drives in
-  `CAR_DRIVETRAIN`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
+  `CAR_TUNES`): Tally's Vesper and, from 2026-09-13, Latch, Breakwater,
   Wager, Meridian, Skim and Reign (working names). Each cruises and races as its
   rival (above) and is a saved player car once its name is beaten (Sable's NS-01
-  as `ns01`); none has per-car handling. Build
+  as `ns01`), driving its car's own tune, the same whoever drives it. Build
   notes and open review flags: `design/reference/cars/BLACKLIST_CARS.md`.
 - **Career/shop.** `src/settings/progress.ts` stores `nightshift.progress`
   separately from manual slots (schema 4): each Blacklist name's wins and accepted
@@ -242,6 +245,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Area | Path | Doc |
 |---|---|---|
 | Vehicle model, `HANDLING`, `PHYSICS_VERSION`, tick | `src/sim/sim.ts` | `design/HANDLING.md` |
+| Each car's tune, its measured card | `src/sim/car-handling.ts`, `car-card.ts` | `design/HANDLING.md` ("Cars") |
 | Port Alder streets, terrain, plots, layout | `src/sim/alder*.ts`, `src/sim/alder-*.json` | `design/PORT_ALDER.md` |
 | District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race ids, turfs, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-id.ts`, `alder-turf.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
@@ -341,6 +345,11 @@ fixtures outside the playable bundle, and old world links redirect.
   build that rejects Kestrel likewise makes every slot unreadable if one names it.
 - `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
   the phone. Do not add to it casually.
+- A number a car can change is read from that vehicle's `CarHandling`
+  (`sim.state.handling`, `rival.handling`, `handlingFor(route)`), never from
+  `HANDLING`, or a rival plans corners with a grip its tyres do not have. A tune
+  changes only with its `CarTune.revision`, and a rival's car with `RIVAL_REVISION`
+  too; the fingerprint test prints the repin.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
@@ -417,6 +426,7 @@ pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
+pnpm cars             # every car's measured card; run before and after a tune, --json for tools
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

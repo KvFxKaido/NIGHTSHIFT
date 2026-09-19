@@ -8,7 +8,7 @@ import { turfFor } from "../src/sim/alder-turf.ts";
 import { ALDER_CRUISE, MOTH, nearbyChallenge } from "../src/sim/encounter.ts";
 import { generatedRaceId } from "../src/sim/race-id.ts";
 import { encodeStart, headingOf, snapToLane } from "../src/sim/race-start.ts";
-import { createSim, step } from "../src/sim/sim.ts";
+import { createSim, handlingFor, step } from "../src/sim/sim.ts";
 import { CAR_DRIVETRAIN } from "../src/customization/cars.ts";
 import { rivalCard } from "../src/ui/rival-card.ts";
 await RAPIER.init();
@@ -26,7 +26,8 @@ test("seven names cruise, each with its own car, card and a loop inside its turf
   for (const id of streetsOf(ALDER_CRUISE.points)) claimed.set(id, "moth");
   for (const cruiser of BLACKLIST_CRUISERS) {
     assert.ok(CAR_DRIVETRAIN[cruiser.car], `${cruiser.id}'s car ${cruiser.car} has no drivetrain`);
-    assert.equal(cruiser.route.drivetrain, CAR_DRIVETRAIN[cruiser.car]);
+    assert.equal(cruiser.route.car, cruiser.car, `${cruiser.id} cruises in another car`);
+    assert.equal(handlingFor(cruiser.route).drivetrain, CAR_DRIVETRAIN[cruiser.car]);
     const card = rivalCard(cruiser.id);
     assert.ok(card && card.name === cruiser.name && card.car === cruiser.carName, `${cruiser.id} has no matching card`);
     const length = cruiser.route.along.at(-1)!;
@@ -61,13 +62,15 @@ test("a flash anywhere along a cruiser's loop draws its race, and the race is ra
     }
   }
   const stray = drawAlderCourse("gen-stray-12-unordered", null);
-  assert.equal(stray.rival.drivetrain, "fwd", "Stray's Latch");
+  assert.equal(stray.rival.car, "latch");
+  assert.equal(handlingFor(stray.rival).drivetrain, "fwd", "Stray's Latch");
   assert.equal(stray.race.kind, "unordered");
   // Tally's turf is the whole city: her race is the plain draw of its seed, under her name, in her Vesper.
   const tally = drawAlderCourse("gen-tally-12-unordered", null), plain = alderGeneratedRace(12, undefined, "unordered");
   assert.equal(tally.race.id, "gen-tally-12-unordered");
   assert.equal(tally.rival.id, "gen-tally-12-unordered-driver");
-  assert.equal(tally.rival.drivetrain, "rwd");
+  assert.equal(tally.rival.car, "vesper");
+  assert.equal(handlingFor(tally.rival).drivetrain, "rwd");
   assert.deepEqual(tally.race.checkpoints, plain.race.checkpoints);
   assert.throws(() => drawAlderCourse("gen-nobody-12", null), /Unknown turf/);
 });

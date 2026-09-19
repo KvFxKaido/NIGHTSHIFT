@@ -47,7 +47,8 @@ export interface CarAudio {
   readonly context: AudioContext;
   /** Music is mixed here so one master fader governs everything. */
   readonly musicBus: GainNode;
-  update(vehicle: VehicleState, input: Input, active: boolean): void;
+  /** `topSpeed` is the car's own governor (`engineTone`); wind stays on the shared one. */
+  update(vehicle: VehicleState, input: Input, active: boolean, topSpeed?: number): void;
   setLevels(levels: Partial<AudioLevels>): void;
   levels(): AudioLevels;
   dispose(): void;
@@ -252,7 +253,7 @@ export function createCarAudio(context: AudioContext, initial: AudioLevels = DEF
   return {
     context,
     musicBus,
-    update(vehicle, input, active) {
+    update(vehicle, input, active, topSpeed) {
       if (!active) {
         glide(exhaustMasterGain.gain, 0, .08);
         glide(intakeRoarGain.gain, 0, .05);
@@ -262,7 +263,7 @@ export function createCarAudio(context: AudioContext, initial: AudioLevels = DEF
         glide(windGain.gain, 0, .08);
         return;
       }
-      const tone = engineTone(vehicle, input);
+      const tone = engineTone(vehicle, input, topSpeed);
 
       // Partials pitch glide
       for (const partial of partials) {

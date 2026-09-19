@@ -10,7 +10,7 @@ import { circuitEvent } from "./circuits.ts";
 import { RIVAL_REVISION } from "./rival.ts";
 import { TRAFFIC_REVISION } from "./traffic.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
-import { createSim, step, PHYSICS_VERSION, TICK_HZ, type Drivetrain } from "./sim.ts";
+import { carHandling, createSim, isDrivetrain, step, PHYSICS_VERSION, TICK_HZ } from "./sim.ts";
 
 export type ReplayResult =
   | { ok: true; laps: number }
@@ -27,8 +27,12 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
   if (!event.solo && session.rival !== RIVAL_REVISION) return { ok: false, reason: `raced rival ${session.rival ?? "from before rival revisions"}, this build's is ${RIVAL_REVISION}` };
   if (event.traffic && session.trafficRevision !== TRAFFIC_REVISION) return { ok: false, reason: `recorded in traffic ${session.trafficRevision ?? "from before traffic revisions"}, this build's is ${TRAFFIC_REVISION}` };
+  if (!isDrivetrain(session.drivetrain)) return { ok: false, reason: `unknown drivetrain ${session.drivetrain}` };
+  // The car it was driven in, on the layout it was driven on (a developer comparison may differ from the car's own).
+  const handling = carHandling(session.car, session.drivetrain);
+  if ((session.carRevision ?? 1) !== handling.revision) return { ok: false, reason: `driven in the ${session.car} at handling revision ${session.carRevision ?? 1}, this build's is ${handling.revision}` };
   // Traffic is part of the world and replays with it, by its revision.
-  const sim = createSim(session.drivetrain as Drivetrain, createAlderWorld(true, event.start),
+  const sim = createSim(handling, createAlderWorld(true, event.start),
     { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic });
   try {
     const recorder = createLapRecorder(event.track);

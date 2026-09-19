@@ -167,6 +167,9 @@ export interface LapSession {
   laps: number;
   car: string;
   drivetrain: string;
+  /** The car's tune revision (`CarTune.revision`). Absent in sessions from before
+   *  per-car handling, when every car drove the shared numbers: revision 1. */
+  carRevision?: number;
   start: { x: number; y: number; z: number; heading: number; pitch: number };
   trackLimits: typeof TRACK_LIMITS;
   channels: readonly LapChannel[];

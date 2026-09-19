@@ -36,7 +36,7 @@ const gates=ALDER_RACE.checkpoints.map(gate=>{
   if(index<0)throw Error(`Rival route misses ${gate.name}`);
   previous=index; return along[index]!;
 });
-// Moth races Sound to Sky in her Kestrel, so the line is driven all-wheel,
-// declared the way RIVET_DRAG_DRIVER declares rear-drive. Nothing derives this
-// from CAR_DRIVETRAIN, so cars.test.ts holds the two together.
-export const ALDER_RIVAL: RivalDefinition = {id:'sound-to-sky-driver-v2',drivetrain:'awd',start:{...start,y:alderHeight(start.x,start.z)},points,along,gates};
+// Moth races Sound to Sky in her Kestrel, in its own handling, named the way
+// RIVET_DRAG_DRIVER names the Hammer. main.ts draws the rival separately
+// (raceOpponentCar), so cars.test.ts holds the two together.
+export const ALDER_RIVAL: RivalDefinition = {id:'sound-to-sky-driver-v2',car:'kestrel',start:{...start,y:alderHeight(start.x,start.z)},points,along,gates};

@@ -59,7 +59,8 @@ const MINIMAP_RANGE = 235;
 export interface HudOptions {
   readonly garage?: { readonly x: number; readonly z: number };
   readonly polylines: readonly HudPolyline[];
-  readonly topSpeed: number;
+  /** The player's car's governor, read each frame: the dial redlines at its own top end. */
+  readonly topSpeed: () => number;
   readonly document?: Document;
 }
 
@@ -290,7 +291,7 @@ export function createHud(options: HudOptions): Hud {
 
   return {
     update(vehicle, race = null, rivals = [], engine = null) {
-      const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed);
+      const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed());
       speedElement.textContent = reading.mph.toString().padStart(3, "0");
       const transmission = vehicle.transmission;
       gearElement.textContent = transmission ? String(transmission.gear) : reading.gear;

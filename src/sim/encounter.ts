@@ -37,7 +37,7 @@ function localCruise(): RivalDefinition {
   for (let i = 1; i < points.length; i++) along.push(along.at(-1)! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
   // Her own car whether she is cruising or racing. At a 10 m/s cruise this is
   // nearly invisible; it matters because the same body is raced from a roll.
-  return { id: "wharf-cruise", drivetrain: "awd", start: ALDER_ENCOUNTER, points, along, gates: [], loop: true, speedLimit: 10 };
+  return { id: "wharf-cruise", car: "kestrel", start: ALDER_ENCOUNTER, points, along, gates: [], loop: true, speedLimit: 10 };
 }
 export const ALDER_CRUISE = localCruise();
 
@@ -46,7 +46,7 @@ export const ALDER_CRUISE = localCruise();
  * joined, closed, and offset 3 m into the right-hand lane the way hers is. It
  * starts at the loop's first point, facing along it.
  */
-export function cruiseLoop(id: string, drives: readonly { street: string; reversed: boolean }[], drivetrain: RivalDefinition["drivetrain"], speedLimit = 10): RivalDefinition {
+export function cruiseLoop(id: string, drives: readonly { street: string; reversed: boolean }[], car: string, speedLimit = 10): RivalDefinition {
   const center: CoursePoint[] = [];
   for (const drive of drives) {
     const street = ALDER_STREETS.find(s => s.id === drive.street);
@@ -72,7 +72,7 @@ export function cruiseLoop(id: string, drives: readonly { street: string; revers
   for (let i = 1; i < points.length; i++) along.push(along.at(-1)! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
   const first = points[0]!, next = points[1]!;
   const heading = Math.atan2(-(next.x - first.x), -(next.z - first.z));
-  return { id, drivetrain, start: { x: first.x, y: first.y, z: first.z, heading, pitch: 0 }, points, along, gates: [], loop: true, speedLimit };
+  return { id, car, start: { x: first.x, y: first.y, z: first.z, heading, pitch: 0 }, points, along, gates: [], loop: true, speedLimit };
 }
 
 /** Where a flash reaches: within this distance, at the same height, and closing or drifting apart slower than this. */

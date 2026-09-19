@@ -574,6 +574,8 @@ Higher rotation potential, more demanding throttle control, stronger drift capab
 
 Upgrades should bend these identities rather than flattening every car into the same optimal build.
 
+Implemented as tunes (2026-09-19, Shawn): each car is a few adjustments to the one shared model (`src/sim/car-handling.ts`, `design/HANDLING.md` "Cars"). Strength — power, top end, top speed — may climb gently up the Blacklist, with Tally's Vesper the one outlier; temperament — grip, balance, brakes, steering response, handbrake — varies freely. Mass is each car's own and is felt only in contact. Upgrades bend strength, never temperament.
+
 ---
 
 ## 9. Customization

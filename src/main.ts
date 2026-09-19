@@ -41,8 +41,8 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setPark
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { loadMusicPreference, saveMusicPreference } from "./settings/music-preference.ts";
-import { createSim, HANDLING, resetSim, step, DT, TICK_HZ,
-  type Input } from "./sim/sim.ts";
+import { carHandling, createSim, resetSim, step, DT, TICK_HZ,
+  type CarHandling, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
@@ -222,7 +222,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(drivetrainFor(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+const sim = createSim(carHandling(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
@@ -256,7 +256,7 @@ const performanceOverlay = createPerformanceOverlay();
 const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
-const hud = createHud({ polylines: hudPolylines, topSpeed: HANDLING.topSpeed, garage: ALDER_GARAGE.entrance });
+const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: ALDER_GARAGE.entrance });
 let customization = restored.customization;
 applyCarCustomization(view, customization);
 const liveryEditor = createLiveryEditor({ car: () => view,
@@ -311,11 +311,12 @@ function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
   renderSettingsStatus();
 }
 
-function reset(drivetrain = sim.state.drivetrain): void {
+/** A fresh run: the same car, a car (`carHandling`), or the same car on another layout. */
+function reset(setup: Drivetrain | CarHandling = sim.state.handling): void {
   previousPoses = null;
   challengePending = false;
   flashRemaining = 0;
-  resetSim(sim, drivetrain);
+  resetSim(sim, setup);
   resetViewCamera(view);
   // A reset breaks the input log, so the run after it is a new recording.
   newRecording();
@@ -338,7 +339,7 @@ function recordStep(tickInput: Input): void {
   const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: circuit.identity, rival: RIVAL_REVISION,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: circuit.layout, solo: circuit.solo, traffic: circuit.traffic,
     ...(circuit.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
-    car: selectedCar, drivetrain: sim.state.drivetrain, start: roadWorld.start });
+    car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: roadWorld.start });
   const id = recording.id;
   recording.status = "SAVING";
   void saveLaps(session).then(result => {
@@ -405,9 +406,10 @@ async function selectCar(id: string): Promise<void> {
     const carUrl = new URL(location.href);
     carUrl.searchParams.delete("drivetrain");
     history.replaceState(history.state, "", carUrl);
-    // The body carries the drivetrain, so a different car is a different drive.
-    if (drivetrainFor(id) !== sim.state.drivetrain) {
-      reset(drivetrainFor(id));
+    // The body carries its handling, so a different car is a different drive:
+    // a fresh run, as changing drivetrain always was.
+    if (carHandling(id) !== sim.state.handling) {
+      reset(carHandling(id));
       input.armDrivingInputGate();
     }
     carNote.textContent = `Each car has its own drivetrain; this one is ${drivetrainFor(id).toUpperCase()}.`;
@@ -861,7 +863,7 @@ function frame(now: number): void {
   updateHud();
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
-  audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen);
+  audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen, sim.state.handling.topSpeed);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,

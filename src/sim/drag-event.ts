@@ -27,6 +27,6 @@ const points = [0, 402.336, 580].map(distance => ({
   x: rivalStart.x, z: start.z - distance, y: alderHeight(rivalStart.x, start.z - distance), width: 6, zone: "waterfront" as const,
 }));
 export const RIVET_DRAG_DRIVER: RivalDefinition = {
-  id: "rivet-drag-driver", start: rivalStart, drivetrain: "rwd",
+  id: "rivet-drag-driver", start: rivalStart, car: "hammer",
   points, along: [0, 402.336, 580], gates: [402.336],
 };

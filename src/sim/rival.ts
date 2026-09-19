@@ -1,10 +1,15 @@
-import { HANDLING, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
+import { HANDLING, handlingFor, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import { laneOffset } from "./lanes.ts";
 import type { RaceDefinition } from "./race.ts";
 
 export interface RivalDefinition {
+  /** The car it drives (`car-handling.ts`): its numbers, and its drivetrain. The
+   *  body drawn for it must be the same car (cars.test.ts). */
+  readonly car?: string;
+  /** Only for a route with no car, which drives the shared model on this layout;
+   *  absent means FWD. Beside a car it must agree with the car's own. */
   readonly drivetrain?: "fwd" | "awd" | "rwd";
   readonly id: string;
   readonly start: RoadWorld["start"];
@@ -429,7 +434,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
   const target = sampleDrivingPath(route, Math.min(gate, driver.along + lookAhead));
-  let desiredSpeed = route.speedLimit ?? HANDLING.topSpeed;
+  // It plans with its own car's numbers, the ones its tyres will actually have.
+  const handling = handlingFor(route);
+  let desiredSpeed = route.speedLimit ?? handling.topSpeed;
   // At highway speed, a 100 m preview cannot see a corner early enough to stop,
   // so the preview looks through the whole braking envelope.
   const plan = route.lateral ? RIVAL_BRAKING : RIVAL_CORNERING;
@@ -442,13 +449,13 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
-    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius)*RIVAL_CORNERING.speedFactor);
+    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius, handling)*RIVAL_CORNERING.speedFactor);
     // A straight's limit is infinite; the profile works in finite speeds.
-    limits.push(Math.min(cornerSpeed, HANDLING.topSpeed)); curvatures.push(1 / radius);
+    limits.push(Math.min(cornerSpeed, handling.topSpeed)); curvatures.push(1 / radius);
   }
   // The fastest speed profile the line allows, worked back from the far end:
   // at each sample the braking left is what cornering at that speed does not use.
-  const grip = plan.frictionShare * HANDLING.maxLateralAcceleration;
+  const grip = plan.frictionShare * handling.maxLateralAcceleration;
   const profile = new Array<number>(limits.length);
   let v = profile[limits.length - 1] = limits.at(-1)!;
   for (let k = limits.length - 2; k >= 0; k--) {
@@ -627,11 +634,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Signed, positive for a right-hand bend, which positive steer turns into.
   const lineCurvature = pq * qr * pr > 1e-6 ? 2 * ((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x)) / (pq * qr * pr) : 0;
   const wheelbase = HANDLING.frontAxleDistance + HANDLING.rearAxleDistance;
-  const feedforward = RIVAL_STEERING.feedforward * Math.atan(wheelbase * lineCurvature) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed));
+  const feedforward = RIVAL_STEERING.feedforward * Math.atan(wheelbase * lineCurvature) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed, 1, handling));
   const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.
-  let throttle = desiredSpeed >= HANDLING.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
+  let throttle = desiredSpeed >= handling.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
   let brake = car.speed>desiredSpeed+.5?clamp((car.speed-desiredSpeed)/5,0,1):0;
   // On a racing line, in a hard stop that the corner plan sets (not traffic, a pass
   // or being lost): flat out until the plan is reached, then brake as hard as it
@@ -639,7 +646,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   if (route.lateral && profileDeceleration > RIVAL_BRAKING.zone && desiredSpeed >= profileSpeed - .5) {
     if (car.speed < desiredSpeed) throttle = 1;
     else if (car.speed > desiredSpeed) {
-      const wanted = Math.max(0, profileDeceleration - HANDLING.aerodynamicDrag * car.speed ** 2) / HANDLING.brakeDeceleration;
+      const wanted = Math.max(0, profileDeceleration - HANDLING.aerodynamicDrag * car.speed ** 2) / handling.brakeDeceleration;
       brake = clamp(Math.min(1, wanted) ** (1 / HANDLING.brakeResponseExponent) + (car.speed - desiredSpeed) / RIVAL_BRAKING.correction, 0, 1);
     }
   }

@@ -97,9 +97,9 @@ export function arenaEvent(layout: ArenaLayoutId, laps = ARENA_LAPS, solo = fals
     layout, identity: ARENA_IDENTITY, traffic: false, solo, start, track: { points: road.points, gatesPerLap: lap.gates.length },
     race: { id, name: `${ARENA.name} / ${lap.layout.name}${solo ? " / Solo" : ""}`, kind: "circuit", laps, gatesPerLap: lap.gates.length,
       countdownTicks: COUNTDOWN_TICKS, checkpoints },
-    // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), so the
-    // line is driven all-wheel, as the generated races declare it. On the circuit,
+    // Every road race fields Moth's Kestrel (raceOpponentCar in main.ts), in her
+    // car's own handling, as the generated races declare it. On the circuit,
     // with no traffic, it drives a racing line rather than the centreline.
-    rival: solo ? null : rivalLine(`${layout}:${laps}`, () => withRacingLine({ id: `${arenaRaceId(layout)}-driver`, drivetrain: "awd", start: rivalStart, points, along, gates })),
+    rival: solo ? null : rivalLine(`${layout}:${laps}`, () => withRacingLine({ id: `${arenaRaceId(layout)}-driver`, car: "kestrel", start: rivalStart, points, along, gates })),
   };
 }

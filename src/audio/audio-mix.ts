@@ -60,10 +60,11 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   return t * t * (3 - 2 * t);
 }
 
-export function engineTone(vehicle: VehicleState, input: Input): EngineTone {
+/** `topSpeed` is the car's own governor: an engine revs out where its car tops out. */
+export function engineTone(vehicle: VehicleState, input: Input, topSpeed: number = HANDLING.topSpeed): EngineTone {
   const reversing = vehicle.forwardSpeed < -.5;
   const speed = Math.abs(vehicle.forwardSpeed);
-  const reference = reversing ? HANDLING.reverseSpeed : HANDLING.topSpeed;
+  const reference = reversing ? HANDLING.reverseSpeed : topSpeed;
   let gear = 0;
   let through = 0;
   if (reversing) {

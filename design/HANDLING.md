@@ -133,6 +133,91 @@ through the boost (`launchMeter` in `src/ui/hud-state.ts`).
   that replayed still replay exactly, the other eleven are refused by rival
   revision as before. Rivals are untouched, so no `RIVAL_REVISION` either.
 
+## Cars (2026-09-19)
+
+Each car drives its own tune of the one model (Shawn, 2026-09-19). A tune is a
+few multipliers on `HANDLING` (`CAR_TUNES` in `src/sim/car-handling.ts`), resolved
+by `carHandling` in `sim.ts`. Everything the model needs in order to behave —
+countersteer rates, slip regularisation, tyre relaxation, the RWD stability
+tapers, geometry — is shared and is not a knob. A car may be harder to catch,
+never uncatchable with full countersteer: the recovery gates below are the floor
+for every car, not a Cinder feature.
+
+- **Knobs.** Strength: `power` (drive below about 67 mph), `topEnd` (drive near
+  the governor), `topSpeed`. Temperament: `grip`, `balance` (rear against front
+  cornering stiffness; above 1 the car settles, below it rotates), `brakes`,
+  `steering` (how fast the wheels follow the stick in; unwinding and catches stay
+  shared), `handbrake`. Strength may climb gently up the Blacklist; temperament
+  varies freely; the Vesper is the one planned outlier (`design/BLACKLIST.md`,
+  "The 140 mph cap"). Upgrades, when they come, move strength and never
+  temperament (GDD §3.4, §8.5).
+- **Mass is contact.** Every force a car makes is an acceleration times its mass,
+  and Rapier scales yaw inertia with it, so weight alone changes nothing about how
+  a car drives. Measured: twenty seconds of mixed input with slides and the
+  handbrake at 1,800 kg end within 3 mm and 0.002 degrees of 1,180 kg on every
+  layout, and the card below is identical. In contact it is everything: coasting
+  into a parked 1,180 kg car at 12 m/s, a 900 / 1,180 / 2,000 kg car shoves it to
+  **4.87 / 5.63 / 7.09 m/s** and keeps **2.34 / 3.26 / 5.01 m/s** itself. The drag
+  gearbox turns torque into acceleration against the shared mass for the same
+  reason. Both are in `tests/car-handling.test.ts`.
+- **The profile belongs to the car.** A rival definition names its car
+  (`RivalDefinition.car`); `handlingFor` gives it that car's numbers and throws on
+  a drivetrain that contradicts it. The rival plans corners, braking and throttle
+  with its own car's numbers, the ones its tyres will have. When the player wins
+  the car, it drives exactly as it did beating them.
+- **The Cinder is the anchor.** Every recorded lap was driven in it, and
+  `RIVAL_CORNERING` and the route-choice `PACE` were fitted to those laps. Tune
+  other cars against it, never it.
+- **Revisions.** A car's numbers change only with its `CarTune.revision`, pinned by
+  fingerprint in `tests/car-handling.test.ts`, which prints the repin; a car a
+  rival drives is also a `RIVAL_REVISION` bump. Lap sessions record `carRevision`,
+  and replay rebuilds the car from `car` and `drivetrain` and refuses another
+  revision. Sessions from before carry none and read as 1, which every car was.
+  `PHYSICS_VERSION` stays the model's.
+- **Changing car is a fresh run**, as changing drivetrain always was: the garage
+  resets whenever the chosen car's handling is not the one being driven.
+- **HUD and sound.** The tach and the engine note run to the car's own governor.
+  Wind, the body's drawn lean and the camera stay on the shared 140 mph, so a
+  faster car looks and sounds faster instead of rescaled.
+
+**The plumbing changed nothing, checked three ways** before any car had a knob. A
+golden master of 14 long runs — the player on each layout and after a reset,
+Sound to Sky's rival, Ridge Circuit's racing line, Rivet's gearbox, Sable parked
+in the yard, free roam with Moth, seven cruisers, parked rivals, traffic and a
+burnout, and three flashed cruisers' races — hashed Rapier's world snapshot and
+the sim state: 14 of 14 identical to the build before. `pnpm laps --verify` was
+identical (2 of 13 replay exactly, the other 11 refused for the same reasons), and
+the suite passed. The golden master was then made to fail on purpose: 1% less
+grip on the Kestrel and 120 kg on the Latch changed exactly the runs those cars
+drive in (Moth's three, Stray's two) and none of the others.
+
+### The card
+
+`pnpm cars` measures each car on an unlimited flat world (`src/sim/car-card.ts`):
+0–60 and 60–100 mph at full throttle, speed after a minute, the stop from
+100 km/h, peak lateral in the ground table's corner (6 s at full steer and 35%
+throttle from 22 m/s), turn-in (seconds to 90% of peak yaw rate in the first
+second of full steer from 22 m/s, coasting, so power oversteer cannot read as a
+slow wheel), and peak body slip through a half-second handbrake pull at 30 m/s
+with 70% steer, then half a second of half countersteer. It agrees with the
+ground table above: peak lateral 14.12 / 14.18 / 13.30, 140 mph, 27.8 m. Its 0–60
+reads one tick slower because it stops the clock at 60 mph (26.82 m/s) and the
+table at 26.8. Measured, never authored: a garage stat would be read from here.
+
+Before any tune, every car on its drivetrain's shared numbers:
+
+| Layout | Cars | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| AWD | Bulwark, Kestrel, Breakwater, Meridian, Reign | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| RWD | Cinder, NS-01, Vesper, Wager, Hammer | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| FWD | Latch, Skim | 4.37 | 3.70 | 140.0 | 27.8 | 14.12 | 0.37 | 7.6° |
+
+The drivetrain alone had made every AWD car the quickest, so the ladder ran
+backwards by it: Moth's Kestrel (#10) out-accelerated every rear-drive car, and
+Crest's Skim (#3) was the slowest car on the list. The Bulwark, which the player
+buys, was the Cinder with a better launch, immunity on grass and 6% less
+cornering: a better car, not a different one.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part
@@ -259,9 +344,11 @@ Both take the same fresh-run boundary the garage does: changing layout resets
 position, speed and physics history, while ordinary Reset/Restart retains it, and
 selecting the already-active layout does not restart. The live HUD names it.
 Neither control persists — a developer override is not a preference, so a reload
-returns the car to its own drivetrain.
+returns the car to its own drivetrain. The override keeps the car: the Bulwark on
+RWD is the Bulwark's own numbers with a rear-drive split ("Cars", above).
 
-Engine, ordinary steering, mass, brake and handbrake parameters remain shared.
+Between the layouts, engine, ordinary steering, mass, brake and handbrake
+parameters are shared; a car's tune sits on top of whichever layout it drives.
 RWD's manual recovery assistance also applies after lifting; ordinary coasting and
 braking retain the common tyre model. RWD's powered rear allocation and FWD/RWD's
 high-speed drive capacity are the other explicit arcade differences. This is not

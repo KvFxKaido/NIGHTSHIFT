@@ -238,7 +238,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       carModel: view.car.userData.model ?? "classic",
       rival: sim.state.rival ? { model: view.rivalCar?.car.userData.model,
         vehicle: sim.state.rival.vehicle, race: sim.state.rival.race,
-        driver: sim.state.rival.driver, input: sim.state.rival.input } : null,
+        driver: sim.state.rival.driver, input: sim.state.rival.input, handling: sim.state.rival.handling } : null,
       environment: "alder",
       roadWorld: sim.roadWorld.id,
       // pick() takes these coordinates. A screenshot is often scaled from them.
@@ -246,6 +246,8 @@ export function installDebugApi(bridge: DebugBridge): void {
       frozen: bridge.isFrozen(),
       physicsVersion: sim.state.physicsVersion,
       drivetrain: sim.state.drivetrain,
+      // The car the sim is driving and its resolved numbers (car-handling.ts).
+      handling: sim.state.handling,
       autoCountersteer: false,
       tick: sim.state.tick,
       parkedRivals: sim.state.parkedRivals.map(rival => ({ ...rival, model: view.parkedRivalCars.get(rival.id)?.car.userData.model })),

@@ -669,13 +669,14 @@ this checks the flow, not the races.
 
 Sound to Sky starts with one AI opponent in Moth's Kestrel rally hatch; the drag
 event fields Rivet's Hammer instead (`raceOpponentCar` in `src/main.ts`). Both
-use the existing four-wheel forces and share one Rapier world. The rival's
-drivetrain comes from its own `RivalDefinition`, independently of whichever car
-the player brings. Each of Moth's now declares AWD to match the Kestrel body,
-as Rivet's has always declared RWD for the Hammer. Nothing derives one from the
-other, so `tests/cars.test.ts` holds every rival to `CAR_DRIVETRAIN`: an
-undeclared drivetrain is not neutral, it silently means FWD, which is what Moth
-raced a rally hatch on until 2026-09-12.
+use the existing four-wheel forces and share one Rapier world. The rival's car
+comes from its own `RivalDefinition` (`car`, since 2026-09-19), independently of
+whichever car the player brings, and gives it that car's tune and drivetrain
+(`handlingFor`): each of Moth's names the Kestrel, Rivet's the Hammer. `main.ts`
+draws the rival separately (`raceOpponentCar`), so `tests/cars.test.ts` holds
+every rival's car to the body drawn: a route that names no car is not neutral,
+it silently drives the shared model on FWD, which is what Moth raced a rally
+hatch on until 2026-09-12.
 
 In free roam, the opponent starts on First Avenue S
 just north of Wharf Garage and repeats the local First/Holgate/Fourth freight-block
