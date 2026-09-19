@@ -377,6 +377,42 @@ sprint, and `--streets` combines with `--laps` and `--try`. Two four-car runs
 produced byte-identical text in 284.80 and 307.72 s (71.2 and 76.9 s per car
 on average).
 
+### The drift measure (2026-09-19)
+
+`pnpm cars <car>... --drift` drives the actual 90-second Sable event in her
+yard, traffic off and Sable parked, with the game's contact and chain scoring.
+The script-only driver follows `YARD_LINE`, requests up to 26 degrees of slip
+into a corner, flicks the handbrake when speed and angle permit, then catches
+slip error with proportional countersteer and modulates throttle. The same
+controller and constants drive every car; no launch, teleport or per-car help.
+It combines with `--laps`, `--streets`, `--try` and `--json`.
+
+| Car | Score / 3000 | Mean / best drift angle | Drifting share | Links / clips |
+|---|---|---|---|---|
+| Cinder r1 | 3817 | 17.39 / 26.39 degrees | 14.80% | 0 / 11 |
+| NS-01 r1 | 3817 | 17.39 / 26.39 degrees | 14.80% | 0 / 11 |
+| Wager r2 | 3011 | 17.03 / 25.56 degrees | 13.37% | 0 / 11 |
+| Bulwark r2 | 305 | 12.73 / 15.34 degrees | 7.26% | 0 / 0 |
+| Breakwater r2 | 366 | 12.74 / 15.03 degrees | 8.56% | 0 / 0 |
+
+All five finished without spins, contacts or leaving the bounds. Angles use
+only the game's scoring drift ticks; share excludes the countdown. Spins and
+contacts count episodes, not every consecutive tick of an incident. The NS-01
+check scores **4105 loose** (`balance: 0.85, handbrake: 1.2`) against **3612
+planted** (`balance: 1.2, handbrake: 0.6`), **13.6% higher**, with the same eleven
+clips and no incidents: the measure responds to the tune's drift behaviour.
+Repeated five-car text and NS-01 candidate JSON commands were byte-identical.
+Timed around `measureDrift` (world setup included, card/imports excluded), the
+first car took 12.77 s and the next four 3.08-3.28 s each during validation.
+
+The rear-drive cars beating the planted AWD pair is believable; Cinder and
+NS-01 share a tune and tie. Wager's lower angle and drift time put it behind
+them despite its quicker street pace. This ranks short corner drifts and zone
+access with one driver, not expert potential: it banks short chains and these
+runs link no transitions. Zone order amplifies a missed clip, and steering,
+grip and the driven line also affect scores; this is not a universal ordering
+of drift cars or a replacement for pad driving.
+
 ### The Bulwark, revision 2 (2026-09-19)
 
 The brief, Claude's proposal that Shawn took on 2026-09-19: keep the launch and

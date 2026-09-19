@@ -10,6 +10,7 @@
 //                                     round Ridge Circuit's layouts and Uptown clear (slow)
 //   pnpm cars cinder bulwark --streets also six fixed generated sprints, clear and in traffic
 //                                     combines with --laps; clear pace and traffic incidents
+//   pnpm cars cinder ns01 --drift     also Sable's 90-second yard event, closed-loop driver
 //   pnpm cars --json                  the same facts, for tools
 //
 // AI laps are the same driver in each car, never a pad lap: no launch, no handbrake,
@@ -24,6 +25,7 @@ await RAPIER.init();
 const args = process.argv.slice(2);
 const json = args.includes("--json"), laps = args.includes("--laps");
 const streets = args.includes("--streets");
+const drift = args.includes("--drift");
 const tried = args.find(arg => arg.startsWith("--try="));
 const asked = args.filter(arg => !arg.startsWith("--"));
 for (const car of asked) if (!Object.hasOwn(CAR_TUNES, car)) throw new Error(`Unknown car '${car}'. Cars: ${Object.keys(CAR_TUNES).join(", ")}`);
@@ -42,6 +44,7 @@ if (tried) {
 type StreetResult = { seconds: number | null; resets: number; unseenResets: number; recoveries: number };
 type Row = ReturnType<typeof measureCar> & {
   revision: number;
+  drift?: ReturnType<typeof import("./drift-driver.ts").measureDrift>;
   laps?: Record<string, { first: number; best: number }>;
   streets?: Record<string, { clear: StreetResult; traffic: StreetResult; trafficCost: number | null }>;
   streetSummary?: { sprints: string[]; total: number | null; versusCinder: number | null;
@@ -67,8 +70,10 @@ const lapTools = laps ? {
   ...(await import("../src/sim/circuits.ts")), ...(await import("../src/sim/alder.ts")),
   ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/sim.ts")),
 } : null;
+const driftTools = drift ? await import("./drift-driver.ts") : null;
 for (const car of cars) {
   const row: Row = { ...measureCar(carHandling(car)), revision: CAR_TUNES[car]!.revision };
+  if (driftTools) row.drift = driftTools.measureDrift(car);
   if (lapTools) {
     const { circuitEvent, createAlderWorld, createRivalDriver, rivalInput, createSim, step, TICK_HZ } = lapTools;
     row.laps = {};
@@ -146,6 +151,23 @@ if (json) {
   const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
   for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
   if (laps) console.log("\nAI laps: best flying lap of three, in seconds, the rival's planner driving (not a pad lap).");
+  if (drift) {
+    console.log("\nAI drift: Sable's 90-second yard event; angles only on scoring drift ticks.");
+    const columns: [string, (row: Row) => string][] = [
+      ["car", row => row.car], ["score", row => String(row.drift!.score)],
+      ["target", row => String(row.drift!.targetScore)], ["won", row => row.drift!.won ? "yes" : "no"],
+      ["mean deg", row => row.drift!.meanAngle.toFixed(2)], ["best deg", row => row.drift!.bestAngle.toFixed(2)],
+      ["drift ticks", row => `${row.drift!.driftingTicks}/${row.drift!.ticks}`],
+      ["drift %", row => (row.drift!.driftingShare * 100).toFixed(2)],
+      ["links", row => String(row.drift!.transitions)], ["clips", row => String(row.drift!.clips)],
+      ["spins", row => String(row.drift!.spins)], ["contacts", row => String(row.drift!.contacts)],
+      ["left yard", row => row.drift!.leftBounds ? "yes" : "no"],
+    ];
+    const table = [columns.map(([title]) => title), ...rows.map(row => columns.map(([, cell]) => cell(row)))];
+    const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
+    for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
+    console.log("Spins and contacts count episodes (consecutive ticks count once); countdown excluded. Same driver, no launch or resets.");
+  }
   if (streets) {
     console.log(`\nAI street pace (traffic off): seconds; DNF at ${streetLimit} s after the flag.`);
     const columns: [string, (row: Row) => string][] = [
