@@ -13,6 +13,14 @@ export default async function checkFacadeMenu(page, base) {
   const screen = name => page.waitForFunction(name => document.body.dataset.gameScreen === name, name);
   const main = action => page.locator(`[data-menu-screen="main"] [data-menu-action="${action}"]`);
   const back = name => page.locator(`[data-menu-screen="${name}"] [data-menu-action="back"]`).click();
+  const capture = async path => {
+    await page.evaluate(() => {
+      window.__facadeRenderNow = true;
+      const view = __ns.view;
+      view.renderer.render(view.mode === 'garage' ? view.garageScene : view.scene, view.camera);
+    });
+    await page.screenshot({ path });
+  };
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
     // Publication precedes applyDeepLink(), which can draw synchronously.
@@ -27,11 +35,23 @@ export default async function checkFacadeMenu(page, base) {
         // Keep the real viewport/projection, with cheaper software-GPU raster.
         view.renderer.setPixelRatio(.5);
         view.renderer.shadowMap.enabled = false;
-        view.renderer.render = function (...args) {
+        let lastDraw = '';
+        view.renderer.render = function (scene, camera) {
+          // CI checks interaction and scene state, not sustained frame rate.
+          // Keep world matrices current for ray picks but avoid flooding the
+          // software GPU with unchanged menu frames. Screenshots force a draw.
+          scene.updateMatrixWorld();
+          camera.updateMatrixWorld();
+          const textureVersion = view.scene.getObjectByName('wharf-menu-projection')?.material.map.version;
+          const key = [view.mode, document.body.dataset.gameScreen, document.body.dataset.intro,
+            innerWidth, innerHeight, textureVersion].join('/');
+          if (key === lastDraw && !window.__facadeRenderNow) return;
+          lastDraw = key;
+          window.__facadeRenderNow = false;
           if (view.mode === 'track' && !window.__facadeFirstDraw) {
             window.__facadeFirstDraw = { position: view.car.position.toArray(), model: view.car.userData.model };
           }
-          return draw.apply(this, args);
+          return draw.call(this, scene, camera);
         };
       },
     });
@@ -45,7 +65,7 @@ export default async function checkFacadeMenu(page, base) {
   await settle();
   const before = await page.evaluate(() => ({ tick: __ns.state().tick, vehicle: __ns.state().vehicle }));
   assert(await page.evaluate(() => __ns.view.mode === 'main'), 'Main camera not active');
-  await page.screenshot({ path: 'artifacts/facade-desktop.png' });
+  await capture('artifacts/facade-desktop.png');
   await checkFacadeRegressions(page);
   console.log('[facade] Activation, repaint, first-frame pose and unordered beacons passed');
 
@@ -102,7 +122,7 @@ export default async function checkFacadeMenu(page, base) {
   await page.keyboard.down('w');
   await page.waitForFunction(() => __ns.state().vehicle.speed > 1);
   await page.keyboard.up('w');
-  await page.screenshot({ path: 'artifacts/facade-drive.png' });
+  await capture('artifacts/facade-drive.png');
   await page.keyboard.press('Escape');
   await screen('pause');
 
@@ -124,7 +144,7 @@ export default async function checkFacadeMenu(page, base) {
         hit: __ns.pick(r.x + r.width / 2, r.y + r.height / 2)?.name };
     }));
   assert(mobile.length === 7 && mobile.every(row => row.fits && row.hit === 'wharf-menu-projection'), JSON.stringify(mobile));
-  await page.screenshot({ path: 'artifacts/facade-mobile.png' });
+  await capture('artifacts/facade-mobile.png');
   const pose = await page.evaluate(() => __ns.view.camera.position.toArray());
   await main('garage').focus();
   await settle();
