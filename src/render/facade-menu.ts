@@ -105,6 +105,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
 
   function setActive(next: boolean): void {
     active = next;
+    screen.dataset.projectionReady = "false";
     panel.visible = title.visible = lights.visible = next;
     if (garageSign) garageSign.visible = !next;
     document.body.classList.toggle("facade-menu", next);
@@ -114,6 +115,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
 
   return {
     setActive,
+    prefersReducedMotion: () => reducedMotion.matches,
     /** Authored camera rail, in garage-local coordinates. Never moves the sim. */
     frame(camera: THREE.PerspectiveCamera, cameraPosition: THREE.Vector3, cameraTarget: THREE.Vector3,
       delta: number, snap = false): void {
@@ -153,6 +155,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
           clipPath: `polygon(${points.map(p => `${p[0]! - left}px ${p[1]! - topEdge}px`).join(",")})`,
         });
       }
+      screen.dataset.projectionReady = "true";
     },
   };
 }

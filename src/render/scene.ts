@@ -305,7 +305,7 @@ export function render(
     if (view.sky) view.sky.position.copy(view.car.position);
     view.moon.position.set(parked.x - 90, 140, parked.z + 80);
     view.moon.target.position.copy(view.car.position);
-    view.race.group.visible = false;
+    updateRaceBeacon(view.race, null, view.surface, view.camera);
     view.facadeMenu.frame(view.camera, view.cameraPosition, view.cameraTarget, frameDelta, view.facadeCameraSnap);
     view.facadeCameraSnap = false;
     view.renderer.render(view.scene, view.camera);
@@ -366,7 +366,7 @@ export function render(
   if (view.facadeDeparture) {
     // Saved drives and race starts can be far from the facade. Never sweep the
     // camera across the city or through buildings to reach those destinations.
-    if (view.cameraPosition.distanceTo(targetPosition) > 70 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (view.cameraPosition.distanceTo(targetPosition) > 70 || view.facadeMenu?.prefersReducedMotion()) {
       view.cameraPosition.copy(targetPosition);
       view.cameraTarget.copy(targetLook);
     }

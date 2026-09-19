@@ -40,6 +40,9 @@ body.facade-menu [data-menu-screen="main"] .menu-button {
   pointer-events: auto;
   transition: none;
 }
+body.facade-menu [data-menu-screen="main"][data-projection-ready="false"] .menu-button {
+  pointer-events: none;
+}
 body.facade-menu [data-menu-screen="main"] > :not(nav):not(.menu-footer):not(.save-summary),
 body.facade-menu #start-title {
   position: absolute;

@@ -1,20 +1,44 @@
-// Run in an isolated Playwright session against pnpm dev (port 5194).
-// playwright-cli -s=facade run-code (Get-Content -Raw scripts/check-facade-menu-browser.js)
-async (page, base = 'http://127.0.0.1:5194/') => {
+import { checkFacadeRegressions } from './check-facade-regressions.js';
+
+// pnpm test:facade creates an isolated browser context and its own Vite server.
+export default async function checkFacadeMenu(page, base) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const assert = (value, message) => { if (!value) throw Error(message); };
   const settle = () => page.evaluate(() => new Promise(resolve => {
     let frames = 0;
-    const frame = () => ++frames === 25 ? resolve() : requestAnimationFrame(frame);
+    const frame = () => ++frames === 6 ? resolve() : requestAnimationFrame(frame);
     requestAnimationFrame(frame);
   }));
   const screen = name => page.waitForFunction(name => document.body.dataset.gameScreen === name, name);
   const main = action => page.locator(`[data-menu-screen="main"] [data-menu-action="${action}"]`);
   const back = name => page.locator(`[data-menu-screen="${name}"] [data-menu-action="back"]`).click();
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    // Publication precedes applyDeepLink(), which can draw synchronously.
+    // Observe that first draw rather than waiting until an animation frame.
+    let api;
+    Object.defineProperty(window, '__ns', {
+      configurable: true,
+      get: () => api,
+      set(value) {
+        api = value;
+        const view = api.view, draw = view.renderer.render;
+        // Keep the real viewport/projection, with cheaper software-GPU raster.
+        view.renderer.setPixelRatio(.5);
+        view.renderer.shadowMap.enabled = false;
+        view.renderer.render = function (...args) {
+          if (view.mode === 'track' && !window.__facadeFirstDraw) {
+            window.__facadeFirstDraw = { position: view.car.position.toArray(), model: view.car.userData.model };
+          }
+          return draw.apply(this, args);
+        };
+      },
+    });
+  });
   await page.goto(base);
   await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready', null, { timeout: 120000 });
+  console.log('[facade] World loaded');
   assert(await page.locator('#menu-root').evaluate(el => el.inert), 'Menu can activate behind intro');
   await page.locator('#enter-menu').click();
   await screen('main');
@@ -22,6 +46,8 @@ async (page, base = 'http://127.0.0.1:5194/') => {
   const before = await page.evaluate(() => ({ tick: __ns.state().tick, vehicle: __ns.state().vehicle }));
   assert(await page.evaluate(() => __ns.view.mode === 'main'), 'Main camera not active');
   await page.screenshot({ path: 'artifacts/facade-desktop.png' });
+  await checkFacadeRegressions(page);
+  console.log('[facade] Activation, repaint, first-frame pose and unordered beacons passed');
 
   // The invisible DOM hit targets must coincide with real 3D lettering, not
   // merely have plausible screen coordinates. Check every enabled row.
@@ -66,6 +92,7 @@ async (page, base = 'http://127.0.0.1:5194/') => {
   await settle();
   await back('garage');
   await page.evaluate(() => { delete navigator.getGamepads; delete window.__facadePad; });
+  console.log('[facade] Pointer, keyboard, controller and submenu checks passed');
 
   await main('new-drive').click();
   await screen('playing');
@@ -106,6 +133,16 @@ async (page, base = 'http://127.0.0.1:5194/') => {
   await screen('options');
   await back('options');
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile overflows');
+  console.log('[facade] Driving, seven-row mobile and reduced motion passed');
+
+  // Capture the first draw after a real Continue navigation, before waiting
+  // could conceal a one-frame pose regression. This runs only in the test page.
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('nightshift.saves')).slots[0]);
+  await page.locator('[data-continue]').click();
+  await page.waitForFunction(() => window.__facadeFirstDraw, null, { timeout: 120000 });
+  const firstDraw = await page.evaluate(() => window.__facadeFirstDraw);
+  assert(Math.hypot(firstDraw.position[0] - saved.position.x, firstDraw.position[2] - saved.position.z) < .1,
+    `Continue drew the wrong first pose: ${JSON.stringify({ saved: saved.position, firstDraw })}`);
   assert(errors.length === 0, errors.join('\n'));
-  return { checks: '3D pointer alignment, keyboard, standard gamepad, garage, submenus, frozen simulation, drive, pause, seven-row mobile, reduced motion', hits, mobile, errors };
+  return { checks: '3D pointer alignment, activation gating, first-frame pose, unordered beacons, keyboard, standard gamepad, garage, submenus, frozen simulation, drive, pause, seven-row mobile, reduced motion, Continue first draw', hits, mobile, firstDraw, errors };
 }
