@@ -432,6 +432,7 @@ pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --ra
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json
+pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

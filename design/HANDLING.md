@@ -210,7 +210,9 @@ the sim state: 14 of 14 identical to the build before. `pnpm laps --verify` was
 identical (2 of 13 replay exactly, the other 11 refused for the same reasons), and
 the suite passed. The golden master was then made to fail on purpose: 1% less
 grip on the Kestrel and 120 kg on the Latch changed exactly the runs those cars
-drive in (Moth's three, Stray's two) and none of the others.
+drive in (Moth's three, Stray's two) and none of the others. It lives in the repo
+as `pnpm golden` (`scripts/golden.ts`): `--save` on the tree before a change, then
+`pnpm golden` after it names every run that moved and the cars in it.
 
 ### The ceiling (measured 2026-09-19, corrected the same day)
 
