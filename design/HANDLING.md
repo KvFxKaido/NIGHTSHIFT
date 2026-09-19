@@ -165,7 +165,8 @@ for every car, not a Cinder feature.
 
 - **Knobs.** Strength: `power` (drive below about 67 mph), `topEnd` (drive near
   the governor), `topSpeed`, `drag` (air resistance; 2026-09-19, "The ceiling"
-  below). Temperament: `grip`, `balance` (rear against front
+  below), `traction` (the driven tyres' push alone; "Traction and the gearbox").
+  Temperament: `grip`, `balance` (rear against front
   cornering stiffness; above 1 the car settles, below it rotates), `brakes`,
   `steering` (how fast the wheels follow the stick in; unwinding and catches stay
   shared), `handbrake`. Strength may climb gently up the Blacklist; temperament
@@ -262,6 +263,30 @@ Adding the knob moved nothing: no car sets it, the golden master's 14 runs staye
 bit-identical, and every car's card was unchanged. The revision pins now
 fingerprint each car's tune rather than its resolved numbers, so a new knob leaves
 them alone; all thirteen were repinned once for that change, at their revisions.
+
+### Traction and the gearbox (2026-09-19)
+
+Two gaps the Hammer found, since it is meant to be quick in a line and poor in a
+bend, and its race is the drag strip.
+
+- **A 2WD car is traction-bound to about 100 mph.** `power` and `topEnd` left a
+  RWD car's 0–60 and 60–100 identical to the hundredth, and `grip` moves traction
+  and cornering together, so "poor in corners" also made it slow in a line (60–100
+  in 3.33 s at `grip` 0.93, the Cinder 2.97). The model already had a way to widen
+  only the driven tyres' longitudinal grip, `driveGripScale`, which the 2WD assist
+  and the launch ride; `traction` multiplies it. Fat rear tyres: the car puts its
+  power down without cornering any better.
+- **The gearbox ignored `power`.** On the drag strip the manual gearbox computes
+  its own push from a shared torque curve, so every car pulled alike there except
+  for traction: the Bulwark and Kestrel, with 30% less power, ran the quarter in
+  11.80 s, a second clear of the Cinder's 12.95, on AWD traction alone. `power`
+  now scales the gearbox as it scales the engine curve: they run 13.28; the Cinder
+  (12.95) and the Latch (13.17), whose power is stock, are unchanged to the
+  hundredth. Quarter miles are the player driven as `tests/drag.test.ts` drives it
+  (staged at 0.52 throttle, upshifts at 7,550 rpm) against Rivet's AI.
+
+Neither moves an untuned car: `traction` is absent everywhere, the gearbox is
+multiplied by exactly 1, and `pnpm golden` stayed 14 of 14 bit-identical.
 
 ### The card
 

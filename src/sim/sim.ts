@@ -273,6 +273,8 @@ export interface CarHandling {
   readonly steeringResponse: number;
   readonly handbrakeRearStiffness: number;
   readonly aerodynamicDrag: number;
+  /** Multiplies the driven tyres' powered longitudinal grip only (`CarTune.traction`). */
+  readonly traction: number;
 }
 
 // An absent knob returns the shared value itself, not a product with 1, so an
@@ -317,6 +319,7 @@ export function tunedHandling(car: string | null, tune: CarTune | undefined, dri
     handbrakeRearStiffness: tune?.handbrake === undefined ? HANDLING.handbrakeRearStiffness
       : 1 - (1 - HANDLING.handbrakeRearStiffness) * tune.handbrake,
     aerodynamicDrag: bend(HANDLING.aerodynamicDrag, tune?.drag),
+    traction: tune?.traction ?? 1,
   });
 }
 
@@ -839,10 +842,12 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   const forwardSpeed = velocity.x * forwardX + velocity.z * forwardZ;
   const speed = Math.hypot(velocity.x, velocity.z);
   // The gearbox turns torque into acceleration against the shared mass, not the
-  // car's: a car's weight is what it does in contact, never how it pulls.
+  // car's: a car's weight is what it does in contact, never how it pulls. Its power
+  // is the car's own: `power` scales the gearbox as it scales the engine curve, or
+  // on the drag strip every car would pull alike (2026-09-19). Exactly 1 untuned.
   const manualAcceleration = car.transmission ? sim.state.race?.finished ? 0
     : stepTransmission(car.transmission, rawInput, Math.max(0, forwardSpeed), sim.state.race?.countdown ?? 0,
-      sim.state.race?.ticks ?? 0, HANDLING.mass, DT) : null;
+      sim.state.race?.ticks ?? 0, HANDLING.mass, DT) * (handling.engineAcceleration / HANDLING.engineAcceleration) : null;
   const race = sim.state.race;
   // Only the player burns out, and never once a race is over.
   const launchScale = car.launch && (race || player)
@@ -913,7 +918,7 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   // is untouched. The drive above is scaled too, for a car limited by its engine.
   const driveGripScale = (handling.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
     ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1)
-    * (driveForce > 0 && input.brake === 0 ? launchScale : 1);
+    * (driveForce > 0 && input.brake === 0 ? launchScale * handling.traction : 1);
   const angles = frontWheelAngles(car.steeringAngle);
   let forceX = 0;
   let forceZ = 0;

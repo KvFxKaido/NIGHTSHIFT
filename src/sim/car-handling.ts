@@ -9,7 +9,7 @@ import type { Drivetrain } from "./sim.ts";
  * never uncatchable with full countersteer.
  *
  * Two kinds of knob (design/HANDLING.md, "Cars"). Strength -- `power`,
- * `topEnd`, `topSpeed`, `drag` -- may climb gently up the Blacklist; temperament --
+ * `topEnd`, `topSpeed`, `drag`, `traction` -- may climb gently up the Blacklist; temperament --
  * `balance`, `steering`, `handbrake` -- varies freely. Each is a multiplier on
  * the shared value, absent meaning 1. `mass` is kilograms, and changes only what
  * happens in contact: every force the car makes scales with it, so on its own it
@@ -42,6 +42,12 @@ export interface CarTune {
    *  drag only so hard, so past about 161 mph (146 FWD) no power helps and only
    *  this does (design/HANDLING.md, "The ceiling"). */
   readonly drag?: number;
+  /** How hard the driven tyres can push, and nothing else: it widens the powered
+   *  longitudinal grip (`driveGripScale`, as the 2WD assist and the launch do) and
+   *  leaves cornering alone. A 2WD car is traction-bound to about 100 mph, so
+   *  `power` barely shows there and `grip` would move the corners too; this is
+   *  how a car is quick in a line without being quick in a bend. */
+  readonly traction?: number;
   /** Lateral grip, and therefore how fast a corner can be taken. */
   readonly grip?: number;
   /** Rear against front cornering stiffness: above 1 the car settles, below it rotates. */

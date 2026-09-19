@@ -21,8 +21,10 @@ await RAPIER.init();
 const flat = { along: 0, segmentIndex: 0, distance: 0, height: 0, pitch: 0, ux: 0, uz: -1, width: 10000 };
 const WORLD: RoadWorld = { id: "car-handling-check", start: { x: 0, y: 0.5, z: 0, heading: 0, pitch: 0 }, walls: [], project: () => flat };
 const NUMBERS = ["mass", "topSpeed", "engineAcceleration", "engineMidAcceleration", "highSpeedAcceleration", "maxLateralAcceleration",
-  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness", "aerodynamicDrag"] as const;
-const shared = (field: typeof NUMBERS[number]) => field === "mass" ? HANDLING.mass : HANDLING[field];
+  "frontCorneringStiffness", "rearCorneringStiffness", "brakeDeceleration", "steeringResponse", "handbrakeRearStiffness", "aerodynamicDrag",
+  "traction"] as const;
+// Traction has no HANDLING value of its own: the shared model's is 1.
+const shared = (field: typeof NUMBERS[number]) => field === "mass" ? HANDLING.mass : field === "traction" ? 1 : HANDLING[field];
 
 test("a car with no knob is the shared model to the last bit", () => {
   const untouched = tunedHandling("probe", { drivetrain: "rwd", revision: 1 });
@@ -42,6 +44,7 @@ test("each knob moves only the numbers it names", () => {
     ["steering", 1.1, ["steeringResponse"]],
     ["handbrake", 1.1, ["handbrakeRearStiffness"]],
     ["drag", 0.9, ["aerodynamicDrag"]],
+    ["traction", 1.1, ["traction"]],
   ];
   for (const [knob, value, moved] of knobs) {
     const car = tunedHandling("probe", { drivetrain: "rwd", revision: 1, [knob]: value });
