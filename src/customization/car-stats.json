@@ -75,18 +75,18 @@
     }
   },
   "breakwater": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "breakwater",
       "drivetrain": "awd",
-      "mass": 1180,
-      "zeroToSixty": 2.07,
-      "sixtyToHundred": 2.33,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 13.3,
-      "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "mass": 1900,
+      "zeroToSixty": 2.43,
+      "sixtyToHundred": 3.77,
+      "topSpeed": 125,
+      "stoppingDistance": 29.7,
+      "peakLateral": 12.71,
+      "turnIn": 0.42,
+      "handbrakeSlip": 6.9
     }
   },
   "wager": {

@@ -279,7 +279,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 | 10 | Moth | Kestrel (r2, done) | AWD | 130 | governor | rally hatch, geared short: launches, runs out of top | −0.4 to −0.8% circuits, −2.5% streets |
 | 9 | Stray | Latch (r2, done) | FWD | 138 | governor | the kid's first tuner, just under the Cinder | −0.2 to −0.8% |
 | 8 | Rivet | Hammer (r2, done) | RWD | 150 | governor | muscle: fast in a line, poor in corners | her race is the drag strip: 12.97 s, a clean Cinder 12.95; laps +0.5 to +1.0% circuits, level streets |
-| 7 | Bollard | Breakwater | AWD | about 127 | `drag` 1.4, no governor needed | a brick: slowest, heaviest, wins the shoving | −1% |
+| 7 | Bollard | Breakwater (r2, done) | AWD | 125 | `drag` 1.4, no governor needed | a brick: slowest, heaviest, wins the shoving; all its pace is the launch | −0.62% streets, +1 to +2% circuits |
 | 6 | Deuce | Wager | RWD | 148 | governor | rotary: revs, a strong top end | −2% |
 | 5 | Sable | NS-01 | RWD | 142 | governor | drift car: rotation, not speed | −2% |
 | 4 | Plumb | Meridian | AWD | 146 | governor | fast wagon, built for the highway | −3% |

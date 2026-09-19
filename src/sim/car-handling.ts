@@ -84,7 +84,11 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // chassis that turns on a lift, just under the Cinder at 138. On the shared FWD
   // numbers it lapped about 1.9% slower than the Cinder; now about even.
   latch: { drivetrain: "fwd", revision: 2, mass: 1_160, topSpeed: 0.986, grip: 1.05, balance: 0.9, steering: 1.1, handbrake: 0.8 },
-  breakwater: { drivetrain: "awd", revision: 1 },  // Bollard: enclosed off-roader
+  // Bollard's enclosed off-roader (2026-09-19): the heaviest car and the slowest,
+  // stopped by its own air rather than a governor, and it wins every shove. All the
+  // pace it has is the launch: past 60 mph the drag takes it back.
+  breakwater: { drivetrain: "awd", revision: 2, mass: 1_900, power: 0.85, drag: 1.4,
+    grip: 0.95, brakes: 0.8, steering: 0.85 },
   wager: { drivetrain: "rwd", revision: 1 },  // Deuce: rotary-inspired sports car
   meridian: { drivetrain: "awd", revision: 1 },  // Plumb: fast wagon
   skim: { drivetrain: "fwd", revision: 1 },  // Crest: hardtop roadster

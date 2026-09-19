@@ -557,6 +557,44 @@ hammer: { drivetrain: "rwd", revision: 2, mass: 1_500, power: 1.05, topEnd: 1.2,
 - **`RIVAL_REVISION` is `full-line-v15`.** `pnpm golden`: exactly the drag strip and
   free roam, where Rivet is parked, moved; twelve bit-identical.
 
+### The Breakwater, revision 2 (2026-09-19)
+
+Bollard's enclosed off-roader: the heaviest car, the slowest, and the one that
+wins a shove. The first tune judged on street sprints (`--streets`), because
+Bollard races sprints through traffic, not circuits.
+
+```
+breakwater: { drivetrain: "awd", revision: 2, mass: 1_900, power: 0.85, drag: 1.4,
+  grip: 0.95, brakes: 0.8, steering: 0.85 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Breakwater r1 | 1180 | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| **Breakwater r2** | 1900 | 2.43 | 3.77 | 125.0 | 29.7 | 12.71 | 0.42 | 6.9° |
+
+Street pace (clear): **599.67 s, 0.62% quicker than the Cinder**; circuits 1.0–2.1%
+slower and Uptown 2.3% quicker. On the shared AWD numbers it was **7.7% quicker**
+over the sprints and 4–8% on the circuits, the largest lead of any untuned car.
+
+- **No governor: the air stops it.** `drag` 1.4 leaves it running out at 125 mph,
+  the slowest top speed on the list, and takes its 60–100 to 3.77 s from the
+  Cinder's 2.97. It also coasts down fastest of anything.
+- **Its only pace is the launch, and that is forced.** With its top end gone, the
+  AWD launch is all it has: `power` 0.85 gives 0–60 in 2.43 s, the quickest on
+  the list, for the heaviest car. Less power reads better on paper and loses the
+  ladder: at 0.8 with `grip` 0.97 the sprints came out 0.33% *slower* than the
+  starter car, and at 0.8 with `grip` 0.95, 0.64% slower. So it leaves the line
+  like a freight train and the air takes it back.
+- **It wins the shoving.** Coasting into a parked car at 12 m/s: it shoves a
+  Cinder to **6.95 m/s** and keeps **4.85**, where a Cinder shoves a Cinder to 5.63
+  and keeps 3.26. A Cinder into it moves it **4.32** and keeps **1.67**; it beats
+  the Bulwark truck both ways (5.94 / 3.71 against 5.32 / 2.88). That is Bollard's
+  lesson, racing through contact (`design/BLACKLIST.md`), in the one place mass acts.
+- **`RIVAL_REVISION` is `full-line-v16`.** `pnpm golden`: only free roam, where she
+  cruises, moved; thirteen bit-identical. No golden race fields her.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

@@ -270,8 +270,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v14": Stray's Latch has its own tune (latch r2).
  * "full-line-v15": Rivet's Hammer has its own tune (hammer r2), and power drives
  * the drag gearbox, so her quarter mile moves.
+ * "full-line-v16": Bollard's Breakwater has its own tune (breakwater r2).
  */
-export const RIVAL_REVISION = "full-line-v15";
+export const RIVAL_REVISION = "full-line-v16";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
