@@ -20,6 +20,7 @@
     "laps": "node --experimental-strip-types --no-warnings scripts/lap-summary.ts",
     "pace": "node --experimental-strip-types --no-warnings scripts/calibrate-pace.ts",
     "cars": "node --experimental-strip-types --no-warnings scripts/car-card.ts",
+    "cars:stats": "node --experimental-strip-types --no-warnings scripts/car-stats.ts",
     "golden": "node --experimental-strip-types --no-warnings scripts/golden.ts",
     "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
     "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts"

@@ -27,6 +27,7 @@ import {
   updateCustomization,
 } from "./customization/customization.ts";
 import { PLAYER_CAR_IDS, drivetrainFor } from "./customization/cars.ts";
+import { renderCarStats } from "./ui/car-stats.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
@@ -407,6 +408,7 @@ function restoreEquippedCar(): void {
 }
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
 function renderCarSelection(): void {
+  renderCarStats(document.querySelector<HTMLElement>("[data-car-stats]")!, previewCar);
   const career = progress.get();
   const current = progress.current();
   const owner = BLACKLIST.find(name => name.car === previewCar);

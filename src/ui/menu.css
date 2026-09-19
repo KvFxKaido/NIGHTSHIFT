@@ -696,6 +696,12 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
 .car-identity { display: grid; gap: 6px; text-align: center; }
 .car-identity strong { font-size: 22px; letter-spacing: .04em; }
 .car-identity span { color: var(--menu-muted); font-size: 11px; letter-spacing: .12em; }
+.car-stats { grid-column: 1 / -1; display: grid; gap: 8px; }
+.car-stats[hidden] { display: none; }
+.car-stat { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 11px; }
+.car-stat-value { color: var(--menu-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.car-stat-bar { grid-column: 1 / -1; height: 6px; background: var(--ui-border); }
+.car-stat-bar::before { content: ""; display: block; width: var(--stat-fill); height: 100%; background: var(--ui-navigation); }
 [data-equip-car] { width: 100%; margin-top: 12px; }
 .garage-menu button:disabled { opacity: .45; cursor: default; }
 
