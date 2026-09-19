@@ -8,8 +8,8 @@
 //                                     also the car with these knobs over its tune ("bulwark*")
 //   pnpm cars cinder bulwark --laps   also AI laps: the rival's planner driving each car
 //                                     round Ridge Circuit's layouts and Uptown clear (slow)
-//   pnpm cars cinder bulwark --streets also six fixed generated sprints in traffic
-//                                     combines with --laps; times and recoveries per sprint
+//   pnpm cars cinder bulwark --streets also six fixed generated sprints, clear and in traffic
+//                                     combines with --laps; clear pace and traffic incidents
 //   pnpm cars --json                  the same facts, for tools
 //
 // AI laps are the same driver in each car, never a pad lap: no launch, no handbrake,
@@ -43,8 +43,9 @@ type StreetResult = { seconds: number | null; resets: number; unseenResets: numb
 type Row = ReturnType<typeof measureCar> & {
   revision: number;
   laps?: Record<string, { first: number; best: number }>;
-  streets?: Record<string, StreetResult>;
-  streetSummary?: { sprints: string[]; total: number | null; versusCinder: number | null };
+  streets?: Record<string, { clear: StreetResult; traffic: StreetResult; trafficCost: number | null }>;
+  streetSummary?: { sprints: string[]; total: number | null; versusCinder: number | null;
+    traffic: { dnfs: number; recoveries: number; costSprints: string[]; cost: number | null } };
 };
 const rows: Row[] = [];
 const circuits = ["arena-full", "arena-east", "arena-ridge", "street-uptown-clear"];
@@ -93,30 +94,42 @@ for (const car of cars) {
     row.streets = {};
     for (const course of courses) {
       const route = { ...course.rival, car };
-      const sim = createSim(carHandling(car), createAlderWorld(true, course.start ?? undefined), { race: course.race });
-      const driver = createRivalDriver();
-      try {
-        while (!sim.state.race!.finished && sim.state.race!.ticks < streetLimit * TICK_HZ) {
-          const obstacles = (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
-          step(sim, rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, obstacles, null));
-        }
-        const race = sim.state.race!;
-        // The player rig has no rival teleport recovery; these counters stay zero.
-        // Reversing recoveries do run in rivalInput and help explain a slow finish.
-        row.streets[course.race.id] = { seconds: race.finished ? race.ticks / TICK_HZ : null,
-          resets: driver.resets, unseenResets: driver.unseenResets, recoveries: driver.recoveries };
-      } finally { sim.world.free(); }
+      const runs = {} as Record<"clear" | "traffic", StreetResult>;
+      for (const mode of ["clear", "traffic"] as const) {
+        const sim = createSim(carHandling(car), createAlderWorld(true, course.start ?? undefined), { race: course.race, traffic: mode === "traffic" });
+        const driver = createRivalDriver();
+        try {
+          while (!sim.state.race!.finished && sim.state.race!.ticks < streetLimit * TICK_HZ) {
+            const obstacles = mode === "clear" ? [] : (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
+            step(sim, rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, obstacles, null));
+          }
+          const race = sim.state.race!;
+          // The player rig has no rival teleport recovery; these counters stay zero.
+          // Reversing recoveries do run in rivalInput and help explain a slow finish.
+          runs[mode] = { seconds: race.finished ? race.ticks / TICK_HZ : null,
+            resets: driver.resets, unseenResets: driver.unseenResets, recoveries: driver.recoveries };
+        } finally { sim.world.free(); }
+      }
+      row.streets[course.race.id] = { ...runs, trafficCost: runs.clear.seconds !== null && runs.traffic.seconds !== null
+        ? runs.traffic.seconds - runs.clear.seconds : null };
     }
   }
   rows.push(row);
 }
 
 if (streets) {
-  const common = sprints.filter(id => rows.every(row => row.streets![id]!.seconds !== null));
-  const total = (row: Row) => common.reduce((sum, id) => sum + row.streets![id]!.seconds!, 0);
+  const common = sprints.filter(id => rows.every(row => row.streets![id]!.clear.seconds !== null));
+  const total = (row: Row) => common.reduce((sum, id) => sum + row.streets![id]!.clear.seconds!, 0);
   const cinder = rows.find(row => row.car === "cinder");
-  for (const row of rows) row.streetSummary = { sprints: common, total: common.length ? total(row) : null,
-    versusCinder: common.length && cinder ? (total(row) / total(cinder) - 1) * 100 : null };
+  for (const row of rows) {
+    // Traffic costs require both finishes; a DNF is not a 300-second finish.
+    const costSprints = sprints.filter(id => row.streets![id]!.trafficCost !== null);
+    row.streetSummary = { sprints: common, total: common.length ? total(row) : null,
+      versusCinder: common.length && cinder ? (total(row) / total(cinder) - 1) * 100 : null,
+      traffic: { dnfs: sprints.filter(id => row.streets![id]!.traffic.seconds === null).length,
+        recoveries: sprints.reduce((sum, id) => sum + row.streets![id]!.traffic.recoveries, 0),
+        costSprints, cost: costSprints.length ? costSprints.reduce((sum, id) => sum + row.streets![id]!.trafficCost!, 0) : null } };
+  }
 }
 
 if (json) {
@@ -134,12 +147,12 @@ if (json) {
   for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
   if (laps) console.log("\nAI laps: best flying lap of three, in seconds, the rival's planner driving (not a pad lap).");
   if (streets) {
-    console.log(`\nAI streets: seconds / resets / unseen resets / reversing recoveries; DNF at ${streetLimit} s after the flag.`);
+    console.log(`\nAI street pace (traffic off): seconds; DNF at ${streetLimit} s after the flag.`);
     const columns: [string, (row: Row) => string][] = [
       ["car", row => row.car],
       ...sprints.map((id): [string, (row: Row) => string] => [id, row => {
-        const run = row.streets![id]!;
-        return `${run.seconds === null ? "DNF" : run.seconds.toFixed(2)} / ${run.resets} / ${run.unseenResets} / ${run.recoveries}`;
+        const run = row.streets![id]!.clear;
+        return run.seconds === null ? "DNF" : run.seconds.toFixed(2);
       }]),
       ["total s", row => row.streetSummary!.total?.toFixed(2) ?? "N/A"],
       ["vs Cinder", row => {
@@ -150,7 +163,23 @@ if (json) {
     const table = [columns.map(([title]) => title), ...rows.map(row => columns.map(([, cell]) => cell(row)))];
     const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
     for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
-    console.log(`Totals use only sprints every measured car finished: ${rows[0]!.streetSummary!.sprints.join(", ") || "none"}. Minus means quicker.`);
-    console.log("Player rig: rival teleport resets are unavailable (zero); reversing recovery is active. Traffic on, no rival, no launch.");
+    console.log(`Clear totals use only sprints every measured car finished: ${rows[0]!.streetSummary!.sprints.join(", ") || "none"}. Minus means quicker.`);
+    console.log("\nAI street incidents (traffic on): traffic minus clear seconds / reversing recoveries per sprint; DNF has no time cost.");
+    const incidentColumns: [string, (row: Row) => string][] = [
+      ["car", row => row.car],
+      ...sprints.map((id): [string, (row: Row) => string] => [id, row => {
+        const run = row.streets![id]!;
+        return `${run.traffic.seconds === null ? "DNF" : run.trafficCost?.toFixed(2) ?? "N/A"} / ${run.traffic.recoveries}`;
+      }]),
+      ["DNFs", row => String(row.streetSummary!.traffic.dnfs)],
+      ["recoveries", row => String(row.streetSummary!.traffic.recoveries)],
+      ["cost s", row => row.streetSummary!.traffic.cost?.toFixed(2) ?? "N/A"],
+      ["paired", row => `${row.streetSummary!.traffic.costSprints.length}/${sprints.length}`],
+    ];
+    const incidents = [incidentColumns.map(([title]) => title), ...rows.map(row => incidentColumns.map(([, cell]) => cell(row)))];
+    const incidentWidths = incidentColumns.map((_, i) => Math.max(...incidents.map(line => line[i]!.length)));
+    for (const line of incidents) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(incidentWidths[i]!) : cell.padStart(incidentWidths[i]!)).join("  "));
+    console.log("Traffic costs sum only paired finishes per car, not pace; negative costs are possible when traffic changes the driven line.");
+    console.log("Player rig: rival teleport resets are unavailable (zero); reversing recovery is active. No rival, no launch.");
   }
 }

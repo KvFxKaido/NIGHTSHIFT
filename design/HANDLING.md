@@ -337,17 +337,45 @@ With the same driver every AWD car lapped **4–8% faster** than the Cinder
 everywhere, and most on streets, which are a string of launches out of junctions.
 
 **Street sprints in traffic** (`--streets`, Codex, 2026-09-19): the same planner
-drives six fixed generated sprints (`gen-1`, `gen-7`, `gen-15`, `gen-moth-12`,
-`gen-crest-23`, `gen-wake-42`, 2.5–4.8 km, chosen by geography) with city traffic
-on, about a minute a car, identical run to run. **Not yet a tuning measure.** At
-six sprints one traffic incident outweighs the car: the Bulwark lost 20 s to the
-Cinder on `gen-7` reversing beside a stopped taxi, and the totals ran backwards,
-the Kestrel at `power` 0.7 2.1% slower than the Cinder and the weaker 0.65 1.8%
-quicker, which less power cannot be. Until it has a traffic-free run of the same
-sprints for pace, with traffic kept as a count of incidents, judge tunes on the
-circuits and read the sprints for what traffic does to a car, not how fast it is.
-The player rig has no rival teleport recovery, so its reset counters stay zero;
-reversing recoveries are counted.
+now drives each of six fixed generated sprints twice: traffic off for pace, then
+city traffic on for incidents. The existing `gen-1`, `gen-7`, `gen-15`,
+`gen-moth-12`, `gen-crest-23`, `gen-wake-42` draws cover eastern cross streets
+and ridge, downtown, waterfront and Queen Anne, 2.5-4.8 km, chosen by geography
+and length, never by which car wins. All are checked with `alderCourseDraws`.
+The six are retained: clear pace orders the Kestrel's power correctly on every
+sprint, without adding more routes. Clear seconds, with totals over only the sprints
+every measured car finished; minus against the Cinder means quicker:
+
+| Car | gen-1 | gen-7 | gen-15 | gen-moth-12 | gen-crest-23 | gen-wake-42 | Total s | vs Cinder |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 | 95.32 | 95.80 | 118.38 | 131.57 | 73.43 | 88.88 | 603.38 | 0.00% |
+| Bulwark r2 | 95.40 | 96.05 | 119.47 | 129.50 | 72.42 | 90.48 | 603.32 | -0.01% |
+| Kestrel r2 | 93.50 | 94.17 | 116.60 | 128.03 | 71.65 | 87.73 | 591.68 | -1.94% |
+| Latch r2 | 96.15 | 96.13 | 118.90 | 131.65 | 73.80 | 89.40 | 606.03 | +0.44% |
+
+Traffic incidents, each sprint showing **traffic minus clear seconds / reversing
+recoveries**. Cost sums only paired finishes for that car; a DNF at 300 s after
+the flag has no time cost, not an invented 300-second finish. All six paired here:
+
+| Car | gen-1 | gen-7 | gen-15 | gen-moth-12 | gen-crest-23 | gen-wake-42 | DNFs | Recoveries | Cost s |
+|---|---|---|---|---|---|---|---|---|---|
+| Cinder r1 | 2.43 / 0 | 0.55 / 0 | 9.37 / 0 | 0.28 / 0 | 0.10 / 0 | 8.87 / 0 | 0 | 0 | 21.60 |
+| Bulwark r2 | 1.88 / 0 | 19.90 / 1 | 0.92 / 0 | 2.85 / 0 | 0.68 / 0 | 1.18 / 0 | 0 | 1 | 27.42 |
+| Kestrel r2 | 18.72 / 0 | 19.08 / 1 | 0.33 / 0 | 7.95 / 0 | 0.40 / 0 | 0.17 / 0 | 0 | 1 | 46.65 |
+| Latch r2 | 1.00 / 0 | 0.63 / 0 | 0.42 / 0 | 0.55 / 0 | 0.12 / 0 | 0.88 / 0 | 0 | 0 | 3.60 |
+
+The power check is **600.35 / 591.68 / 584.27 s** for Kestrel power
+**0.65 / 0.70 / 0.75**: more power is quicker, including on each individual
+clear sprint. This is useful for comparing tunes through street junctions with
+the same driver, alongside the circuit laps; it is not a pad time or a promise
+that any power change is monotonic for every car and route. Traffic costs explain
+incidents, never pace or a percentage advantage; they can be negative when
+traffic changes the driven line. Totals sum unrounded times. The player rig has
+no rival teleport recovery (reset counters stay zero); reversing recoveries are
+counted. No rival, no launch. `--json` includes both runs and their cost per
+sprint, and `--streets` combines with `--laps` and `--try`. Two four-car runs
+produced byte-identical text in 284.80 and 307.72 s (71.2 and 76.9 s per car
+on average).
 
 ### The Bulwark, revision 2 (2026-09-19)
 
