@@ -19,8 +19,10 @@ import type { CelSmoke } from "./smoke.ts";
 import { createGarageScene } from "./garage.ts";
 import { ALDER_SKY, NIGHT_HAZE, NIGHT_ZENITH } from "./sky.ts";
 import { updateWheelPresentation } from "./wheels.ts";
+import { createFacadeMenu } from "./facade-menu.ts";
+import { ALDER_GARAGE } from "../sim/alder.ts";
 
-export type ViewMode = "track" | "garage";
+export type ViewMode = "track" | "garage" | "main";
 
 export interface View extends CarView {
   roadStart: RoadWorld["start"];
@@ -37,6 +39,9 @@ export interface View extends CarView {
   /** Which chase framing the track camera uses (`CHASE_CAMERAS`). */
   chaseCamera: ChaseCameraId;
   mode: ViewMode;
+  facadeMenu: ReturnType<typeof createFacadeMenu> | null;
+  facadeCameraSnap: boolean;
+  facadeDeparture: boolean;
   rivalCar: CarView | null;
   parkedRivalCars: Map<string, CarView>;
   /** The sky dome, which follows the car (sky.ts). Null where a world has none. */
@@ -168,6 +173,10 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     cameraOrbit: createCameraOrbitState(),
     chaseCamera: DEFAULT_CHASE_CAMERA,
     mode: "track",
+    facadeMenu: scene.getObjectByName("district-garage") && document.querySelector('[data-menu-screen="main"]')
+      ? createFacadeMenu(scene.getObjectByName("district-garage")!) : null,
+    facadeCameraSnap: true,
+    facadeDeparture: false,
     rivalCar: null, parkedRivalCars: new Map(),
     sky: scene.getObjectByName(ALDER_SKY) ?? null,
     traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null, roadWorld.grade ?? null) : null,
@@ -199,7 +208,10 @@ export function resetViewCamera(view: View): void {
 
 export function setViewMode(view: View, mode: ViewMode): void {
   if (view.mode === mode) return;
+  const previous = view.mode;
   view.mode = mode;
+  view.facadeMenu?.setActive(mode === "main");
+  view.facadeDeparture = previous === "main" && mode === "track";
   resetCameraOrbit(view.cameraOrbit);
   view.garageYaw = 0;
 
@@ -213,6 +225,11 @@ export function setViewMode(view: View, mode: ViewMode): void {
   }
 
   view.scene.add(view.car);
+  if (mode === "main") {
+    view.facadeCameraSnap = true;
+    return;
+  }
+  if (view.facadeDeparture) return;
   view.cameraPosition.set(
     view.roadStart.x + Math.sin(view.roadStart.heading) * 8,
     view.roadStart.y + 3.2,
@@ -279,6 +296,22 @@ export function render(
     return;
   }
 
+  if (view.mode === "main" && view.facadeMenu) {
+    const parked = ALDER_GARAGE.entrance;
+    view.car.position.set(parked.x, parked.y + .35, parked.z);
+    view.car.rotation.set(0, parked.heading, 0);
+    view.carVisual.rotation.set(0, 0, 0);
+    view.frontWheels.forEach(wheel => { wheel.rotation.y = 0; });
+    if (view.sky) view.sky.position.copy(view.car.position);
+    view.moon.position.set(parked.x - 90, 140, parked.z + 80);
+    view.moon.target.position.copy(view.car.position);
+    updateRaceBeacon(view.race, null, view.surface, view.camera);
+    view.facadeMenu.frame(view.camera, view.cameraPosition, view.cameraTarget, frameDelta, view.facadeCameraSnap);
+    view.facadeCameraSnap = false;
+    view.renderer.render(view.scene, view.camera);
+    return;
+  }
+
   const car = state.vehicle;
   // At the car's height too: Queen Anne's roads climb 37 m, and a dome centred
   // at sea level would put its horizon band below the skyline up there.
@@ -330,6 +363,15 @@ export function render(
     car.y + chase.lookHeight + Math.sin(car.pitch) * lookAhead * forwardFocus,
     car.z + forwardZ * lookAhead * forwardFocus,
   );
+  if (view.facadeDeparture) {
+    // Saved drives and race starts can be far from the facade. Never sweep the
+    // camera across the city or through buildings to reach those destinations.
+    if (view.cameraPosition.distanceTo(targetPosition) > 70 || view.facadeMenu?.prefersReducedMotion()) {
+      view.cameraPosition.copy(targetPosition);
+      view.cameraTarget.copy(targetLook);
+    }
+    view.facadeDeparture = false;
+  }
   const positionBlend = 1 - Math.exp(-6.8 * frameDelta);
   const targetBlend = 1 - Math.exp(-9.5 * frameDelta);
   view.cameraPosition.lerp(targetPosition, positionBlend);

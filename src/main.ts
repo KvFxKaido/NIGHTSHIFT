@@ -581,7 +581,7 @@ const menu = createMenuController({
     else if (screen === "main") onTheStreet = false;
     if (screen === "races") raceList.render();
     if (screen === "blacklist") blacklistPanel.render();
-    setViewMode(view, screen === "garage" ? "garage" : "track");
+    setViewMode(view, screen === "garage" ? "garage" : screen === "main" ? "main" : "track");
   },
   getAudioLevels: () => audioLevels,
   setAudioLevel: (channel, value) => {
