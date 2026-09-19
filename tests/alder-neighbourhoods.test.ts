@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { ALDER_BLOCKS, ALDER_DATA, ALDER_GARAGE, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES } from "../src/sim/alder.ts";
+import { ALDER_BLOCKS, ALDER_DATA, ALDER_GARAGE, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, createAlderWorld } from "../src/sim/alder.ts";
 import { ALDER_LAMPS } from "../src/sim/kerb-props.ts";
 import { ALDER_TURFS } from "../src/sim/alder-turf.ts";
 import { ALDER_NEIGHBOURHOODS, alderNeighbourhoodAt, alderNeighbourhoodsAt } from "../src/sim/alder-neighbourhoods.ts";
-import { addAlder, NEIGHBOURHOOD_DRESSING } from "../src/render/alder.ts";
+import { addAlder, NEIGHBOURHOOD_DRESSING, START_YARD_MASTS } from "../src/render/alder.ts";
 
 // Every district rule reads a building's neighbourhood. A building in none
 // silently gets the fallback, and one in two gets whichever polygon is listed
@@ -196,5 +196,38 @@ test("the waterfront ends in a line of light: the seawall's lamps and every pier
   const blockout = new THREE.Scene();
   addAlder(blockout, "blockout");
   assert.equal(blockout.getObjectByName("alder-seawall-lamp-glow"), undefined, "the blockout lit its seawall");
+  for (const s of [scene, blockout]) s.traverse(object => { if (object instanceof THREE.Mesh || object instanceof THREE.Points) object.geometry.dispose(); });
+});
+
+// design/LOOK.md, "The start": Harbor Way leaves Wharf Garage past 200 m of open
+// ground, so the first minute of a new game was the city's dimmest. Masts light
+// the yards beside it — and stand on them, never in the road.
+test("the yards the game opens on are lit, and no mast stands in the road", () => {
+  const world = createAlderWorld();
+  const start = ALDER_GARAGE.entrance;
+  for (const mast of START_YARD_MASTS) {
+    const road = world.project(mast.x, mast.z);
+    assert.ok(road.distance > road.width / 2 + 2,
+      `a mast at (${mast.x}, ${mast.z}) stands ${road.distance.toFixed(1)} m from the middle of a ${road.width} m road`);
+    // Beside the opening stretch, not scattered across the district.
+    assert.ok(mast.z < start.z && mast.z > start.z - 300 && Math.abs(mast.x - start.x) < 80,
+      `a mast at (${mast.x}, ${mast.z}) is nowhere near the start`);
+  }
+  const scene = new THREE.Scene();
+  addAlder(scene, "night");
+  const vertices = (prefix: string) => {
+    let count = 0;
+    scene.traverse(object => { if (object instanceof THREE.Mesh && object.name.startsWith(prefix)) count += object.geometry.getAttribute("position").count; });
+    return count;
+  };
+  const masts = vertices("alder-yard-masts");
+  assert.ok(masts > 0 && masts % START_YARD_MASTS.length === 0, `${masts} vertices for ${START_YARD_MASTS.length} masts`);
+  assert.equal(vertices("alder-yard-heads"), masts, "a mast without the dock's flood on it");
+  const glow = scene.getObjectByName("alder-yard-glow") as THREE.Points | undefined;
+  assert.ok(glow, "the masts have no glow");
+  assert.equal(glow.geometry.getAttribute("position").count, START_YARD_MASTS.length);
+  const blockout = new THREE.Scene();
+  addAlder(blockout, "blockout");
+  assert.equal(blockout.getObjectByName("alder-yard-glow"), undefined, "the blockout lit its yards");
   for (const s of [scene, blockout]) s.traverse(object => { if (object instanceof THREE.Mesh || object instanceof THREE.Points) object.geometry.dispose(); });
 });

@@ -15,6 +15,21 @@ import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-ne
 import type { DistrictLighting } from "./scene.ts";
 import { addNightSky, ALDER_SKY } from "./sky.ts";
 
+/**
+ * Masts over the freight yards the game opens on (design/LOOK.md, "The start").
+ * Harbor Way runs north out of Wharf Garage past 200 m of open ground on its
+ * east side, the nearest building 196 m off, so the first minute of a new game
+ * was the dimmest in the city: six lamps and nothing between them. A working
+ * yard has high masts over its hardstanding, and this is the port, so the light
+ * is white and the head is the one the docks hang on their walls; only the mast
+ * under it is new. They stand clear of the junctions at z 730-790.
+ */
+export const START_YARD_MASTS = [
+  { x: 10, z: 884 }, { x: -28, z: 854 }, { x: 10, z: 824 },
+  { x: -28, z: 716 }, { x: 10, z: 700 }, { x: 10, z: 650 },
+];
+const YARD_MAST_HEIGHT = 12;
+
 /** The four piers, by their centre along the shore, and where each carries its edge lamps. */
 const PIERS = [-320, 80, 470, 810];
 const PIER_LAMP_XS = [-12, -32, -52, -72];
@@ -218,6 +233,28 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     if(geometry){const mesh=new THREE.Mesh(geometry,material);mesh.name=name;scene.add(mesh);}
   }
   if(pierGlow.length)scene.add(farGlow('port-pier-lamp-glow',pierGlow,0xdfe8ff,5,.8));
+  if(night){
+    const masts:THREE.BufferGeometry[]=[],heads:THREE.BufferGeometry[]=[],yardGlow:number[]=[];
+    for(const mast of START_YARD_MASTS){
+      const base=alderHeight(mast.x,mast.z);
+      masts.push(new THREE.BoxGeometry(.34,YARD_MAST_HEIGHT,.34).translate(mast.x,base+YARD_MAST_HEIGHT/2,mast.z));
+      // The dock's flood, on a mast instead of a wall, aimed over the yard.
+      heads.push(new THREE.BoxGeometry(1.3,.4,.5).translate(mast.x,base+YARD_MAST_HEIGHT-.4,mast.z-.4));
+      yardGlow.push(mast.x,base+YARD_MAST_HEIGHT-.5,mast.z-.5);
+      const pool=new THREE.PlaneGeometry(20,20,4,4);pool.rotateX(-Math.PI/2);
+      const position=pool.getAttribute('position');
+      for(let i=0;i<position.count;i++){
+        const px=position.getX(i)+mast.x,pz=position.getZ(i)+mast.z-2;
+        position.setXYZ(i,px,alderHeight(px,pz)+.05,pz);
+      }
+      deckPools.push(pool);
+    }
+    for(const [name,parts,material] of [['alder-yard-masts',masts,concrete],['alder-yard-heads',heads,workLight]] as const){
+      const geometry=mergeGeometries([...parts]);parts.forEach(g=>g.dispose());
+      if(geometry){const mesh=new THREE.Mesh(geometry,material);mesh.name=name;scene.add(mesh);}
+    }
+    scene.add(farGlow('alder-yard-glow',yardGlow,0xdfe8ff,6,.7));
+  }
   if(deckPools.length){
     const geometry=mergeGeometries(deckPools);deckPools.forEach(g=>g.dispose());
     if(geometry){const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xdfe6f2,map:glowTexture(),transparent:true,
