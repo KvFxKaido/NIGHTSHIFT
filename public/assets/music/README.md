@@ -33,6 +33,33 @@ it. With no `dj/` folder the songs play back to back, as they always did, and
 **DJ on / off** beside Shuffle does the same with clips in place; it saves with
 shuffle in `nightshift.music`, and a clip already on air plays out.
 
+### KALD's voice
+
+The station is KALD 91.3, broadcasting overnight from the booth in the Broadcast
+Tower's base (the lit corner over Broad St). Its host was made on 2026-09-18 in
+Google AI Studio's speech playground with **Gemini 2.5 Flash Preview TTS**
+(`gemini-2.5-flash-preview-tts`), which generated for free with no API key; the
+3.1 preview model refused with a 403 until billing is topped up. Use the same
+direction word for word and new lines sound like the same man at the same desk.
+
+- **Voice:** Algenib (gravelly, lower pitch).
+- **Audio Profile:** "Overnight radio host on a small port-city station, 3 a.m.
+  Unhurried, low and warm with a dry edge. Talks to people working nights like
+  he knows them. Never shouts, never hypes."
+- **Scene:** "A small radio booth at the base of a broadcast tower in a port
+  city, 3 a.m. The overnight host is unhurried, low and warm with a dry edge,
+  talking to people working nights and driving empty streets."
+- **Pace** left at its default; no expressive tags (whether this model reads
+  `[chuckles]` as a direction or says the word was never tested).
+- **Output:** WAV, mono, 24 kHz, 16-bit, 4 to 8 seconds a line. Name it
+  `kald-<what>.wav`, with `id` in the name for an ident.
+
+On air now: the tower ident ("Broadcasting from the tower, all night"), "Still
+up? So are we", "The night shift's station", the crane crews at the docks, the
+cleaners up on twelve in Alder Center, dry roads and orange lamps, Harbor Way
+busy tonight ("careful on the Climb"), somebody working up a list of ten names,
+and "More music, less talking".
+
 `pnpm dev` runs the scan as it starts. Rename, add or retag files while it is
 running and the game keeps the old list until you run `pnpm music:scan` and
 reload; if none of the listed files load, Play stops and the Audio menu says so.
