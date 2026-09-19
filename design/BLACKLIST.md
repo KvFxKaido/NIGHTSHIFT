@@ -256,6 +256,54 @@ be #1's Vesper.
   full 250 face; no second car has been checked), so a faster car reads as
   more needle rather than a rescaled dial.
 
+## Top speeds and pace, per car (outline, 2026-09-19)
+
+The targets the per-car tunes aim at (`src/sim/car-handling.ts`,
+`design/HANDLING.md` "Cars"). Shawn's call: strength climbs gently up the list
+with the Vesper the one outlier, and mass is each car's own. Only the Cinder and
+the Bulwark are tuned; every other row is a target until its car's own commit.
+
+Two measures, because they do different jobs. **Top speed** is identity: what a
+player compares and the dial shows, so it follows the car's character and does
+not rank the list (Rivet's muscle car outruns Crest's roadster). It barely
+decides a race: Shawn's 31 valid Cinder laps spend about 45% of the time under
+70 mph and only 1.3–2.9% above 130. **Pace** is what climbs: the AI lap, the
+rival's own planner driving the car round Ridge Circuit and Uptown
+(`pnpm cars --laps`), as a share faster (−) or slower (+) than the Cinder with the
+same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
+
+| # | Name | Car | Drive | Top mph | Knobs for that speed | Character | AI lap vs Cinder |
+|---|---|---|---|---|---|---|---|
+| — | starter | Cinder | RWD | 140 | stock | the anchor, never retuned for another car | 0 |
+| — | for sale | Bulwark (r2, done) | AWD | 126 | governor | city truck: launch and grass, heavy | −1.5% streets, +2% circuits |
+| 10 | Moth | Kestrel | AWD | 130 | governor | rally hatch, geared short: launches, runs out of top | about 0 |
+| 9 | Stray | Latch | FWD | 138 | governor | the kid's first tuner, just under the Cinder | about 0 |
+| 8 | Rivet | Hammer | RWD | 150 | governor | muscle: fast in a line, poor in corners | −1% |
+| 7 | Bollard | Breakwater | AWD | about 127 | `drag` 1.4, no governor needed | a brick: slowest, heaviest, wins the shoving | −1% |
+| 6 | Deuce | Wager | RWD | 148 | governor | rotary: revs, a strong top end | −2% |
+| 5 | Sable | NS-01 | RWD | 142 | governor | drift car: rotation, not speed | −2% |
+| 4 | Plumb | Meridian | AWD | 146 | governor | fast wagon, built for the highway | −3% |
+| 3 | Crest | Skim | FWD | 138 | governor | light corner car: turn-in and grip | −3% |
+| 2 | Wake | Reign | AWD | 152 | governor (`topEnd` for a stronger 60–100) | the old champion: good at everything | −4% |
+| 1 | Tally | Vesper | RWD | 165 | governor 1.18, `topEnd` 1.4, `drag` 0.9 | the outlier: slippery, pulls hardest past 100 | −6% |
+
+- **Every top speed here is reachable**, checked with `pnpm cars <car> --try`:
+  150, 148 and 152 on the governor alone, the Vesper at 165.0 with the three
+  knobs, the Breakwater brick at 127 with `drag` 1.4 (and 139 at 1.2). Stock
+  power runs out at about 152, the tyres at 161 (146 front-drive), and past that
+  only less drag helps (`design/HANDLING.md`, "The ceiling").
+- **Pace is the real tuning, and AWD is where it starts.** On the shared numbers
+  every AWD car laps 4–8% faster than the Cinder, so Moth's Kestrel is, today, one
+  of the fastest cars on the list. Like the Bulwark, the AWD cars will need less
+  low-end power to land near their pace.
+- **Two cars sit below the Cinder on purpose.** Moth, so the first race is not
+  won by a faster car; Bollard, so her threat is weight rather than speed.
+- **Each tune is its own commit** with `design/HANDLING.md` and a
+  `RIVAL_REVISION` bump, measured before and after. Order: the Kestrel first,
+  once Shawn has said how hard the opener should be, then up the list; the Vesper
+  last, with `pnpm alder:critique` before and after, since route choice prices
+  shortcuts at one assumed pace.
+
 ## An ending worth keeping
 
 If #1 keeps the list, beating Tally means the player keeps it. The last thing
