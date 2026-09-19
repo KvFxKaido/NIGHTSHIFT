@@ -281,7 +281,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 | 8 | Rivet | Hammer (r2, done) | RWD | 150 | governor | muscle: fast in a line, poor in corners | her race is the drag strip: 12.97 s, a clean Cinder 12.95; laps +0.5 to +1.0% circuits, level streets |
 | 7 | Bollard | Breakwater (r2, done) | AWD | 125 | `drag` 1.4, no governor needed | a brick: slowest, heaviest, wins the shoving; all its pace is the launch | −0.62% streets, +1 to +2% circuits |
 | 6 | Deuce | Wager (r2, done) | RWD | 148 | governor | rotary: revs, a strong top end, the best tyres in a bend | −2.48% streets, −2.1 to −2.9% circuits |
-| 5 | Sable | NS-01 | RWD | 142 | governor | drift car: rotation, not speed | −2% |
+| 5 | Sable | NS-01 (r2, done) | RWD | 142 | governor | drift car: rotation, not speed; swings furthest and is caught from all of it | her yard: 4,199 against the Cinder's 3,817; pace −0.8 to −0.94% |
 | 4 | Plumb | Meridian | AWD | 146 | governor | fast wagon, built for the highway | −3% |
 | 3 | Crest | Skim | FWD | 138 | governor | light corner car: turn-in and grip | −3% |
 | 2 | Wake | Reign | AWD | 152 | governor (`topEnd` for a stronger 60–100) | the old champion: good at everything | −4% |

@@ -45,6 +45,24 @@ export function everyTune(layouts: readonly Drivetrain[] = ["awd", "fwd", "rwd"]
     ...tuned.map(handling => ({ label: handling.car!, setup: handling }))];
 }
 
+/**
+ * How far a car may swing before it is caught, in degrees of body slip, per
+ * handbrake gate (`tests/handbrake.test.ts`). Being caught is the invariant and
+ * is never per car: every car settles under 3 degrees with the yaw stopped and
+ * keeps moving. How far it swings on the way there is the car's own, because a
+ * drift car that cannot swing is not a drift car (Shawn, 2026-09-19). A car that
+ * wants more than the shared model's says so here, where review sees it, and the
+ * number is a ceiling: exceeding it fails, so an unintended change still fails.
+ */
+export const SHARED_PEAKS = { short: 15, city: 22, long: 32, highway: 12 } as const;
+export const CAR_PEAKS: Readonly<Record<string, Partial<typeof SHARED_PEAKS>>> = {
+  // Sable's drift coupe (ns01 r2, and "blender", the same car she parks in the
+  // yard). Measured 13.4 / 32.7 / 48.1 / 12.9; caught from every one of them.
+  ns01: { city: 35, long: 52, highway: 14 },
+  blender: { city: 35, long: 52, highway: 14 },
+};
+export const peaksFor = (label: string) => ({ ...SHARED_PEAKS, ...CAR_PEAKS[label] });
+
 export function flatStep(sim: Sim, input: Partial<Input> = {}): void {
   step(sim, { ...NEUTRAL, ...input });
   const car = sim.state.vehicle;

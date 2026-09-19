@@ -60,7 +60,11 @@ export interface CarTune {
   readonly handbrake?: number;
 }
 
-const NS01: CarTune = { drivetrain: "rwd", revision: 1 };
+// Sable's NS-01 (2026-09-19): the drift coupe. A loose tail and a handbrake that
+// loosens it further, on tyres that let go early; it swings further than any other
+// car and is caught from all of it (tests/helpers/handling.ts, CAR_PEAKS).
+const NS01: CarTune = { drivetrain: "rwd", revision: 2, mass: 1_250, topSpeed: 1.0143, topEnd: 1.05,
+  traction: 1.03, balance: 0.85, handbrake: 1.25, steering: 1.1 };
 
 export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // The anchor. Every recorded lap was driven in it, and RIVAL_CORNERING and the

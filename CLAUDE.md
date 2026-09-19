@@ -126,8 +126,9 @@ fixtures outside the playable bundle, and old world links redirect.
   Cinder and slower wherever the road is fast. Moth's Kestrel (r2) is tuned to
   about even with the Cinder, a little quicker on streets, Stray's Latch (r2)
   to about even, Rivet's Hammer (r2) to a quarter mile a clean Cinder just wins,
-  Bollard's Breakwater (r2) to a heavy brick that wins every shove, and Deuce's
-  Wager (r2) to a revvy rotary 2.5% quicker on streets; the rest are targets
+  Bollard's Breakwater (r2) to a heavy brick that wins every shove, Deuce's
+  Wager (r2) to a revvy rotary 2.5% quicker on streets, and Sable's NS-01 (r2) to
+  the drift car (`pnpm cars --drift`); the rest are targets
   (`design/BLACKLIST.md`, "Top speeds and pace, per car"). `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car
@@ -353,6 +354,11 @@ fixtures outside the playable bundle, and old world links redirect.
   build that rejects Kestrel likewise makes every slot unreadable if one names it.
 - `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
   the phone. Do not add to it casually.
+- Being caught is every car's floor; how far it swings is the car's own. The
+  recovery gates take their peak-slip ceilings from `CAR_PEAKS`
+  (`tests/helpers/handling.ts`), which the NS-01 raises because a drift car that
+  cannot swing is not one; settling under 3 degrees, yaw stopped, still moving is
+  never per car (2026-09-19).
 - A number a car can change is read from that vehicle's `CarHandling`
   (`sim.state.handling`, `rival.handling`, `handlingFor(route)`), never from
   `HANDLING`, or a rival plans corners with a grip its tyres do not have. A tune

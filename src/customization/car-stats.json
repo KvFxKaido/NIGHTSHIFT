@@ -105,18 +105,18 @@
     }
   },
   "ns01": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "ns01",
       "drivetrain": "rwd",
-      "mass": 1180,
-      "zeroToSixty": 3.87,
-      "sixtyToHundred": 2.97,
-      "topSpeed": 140,
+      "mass": 1250,
+      "zeroToSixty": 3.73,
+      "sixtyToHundred": 2.83,
+      "topSpeed": 142,
       "stoppingDistance": 27.8,
-      "peakLateral": 14.18,
-      "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "peakLateral": 14.19,
+      "turnIn": 0.4,
+      "handbrakeSlip": 13.7
     }
   },
   "meridian": {

@@ -161,7 +161,11 @@ by `carHandling` in `sim.ts`. Everything the model needs in order to behave —
 countersteer rates, slip regularisation, tyre relaxation, the RWD stability
 tapers, geometry — is shared and is not a knob. A car may be harder to catch,
 never uncatchable with full countersteer: the recovery gates below are the floor
-for every car, not a Cinder feature.
+for every car, not a Cinder feature. Being caught — settling under 3 degrees with
+the yaw stopped, still moving — is never per car. **How far a car swings on the way
+there is** (Shawn, 2026-09-19, for the NS-01): a car that wants more than the
+shared model's ceilings lists them in `CAR_PEAKS` (`tests/helpers/handling.ts`),
+where review sees them, and they are ceilings, so an unintended change still fails.
 
 - **Knobs.** Strength: `power` (drive below about 67 mph), `topEnd` (drive near
   the governor), `topSpeed`, `drag` (air resistance; 2026-09-19, "The ceiling"
@@ -664,6 +668,49 @@ the names above him need.
   seed the catch. Its own handbrake slip is 8.4 degrees, the most on the list.
 - **`RIVAL_REVISION` is `full-line-v17`.** `pnpm golden`: exactly Deuce's two runs
   moved (free roam, where he cruises, and `gen-deuce-3`); twelve bit-identical.
+
+### The NS-01, revision 2 (2026-09-19)
+
+Sable's drift coupe, and the first car tuned against the drift measure
+(`--drift`). She races her own yard, so her place on the list is her score there,
+as Rivet's is her quarter mile.
+
+```
+ns01 (and "blender", the same car she parks in the yard):
+{ drivetrain: "rwd", revision: 2, mass: 1_250, topSpeed: 1.0143, topEnd: 1.05,
+  traction: 1.03, balance: 0.85, handbrake: 1.25, steering: 1.1 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| NS-01 r1 | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| **NS-01 r2** | 1250 | 3.73 | 2.83 | 142.0 | 27.8 | 14.19 | 0.40 | **13.7°** |
+
+In Sable's yard: **4,199 against the Cinder's 3,817**, holding **21.5 degrees**
+where the Cinder holds 17.4, peaking at 39.0, and drifting 16.4% of the run
+against 14.8%. Pace is 0.8% quicker than the Cinder on the circuits and 0.94% on
+the streets, under the ladder's −2%: her race is the yard, and this is the NS-01
+as a car the player wins.
+
+- **The gates said no first, and that was the design question.** Every candidate
+  swung past ceilings measured on the shared model: the mildest reached 25.1
+  degrees in the 0.75 s pull (limit 22), this one 32.7, and 48.1 in the 1 s pull
+  (limit 32). But all of them were **caught from every pull**: 0.0 degrees of slip,
+  no yaw, still moving. So the ceiling, not the car, was what had to give: peaks
+  are per car now (above), being caught is not. Without that there is no drift car.
+- **Its angle is balance and the handbrake, not traction.** `traction` 0.95 was
+  meant to let the tail go; it scored *lower* (4,163) than dropping it (4,183),
+  because the angle comes from `balance` 0.85 and `handbrake` 1.25. It also failed
+  the RWD throttle-catch gate's exit: the worst case regained 2.62 m/s where the
+  gate wants 3, since less powered grip is exactly what pulls a car out of a slide.
+  At 1.03 the exit regains 3.41 m/s and the score is highest (4,199).
+- **`RIVAL_REVISION` is `full-line-v18`.** `pnpm golden`: exactly the two runs
+  where her car appears moved (her yard, and free roam where she parks); twelve
+  bit-identical.
+- **What the measure cannot see.** The drift driver links no transitions, and
+  linked transitions are worth 75 chain points each in `stepDrift`. A tune that
+  makes a car easier to flick from side to side would not show here.
 
 ## Deliberate sim-cade assists
 

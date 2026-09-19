@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { DT, HANDLING, steeringAngleFor, type Input } from "../src/sim/sim.ts";
-import { everyTune, FLAT_START, flatSim, flatStep } from "./helpers/handling.ts";
+import { everyTune, peaksFor, FLAT_START, flatSim, flatStep } from "./helpers/handling.ts";
 
 await RAPIER.init();
 const degrees = (radians: number) => radians * 180 / Math.PI;
@@ -92,7 +92,7 @@ test("a short handbrake pull can still be caught with deliberate countersteer", 
         peakSlip = Math.max(peakSlip, Math.abs(degrees(sim.state.vehicle.slipAngle)));
       }
       const car = sim.state.vehicle;
-      assert.ok(peakSlip > 5 && peakSlip < 15, `${layout}: retain useful rear rotation (peak ${peakSlip.toFixed(2)} degrees)`);
+      assert.ok(peakSlip > 5 && peakSlip < peaksFor(layout).short, `${layout}: retain useful rear rotation (peak ${peakSlip.toFixed(2)} degrees)`);
       assert.ok(Math.abs(degrees(car.slipAngle)) < 3 && Math.abs(car.yawRate) < 0.1);
       assert.ok(car.speed > 15, "catch the slide while moving, not by stopping");
       if (layout === "awd" && side === 1) t.diagnostic(`Short pull: peak slip ${peakSlip.toFixed(2)} degrees, recovered at ${car.speed.toFixed(2)} m/s`);
@@ -122,7 +122,7 @@ test("full manual countersteer catches longer city-speed slides without automati
         }
       }
       assert.ok(firstCounterTick > 0 && firstCounterTick <= 3);
-      assert.ok(peakSlip > 10 && peakSlip < (hold === 45 ? 22 : 32), `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
+      assert.ok(peakSlip > 10 && peakSlip < (hold === 45 ? peaksFor(layout).city : peaksFor(layout).long), `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
       assert.ok(Math.abs(degrees(sim.state.vehicle.slipAngle)) < 3);
       assert.ok(Math.abs(sim.state.vehicle.yawRate) < 0.1);
       assert.ok(sim.state.vehicle.speed > (hold === 45 ? 16 : 10), "recover without coming to a stop");
@@ -142,7 +142,7 @@ test("brief highway-speed handbraking can be caught without a large opposite ove
           : tick < 60 ? { steer: -side } : {});
         peakSlip = Math.max(peakSlip, Math.abs(degrees(sim.state.vehicle.slipAngle)));
       }
-      assert.ok(peakSlip < 12, `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
+      assert.ok(peakSlip < peaksFor(layout).highway, `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
       assert.ok(Math.abs(degrees(sim.state.vehicle.slipAngle)) < 3, layout);
       assert.ok(Math.abs(sim.state.vehicle.yawRate) < 0.1, layout);
       assert.ok(sim.state.vehicle.speed > 25, layout);
