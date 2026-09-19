@@ -124,7 +124,8 @@ fixtures outside the playable bundle, and old world links redirect.
   is the anchor the others are tuned against. The Bulwark (r2) is the first car
   tuned off its layout: heavy and planted, a second quicker to 60 than the
   Cinder and slower wherever the road is fast. Moth's Kestrel (r2) is tuned to
-  about even with the Cinder, a little quicker on streets; the rest are targets
+  about even with the Cinder, a little quicker on streets, and Stray's Latch (r2)
+  to about even; the rest are targets
   (`design/BLACKLIST.md`, "Top speeds and pace, per car"). `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car

@@ -45,18 +45,18 @@
     }
   },
   "latch": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "latch",
       "drivetrain": "fwd",
-      "mass": 1180,
-      "zeroToSixty": 4.37,
-      "sixtyToHundred": 3.7,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 14.12,
-      "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "mass": 1160,
+      "zeroToSixty": 4.15,
+      "sixtyToHundred": 3.42,
+      "topSpeed": 138.1,
+      "stoppingDistance": 27,
+      "peakLateral": 15.1,
+      "turnIn": 0.38,
+      "handbrakeSlip": 7.2
     }
   },
   "hammer": {

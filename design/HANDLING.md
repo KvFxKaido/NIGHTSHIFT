@@ -411,6 +411,49 @@ more like the AI.
 - **Not yet driven against on a pad.** Whether Moth feels like a fair first race
   is the question the numbers cannot answer.
 
+### The Latch, revision 2 (2026-09-19)
+
+Stray's sport liftback, the kid's first tuner: target just under the Cinder at
+138 mph and about even in pace (`design/BLACKLIST.md`, "Top speeds and pace, per
+car"). The first car tuned *up*: on the shared FWD numbers it lapped about 1.9%
+slower than the Cinder on all four circuits.
+
+```
+latch: { drivetrain: "fwd", revision: 2, mass: 1_160, topSpeed: 0.986, grip: 1.05, balance: 0.9, steering: 1.1,
+  handbrake: 0.8 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Latch r1 | 1180 | 4.37 | 3.70 | 140.0 | 27.8 | 14.12 | 0.37 | 7.6° |
+| **Latch r2** | 1160 | 4.15 | 3.42 | 138.1 | 27.0 | 15.10 | 0.38 | 7.2° |
+
+AI laps, best flying: **74.22 / 57.43 / 48.32 / 97.45 s** against the Cinder's
+74.83 / 57.73 / 48.60 / 97.65, 0.2–0.8% quicker (r1: 76.15 / 58.85 / 49.53 /
+99.52).
+
+- **FWD is traction-bound, so power does nothing.** `power` 1.1 and `topEnd` 1.15
+  each left the laps identical to the hundredth; grip and balance are its levers.
+  Sticky tyres (`grip` 1.05) and a chassis that turns on a lift (`balance` 0.9).
+- **Balance stopped at 0.9 for the highway.** At 0.85 the pace was the same, but a
+  0.6 steer held at 135 mph and then lifted peaked at 6.55 degrees of slip (the
+  Cinder 2.46). At 0.9 it peaks at 4.06, and both pass the highway gate's own
+  conditions (0.3 steer, gas down: 1.07 degrees, all 16 cases settle). That gate
+  is RWD-only in the suite; this was checked by hand.
+- **The recovery gates caught it, which is what they are for.** With the handbrake
+  stock, the looser balance made the Latch **uncatchable**: a half-second pull at
+  45 m/s with full countersteer peaked at 20.95 degrees (floor 12; the shared FWD
+  7.86) and did not recover, and the city pull peaked at 22.42 (floor 22). Taking
+  the knobs away one at a time put it on `balance` with the handbrake: without
+  the balance it passed. `handbrake` 0.8 gives back what the balance takes from
+  the rear, and it passes with room: short pull 7.0 degrees (the floor that it
+  still rotates is 5), city 17.9, the longer city pull 25.7 (32), highway 7.9 (12),
+  all recovered. Lift-off rotation and the laps do not use the handbrake and did
+  not move. So a looser balance comes with a gentler handbrake.
+- **`RIVAL_REVISION` is `full-line-v14`.** `pnpm golden`: exactly Stray's two runs
+  moved (free roam, where she cruises, and `gen-stray-5`); twelve bit-identical.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

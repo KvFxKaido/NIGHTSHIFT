@@ -74,7 +74,10 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // shared AWD numbers. Launches as hard as the Bulwark, runs out at 130.
   kestrel: { drivetrain: "awd", revision: 2, mass: 1_150, power: 0.7, topSpeed: 0.93, steering: 1.1 },
   vesper: { drivetrain: "rwd", revision: 1 },  // Tally: cab-forward coupe; visual mid-engine layout
-  latch: { drivetrain: "fwd", revision: 1 },  // Stray: sport liftback
+  // Stray's sport liftback, the kid's first tuner (2026-09-19): sticky tyres and a
+  // chassis that turns on a lift, just under the Cinder at 138. On the shared FWD
+  // numbers it lapped about 1.9% slower than the Cinder; now about even.
+  latch: { drivetrain: "fwd", revision: 2, mass: 1_160, topSpeed: 0.986, grip: 1.05, balance: 0.9, steering: 1.1, handbrake: 0.8 },
   breakwater: { drivetrain: "awd", revision: 1 },  // Bollard: enclosed off-roader
   wager: { drivetrain: "rwd", revision: 1 },  // Deuce: rotary-inspired sports car
   meridian: { drivetrain: "awd", revision: 1 },  // Plumb: fast wagon

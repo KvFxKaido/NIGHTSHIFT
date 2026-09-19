@@ -267,8 +267,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * a car on the same climbing or falling street is no longer hidden by the grade.
  * "full-line-v13": Moth's Kestrel has its own tune (kestrel r2, car-handling.ts),
  * so every race she drives, and her cruise, moves; the driver is unchanged.
+ * "full-line-v14": Stray's Latch has its own tune (latch r2).
  */
-export const RIVAL_REVISION = "full-line-v13";
+export const RIVAL_REVISION = "full-line-v14";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
