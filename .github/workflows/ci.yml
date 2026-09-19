@@ -1,8 +1,16 @@
 name: CI
 
+# Push on master only: a branch's commits are covered by its pull request, and
+# unfiltered triggers ran every PR commit twice (seen on #11).
 on:
   push:
+    branches: [master]
   pull_request:
+
+# One run per ref: pushing again cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -24,3 +32,20 @@ jobs:
         with:
           name: facade-menu-captures
           path: artifacts/facade-*.png
+
+  # The deterministic simulation suite: every handling gate, the replay checks and
+  # the revision pins. It is the project's real gate (CLAUDE.md, "Commands"), and
+  # until 2026-09-19 it ran only on whoever remembered it, so a push that broke the
+  # tests was green here. About 4-6 minutes on a development machine.
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+        timeout-minutes: 20

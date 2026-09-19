@@ -399,8 +399,12 @@ fixtures outside the playable bundle, and old world links redirect.
   the Kestrel, 2026-09-19). The launch rides `driveGripScale` and scales the drive. Anything that moves a rival, the countdown included, is a
   `RIVAL_REVISION` bump, or raced recordings diverge instead of being refused:
   check with `pnpm laps --verify` before and after, never only after.
-- The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
-  that breaks the tests is green on GitHub. Run `pnpm test` yourself.
+- The test suite takes about 5 minutes. Since 2026-09-19 CI runs it too, beside
+  the build and the facade browser check, on master pushes and pull requests; it
+  ran `pnpm build` alone before, so anything pushed before then was gated only by
+  whoever remembered. Still run `pnpm test` yourself: CI on master tells you after
+  the fact, and the golden master (`pnpm golden`) and `pnpm laps --verify` are
+  yours to run, not CI's.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not
   "fix" a default-FWD number by editing a historical AWD one.
 
