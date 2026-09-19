@@ -8,6 +8,8 @@
 //                                     also the car with these knobs over its tune ("bulwark*")
 //   pnpm cars cinder bulwark --laps   also AI laps: the rival's planner driving each car
 //                                     round Ridge Circuit's layouts and Uptown clear (slow)
+//   pnpm cars cinder bulwark --streets also six fixed generated sprints in traffic
+//                                     combines with --laps; times and recoveries per sprint
 //   pnpm cars --json                  the same facts, for tools
 //
 // AI laps are the same driver in each car, never a pad lap: no launch, no handbrake,
@@ -21,6 +23,7 @@ import { carHandling } from "../src/sim/sim.ts";
 await RAPIER.init();
 const args = process.argv.slice(2);
 const json = args.includes("--json"), laps = args.includes("--laps");
+const streets = args.includes("--streets");
 const tried = args.find(arg => arg.startsWith("--try="));
 const asked = args.filter(arg => !arg.startsWith("--"));
 for (const car of asked) if (!Object.hasOwn(CAR_TUNES, car)) throw new Error(`Unknown car '${car}'. Cars: ${Object.keys(CAR_TUNES).join(", ")}`);
@@ -36,9 +39,29 @@ if (tried) {
   cars.push(`${asked[0]}*`);
 }
 
-type Row = ReturnType<typeof measureCar> & { revision: number; laps?: Record<string, { first: number; best: number }> };
+type StreetResult = { seconds: number | null; resets: number; unseenResets: number; recoveries: number };
+type Row = ReturnType<typeof measureCar> & {
+  revision: number;
+  laps?: Record<string, { first: number; best: number }>;
+  streets?: Record<string, StreetResult>;
+  streetSummary?: { sprints: string[]; total: number | null; versusCinder: number | null };
+};
 const rows: Row[] = [];
 const circuits = ["arena-full", "arena-east", "arena-ridge", "street-uptown-clear"];
+// Fixed grid draws, checked with alderCourseDraws: plain seeds cover the east's
+// cross streets and ridge; turf draws add downtown, the waterfront and Queen Anne.
+// Chosen by geography (2.5–4.8 km), not by which car wins or avoids traffic.
+const sprints = ["gen-1", "gen-7", "gen-15", "gen-moth-12", "gen-crest-23", "gen-wake-42"];
+const streetLimit = 300; // Seconds after the flag, enough for slow runs and reversing.
+const streetTools = streets ? {
+  ...(await import("../src/sim/alder-course.ts")), ...(await import("../src/sim/alder.ts")),
+  ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/sim.ts")),
+  ...(await import("../src/sim/traffic.ts")),
+} : null;
+const courses = streetTools ? sprints.map(id => {
+  if (!streetTools.alderCourseDraws(id, null)) throw new Error(`Street benchmark '${id}' no longer draws`);
+  return streetTools.drawAlderCourse(id, null);
+}) : [];
 const lapTools = laps ? {
   ...(await import("../src/sim/circuits.ts")), ...(await import("../src/sim/alder.ts")),
   ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/sim.ts")),
@@ -65,7 +88,35 @@ for (const car of cars) {
       } finally { sim.world.free(); }
     }
   }
+  if (streetTools) {
+    const { createAlderWorld, createRivalDriver, rivalInput, createSim, step, TICK_HZ, TRAFFIC_KINDS } = streetTools;
+    row.streets = {};
+    for (const course of courses) {
+      const route = { ...course.rival, car };
+      const sim = createSim(carHandling(car), createAlderWorld(true, course.start ?? undefined), { race: course.race });
+      const driver = createRivalDriver();
+      try {
+        while (!sim.state.race!.finished && sim.state.race!.ticks < streetLimit * TICK_HZ) {
+          const obstacles = (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
+          step(sim, rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, obstacles, null));
+        }
+        const race = sim.state.race!;
+        // The player rig has no rival teleport recovery; these counters stay zero.
+        // Reversing recoveries do run in rivalInput and help explain a slow finish.
+        row.streets[course.race.id] = { seconds: race.finished ? race.ticks / TICK_HZ : null,
+          resets: driver.resets, unseenResets: driver.unseenResets, recoveries: driver.recoveries };
+      } finally { sim.world.free(); }
+    }
+  }
   rows.push(row);
+}
+
+if (streets) {
+  const common = sprints.filter(id => rows.every(row => row.streets![id]!.seconds !== null));
+  const total = (row: Row) => common.reduce((sum, id) => sum + row.streets![id]!.seconds!, 0);
+  const cinder = rows.find(row => row.car === "cinder");
+  for (const row of rows) row.streetSummary = { sprints: common, total: common.length ? total(row) : null,
+    versusCinder: common.length && cinder ? (total(row) / total(cinder) - 1) * 100 : null };
 }
 
 if (json) {
@@ -82,4 +133,24 @@ if (json) {
   const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
   for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
   if (laps) console.log("\nAI laps: best flying lap of three, in seconds, the rival's planner driving (not a pad lap).");
+  if (streets) {
+    console.log(`\nAI streets: seconds / resets / unseen resets / reversing recoveries; DNF at ${streetLimit} s after the flag.`);
+    const columns: [string, (row: Row) => string][] = [
+      ["car", row => row.car],
+      ...sprints.map((id): [string, (row: Row) => string] => [id, row => {
+        const run = row.streets![id]!;
+        return `${run.seconds === null ? "DNF" : run.seconds.toFixed(2)} / ${run.resets} / ${run.unseenResets} / ${run.recoveries}`;
+      }]),
+      ["total s", row => row.streetSummary!.total?.toFixed(2) ?? "N/A"],
+      ["vs Cinder", row => {
+        const percent = row.streetSummary!.versusCinder;
+        return percent === null ? "N/A" : `${percent > 0 ? "+" : ""}${percent.toFixed(2)}%`;
+      }],
+    ];
+    const table = [columns.map(([title]) => title), ...rows.map(row => columns.map(([, cell]) => cell(row)))];
+    const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
+    for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
+    console.log(`Totals use only sprints every measured car finished: ${rows[0]!.streetSummary!.sprints.join(", ") || "none"}. Minus means quicker.`);
+    console.log("Player rig: rival teleport resets are unavailable (zero); reversing recovery is active. Traffic on, no rival, no launch.");
+  }
 }
