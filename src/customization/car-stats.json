@@ -90,18 +90,18 @@
     }
   },
   "wager": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "wager",
       "drivetrain": "rwd",
-      "mass": 1180,
-      "zeroToSixty": 3.87,
-      "sixtyToHundred": 2.97,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 14.18,
+      "mass": 1250,
+      "zeroToSixty": 3.75,
+      "sixtyToHundred": 2.82,
+      "topSpeed": 148,
+      "stoppingDistance": 26.6,
+      "peakLateral": 15.16,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "handbrakeSlip": 8.4
     }
   },
   "ns01": {

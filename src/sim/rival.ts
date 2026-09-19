@@ -271,8 +271,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v15": Rivet's Hammer has its own tune (hammer r2), and power drives
  * the drag gearbox, so her quarter mile moves.
  * "full-line-v16": Bollard's Breakwater has its own tune (breakwater r2).
+ * "full-line-v17": Deuce's Wager has its own tune (wager r2).
  */
-export const RIVAL_REVISION = "full-line-v16";
+export const RIVAL_REVISION = "full-line-v17";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */

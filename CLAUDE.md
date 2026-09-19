@@ -126,8 +126,8 @@ fixtures outside the playable bundle, and old world links redirect.
   Cinder and slower wherever the road is fast. Moth's Kestrel (r2) is tuned to
   about even with the Cinder, a little quicker on streets, Stray's Latch (r2)
   to about even, Rivet's Hammer (r2) to a quarter mile a clean Cinder just wins,
-  and Bollard's Breakwater (r2) to a heavy brick that wins every shove; the rest
-  are targets
+  Bollard's Breakwater (r2) to a heavy brick that wins every shove, and Deuce's
+  Wager (r2) to a revvy rotary 2.5% quicker on streets; the rest are targets
   (`design/BLACKLIST.md`, "Top speeds and pace, per car"). `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car

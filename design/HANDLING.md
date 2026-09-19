@@ -595,6 +595,40 @@ over the sprints and 4–8% on the circuits, the largest lead of any untuned car
 - **`RIVAL_REVISION` is `full-line-v16`.** `pnpm golden`: only free roam, where she
   cruises, moved; thirteen bit-identical. No golden race fields her.
 
+### The Wager, revision 2 (2026-09-19)
+
+Deuce's rotary: it needs revs. Skinnier tyres off the line, the strongest top end
+on the list, and the best tyres anyone has in a bend.
+
+```
+wager: { drivetrain: "rwd", revision: 2, mass: 1_250, power: 0.92, topEnd: 1.25, topSpeed: 1.0571,
+  traction: 0.96, grip: 1.07, balance: 0.95, steering: 1.1, handbrake: 0.95 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Wager r1 | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| **Wager r2** | 1250 | 3.75 | 2.82 | 148.0 | 26.6 | 15.16 | 0.37 | 8.4° |
+
+AI laps **72.68 / 56.10 / 47.28 / 95.62 s**, 2.1–2.9% quicker than the Cinder;
+street pace (clear) **588.42 s, 2.48% quicker**. Deuce races sprints, so the
+streets are the measure: 1.82% at `traction` 0.95 and `grip` 1.06 left him level
+with Moth (−1.94%) at four places higher, and 3.34% at `grip` 1.08 took the pace
+the names above him need.
+
+- **`traction` is the rotary.** A RWD car is traction-bound to 100 mph, so a weak
+  bottom end cannot come from `power`: 0.96 of the driven tyres' push is what
+  makes it want revs, while `topEnd` 1.25 and 148 mph give it the top of the list.
+- **The gates set the handbrake, from both sides.** `balance` 0.95 is a looser
+  tail, so the Latch's rule says a gentler handbrake; at 0.85 the RWD
+  throttle-catch gate could no longer set up its slide (5.0 degrees against a
+  floor of 5), and at 1 the city pull reached 21.8 against a limit of 22. At 0.95
+  every gate passes with room: city 20.5, highway 9.1, and it still slides 5.8 to
+  seed the catch. Its own handbrake slip is 8.4 degrees, the most on the list.
+- **`RIVAL_REVISION` is `full-line-v17`.** `pnpm golden`: exactly Deuce's two runs
+  moved (free roam, where he cruises, and `gen-deuce-3`); twelve bit-identical.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

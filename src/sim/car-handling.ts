@@ -89,7 +89,11 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // pace it has is the launch: past 60 mph the drag takes it back.
   breakwater: { drivetrain: "awd", revision: 2, mass: 1_900, power: 0.85, drag: 1.4,
     grip: 0.95, brakes: 0.8, steering: 0.85 },
-  wager: { drivetrain: "rwd", revision: 1 },  // Deuce: rotary-inspired sports car
+  // Deuce's rotary (2026-09-19): it needs revs. Skinnier tyres off the line
+  // (traction 0.96) and the strongest top end on the list to 148, on the best
+  // tyres anyone has in a bend. A looser tail, so a gentler handbrake with it.
+  wager: { drivetrain: "rwd", revision: 2, mass: 1_250, power: 0.92, topEnd: 1.25, topSpeed: 1.0571,
+    traction: 0.96, grip: 1.07, balance: 0.95, steering: 1.1, handbrake: 0.95 },
   meridian: { drivetrain: "awd", revision: 1 },  // Plumb: fast wagon
   skim: { drivetrain: "fwd", revision: 1 },  // Crest: hardtop roadster
   reign: { drivetrain: "awd", revision: 1 },  // Wake: upright legend coupe
