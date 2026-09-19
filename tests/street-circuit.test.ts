@@ -8,7 +8,7 @@ import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
 import { createRivalDriver, rivalInput, RIVAL_REVISION, sampleRivalPath } from "../src/sim/rival.ts";
 import { STREET_CIRCUIT_IDENTITY, STREET_GATE_RADIUS, streetCircuitEvent, streetCircuitRaceFor, streetCircuitRaceId, UPTOWN, uptownLap } from "../src/sim/street-circuit.ts";
-import { createSim, step, TICK_HZ } from "../src/sim/sim.ts";
+import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
 await RAPIER.init();
 
@@ -79,7 +79,8 @@ test("four races: traffic or clear, rival or solo, the same gates and grid, and 
 test("a lap driven through traffic replays exactly, and a changed input is caught", () => {
   const event = streetCircuitEvent(1, true, true);
   const line = streetCircuitEvent(1, true, false).rival!;
-  const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, traffic: true });
+  // In the car the line names, so the planner and the tyres agree, recorded as main.ts records it.
+  const sim = createSim(carHandling(line.car!), createAlderWorld(true, event.start), { race: event.race, traffic: true });
   let session: LapSession;
   try {
     assert.ok(sim.state.traffic, "no traffic on the street circuit");
@@ -94,7 +95,7 @@ test("a lap driven through traffic replays exactly, and a changed input is caugh
     assert.ok(sim.state.race!.finished, "the lap was not finished");
     session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-13-120000-street-uptown-solo", recordedAt: "2026-09-13T12:00:00.000Z",
       world: sim.roadWorld.id, arena: event.identity, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id,
-      layout: event.layout, solo: true, traffic: true, trafficRevision: TRAFFIC_REVISION, laps: 1, car: "kestrel", drivetrain: "awd", start: event.start }))) as LapSession;
+      layout: event.layout, solo: true, traffic: true, trafficRevision: TRAFFIC_REVISION, laps: 1, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: event.start }))) as LapSession;
   } finally { sim.world.free(); }
   assert.deepEqual(replayLapSession(session), { ok: true, laps: 1 });
   const nudged = structuredClone(session);

@@ -69,7 +69,10 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // "ns01" the same car once won back. One tune, so they cannot drift apart.
   blender: NS01,
   ns01: NS01,
-  kestrel: { drivetrain: "awd", revision: 1 },  // Moth runs a rally hatch
+  // Moth's rally hatch (2026-09-19): geared short, light, a quick rack. The opener's
+  // car, so about even with the Cinder: before this it lapped 4-8% faster on the
+  // shared AWD numbers. Launches as hard as the Bulwark, runs out at 130.
+  kestrel: { drivetrain: "awd", revision: 2, mass: 1_150, power: 0.7, topSpeed: 0.93, steering: 1.1 },
   vesper: { drivetrain: "rwd", revision: 1 },  // Tally: cab-forward coupe; visual mid-engine layout
   latch: { drivetrain: "fwd", revision: 1 },  // Stray: sport liftback
   breakwater: { drivetrain: "awd", revision: 1 },  // Bollard: enclosed off-roader

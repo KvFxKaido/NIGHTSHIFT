@@ -276,7 +276,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 |---|---|---|---|---|---|---|---|
 | — | starter | Cinder | RWD | 140 | stock | the anchor, never retuned for another car | 0 |
 | — | for sale | Bulwark (r2, done) | AWD | 126 | governor | city truck: launch and grass, heavy | −1.5% streets, +2% circuits |
-| 10 | Moth | Kestrel | AWD | 130 | governor | rally hatch, geared short: launches, runs out of top | about 0 |
+| 10 | Moth | Kestrel (r2, done) | AWD | 130 | governor | rally hatch, geared short: launches, runs out of top | −0.4 to −0.8% circuits, −2.5% streets |
 | 9 | Stray | Latch | FWD | 138 | governor | the kid's first tuner, just under the Cinder | about 0 |
 | 8 | Rivet | Hammer | RWD | 150 | governor | muscle: fast in a line, poor in corners | −1% |
 | 7 | Bollard | Breakwater | AWD | about 127 | `drag` 1.4, no governor needed | a brick: slowest, heaviest, wins the shoving | −1% |
@@ -293,9 +293,10 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
   power runs out at about 152, the tyres at 161 (146 front-drive), and past that
   only less drag helps (`design/HANDLING.md`, "The ceiling").
 - **Pace is the real tuning, and AWD is where it starts.** On the shared numbers
-  every AWD car laps 4–8% faster than the Cinder, so Moth's Kestrel is, today, one
-  of the fastest cars on the list. Like the Bulwark, the AWD cars will need less
-  low-end power to land near their pace.
+  every AWD car laps 4–8% faster than the Cinder; Moth's Kestrel was one of the
+  fastest cars on the list until its tune (r2, 2026-09-19). Like the Bulwark and
+  the Kestrel, the other AWD cars will need less low-end power to land near their
+  pace.
 - **Two cars sit below the Cinder on purpose.** Moth, so the first race is not
   won by a faster car; Bollard, so her threat is weight rather than speed.
 - **Each tune is its own commit** with `design/HANDLING.md` and a

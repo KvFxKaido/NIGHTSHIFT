@@ -11,7 +11,7 @@ import { ARENA_IDENTITY } from "../src/sim/arena.ts";
 import { createLapRecorder, lapSession, recordTick, TRACK_LIMITS, LAP_CHANNELS, type LapSession, type LapTrack } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { createRivalDriver, rivalInput, RIVAL_REVISION } from "../src/sim/rival.ts";
-import { createSim, step, PHYSICS_VERSION, TICK_HZ, type VehicleState } from "../src/sim/sim.ts";
+import { carHandling, createSim, step, PHYSICS_VERSION, TICK_HZ, type VehicleState } from "../src/sim/sim.ts";
 import type { RaceState } from "../src/sim/race.ts";
 import { createLapSaver, lapSessionId } from "../src/recording/save-laps.ts";
 import { lapsMiddleware } from "../scripts/laps-server.mjs";
@@ -31,11 +31,13 @@ test("a solo race is the same race with nobody else on the circuit", () => {
   try { assert.equal(sim.state.rival, null); assert.equal(sim.state.traffic, null); } finally { sim.world.free(); }
 });
 
-/** Two laps of Ridge, solo, the player driven along the centreline by the rival's own controller. */
+/** Two laps of Ridge, solo, the player driven along the centreline by the rival's own controller,
+ *  in the car that line names (the Kestrel), so the planner and the tyres agree and the session
+ *  records the car and revision it was actually driven in, as main.ts does. */
 function drive(laps = 2) {
   const event = arenaEvent("ridge", laps, true);
   const line = arenaEvent("ridge", laps, false).rival!;
-  const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, traffic: false });
+  const sim = createSim(carHandling(line.car!), createAlderWorld(true, event.start), { race: event.race, traffic: false });
   const recorder = createLapRecorder(event.track);
   const driver = createRivalDriver();
   const completed: number[] = [];
@@ -47,7 +49,7 @@ function drive(laps = 2) {
   }
   const session = lapSession(recorder, { id: "2026-09-13-120000-arena-ridge-solo", recordedAt: "2026-09-13T12:00:00.000Z",
     world: sim.roadWorld.id, arena: ARENA_IDENTITY, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
-    laps, car: "kestrel", drivetrain: "awd", start: event.start });
+    laps, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: event.start });
   const result = { event, sim, recorder, completed, session: JSON.parse(JSON.stringify(session)) as LapSession };
   sim.world.free();
   return result;

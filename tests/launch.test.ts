@@ -209,9 +209,10 @@ test("rivals launch by rank: the further up the list, the better it hooks up, an
     sim.world.free();
     return { at3, feedback };
   };
-  // Measured 2026-09-16 on gen-moth-12: not launching 58.3 m at three seconds, launching
-  // 61.3 m at Moth's rank and 62.0 at Tally's. The launch is worth about 3 m to a rival;
-  // rank is worth 0.7 m of that, so it flavours the start rather than deciding it.
+  // Measured 2026-09-19 on gen-moth-12 in Moth's tuned Kestrel: not launching 46.6 m at
+  // three seconds, launching 49.7 m at Moth's rank and 52.6 at Tally's. A full launch is
+  // worth 6.0 m to a rival, as a perfect one is to the player, and rank 2.9 m of it.
+  // (2026-09-16, on her shared-AWD car: 58.3 / 61.3 / 62.0, the launch barely helping it.)
   const runs = [0, .5, .75, 1].map(run);
   assert.ok(runs[1]!.at3 > runs[0]!.at3 + 2, `launching is worth ${(runs[1]!.at3 - runs[0]!.at3).toFixed(1)} m`);
   for (let i = 2; i < runs.length; i++) assert.ok(runs[i]!.at3 >= runs[i - 1]!.at3, `skill ${i} went ${runs[i]!.at3.toFixed(2)} m`);

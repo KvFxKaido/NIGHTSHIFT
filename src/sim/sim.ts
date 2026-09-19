@@ -888,7 +888,11 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
     clamp(Math.abs(forwardSpeed) / 2, 0, 1);
   let driveAcceleration = reversing
     ? -HANDLING.reverseAcceleration * input.brake
-    : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed), handling) * effectiveThrottle;
+    : manualAcceleration ?? engineAccelerationFor(Math.max(0, forwardSpeed), handling) * effectiveThrottle *
+      // The launch scales the engine's push as well as the tyres' grip (below), so it
+      // buys whichever limits the car. A car whose engine, not its tyres, limits it
+      // off the line (a tune with less power) got nothing from grip alone (2026-09-19).
+      (input.brake === 0 ? launchScale : 1);
   // Govern propulsion instead of hard-clamping impact/downhill velocity.
   if (driveAcceleration > 0) {
     driveAcceleration = Math.min(driveAcceleration,
@@ -903,9 +907,10 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   const driveGripProgress = clamp((forwardSpeed - HANDLING.twoWheelDriveGripStartSpeed) /
     (HANDLING.twoWheelDriveGripFullSpeed - HANDLING.twoWheelDriveGripStartSpeed), 0, 1);
   const driveGripBlend = driveGripProgress * driveGripProgress * (3 - 2 * driveGripProgress);
-  // A launch buys traction, not torque: off the line the tyres are already at their
-  // limit, so extra drive alone is clamped away and changes nothing (measured
-  // 2026-09-16). It rides the same powered-axis scale, so steering is untouched.
+  // A launch buys traction as well as torque: on shared power the tyres are already
+  // at their limit off the line, so extra drive alone is clamped away and changes
+  // nothing (measured 2026-09-16). It rides the same powered-axis scale, so steering
+  // is untouched. The drive above is scaled too, for a car limited by its engine.
   const driveGripScale = (handling.drivetrain !== "awd" && driveForce > 0 && input.brake === 0
     ? 1 + (HANDLING.twoWheelDriveGripScale - 1) * driveGripBlend : 1)
     * (driveForce > 0 && input.brake === 0 ? launchScale : 1);

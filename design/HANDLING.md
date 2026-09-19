@@ -47,6 +47,18 @@ whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
   force was clamped away (measured, to the metre). It now rides `driveGripScale`,
   the same powered-axis scale the 2WD assist uses, so the longitudinal envelope
   grows and steering authority does not.
+  *And torque, since 2026-09-19.* That held while every car had the shared power.
+  A tune with less power (the Bulwark r2, the Kestrel r2) is limited off the line
+  by its engine, not its tyres, so grip alone gave it **nothing**: +0.00 m, and a
+  bog cost it almost nothing either. The Bulwark had been that way since its
+  tune, unnoticed until the Kestrel's broke the rival launch test. The launch now
+  scales the engine's push as well, so it buys whichever limits the car. A
+  traction-limited car at full throttle is unchanged to the centimetre (Cinder
+  +5.33 / +8.90 m, FWD +4.21 / +6.96, bogs likewise); the Bulwark and Kestrel now
+  gain +5.97 m at 3 s and a bog costs them 3.95. Two things did move: the shared
+  AWD, half engine-limited before, now gains +7.59 m at 3 s instead of +3.36 (the
+  untuned AWD rivals, until their own tunes); and a boost taken on part throttle,
+  or pushing against a wall after a burnout, now gets its 35% where it got none.
 - **What it is worth.** Tuned to about two car lengths: a perfect launch gains
   **+5.3 m at 3 s and +8.9 m at 5 s** over a standing start (Sound to Sky's grid,
   RWD, `boost: .35`). Releasing 0.15 s late still pays in full; by 0.5 s there is
@@ -65,6 +77,11 @@ whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
   So launching is worth about 3 m to a rival and rank is worth 0.7 m of that: it
   closes the free gap the player would otherwise take at every start, and it is
   not a difficulty lever. Their pace is (`RIVAL_CORNERING`, `design/PORT_ALDER.md`).
+  Since the Kestrel's tune and the launch scaling torque (2026-09-19): **46.6 m
+  not launching, 49.7 m at Moth's rank, 52.6 m at Tally's**. A full launch is
+  worth 6.0 m to a rival in her car, as a perfect one is to the player, and rank
+  2.9 m of it: a #1 rival starts like a perfect player launch, Moth half as well.
+  The small spread before was her shared-AWD car barely benefiting at all.
   - Rank first graded *reaction* instead, holding the handbrake up to half a
     second past the flag. That gave a wide spread (41.9 m at skill 0 to 62.0 m at
     1) and two bad things with it: a rival visibly parked at the lights, and a
@@ -122,6 +139,9 @@ through the boost (`launchMeter` in `src/ui/hud-state.ts`).
   a full charge (1.1 s, the same `chargeTicks`) is the race launch exactly. From
   Wharf Garage, RWD: **+5.1 m at 3 s and +7.9 m at 5 s** over a plain start,
   beside the race launch's +5.3 m and +8.9 m; AWD +3.4 m and FWD +4.0 m at 3 s.
+  (The AWD figure predates 2026-09-19, when the launch began scaling torque too;
+  the shared AWD's race launch went from +3.4 to +7.6 m, and its burnout launch was
+  not measured again.)
   A short hold is a small launch, never a bog; letting the gas go first is only
   stopping. Released while still swinging, the car carries the yaw into the
   launch and slides; centred first, the swing stops in about a fifth of a
@@ -342,6 +362,52 @@ grass, which the AI never uses: a city truck, not an upgrade.
   none of it is feel. The first things to judge: whether 0.7 steering reads as
   heavy or as broken in a quick left-right, whether 31 m stops feel like a truck
   or like a fault, and whether 5.8 degrees of handbrake is still fun.
+
+### The Kestrel, revision 2 (2026-09-19)
+
+Moth's rally hatch, and the opener's car: every player races it first. On the
+shared AWD numbers it lapped 4–8% faster than the Cinder with the same driver, so
+the first rival on the list was in one of its fastest cars.
+
+```
+kestrel: { drivetrain: "awd", revision: 2, mass: 1_150, power: 0.7, topSpeed: 0.93, steering: 1.1 }
+```
+
+Geared short (130 mph), light, a quick rack. Shawn chose `power` 0.7 from three
+measured candidates: 0.75 left it 1.3–1.8% quicker on the circuits and 3.8% on
+streets; 0.65 was level on the circuits and 1.1% quicker on streets but launched
+softer than the Bulwark truck (3.12 s to 60 against 2.87), which a rally hatch
+should not; 0.7 matches the truck's launch.
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Kestrel r1 | 1180 | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| **Kestrel r2** | 1150 | 2.87 | 3.43 | 130.2 | 27.8 | 13.49 | 0.37 | 7.8° |
+
+AI laps, best flying: **74.50 / 57.37 / 48.23 / 95.18 s** against the Cinder's
+74.83 / 57.73 / 48.60 / 97.65, so 0.4–0.8% quicker on Ridge Circuit's layouts and
+2.5% on Uptown's streets, which are Moth's ground (r1: 71.75 / 54.87 / 46.13 /
+89.90). Against a person the driver matters more than the car: in the same
+Cinder the AI laps Uptown about 13% slower than Shawn's recorded laps, so for him
+the opener is easy in either car, and the car decides it for a player who drives
+more like the AI.
+
+- **It broke the launch, which is how the launch got fixed.** The rival launch test
+  said launching was now worth 0.0 m to Moth; see "The launch", above.
+- **`RIVAL_REVISION` is `full-line-v13`.** Moth drives the Kestrel in Sound to
+  Sky, on Ridge Circuit and Uptown, in her generated races and on her cruise, so
+  all of them move. The golden master moved exactly there, plus three Blackglass
+  runs whose burnouts boost on part throttle against a wall (the launch change);
+  Stray's, Deuce's and Crest's races stayed bit-identical. `pnpm laps --verify`
+  is unchanged: the two sessions that replay are solo, in the Cinder.
+- **The recording fixtures drive the car they record.** `lap-recorder.test.ts` and
+  `street-circuit.test.ts` drove the shared AWD, steered by the Kestrel's line, and
+  labelled the session `kestrel` with no revision. Once the Kestrel had its own
+  numbers, replay refused them, which is the guard working. They now drive
+  `carHandling(line.car)` and record `carRevision`, as `main.ts` does.
+- **Not yet driven against on a pad.** Whether Moth feels like a fair first race
+  is the question the numbers cannot answer.
 
 ## Deliberate sim-cade assists
 

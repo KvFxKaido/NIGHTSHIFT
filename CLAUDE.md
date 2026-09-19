@@ -123,7 +123,9 @@ fixtures outside the playable bundle, and old world links redirect.
   changing car starts a fresh drive. `pnpm cars` measures every car; the Cinder
   is the anchor the others are tuned against. The Bulwark (r2) is the first car
   tuned off its layout: heavy and planted, a second quicker to 60 than the
-  Cinder and slower wherever the road is fast. `createSim` still defaults to the
+  Cinder and slower wherever the road is fast. Moth's Kestrel (r2) is tuned to
+  about even with the Cinder, a little quicker on streets; the rest are targets
+  (`design/BLACKLIST.md`, "Top speeds and pace, per car"). `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car
   and do not persist. Physics revision `four-wheel-v6`; see
@@ -387,9 +389,10 @@ fixtures outside the playable bundle, and old world links redirect.
   bridges compared raw heights and hid same-street traffic on about a third of the
   city at top speed; it now reads `routeHeightAt`. The check on the racing player
   above the traffic loop still compares raw heights.
-- A launch buys grip, not torque. Off the line the tyres are at their limit, so
-  multiplying engine drive there changes nothing at all; the launch rides
-  `driveGripScale`. Anything that moves a rival, the countdown included, is a
+- A launch buys grip and torque. On shared power the tyres are the limit off the
+  line and extra drive alone changes nothing, but a tune with less power is limited
+  by its engine, and grip alone gave it nothing at all (the Bulwark, unnoticed, and
+  the Kestrel, 2026-09-19). The launch rides `driveGripScale` and scales the drive. Anything that moves a rival, the countdown included, is a
   `RIVAL_REVISION` bump, or raced recordings diverge instead of being refused:
   check with `pnpm laps --verify` before and after, never only after.
 - The test suite takes about 7 minutes and CI runs `pnpm build` only. A push
