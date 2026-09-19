@@ -282,7 +282,7 @@ async function startAudio(): Promise<void> {
     // Chrome hands back a suspended context unless the gesture is still live.
     if (context.state === "suspended") await context.resume();
     audio = createCarAudio(context, audioLevels);
-    soundtrack = await loadSoundtrack(context, audio.musicBus, document.baseURI, { shuffle: musicPreference.shuffle });
+    soundtrack = await loadSoundtrack(context, audio.musicBus, document.baseURI, { shuffle: musicPreference.shuffle, dj: musicPreference.dj });
     soundtrack.onChange(() => menu.refreshAudio());
     menu.refreshAudio();
   } catch {
@@ -495,19 +495,21 @@ const menu = createMenuController({
     saveSettings({ audio: { [channel]: value } }, []);
   },
   soundtrackLabel: () => {
-    const shuffle = soundtrack?.isShuffled() ?? musicPreference.shuffle;
-    if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false, shuffle };
+    // The two modes read the same on every path, whether or not anything can play.
+    const modes = { shuffle: soundtrack?.isShuffled() ?? musicPreference.shuffle,
+      dj: soundtrack?.isDjOn() ?? musicPreference.dj, hasDj: (soundtrack?.djClips().length ?? 0) > 0 };
+    if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false, ...modes };
     const tracks = soundtrack?.tracks() ?? [];
     if (!tracks.length) {
       return {
         note: "No soundtrack tracks are installed.",
         playing: false,
         enabled: false,
-        shuffle,
+        ...modes,
       };
     }
     if (soundtrack?.failed()) {
-      return { note: "None of the tracks would load. Run pnpm music:scan and reload.", playing: false, enabled: true, shuffle };
+      return { note: "None of the tracks would load. Run pnpm music:scan and reload.", playing: false, enabled: true, ...modes };
     }
     const playing = soundtrack?.isPlaying() ?? false;
     const current = soundtrack?.nowPlaying();
@@ -516,13 +518,17 @@ const menu = createMenuController({
         : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ready.`,
       playing,
       enabled: true,
-      shuffle,
+      ...modes,
     };
   },
   soundtrack: (command) => {
     if (command === "shuffle") {
-      musicPreference = { shuffle: !(soundtrack?.isShuffled() ?? musicPreference.shuffle) };
+      musicPreference = { ...musicPreference, shuffle: !(soundtrack?.isShuffled() ?? musicPreference.shuffle) };
       soundtrack?.setShuffle(musicPreference.shuffle);
+      saveMusicPreference(() => window.localStorage, musicPreference);
+    } else if (command === "dj") {
+      musicPreference = { ...musicPreference, dj: !(soundtrack?.isDjOn() ?? musicPreference.dj) };
+      soundtrack?.setDj(musicPreference.dj);
       saveMusicPreference(() => window.localStorage, musicPreference);
     } else if (command === "toggle") soundtrack?.toggle();
     else if (command === "next") soundtrack?.next();

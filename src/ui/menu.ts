@@ -31,8 +31,8 @@ interface MenuCallbacks {
   getAudioLevels(): AudioLevels;
   setAudioLevel(channel: keyof AudioLevels, value: number): void;
   /** What the soundtrack row should say: track title, or why there is none. */
-  soundtrackLabel(): { note: string; playing: boolean; enabled: boolean; shuffle: boolean };
-  soundtrack(command: "toggle" | "next" | "previous" | "shuffle"): void;
+  soundtrackLabel(): { note: string; playing: boolean; enabled: boolean; shuffle: boolean; dj: boolean; hasDj: boolean };
+  soundtrack(command: "toggle" | "next" | "previous" | "shuffle" | "dj"): void;
 }
 
 export interface MenuController {
@@ -79,7 +79,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       const value = levels[channel];
       if (value !== undefined) slider.value = String(value);
     });
-    const { note, playing, enabled, shuffle } = callbacks.soundtrackLabel();
+    const { note, playing, enabled, shuffle, dj, hasDj } = callbacks.soundtrackLabel();
     root.querySelectorAll<HTMLElement>("[data-soundtrack-note]").forEach((element) => {
       element.textContent = note;
     });
@@ -89,6 +89,12 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       if (button.dataset.soundtrack === "shuffle") {
         button.textContent = shuffle ? "Shuffle on" : "Shuffle off";
         button.setAttribute("aria-pressed", String(shuffle));
+      }
+      if (button.dataset.soundtrack === "dj") {
+        // Nothing to switch without clips in dj/.
+        button.disabled = !enabled || !hasDj;
+        button.textContent = dj ? "DJ on" : "DJ off";
+        button.setAttribute("aria-pressed", String(dj));
       }
     });
   }
@@ -233,7 +239,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     const soundtrackButton = event.target.closest<HTMLButtonElement>("[data-soundtrack]");
     if (soundtrackButton) {
       const command = soundtrackButton.dataset.soundtrack;
-      if (command === "toggle" || command === "next" || command === "previous" || command === "shuffle") {
+      if (command === "toggle" || command === "next" || command === "previous" || command === "shuffle" || command === "dj") {
         callbacks.soundtrack(command);
         renderAudio();
       }

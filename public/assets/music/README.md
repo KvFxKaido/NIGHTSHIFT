@@ -29,7 +29,9 @@ plays one before the next song: a station ident half the time, the host talking
 the rest, and never the same clip twice running. A clip whose name has an `id`
 word in it (`kald-id-tower.wav`) is an ident; any other name is talk. Skipping
 during a break goes on to the next song; going back returns to the song before
-it. With no `dj/` folder the songs play back to back, as they always did.
+it. With no `dj/` folder the songs play back to back, as they always did, and
+**DJ on / off** beside Shuffle does the same with clips in place; it saves with
+shuffle in `nightshift.music`, and a clip already on air plays out.
 
 `pnpm dev` runs the scan as it starts. Rename, add or retag files while it is
 running and the game keeps the old list until you run `pnpm music:scan` and

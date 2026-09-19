@@ -96,6 +96,11 @@ export interface Soundtrack {
   nowPlaying(): MusicTrack | null;
   /** The DJ clip playing between songs, if one is. */
   onAir(): DjClip | null;
+  /** The clips the station has to play; none without a dj/ folder. */
+  djClips(): readonly DjClip[];
+  isDjOn(): boolean;
+  /** The DJ on or off. Off, songs play back to back; a clip already on air plays out. */
+  setDj(on: boolean): void;
   isPlaying(): boolean;
   toggle(): void;
   next(): void;
@@ -116,6 +121,8 @@ export interface SoundtrackOptions {
   shuffle?: boolean;
   /** The shuffle's randomness; tests pass a seeded one. */
   pick?: () => number;
+  /** On by default: clips between songs, when dj/ has any. */
+  dj?: boolean;
 }
 
 export async function loadSoundtrack(
@@ -165,6 +172,7 @@ export async function loadSoundtrack(
   let songsUntilBreak = clips.length ? breakGap() : 0;
   let onAir: DjClip | null = null;
   let lastClip: DjClip | null = null;
+  let djOn = options.dj ?? true;
   const listeners: (() => void)[] = [];
   const changed = () => { for (const listener of listeners) listener(); };
 
@@ -213,7 +221,7 @@ export async function loadSoundtrack(
 
   // A song that ends may hand over to the booth; a clip that ends always hands back.
   element.addEventListener("ended", () => {
-    if (!onAir && clips.length && --songsUntilBreak <= 0) {
+    if (!onAir && djOn && clips.length && --songsUntilBreak <= 0) {
       songsUntilBreak = breakGap();
       onAir = lastClip = chooseClip();
       element.src = new URL(`assets/music/dj/${trackPath(onAir.file)}`, base).href;
@@ -240,6 +248,9 @@ export async function loadSoundtrack(
     tracks: () => tracks,
     nowPlaying: () => (playing && !onAir ? current() : null),
     onAir: () => (playing ? onAir : null),
+    djClips: () => clips,
+    isDjOn: () => djOn,
+    setDj(on) { if (on !== djOn) { djOn = on; changed(); } },
     isPlaying: () => playing,
     toggle() {
       if (!tracks.length) return;

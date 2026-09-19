@@ -123,7 +123,8 @@ test("the scan names tracks from their tags and keeps hand edits across a rescan
  */
 async function withFakeAudio(files: string[], outcome: (file: string) => "plays" | "unreadable" | "refused",
   body: (soundtrack: Awaited<ReturnType<typeof loadSoundtrack>>, loads: string[], end: () => Promise<void>) => Promise<void>,
-  options: SoundtrackOptions & { dj?: string[] } = {}): Promise<void> {
+  options: SoundtrackOptions & { clips?: string[] } = {}): Promise<void> {
+  const { clips = [], ...soundtrackOptions } = options;
   const loads: string[] = [];
   let element: EventTarget | null = null;
   class FakeAudio extends EventTarget {
@@ -145,11 +146,11 @@ async function withFakeAudio(files: string[], outcome: (file: string) => "plays"
   const saved = { Audio: globalThis.Audio, fetch: globalThis.fetch };
   Object.assign(globalThis, {
     Audio: FakeAudio,
-    fetch: async () => ({ ok: true, json: async () => ({ version: 1, tracks: files.map(file => ({ file })), dj: (options.dj ?? []).map(file => ({ file })) }) }),
+    fetch: async () => ({ ok: true, json: async () => ({ version: 1, tracks: files.map(file => ({ file })), dj: clips.map(file => ({ file })) }) }),
   });
   try {
     const context = { createMediaElementSource: () => ({ connect() {} }) } as unknown as AudioContext;
-    const soundtrack = await loadSoundtrack(context, {} as AudioNode, "http://localhost/", options);
+    const soundtrack = await loadSoundtrack(context, {} as AudioNode, "http://localhost/", soundtrackOptions);
     // The track playing now runs out.
     const end = async () => { element!.dispatchEvent(new Event("ended")); await Promise.resolve(); };
     await body(soundtrack, loads, end);
@@ -261,19 +262,21 @@ test("turning shuffle off or on keeps the playing track and changes only what fo
   }, { shuffle: true, pick: seeded(3) });
 });
 
-test("the shuffle choice saves apart from settings and anything unreadable is shuffle on", () => {
+test("the shuffle and DJ choices save apart from settings, and anything unreadable is both on", () => {
   const disk = new Map<string, string>();
   const storage = { getItem: (key: string) => disk.get(key) ?? null, setItem: (key: string, value: string) => void disk.set(key, value) };
-  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: true }, "a fresh browser shuffles");
-  assert.equal(saveMusicPreference(() => storage, { shuffle: false }), true);
+  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: true, dj: true }, "a fresh browser shuffles, with the DJ on");
+  assert.equal(saveMusicPreference(() => storage, { shuffle: false, dj: false }), true);
   assert.deepEqual([...disk.keys()], [MUSIC_KEY]);
-  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: false });
+  assert.deepEqual(loadMusicPreference(() => storage), { shuffle: false, dj: false });
+  // A save from before the DJ toggle keeps its shuffle and has the DJ on.
+  assert.deepEqual(decodeMusicPreference('{"version":1,"shuffle":false}'), { shuffle: false, dj: true });
   for (const raw of ["{", "null", '{"version":2,"shuffle":false}', '{"version":1,"shuffle":"no"}']) {
-    assert.deepEqual(decodeMusicPreference(raw), { shuffle: true }, raw);
+    assert.deepEqual(decodeMusicPreference(raw), { shuffle: true, dj: true }, raw);
   }
   const blocked = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
-  assert.equal(saveMusicPreference(() => blocked, { shuffle: false }), false);
-  assert.deepEqual(loadMusicPreference(() => blocked), { shuffle: true });
+  assert.equal(saveMusicPreference(() => blocked, { shuffle: false, dj: false }), false);
+  assert.deepEqual(loadMusicPreference(() => blocked), { shuffle: true, dj: true });
 });
 
 // The DJ (public/assets/music/README.md, "The DJ"): spoken clips from dj/,
@@ -315,7 +318,7 @@ test("the DJ talks after every two or three songs, then the next song, never the
     assert.deepEqual([...kinds].sort(), ["ident", "talk"], "both idents and the host should be heard");
     // A break costs no song: in name order the songs still run a, b, c, d, e, a...
     loads.filter(load => !isClip(load)).forEach((song, i) => assert.equal(song, SONGS[i % SONGS.length]));
-  }, { shuffle: false, pick: seeded(11), dj: CLIPS });
+  }, { shuffle: false, pick: seeded(11), clips: CLIPS });
 });
 
 test("through a break, next is the song after it and previous the song before it", async () => {
@@ -331,7 +334,7 @@ test("through a break, next is the song after it and previous the song before it
     soundtrack.previous();
     assert.equal(loads.at(-1), played, "previous from a break is the song before it");
     assert.equal(soundtrack.onAir(), null);
-  }, { shuffle: false, pick: seeded(5), dj: CLIPS });
+  }, { shuffle: false, pick: seeded(5), clips: CLIPS });
 });
 
 test("a clip that will not load is skipped, and is not a song failing", async () => {
@@ -342,14 +345,14 @@ test("a clip that will not load is skipped, and is not a song failing", async ()
     assert.equal(soundtrack.isPlaying(), true);
     assert.equal(soundtrack.failed(), false);
     loads.filter(load => !isClip(load)).forEach((song, i) => assert.equal(song, SONGS[i % SONGS.length]));
-  }, { shuffle: false, pick: seeded(2), dj: CLIPS });
+  }, { shuffle: false, pick: seeded(2), clips: CLIPS });
   // With one song, a bad clip counted as a failed song would be every song failing.
   await withFakeAudio(["only.mp3"], load => isClip(load) ? "unreadable" : "plays", async (soundtrack, loads, end) => {
     soundtrack.toggle(); await settle();
     for (let i = 0; i < 8; i++) { await end(); await settle(); }
     assert.ok(loads.some(isClip), "no break was tried");
     assert.equal(soundtrack.isPlaying(), true, "one bad clip stopped a one-song soundtrack");
-  }, { pick: seeded(2), dj: CLIPS });
+  }, { pick: seeded(2), clips: CLIPS });
 });
 
 test("the scan lists dj/ apart from the songs", async () => {
@@ -367,4 +370,23 @@ test("the scan lists dj/ apart from the songs", async () => {
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
+});
+
+test("DJ off plays the songs back to back, a clip on air plays out, and on again brings the breaks back", async () => {
+  await withFakeAudio(SONGS, () => "plays", async (soundtrack, loads, end) => {
+    assert.equal(soundtrack.isDjOn(), false);
+    assert.equal(soundtrack.djClips().length, CLIPS.length, "the clips are there, only switched off");
+    soundtrack.toggle(); await settle();
+    for (let i = 0; i < 12; i++) await end();
+    assert.ok(!loads.some(isClip), "the DJ spoke while switched off");
+    soundtrack.setDj(true);
+    for (let i = 0; i < 4 && !isClip(loads.at(-1)!); i++) await end();
+    assert.ok(isClip(loads.at(-1)!), "no break within three songs of switching the DJ on");
+    // Switched off mid-break, the clip plays out and hands back to the songs.
+    soundtrack.setDj(false);
+    assert.ok(soundtrack.onAir(), "switching off cut the clip");
+    const count = loads.length;
+    for (let i = 0; i < 10; i++) await end();
+    assert.ok(!loads.slice(count).some(isClip), "a break after the DJ went off");
+  }, { shuffle: false, pick: seeded(4), clips: CLIPS, dj: false });
 });
