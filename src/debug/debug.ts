@@ -22,6 +22,9 @@ export interface AudioReport {
   wind: number;
   tracks: number;
   nowPlaying: string | null;
+  menuTheme: { title: string | null; playing: boolean; time: number; failed: boolean } | null;
+  frontEndMusic: boolean;
+  radioGain: number;
 }
 
 export interface InputReport {

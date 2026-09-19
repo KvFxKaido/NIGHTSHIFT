@@ -64,6 +64,8 @@ import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
+import { loadMenuTheme, type MenuTheme } from "./audio/menu-theme.ts";
+import { usesMenuTheme } from "./ui/menu-state.ts";
 import { engineTone, REDLINE_RPM, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
 import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
   type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
@@ -272,23 +274,58 @@ const liveryEditor = createLiveryEditor({ car: () => view,
 // then rather than logging a failure nobody can act on.
 let audio: CarAudio | null = null;
 let soundtrack: Soundtrack | null = null;
+let menuTheme: MenuTheme | null = null;
+let radioBus: GainNode | null = null;
+let audioStarting = false;
+let frontEndMusic = true;
+let enteredMenu = new URLSearchParams(location.search).has("scene");
+let radioStarted = false;
 let audioLevels: AudioLevels = restored.audio;
 let musicPreference = loadMusicPreference(() => window.localStorage);
 let lastInput: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
 
 async function startAudio(): Promise<void> {
-  if (audio) return;
+  if (audio) {
+    if (audio.context.state === "suspended") void audio.context.resume().catch(() => {});
+    menuTheme?.retry();
+    return;
+  }
+  if (audioStarting) return;
+  audioStarting = true;
   try {
     const context = new AudioContext();
     // Chrome hands back a suspended context unless the gesture is still live.
-    if (context.state === "suspended") await context.resume();
+    if (context.state === "suspended") void context.resume().catch(() => {});
     audio = createCarAudio(context, audioLevels);
-    soundtrack = await loadSoundtrack(context, audio.musicBus, document.baseURI, { shuffle: musicPreference.shuffle, dj: musicPreference.dj });
+    radioBus = context.createGain();
+    radioBus.gain.value = frontEndMusic ? 0 : 1;
+    radioBus.connect(audio.musicBus);
+    [soundtrack, menuTheme] = await Promise.all([
+      loadSoundtrack(context, radioBus, document.baseURI, { shuffle: musicPreference.shuffle, dj: musicPreference.dj }),
+      loadMenuTheme(context, audio.musicBus),
+    ]);
     soundtrack.onChange(() => menu.refreshAudio());
+    syncMenuMusic();
     menu.refreshAudio();
   } catch {
     // A blocked or unsupported AudioContext is not worth breaking a run over.
     audio = null;
+  } finally {
+    audioStarting = false;
+  }
+}
+
+function syncMenuMusic(): void {
+  menuTheme?.setActive(enteredMenu && frontEndMusic);
+  if (audio && radioBus) {
+    const now = audio.context.currentTime;
+    radioBus.gain.cancelAndHoldAtTime(now);
+    radioBus.gain.linearRampToValueAtTime(frontEndMusic ? 0 : 1, now + .8);
+  }
+  // Start the station on the first drive, then preserve the player's Play/Pause choice.
+  if (!frontEndMusic && soundtrack && !radioStarted) {
+    radioStarted = true;
+    if (!soundtrack.isPlaying()) soundtrack.toggle();
   }
 }
 
@@ -493,6 +530,11 @@ const savePanel = createSavesPanel(saves, () => ({
 /** Whether a drive is under way, so the race list can draw a race from where the car is. */
 let onTheStreet = false;
 const menu = createMenuController({
+  enterMenu: () => {
+    enteredMenu = true;
+    void startAudio();
+    syncMenuMusic();
+  },
   startTrack: (fresh) => {
     if (fresh) {
       pendingSavePosition = null;
@@ -524,7 +566,9 @@ const menu = createMenuController({
     liveryEditor.refresh();
     saveSettings({ customization: { [category]: customization[category] } }, [category]);
   },
-  screenChanged: (screen) => {
+  screenChanged: (screen, state) => {
+    frontEndMusic = usesMenuTheme(state);
+    syncMenuMusic();
     if (screen !== "garage") {
       liveryEditor.close(false);
       restoreEquippedCar();
@@ -549,6 +593,7 @@ const menu = createMenuController({
     // The two modes read the same on every path, whether or not anything can play.
     const modes = { shuffle: soundtrack?.isShuffled() ?? musicPreference.shuffle,
       dj: soundtrack?.isDjOn() ?? musicPreference.dj, hasDj: (soundtrack?.djClips().length ?? 0) > 0 };
+    if (frontEndMusic) return { note: "Radio starts when you enter a drive. Music volume also controls the menu theme.", playing: false, enabled: false, ...modes };
     if (!audio) return { note: "Click or press a key to start audio.", playing: false, enabled: false, ...modes };
     const tracks = soundtrack?.tracks() ?? [];
     if (!tracks.length) {
@@ -588,7 +633,7 @@ const menu = createMenuController({
 });
 
 for (const event of ["pointerdown", "keydown"] as const) {
-  window.addEventListener(event, () => void startAudio(), { once: true });
+  window.addEventListener(event, () => void startAudio());
 }
 
 const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
@@ -823,6 +868,7 @@ function frame(now: number): void {
   last = now;
 
   input.update();
+  menuTheme?.update();
   refreshControlHints(input.activeGamepadName(), input.bindings());
   const commands = input.consumeMenuCommands();
   if (commands.includes("flash")) flashHeadlights();
@@ -981,6 +1027,9 @@ installDebugApi({
       wind: windLevel(vehicle),
       tracks: soundtrack?.tracks().length ?? 0,
       nowPlaying: soundtrack?.nowPlaying()?.title ?? null,
+      menuTheme: menuTheme?.status() ?? null,
+      frontEndMusic,
+      radioGain: radioBus?.gain.value ?? 0,
     };
   },
 });

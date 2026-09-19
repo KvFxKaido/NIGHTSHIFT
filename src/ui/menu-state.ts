@@ -6,6 +6,12 @@ export interface MenuState {
   submenu?: "options";
 }
 
+/** Front-end pages share one theme; in-drive overlays retain the radio. */
+export function usesMenuTheme(state: MenuState): boolean {
+  if (["playing", "pause", "results"].includes(state.screen)) return false;
+  return state.screen === "main" || state.returnTo === "main";
+}
+
 export type MenuEvent =
   | "race-finished"
   | "map-toggle"

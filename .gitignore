@@ -37,6 +37,11 @@ dist/
 /public/assets/music/*
 !/public/assets/music/README.md
 
+# Personal menu theme and override. Only defaults and instructions are shared.
+/public/assets/menu-theme/*
+!/public/assets/menu-theme/theme.json
+!/public/assets/menu-theme/README.md
+
 # Lap recordings are the player's driving, megabytes a session; the folder's README is tracked.
 /recordings/*
 !/recordings/README.md

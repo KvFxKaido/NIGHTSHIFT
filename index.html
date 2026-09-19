@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/src/ui/hud.css" />
 
   </head>
-  <body data-game-screen="main" data-asset-state="loading">
+  <body data-game-screen="main" data-asset-state="loading" data-intro="waiting">
     <div id="asset-status" role="status">Loading NS-01…</div>
     <canvas id="view" tabindex="-1" aria-label="NIGHTSHIFT handling course"></canvas>
     <div id="vignette"></div>
@@ -93,7 +93,14 @@
       </div>
     </div>
 
-    <div id="menu-root" class="menu-root" data-screen="main" aria-label="Game menu">
+    <section id="start-screen" aria-labelledby="start-title">
+      <p class="menu-kicker">Port Alder / After dark</p>
+      <h1 id="start-title" class="menu-title">Night<br /><span>Shift</span></h1>
+      <button id="enter-menu" class="menu-button primary">Press to start</button>
+      <p class="menu-footer">Enter / A · Start</p>
+    </section>
+
+    <div id="menu-root" class="menu-root" data-screen="main" aria-label="Game menu" inert>
       <main class="menu-shell">
         <section class="menu-screen" data-menu-screen="main" aria-labelledby="main-menu-title">
           <p class="menu-kicker">Port Alder / Wharf Garage</p>

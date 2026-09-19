@@ -20,6 +20,7 @@ export const MENU_ITEM_SELECTOR =
   "button:not([disabled]):not([hidden]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden])";
 
 interface MenuCallbacks {
+  enterMenu(): void;
   startTrack(fresh: boolean): void;
   restartRun(): void;
   returnToMain(): void;
@@ -27,7 +28,7 @@ interface MenuCallbacks {
   resumeRun(): void;
   getCustomization(): CarCustomization;
   customize(category: CustomizationCategory, optionId: string): void;
-  screenChanged(screen: MenuScreen): void;
+  screenChanged(screen: MenuScreen, state: MenuState): void;
   getAudioLevels(): AudioLevels;
   setAudioLevel(channel: keyof AudioLevels, value: number): void;
   /** What the soundtrack row should say: track title, or why there is none. */
@@ -71,6 +72,24 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   });
 
   let state: MenuState = createInitialMenuState();
+  const intro = document.getElementById("start-screen")!;
+  const startButton = document.getElementById("enter-menu") as HTMLButtonElement;
+  let awaitingStart = !new URLSearchParams(location.search).has("scene");
+  intro.hidden = !awaitingStart;
+  root.inert = awaitingStart;
+  document.body.dataset.intro = awaitingStart ? "waiting" : "entered";
+
+  function enterMenu(): void {
+    if (!awaitingStart) return;
+    awaitingStart = false;
+    intro.hidden = true;
+    root.inert = false;
+    document.body.dataset.intro = "entered";
+    root.classList.add("menu-entering");
+    callbacks.enterMenu();
+    focusFirstItem();
+  }
+  startButton.addEventListener("click", enterMenu);
 
   function renderAudio(): void {
     const levels = callbacks.getAudioLevels();
@@ -133,7 +152,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   }
 
   function focusFirstItem(): void {
-    requestAnimationFrame(() => visibleItems()[0]?.focus());
+    requestAnimationFrame(() => awaitingStart ? startButton.focus() : visibleItems()[0]?.focus());
   }
 
   function renderState(previousScreen?: MenuScreen): void {
@@ -148,7 +167,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     screens.forEach((element, screen) => {
       element.hidden = screen !== state.screen;
     });
-    callbacks.screenChanged(state.screen);
+    callbacks.screenChanged(state.screen, state);
 
     if (state.screen === "playing") {
       canvas.focus({ preventScroll: true });
@@ -201,6 +220,10 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   }
 
   function handleCommands(commands: readonly MenuCommand[]): void {
+    if (awaitingStart) {
+      if (commands.includes("confirm") || commands.includes("pause")) enterMenu();
+      return;
+    }
     for (const command of commands) {
       // Editing a slot name must not turn arrow keys into menu navigation.
       if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === "text") {
