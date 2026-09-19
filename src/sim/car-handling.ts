@@ -33,7 +33,9 @@ export interface CarTune {
   /** Drive as the car nears its governor. */
   readonly topEnd?: number;
   /** The governor. It limits the engine's push, never the car's speed: downhill it
-   *  runs past, and on the flat drag stops a car short of a governor set too high. */
+   *  runs past. It is also where the engine curve reaches its top end, so raising it
+   *  alone stretches the curve: stock power runs out at about 152 mph, and a higher
+   *  governor without `topEnd` makes the car slower there (design/HANDLING.md, "The ceiling"). */
   readonly topSpeed?: number;
   /** Air resistance. Below 1 the car slips through the air: a higher ceiling, a
    *  stronger top end and a longer coast. On the flat the tyres can push against

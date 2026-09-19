@@ -192,32 +192,49 @@ the suite passed. The golden master was then made to fail on purpose: 1% less
 grip on the Kestrel and 120 kg on the Latch changed exactly the runs those cars
 drive in (Moth's three, Stray's two) and none of the others.
 
-### The ceiling (measured 2026-09-19)
+### The ceiling (measured 2026-09-19, corrected the same day)
 
 The governor limits the engine's push, never the car's speed: downhill a car runs
-past it, and on the flat drag decides where a car actually stops gaining. On an
-unlimited flat world with the governor far out of the way (`topSpeed` 3), three
-minutes flat out:
+past it. It is also where the engine curve reaches its top-end value
+(`engineAccelerationFor` blends toward `highSpeedAcceleration` until `topSpeed`),
+so raising the governor alone stretches the curve and leaves less drive at every
+speed above about 67 mph. On an unlimited flat world, full throttle, mph after
+one minute (the card's figure), which is also where the car stays after three:
 
-| Top-end power (`topEnd`) | ×1 | ×1.4 | ×2 and up |
-|---|---|---|---|
-| RWD, AWD | 143 mph | 151 mph | **161 mph**, tyres at 100% of their grip |
-| FWD | 143 mph | **146 mph**, tyres at 100% | 146 mph |
+| Governor | stock | `topEnd` 1.2 | `topEnd` 1.4, `drag` 0.9 | `topEnd` 1.4, `drag` 0.85 | `topEnd` 2, `drag` 0.8 |
+|---|---|---|---|---|---|
+| 147 mph | 147 | 147 | 147 | 147 | 147 |
+| 154 mph | 152 | 154 | 154 | 154 | 154 |
+| 161 mph | 151 | 161 T | 161 | 161 | 161 |
+| 168 mph | 150 | 161 T | 168 | 168 | 168 |
+| 182 mph | 149 | 161 T | 170 T | 174 T | 180 T |
 
-- **The 140 mph governor was only ever trimming 3 mph.** Shared drag holds every
-  layout at 143 on stock power.
-- **Past that the tyres, not the engine, are the wall.** Drag rises with the
-  square of speed, and at about 161 mph (146 FWD, whose unloaded front tyres give
-  out first) it equals the most drive the tyres can put down, so no power helps.
-- **`drag` moves the wall.** Stock power: ×0.9 reaches 151 mph, ×0.8 160, a brick
-  at ×1.2 130. With `topEnd` ×2: ×0.9 170, ×0.8 180, ×0.7 192 (FWD 154 / 163 /
-  174). It is air, so it also sets how a car coasts (100 mph, five seconds off the
-  gas: 52 mph at ×1, 56 at ×0.8, 48 at ×1.2) and helps a little in a stop from
+T: the tyres are at their limit, so traction, not power, is what stops the car.
+That table is RWD, and AWD reads the same to the mph. FWD's unloaded front tyres
+give out first: its wall is 146 mph at stock drag whatever the power, 154 at
+`drag` 0.9, 158 at 0.85 and 163 at 0.8.
+
+- **Stock power runs out at about 152 mph.** A governor up to about 150 is
+  reached with no other knob; the 140 cap was trimming about 12 mph. Past that a
+  higher governor on stock power makes a car slower (151, 150, 149) by stretching
+  the curve.
+- **The tyres are the wall at 161** (146 FWD). Drag rises with the square of speed,
+  and there it equals the most drive the tyres can put down: `topEnd` 1.2 reaches
+  it, and more power buys nothing.
+- **`drag` moves the wall:** about 170 mph at 0.9, 174 at 0.85, 180 at 0.8. Above 1
+  it lowers the ceiling with no governor at all: a brick at 1.2 tops out at 139 mph,
+  at 1.4 at 127. It is air, so it also sets the coast (100 mph, five seconds off
+  the gas: 52 mph at ×1, 56 at ×0.8, 48 at ×1.2) and helps a little in a stop from
   speed. The rival's braking plan reads its own car's drag.
-- **So a car's top speed is three knobs, not one.** Up to about 150 mph the
-  governor with a little `topEnd`; to 161 more `topEnd`; past 161 only `drag`.
-  The Vesper at 165 is `topSpeed` 1.18, `topEnd` 1.4 and `drag` 0.85 (165.2 mph
-  within a minute, as a `--try`; not a tune yet).
+- **Recipes.** To 150 mph: the governor. To 161: the governor and `topEnd` about
+  1.2. Past 161: `drag` as well. The Vesper at 165 is `topSpeed` 1.18, `topEnd` 1.4
+  and `drag` 0.85 (165.2 mph within a minute, as a `--try`; not a tune yet).
+- **The correction.** This section first said stock drag held every layout at
+  143 mph and put a stock ×0.9 drag at 151 and a ×1.2 brick at 130. Those runs
+  took the governor out of the way with `topSpeed` 3, which stretched the curve
+  as above, so they measured a weakened engine, not the stock one. The tyre wall
+  and the `topEnd` 2 figures stand, because a car at its tyre limit does not care
+  about the curve; the rest were measured again with the governors a tune would use.
 
 Adding the knob moved nothing: no car sets it, the golden master's 14 runs stayed
 bit-identical, and every car's card was unchanged. The revision pins now
