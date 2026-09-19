@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { addBroadcastTower } from "../src/render/broadcast-tower.ts";
+import { addBroadcastTower, STATION_BOOTH } from "../src/render/broadcast-tower.ts";
+import { buildingFrontage } from "../src/sim/frontage.ts";
+import { ALDER_STREETS } from "../src/sim/alder.ts";
 import landmarks from "../src/sim/alder-landmarks.json" with { type: "json" };
 
 test("broadcast station matches its shared solid and the mast remains a cheap 120m landmark", () => {
@@ -35,4 +37,34 @@ test("PORT ALDER lettering faces outward on all four sides without mirrored P st
     assert.ok(hits(0), `face ${face}: P stem must appear on the viewer's left`);
     assert.ok(!hits(4), `face ${face}: lower-right of P must remain empty`);
   }
+});
+
+// design/LOOK.md, "Lit means occupied": after dark the station is dark but for
+// the overnight booth, where the DJ is, and the booth faces the street a driver
+// is on, never a blank side.
+test("after dark the station is lit only in its booth, and the booth looks onto the street", () => {
+  const scene = new THREE.Scene(); addBroadcastTower(scene, true); scene.updateMatrixWorld(true);
+  const site = landmarks.broadcastTower;
+  const windows = scene.getObjectByName("broadcast-windows") as THREE.Mesh;
+  const booth = scene.getObjectByName("broadcast-booth") as THREE.Mesh;
+  assert.equal((windows.material as THREE.MeshStandardMaterial).emissiveIntensity, 0, "the empty offices are lit");
+  assert.ok((booth.material as THREE.MeshStandardMaterial).emissiveIntensity > 1, "the booth is dark");
+  // Each pane is a 24-vertex box; find the face it sits on from its centre.
+  const position = booth.geometry.getAttribute("position");
+  assert.equal(position.count, 24 * STATION_BOOTH.length);
+  const frontage = buildingFrontage([{ x: site.x, z: site.z, width: site.width, depth: site.depth, height: site.height,
+    base: site.base, rotation: site.rotation }], ALDER_STREETS, 200)[0]!;
+  for (let pane = 0; pane < STATION_BOOTH.length; pane++) {
+    const centre = new THREE.Vector3();
+    for (let v = 0; v < 24; v++) centre.add(new THREE.Vector3().fromBufferAttribute(position, pane * 24 + v));
+    centre.divideScalar(24).applyMatrix4(booth.matrixWorld);
+    const dx = centre.x - site.x, dz = centre.z - site.z;
+    // frontage.ts's face order: +Z, -Z, +X, -X.
+    const face = Math.abs(dz) > Math.abs(dx) ? (dz > 0 ? 0 : 1) : (dx > 0 ? 2 : 3);
+    assert.ok(Number.isFinite(frontage[face]), `booth pane ${pane} is on a face with no street (${frontage.join(", ")})`);
+  }
+  // By day the booth is one window among the rest.
+  const day = new THREE.Scene(); addBroadcastTower(day, false);
+  const lit = (name: string) => ((day.getObjectByName(name) as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity;
+  assert.equal(lit("broadcast-booth"), lit("broadcast-windows"));
 });

@@ -2,6 +2,14 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 
+/**
+ * The station's booth, as face:window in the base's window band: faces run +Z,
+ * +X, -Z, -X, windows -3 to 3 along each. Only +Z and +X look onto a street
+ * (Broad St, 37 m off), so the booth wraps the corner between them and reads
+ * from both approaches.
+ */
+export const STATION_BOOTH = ["0:2", "0:3", "1:-3"] as const;
+
 /** One shared solid station base; the lattice above is skyline detail. */
 export function addBroadcastTower(scene: THREE.Scene, night: boolean): void {
   const site = landmarks.broadcastTower;
@@ -14,7 +22,11 @@ export function addBroadcastTower(scene: THREE.Scene, night: boolean): void {
       emissive: 0x29404a, emissiveIntensity: night ? .4 : 0 }),
     dark: new THREE.MeshStandardMaterial({ color: 0x17282f, metalness: .4, roughness: .75 }),
     letters: new THREE.MeshBasicMaterial({ color: night ? 0xb5eddd : 0xe0e8d5, toneMapped: false }),
-    windows: new THREE.MeshStandardMaterial({ color: 0x877c60, emissive: 0xe7b969, emissiveIntensity: night ? .9 : .1 }),
+    // After dark the station is lit where somebody is working (design/LOOK.md):
+    // the overnight booth, where the DJ is, and nowhere else.
+    windows: new THREE.MeshStandardMaterial({ color: night ? 0x1d262c : 0x877c60, emissive: 0xe7b969, emissiveIntensity: night ? 0 : .1 }),
+    // Lamp-warm, not office-white: at 1.6 the glass saturated to cream.
+    booth: new THREE.MeshStandardMaterial({ color: 0x877c60, emissive: 0xffa94d, emissiveIntensity: night ? 1.15 : .1 }),
     beacon: new THREE.MeshBasicMaterial({ color: 0xff4434, toneMapped: false }),
   };
   type Surface = keyof typeof materials;
@@ -40,7 +52,12 @@ export function addBroadcastTower(scene: THREE.Scene, night: boolean): void {
   for (let face = 0; face < 4; face++) {
     const yaw = face * Math.PI / 2;
     box("dark", 18, 2.6, .12, 0, 10, 10.06, yaw);
-    for (let i = -3; i <= 3; i++) box("windows", 1.6, 1.5, .06, i * 2.35, 10, 10.14, yaw);
+    for (let i = -3; i <= 3; i++) {
+      const booth = (STATION_BOOTH as readonly string[]).includes(`${face}:${i}`);
+      box(booth ? "booth" : "windows", 1.6, 1.5, .06, i * 2.35, 10, 10.14, yaw);
+      // The desk and its console across the bottom of the lit glass: somebody at work.
+      if (booth && night) box("dark", 1.6, .42, .05, i * 2.35, 9.46, 10.19, yaw);
+    }
     box("dark", 4.2, 5, .12, 0, 2.5, 10.06, yaw);
     box("steel", 20, .5, .18, 0, 16.8, 10, yaw);
   }

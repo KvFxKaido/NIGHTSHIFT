@@ -104,8 +104,11 @@ mast reaches 120 m above the site, with red warning lights and PORT ALDER signs
 facing all four approaches. The base collider and rendered shell share
 `alder-landmarks.json`. Upper latticework is skyline detail, not an invisible
 120 m collision box. Repeated beams, sign pixels and lights merge by material
-into seven meshes, without downloaded fonts or textures. Both map views label
-the landmark Broadcast Tower. The `broadcast-v1` world suffix records the
+into eight meshes, without downloaded fonts or textures. Both map views label
+the landmark Broadcast Tower. After dark the station is lit only in its overnight
+booth (2026-09-19, `STATION_BOOTH`), three panes wrapping the corner over Broad
+St, the only two faces with a street in front of them: the soundtrack's DJ
+broadcasts from here (`public/assets/music/README.md`), and the booth is where. The `broadcast-v1` world suffix records the
 changed collision volume for saved-location validation.
 
 `src/sim/alder.ts` owns the road world and continuous analytic height function. `src/sim/alder-terrain.json` adds compact, smooth hill profiles to the existing downtown grade; the builder and sim read the same parameters. `scripts/build-alder.py` unions buffered road polygons before constrained triangulation; asphalt, pavement and land are disjoint. Triangles refine at more than 7 mm sampled interpolation error or 80 m edge length, and the surface test checks error below 2 cm. Renderer and simulation use the same height function; selecting a different nearest street cannot switch elevation profiles. The outskirts continue that surface beyond the developed blocks. Park grass is a lifted overlay clipped away from roads and pavement; tree trunks use shared rendered and solid footprints.
