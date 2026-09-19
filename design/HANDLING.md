@@ -311,6 +311,19 @@ flying lap, before any tune:
 With the same driver every AWD car lapped **4–8% faster** than the Cinder
 everywhere, and most on streets, which are a string of launches out of junctions.
 
+**Street sprints in traffic** (`--streets`, Codex, 2026-09-19): the same planner
+drives six fixed generated sprints (`gen-1`, `gen-7`, `gen-15`, `gen-moth-12`,
+`gen-crest-23`, `gen-wake-42`, 2.5–4.8 km, chosen by geography) with city traffic
+on, about a minute a car, identical run to run. **Not yet a tuning measure.** At
+six sprints one traffic incident outweighs the car: the Bulwark lost 20 s to the
+Cinder on `gen-7` reversing beside a stopped taxi, and the totals ran backwards,
+the Kestrel at `power` 0.7 2.1% slower than the Cinder and the weaker 0.65 1.8%
+quicker, which less power cannot be. Until it has a traffic-free run of the same
+sprints for pace, with traffic kept as a count of incidents, judge tunes on the
+circuits and read the sprints for what traffic does to a car, not how fast it is.
+The player rig has no rival teleport recovery, so its reset counters stay zero;
+reversing recoveries are counted.
+
 ### The Bulwark, revision 2 (2026-09-19)
 
 The brief, Claude's proposal that Shawn took on 2026-09-19: keep the launch and
