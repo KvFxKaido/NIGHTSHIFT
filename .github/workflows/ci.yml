@@ -36,9 +36,26 @@ jobs:
   # The deterministic simulation suite: every handling gate, the replay checks and
   # the revision pins. It is the project's real gate (CLAUDE.md, "Commands"), and
   # until 2026-09-19 it ran only on whoever remembered it, so a push that broke the
-  # tests was green here. About 4-6 minutes on a development machine.
+  # tests was green here. `pnpm test` runs all of it in one go, which is what to run
+  # locally; here it is split, because the whole suite took 16.1 minutes on a runner.
+  #
+  # Two files are 40% of the suite's 830 seconds of work -- race-generator at 178 s
+  # and critique-alder at 152 s (measured 2026-09-19) -- so the slowest single file
+  # sets the floor and balancing the rest buys nothing. They get a shard each and
+  # everything else shares one, which new test files join without being listed.
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: generator
+            files: tests/race-generator.test.ts
+          - shard: critique
+            files: tests/critique-alder.test.ts
+          - shard: rest
+            files: $(ls tests/*.test.ts | grep -v -e race-generator -e critique-alder)
+    name: tests (${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -47,5 +64,5 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: node --experimental-strip-types --test ${{ matrix.files }}
         timeout-minutes: 20
