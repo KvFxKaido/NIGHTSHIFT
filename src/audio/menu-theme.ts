@@ -34,6 +34,9 @@ export interface MenuTheme {
   status(): { title: string | null; playing: boolean; time: number; failed: boolean };
 }
 
+/** Seconds the theme takes to fade in on a menu, or out into a drive. */
+export const THEME_FADE = .8;
+
 /** A local override wins, including an explicit { file: null } to disable it. */
 export async function loadMenuTheme(context: AudioContext, destination: AudioNode, base = document.baseURI): Promise<MenuTheme> {
   let config: ThemeConfig | null = null;
@@ -48,43 +51,83 @@ export async function loadMenuTheme(context: AudioContext, destination: AudioNod
   return createMenuTheme(context, destination, config, base);
 }
 
+/**
+ * The theme plays from a decoded buffer, and the loop is the buffer source's
+ * own: sample accurate, so a bar-exact loop comes round without a seam. It was
+ * a media element seeking itself back at `loopEnd`, which cost about 20 ms of
+ * silence every time round (measured 2026-09-19 on a 76-bar loop at 152 BPM,
+ * where a sixteenth is 98 ms). The file's whole intro plays first, once.
+ */
 export function createMenuTheme(context: AudioContext, destination: AudioNode, config: ThemeConfig | null, base: string): MenuTheme {
-  const element = new Audio();
-  element.preload = "metadata";
   const gain = context.createGain();
   gain.gain.value = 0;
-  context.createMediaElementSource(element).connect(gain);
   gain.connect(destination);
+  let buffer: AudioBuffer | null = null;
+  let source: AudioBufferSourceNode | null = null;
   let active = false;
   let failed = false;
-  let blocked = false;
-  let pauseAt = Infinity;
+  /** Where the theme stands while nothing is playing; a menu resumes from here. */
+  let held = config?.start ?? 0;
+  /** The live source's start: when it began, and where in the file it began. */
+  let startedAt = 0;
+  let startedFrom = held;
+  let stopAt = Infinity;
 
-  function play(): void {
-    if (!active || !config || failed) return;
-    blocked = false;
-    void element.play().catch((error: unknown) => {
-      const name = (error as { name?: string })?.name;
-      if (name === "NotAllowedError") blocked = true;
-      else if (name !== "AbortError") failed = true;
-    });
+  /** The loop's points, inside the file however the config is written. */
+  function bounds(): { from: number; to: number } {
+    const duration = buffer?.duration ?? 0;
+    const to = Math.min(config?.loopEnd ?? duration, duration);
+    const from = Math.max(0, Math.min(config?.loopStart ?? config?.start ?? 0, Math.max(0, to - .05)));
+    return { from, to };
   }
 
-  // Bad timing values never strand the player beyond the end of the file.
-  function boundedTime(time: number): number {
-    return Number.isFinite(element.duration) && time < element.duration ? time : 0;
+  /** Where in the file the theme is now, carried round the loop. */
+  function position(): number {
+    if (!source || !buffer) return held;
+    const { from, to } = bounds();
+    const played = startedFrom + (context.currentTime - startedAt);
+    if (played < to) return played;
+    const span = to - from;
+    return span > 0 ? from + (played - to) % span : from;
   }
-  function repeat(): void {
-    if (!config || !active) return;
-    element.currentTime = boundedTime(config.loopStart ?? config.start);
-    play();
+
+  function stop(): void {
+    if (!source) return;
+    try { source.stop(); } catch { /* a source that never started */ }
+    source.disconnect();
+    source = null;
   }
-  element.addEventListener("loadedmetadata", () => {
-    element.currentTime = boundedTime(config?.start ?? 0);
-  });
-  element.addEventListener("ended", repeat);
-  element.addEventListener("error", () => { failed = true; });
-  if (config) element.src = new URL(`assets/menu-theme/${trackPath(config.file)}`, base).href;
+
+  function begin(at: number): void {
+    if (!buffer || failed) return;
+    stop();
+    const { from, to } = bounds();
+    const node = context.createBufferSource();
+    node.buffer = buffer;
+    node.loop = to > from;
+    node.loopStart = from;
+    node.loopEnd = to;
+    node.connect(gain);
+    startedFrom = Math.max(0, Math.min(at, Math.max(0, buffer.duration - .01)));
+    startedAt = context.currentTime;
+    node.start(0, startedFrom);
+    source = node;
+  }
+
+  if (config) {
+    // Decoded once, up front: the menu is where the game waits anyway, and a
+    // decoded buffer is what makes the loop seamless.
+    void (async () => {
+      try {
+        const response = await fetch(new URL(`assets/menu-theme/${trackPath(config.file)}`, base).href);
+        if (!response.ok) throw new Error(String(response.status));
+        buffer = await context.decodeAudioData(await response.arrayBuffer());
+        if (active && !source) begin(held);
+      } catch {
+        failed = true;
+      }
+    })();
+  }
 
   return {
     setActive(next) {
@@ -92,18 +135,29 @@ export function createMenuTheme(context: AudioContext, destination: AudioNode, c
       active = next;
       const now = context.currentTime;
       gain.gain.cancelAndHoldAtTime(now);
-      gain.gain.linearRampToValueAtTime(active ? config?.volume ?? 0 : 0, now + .8);
-      pauseAt = active ? Infinity : now + .8;
+      gain.gain.linearRampToValueAtTime(active ? config?.volume ?? 0 : 0, now + THEME_FADE);
       if (active) {
-        if (element.ended) element.currentTime = boundedTime(config?.loopStart ?? config?.start ?? 0);
-        play();
+        stopAt = Infinity;
+        if (!source) begin(held);
+      } else {
+        stopAt = now + THEME_FADE;
       }
     },
     update() {
-      if (!active && context.currentTime >= pauseAt) { element.pause(); pauseAt = Infinity; }
-      if (active && config?.loopEnd !== null && config?.loopEnd !== undefined && element.currentTime >= config.loopEnd) repeat();
+      // Faded out: hold where the music stood, then let the source go.
+      if (!active && source && context.currentTime >= stopAt) {
+        held = position();
+        stop();
+        stopAt = Infinity;
+      }
     },
-    retry() { if (blocked) play(); },
-    status: () => ({ title: config?.title ?? null, playing: active && !element.paused && !failed, time: element.currentTime, failed }),
+    retry() {
+      if (failed) return;
+      // A context the browser refused to start until a gesture; main.ts resumes
+      // it too, and the source picks up where the theme was held.
+      if (context.state === "suspended") void context.resume().catch(() => { /* still refused */ });
+      if (active && !source) begin(held);
+    },
+    status: () => ({ title: config?.title ?? null, playing: active && !!source && !failed, time: position(), failed }),
   };
 }

@@ -27,9 +27,22 @@ config before making a build for distribution.
 
 Times are seconds. `start: 0` preserves the whole intro. With null loop values,
 the entire song repeats. Set `loopStart` to skip the intro on subsequent loops;
-optionally set `loopEnd` to repeat before the track ends. These are media seeks,
-not a sample-accurate gapless music editor. Keep loopEnd later than both start
-and loopStart. Out-of-range starting positions fall back to the beginning.
+optionally set `loopEnd` to turn round before the track ends. Keep loopEnd later
+than both start and loopStart. Out-of-range starting positions fall back to the
+beginning.
+
+The loop is the audio buffer's own (2026-09-19), so it comes round without a
+seam: no seek, nothing lost at the turn. It was a media element seeking itself
+back, which cost about 20 ms of silence each time; a sixteenth note at 152 BPM
+is 98 ms, so it was audible. WAV and OGG loop where the numbers say. MP3 is the
+exception: the encoder pads the start, so a decoded MP3 sits a few milliseconds
+late and a bar-exact loop drifts against the beat.
+
+For a bar-exact loop, render from the bar line at the project's tempo and work
+the seconds out from the tempo: one bar in 4/4 is `4 * 60 / BPM` seconds, so at
+152 BPM a bar is 1.5789 s and a four-bar intro puts `loopStart` at 6.3158.
+Mind the reverb and delay tails at the render's end; the usual trick is to
+render two passes of the loop and fold the tail back onto the start.
 
 `theme.local.json` overrides the tracked `theme.json`. An explicit `file: null`
 disables the theme. The tracked default is silent; missing or unreadable audio

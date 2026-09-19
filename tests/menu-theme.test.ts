@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createMenuTheme, decodeTheme, loadMenuTheme } from "../src/audio/menu-theme.ts";
+import { createMenuTheme, decodeTheme, loadMenuTheme, THEME_FADE } from "../src/audio/menu-theme.ts";
 import { createInitialMenuState, transitionMenu, usesMenuTheme } from "../src/ui/menu-state.ts";
 
 test("theme config keeps the whole intro by default and rejects paths or invalid timing", () => {
@@ -27,97 +27,115 @@ test("front-end pages retain the theme while every in-drive overlay retains the 
   assert.equal(usesMenuTheme({ screen: "controls", returnTo: "pause", submenu: "options" }), false);
 });
 
-function audioFixture(t: test.TestContext) {
-  let element: FakeAudio;
-  class FakeAudio extends EventTarget {
-    src = "";
-    currentTime = 0;
-    duration = 100;
-    paused = true;
-    ended = false;
-    plays = 0;
-    reject: string | null = null;
-    constructor() { super(); element = this; }
-    async play() { this.plays++; if (this.reject) throw { name: this.reject }; this.paused = false; }
-    pause() { this.paused = true; }
-  }
-  const original = globalThis.Audio;
-  Object.assign(globalThis, { Audio: FakeAudio });
-  t.after(() => { Object.assign(globalThis, { Audio: original }); });
+/**
+ * A Web Audio context that records what the theme asks of it: the buffer
+ * sources it starts, where each started, and the loop each was given.
+ */
+function themeFixture(t: test.TestContext, duration = 120) {
   const ramps: number[] = [];
+  const started: { offset: number; loop: boolean; loopStart: number; loopEnd: number }[] = [];
+  const state = { live: 0, decoded: 0, resumed: 0, state: "running" as AudioContextState };
+  class FakeSource {
+    buffer: unknown = null; loop = false; loopStart = 0; loopEnd = 0; onended = null;
+    connect() {} disconnect() { state.live--; }
+    start(_when: number, offset: number) {
+      state.live++;
+      started.push({ offset, loop: this.loop, loopStart: this.loopStart, loopEnd: this.loopEnd });
+    }
+    stop() {}
+  }
   const context = {
     currentTime: 0,
+    get state() { return state.state; },
     createGain: () => ({ gain: { value: 0, cancelAndHoldAtTime() {}, linearRampToValueAtTime(value: number) { ramps.push(value); } }, connect() {} }),
-    createMediaElementSource: () => ({ connect() {} }),
+    createBufferSource: () => new FakeSource(),
+    decodeAudioData: async () => { state.decoded++; return { duration } as AudioBuffer; },
+    resume: async () => { state.resumed++; state.state = "running"; },
   };
-  return { context: context as unknown as AudioContext, element: () => element!, ramps };
+  let ok = true;
+  t.mock.method(globalThis, "fetch", async () => ({ ok, arrayBuffer: async () => new ArrayBuffer(8) }));
+  const settle = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
+  return { context: context as unknown as AudioContext, ramps, started, state, settle,
+    fail: () => { ok = false; }, at: (time: number) => Object.assign(context, { currentTime: time }) };
 }
 
-test("menu navigation never restarts the intro; exit fades before pausing and return resumes", async t => {
-  const f = audioFixture(t);
-  const theme = createMenuTheme(f.context, {} as AudioNode, decodeTheme({ file: "a.mp3", volume: .8 }), "http://localhost/");
+test("the loop belongs to the buffer source, playing the intro once and turning at the config's points", async t => {
+  const f = themeFixture(t);
+  const theme = createMenuTheme(f.context, {} as AudioNode, decodeTheme({ file: "a.wav", start: 0, loopStart: 6.3158, loopEnd: 119.99 }), "http://localhost/");
   theme.setActive(true);
-  f.element().dispatchEvent(new Event("loadedmetadata"));
-  assert.equal(f.element().currentTime, 0);
-  f.element().currentTime = 24;
+  await f.settle();
+  assert.deepEqual(f.started, [{ offset: 0, loop: true, loopStart: 6.3158, loopEnd: 119.99 }],
+    "the intro must play once, then the source's own loop carries it");
+  assert.equal(theme.status().playing, true);
+  // Time inside the loop is carried round it, not run off the end of the file.
+  f.at(130);
+  const time = theme.status().time;
+  assert.ok(time >= 6.3158 && time <= 119.99, `time ran past the loop: ${time}`);
+  assert.ok(Math.abs(time - (6.3158 + (130 - 119.99) % (119.99 - 6.3158))) < 1e-6);
+});
+
+test("menu navigation never restarts the intro; exit fades before stopping and return resumes", async t => {
+  const f = themeFixture(t);
+  const theme = createMenuTheme(f.context, {} as AudioNode, decodeTheme({ file: "a.wav", volume: .8, loopStart: 10, loopEnd: 30 }), "http://localhost/");
   theme.setActive(true);
-  assert.equal(f.element().plays, 1);
+  await f.settle();
+  assert.equal(f.started.length, 1);
+  theme.setActive(true);
+  assert.equal(f.started.length, 1, "a second menu page restarted the theme");
+  f.at(24);
   theme.setActive(false);
-  assert.equal(f.element().paused, false, "fade before pause");
-  Object.assign(f.context, { currentTime: 1 });
+  assert.equal(f.state.live, 1, "the theme stopped before its fade finished");
+  f.at(24 + THEME_FADE);
   theme.update();
-  assert.equal(f.element().paused, true);
+  assert.equal(f.state.live, 0);
   theme.setActive(true);
-  assert.equal(f.element().currentTime, 24);
+  // It plays on through the fade, so it resumes where the sound actually stopped.
+  assert.equal(f.started.at(-1)!.offset, 24 + THEME_FADE, "the theme restarted the intro instead of resuming");
   assert.deepEqual(f.ramps, [.8, 0, .8]);
+  // A drive begun and abandoned inside the fade keeps the same source playing.
   theme.setActive(false);
   theme.setActive(true);
-  Object.assign(f.context, { currentTime: 3 });
+  f.at(40);
   theme.update();
-  assert.equal(f.element().paused, false, "rapid return cancels pending pause");
+  assert.equal(f.state.live, 1, "a rapid return let the pending stop through");
+  assert.equal(f.started.length, 2);
 });
 
-test("optional repeat section preserves the first intro and loops only at its end", t => {
-  const f = audioFixture(t);
-  const theme = createMenuTheme(f.context, {} as AudioNode, decodeTheme({ file: "a.mp3", loopStart: 10, loopEnd: 30 }), "http://localhost/");
-  f.element().dispatchEvent(new Event("loadedmetadata"));
-  theme.setActive(true);
-  assert.equal(f.element().currentTime, 0);
-  f.element().currentTime = 31;
-  theme.update();
-  assert.equal(f.element().currentTime, 10);
-  f.element().currentTime = 100;
-  f.element().dispatchEvent(new Event("ended"));
-  assert.equal(f.element().currentTime, 10);
-});
-
-test("missing audio stays silent, blocked playback retries, and unreadable tracks do not retry forever", async t => {
-  const f = audioFixture(t);
+test("a theme that will not load stays silent, and a suspended context is resumed on retry", async t => {
+  const f = themeFixture(t);
   const empty = createMenuTheme(f.context, {} as AudioNode, null, "http://localhost/");
   empty.setActive(true);
-  assert.equal(f.element().plays, 0);
-  const theme = createMenuTheme(f.context, {} as AudioNode, decodeTheme({ file: "a.mp3", start: 1000 }), "http://localhost/");
-  f.element().dispatchEvent(new Event("loadedmetadata"));
-  assert.equal(f.element().currentTime, 0);
-  f.element().reject = "NotAllowedError";
+  await f.settle();
+  assert.equal(f.started.length, 0, "no config, no source");
+  assert.equal(empty.status().playing, false);
+
+  const blocked = themeFixture(t);
+  Object.assign(blocked.state, { state: "suspended" });
+  const theme = createMenuTheme(blocked.context, {} as AudioNode, decodeTheme({ file: "a.wav" }), "http://localhost/");
   theme.setActive(true);
-  await Promise.resolve(); await Promise.resolve();
-  f.element().reject = null;
+  await blocked.settle();
   theme.retry();
-  assert.equal(f.element().plays, 2);
-  f.element().dispatchEvent(new Event("error"));
-  theme.setActive(false); theme.setActive(true); theme.retry();
-  assert.equal(f.element().plays, 2);
-  assert.equal(theme.status().failed, true);
+  assert.equal(blocked.state.resumed, 1, "a suspended context was never resumed");
+
+  const broken = themeFixture(t);
+  broken.fail();
+  const missing = createMenuTheme(broken.context, {} as AudioNode, decodeTheme({ file: "gone.wav" }), "http://localhost/");
+  missing.setActive(true);
+  await broken.settle();
+  assert.equal(missing.status().failed, true);
+  assert.equal(broken.started.length, 0);
+  missing.retry();
+  assert.equal(broken.started.length, 0, "a failed theme kept retrying");
 });
 
 test("local config takes precedence, missing override uses default, explicit null disables", async t => {
-  const f = audioFixture(t);
+  const f = themeFixture(t);
   let local: unknown = { file: "personal.mp3", title: "Personal" };
   let missing = false;
   t.mock.method(globalThis, "fetch", async (url: URL) => {
     const override = url.toString().includes("theme.local.json");
-    return { ok: !override || !missing, json: async () => override ? local : { file: "default.mp3", title: "Default" } };
+    return { ok: !override || !missing, json: async () => override ? local : { file: "default.mp3", title: "Default" },
+      arrayBuffer: async () => new ArrayBuffer(8) };
   });
   const load = () => loadMenuTheme(f.context, {} as AudioNode, "http://localhost/");
   assert.equal((await load()).status().title, "Personal");
