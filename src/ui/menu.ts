@@ -190,6 +190,10 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     // Confirming on a slider must do nothing. Falling through to items[0] here
     // would resume the run from under a player who was only setting a volume.
     if (focusedSlider()) return;
+    if (state.screen === "garage" && document.activeElement?.closest("[data-car-selector]")) {
+      root.querySelector<HTMLButtonElement>("[data-equip-car]")?.click();
+      return;
+    }
     const items = visibleItems();
     const focused = document.activeElement;
     const target = items.includes(focused as MenuItem) ? focused : items[0];
@@ -218,7 +222,9 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
         const direction = command === "left" ? -1 : 1;
         const slider = focusedSlider();
         if (slider) adjustSlider(slider, direction);
-        else moveFocus(direction);
+        else if (state.screen === "garage" && document.activeElement?.closest("[data-car-selector]")) {
+          root.querySelector<HTMLButtonElement>(`[data-car-cycle="${direction}"]`)?.click();
+        } else moveFocus(direction);
       } else if (state.screen !== "playing" && command === "confirm") {
         confirmFocused();
       } else if (state.screen !== "playing" && command === "back") {

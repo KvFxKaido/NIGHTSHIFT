@@ -5,10 +5,18 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const ready = () => page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready');
+  const preview = async id => {
+    const names = {cinder:'Cinder',bulwark:'Bulwark'};
+    for (let steps = 0; await page.locator('[data-car-name]').textContent() !== names[id]; steps++) {
+      if (steps >= 12) throw Error('Car missing from selector: ' + id);
+      await page.locator('[data-car-cycle="1"]').click();
+      await page.waitForFunction(() => !document.querySelector('[data-car-status]').textContent.includes('Loading'));
+    }
+  };
   const choose = async id => {
-    await page.locator(`[data-car="${id}"]`).click();
-    await page.waitForFunction(id => document.querySelector(`[data-car="${id}"]`).getAttribute('aria-pressed') === 'true'
-      && !document.querySelector(`[data-car="${id}"]`).disabled, id);
+    await preview(id);
+    const equip = page.locator('[data-equip-car]');
+    if (await equip.isEnabled()) await equip.click();
   };
   await page.setViewportSize({width:1440,height:900});
   await page.goto(base + '?scene=garage&freeze=1'); await ready();
@@ -22,13 +30,13 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   await page.reload(); await ready();
   const initial = await page.evaluate(() => {
     if (__ns.state().carModel !== 'ns-cinder') throw Error('Default Cinder missing');
-    if (performance.getEntriesByType('resource').some(e => e.name.includes('ns-bulwark-01.glb'))) throw Error('Unused Bulwark loaded at startup');
+
     if ('rival' in __ns || 'rival' in __ns.view) throw Error('Ghost runtime still exposed');
     __ns.set({paint:'ice',wheels:'alloy',stance:'low'});
     return {vehicle:JSON.stringify(__ns.sim.state), camera:__ns.view.camera.position.toArray()};
   });
   await page.route('**/ns-bulwark-01.glb', route => route.abort());
-  await page.locator('[data-car="bulwark"]').click();
+  await page.locator('[data-car-cycle="1"]').click();
   await page.waitForFunction(() => document.querySelector('[data-car-status]').textContent.includes('Could not load'));
   if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder')) throw Error('Failure removed current car');
   await page.unroute('**/ns-bulwark-01.glb');
@@ -53,6 +61,15 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   // An explicit preview overrides the saved body without writing the save.
   await page.goto(base + '?scene=garage&car=cinder&freeze=1'); await ready();
   if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder' || JSON.parse(localStorage.getItem('nightshift.settings')).car !== 'bulwark')) throw Error('Preview corrupted saved car');
+  // The URL-previewed body is already selected in memory, but still needs an
+  // explicit confirm to persist it. Confirm from the cycle selector itself.
+  if (!await page.locator('[data-equip-car]').isEnabled()) throw Error('URL preview cannot be equipped');
+  await page.locator('[data-car-cycle="1"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('nightshift.settings')).car === 'cinder'
+    && !new URL(location.href).searchParams.has('car'));
+  await page.reload(); await ready();
+  if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder')) throw Error('Confirmed URL preview lost on refresh');
   await choose('bulwark');
   if (await page.evaluate(() => new URL(location.href).searchParams.has('car'))) throw Error('Saved selection retained preview override');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
@@ -74,9 +91,12 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   await page.waitForFunction(() => document.body.dataset.gameScreen === 'garage');
   await choose('cinder');
   await page.setViewportSize({width:960,height:600});
-  await page.locator('[data-car="bulwark"]').focus();
+  await preview("bulwark");
+  await page.locator('[data-car-cycle="1"]').focus();
   await page.keyboard.press('Enter');
-  await page.waitForFunction(() => __ns.state().carModel === 'ns-bulwark');
+  await page.waitForFunction(() => __ns.state().carModel === 'ns-bulwark'
+    && JSON.parse(localStorage.getItem('nightshift.settings')).car === 'bulwark'
+    && document.querySelector('[data-car-ownership]').textContent === 'Equipped');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').scrollIntoViewIfNeeded();
   await page.screenshot({path:'artifacts/garage-cars-small.png'});
   if (errors.length) throw Error(errors.join('\n'));

@@ -122,21 +122,15 @@
           <div class="garage-controls">
             <fieldset class="garage-control">
               <legend>Car</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-car="cinder" aria-pressed="true">Cinder</button>
-                <button class="garage-option" data-car="bulwark" aria-pressed="false">Bulwark</button>
-                <button class="garage-option" data-car="kestrel" aria-pressed="false" disabled>Kestrel · #10 Moth</button>
-                <button class="garage-option" data-car="latch" aria-pressed="false" disabled>Latch · #9 Stray</button>
-                <button class="garage-option" data-car="hammer" aria-pressed="false" disabled>Hammer · #8 Rivet</button>
-                <button class="garage-option" data-car="breakwater" aria-pressed="false" disabled>Breakwater · #7 Bollard</button>
-                <button class="garage-option" data-car="wager" aria-pressed="false" disabled>Wager · #6 Deuce</button>
-                <button class="garage-option" data-car="ns01" aria-pressed="false" disabled>NS-01 · #5 Sable</button>
-                <button class="garage-option" data-car="meridian" aria-pressed="false" disabled>Meridian · #4 Plumb</button>
-                <button class="garage-option" data-car="skim" aria-pressed="false" disabled>Skim · #3 Crest</button>
-                <button class="garage-option" data-car="reign" aria-pressed="false" disabled>Reign · #2 Wake</button>
-                <button class="garage-option" data-car="vesper" aria-pressed="false" disabled>Vesper · #1 Tally</button>
+              <div class="car-selector" data-car-selector role="group" aria-label="Browse cars">
+                <button class="garage-option car-cycle" data-car-cycle="-1" aria-label="Previous car">‹</button>
+                <div class="car-identity" aria-live="polite"><strong data-car-name>Cinder</strong><span data-car-meta></span></div>
+                <button class="garage-option car-cycle" data-car-cycle="1" aria-label="Next car">›</button>
               </div>
-              <p class="handling-note" data-car-status role="status" aria-live="polite">Each car has its own drivetrain. Changing car starts a fresh drive; paint, wheels and stance carry over.</p>
+              <p class="handling-note" data-car-ownership></p>
+              <button class="menu-button" data-equip-car>Drive this car</button>
+              <p class="handling-note" data-car-status role="status" aria-live="polite"></p>
+              <p class="handling-note">← / → on the selector to browse · Confirm to equip</p>
               <p class="handling-note" data-career-status role="status"></p>
               <button class="garage-option" data-replace-stage-race hidden>Replace outdated course</button>
               <p class="handling-note" data-cash role="status">Cash · $0</p>

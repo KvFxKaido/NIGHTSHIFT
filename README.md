@@ -157,12 +157,14 @@ It is a design target, not functionality in the current build. The Live Cred
 style-to-speed economy it replaced was retired on 2026-09-12 and is kept in
 [`design/LIVE_CRED.md`](design/LIVE_CRED.md).
 
-The garage is a functional first visual-customization slice. It uses the same
-car mesh as the track and offers the **Cinder** and **Bulwark** bodies, paint,
-wheel finish, and visual ride height. Each body carries its own drivetrain — the
-Cinder is RWD, the Bulwark AWD — so changing car starts a fresh drive while paint,
-wheels and stance carry over. Your car, paint, wheel finish and
-stance automatically save on this browser and return after refresh/reopening.
+The garage previews all twelve cars live on its rotating platform. Use the
+previous/next arrows (or left/right while the selector is focused) to browse;
+Enter/controller confirm or **Drive this car** equips an owned car. Locked cars
+show their pink-slip requirement, and the Bulwark can be purchased from its preview.
+Browsing leaves the saved car and current drive untouched; leaving without equipping
+restores your car. Equipping a different body starts a fresh drive with its own handling.
+Paint, wheel finish, stance and livery editing are available for the equipped car.
+Your equipped car and visual setup save on this browser and return after refresh.
 Options and Garage show settings status; blocked storage leaves the game usable with
 session-only choices. Performance parts, prices, race progress and saved replays
 are not implemented by this settings save.
