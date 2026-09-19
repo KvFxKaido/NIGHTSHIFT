@@ -492,6 +492,43 @@ AI laps, best flying: **74.22 / 57.43 / 48.32 / 97.45 s** against the Cinder's
 - **`RIVAL_REVISION` is `full-line-v14`.** `pnpm golden`: exactly Stray's two runs
   moved (free roam, where she cruises, and `gen-stray-5`); twelve bit-identical.
 
+### The Hammer, revision 2 (2026-09-19)
+
+Rivet's muscle notchback: quick in a line, poor in a bend, heavy, 150 mph. It
+needed `traction` and power in the gearbox ("Traction and the gearbox", above),
+because on the old knobs a rear-drive car cannot be quick in a line and slow in a
+bend at once.
+
+```
+hammer: { drivetrain: "rwd", revision: 2, mass: 1_500, power: 1.05, topEnd: 1.2, topSpeed: 1.0714,
+  traction: 1.06, grip: 0.95, brakes: 0.85, steering: 0.9 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Hammer r1 | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| **Hammer r2** | 1500 | 3.83 | 2.92 | 150.0 | 30.1 | 13.48 | 0.38 | 7.0° |
+
+- **The drag strip set it.** Rivet races only there, so her place on the list is her
+  quarter mile, not her laps. By #8 the best drag car a player can own is the
+  Cinder (12.95 s driven cleanly, the tuned AWD cars 13.28), so Rivet must not run
+  much under that or her race cannot be won. `traction` 1.1 put her at 12.85; 1.06
+  puts her at **12.97**: a clean run in the Cinder wins by a hundredth, anything
+  less loses. Before the tune she ran 13.10, 0.15 s behind a clean Cinder.
+- **So her laps are not the ladder's −1%.** AI laps **75.57 / 58.02 / 49.02 / 97.58
+  s**, 0.5–1.0% slower than the Cinder on the circuits and level on Uptown. That
+  is the Hammer as a player car: a straight-line car that gives time back in
+  bends, which is the character asked for. `grip` 0.93 lost 0.8–1.5% on the
+  circuits; 0.95 is where the bends cost about what the line gives.
+- **The gates set the balance.** It first had `balance` 1.05, as a margin; the RWD
+  throttle-catch gate could not set up its slide (less than 5 degrees from its
+  shortest handbrake hold), so the car was too planted to test, and a muscle car
+  that will not step out is off-character anyway. At `balance` 1 every RWD gate
+  passes, 33 of 33 in the handling suites, and the quarter mile is unchanged.
+- **`RIVAL_REVISION` is `full-line-v15`.** `pnpm golden`: exactly the drag strip and
+  free roam, where Rivet is parked, moved; twelve bit-identical.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

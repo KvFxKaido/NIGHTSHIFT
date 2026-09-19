@@ -131,7 +131,7 @@ const PINNED: Record<string, { revision: number; fingerprint: string }> = {
   meridian: { revision: 1, fingerprint: "fc966077" },
   skim: { revision: 1, fingerprint: "69049eb8" },
   reign: { revision: 1, fingerprint: "fc966077" },
-  hammer: { revision: 1, fingerprint: "5caa34f4" },
+  hammer: { revision: 2, fingerprint: "e2de71d5" },
 };
 test("a car's numbers change only with its revision", () => {
   assert.deepEqual(Object.keys(PINNED).sort(), Object.keys(CAR_TUNES).sort(), "every car is pinned, and only cars");

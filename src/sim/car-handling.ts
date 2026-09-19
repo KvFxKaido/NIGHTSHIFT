@@ -89,7 +89,11 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   meridian: { drivetrain: "awd", revision: 1 },  // Plumb: fast wagon
   skim: { drivetrain: "fwd", revision: 1 },  // Crest: hardtop roadster
   reign: { drivetrain: "awd", revision: 1 },  // Wake: upright legend coupe
-  hammer: { drivetrain: "rwd", revision: 1 },  // Rivet drag races
+  // Rivet's muscle notchback (2026-09-19): heavy, fat rear tyres, a strong top end to
+  // 150 mph, poor in a bend. Her race is the drag strip, so her traction is capped
+  // where a clean run in the Cinder still wins the quarter by a hair.
+  hammer: { drivetrain: "rwd", revision: 2, mass: 1_500, power: 1.05, topEnd: 1.2, topSpeed: 1.0714,
+    traction: 1.06, grip: 0.95, brakes: 0.85, steering: 0.9 },
 };
 
 /** Falls back to the sim default, which cars.test.ts pins to this same value. */

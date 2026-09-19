@@ -60,18 +60,18 @@
     }
   },
   "hammer": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "hammer",
       "drivetrain": "rwd",
-      "mass": 1180,
-      "zeroToSixty": 3.87,
-      "sixtyToHundred": 2.97,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 14.18,
-      "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "mass": 1500,
+      "zeroToSixty": 3.83,
+      "sixtyToHundred": 2.92,
+      "topSpeed": 150,
+      "stoppingDistance": 30.1,
+      "peakLateral": 13.48,
+      "turnIn": 0.38,
+      "handbrakeSlip": 7
     }
   },
   "breakwater": {
