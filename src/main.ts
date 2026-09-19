@@ -356,6 +356,11 @@ let previewCar = selectedCar;
 let previewRequest = 0;
 const carLoads = new Map<string, Promise<CarView>>();
 const equipCar = document.querySelector<HTMLButtonElement>("[data-equip-car]")!;
+// A URL car override is a session preview until explicitly saved, even when
+// its body is already the one being rendered and simulated.
+function isEquippedCar(id: string): boolean {
+  return id === selectedCar && !new URL(location.href).searchParams.has("car");
+}
 function showCar(parts: CarView): void {
   setPlayerCar(view, parts);
   applyCarCustomization(view, customization);
@@ -382,7 +387,7 @@ async function previewGarageCar(id: typeof selectedCar): Promise<void> {
     }
     if (request !== previewRequest) return;
     showCar(parts);
-    carNote.textContent = id === selectedCar ? "Your equipped car." : "Preview only · Equip an owned car to take it to the street.";
+    carNote.textContent = isEquippedCar(id) ? "Your equipped car." : "Preview only · Equip an owned car to take it to the street.";
   } catch {
     if (request !== previewRequest) return;
     previewCar = selectedCar;
@@ -397,7 +402,7 @@ function restoreEquippedCar(): void {
   previewCar = selectedCar;
   carLoading = false;
   showCar(cars.get(selectedCar)!);
-  carNote.textContent = "Your equipped car.";
+  carNote.textContent = isEquippedCar(selectedCar) ? "Your equipped car." : "URL preview · Confirm to save this car.";
   renderCarSelection();
 }
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
@@ -408,10 +413,10 @@ function renderCarSelection(): void {
   const owned = ownsCar(career, previewCar);
   document.querySelector<HTMLElement>("[data-car-name]")!.textContent = owner?.carName ?? (previewCar === "bulwark" ? "Bulwark" : "Cinder");
   document.querySelector<HTMLElement>("[data-car-meta]")!.textContent = `${(PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar) + 1} / ${PLAYER_CAR_IDS.length} · ${drivetrainFor(previewCar).toUpperCase()}`;
-  document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (previewCar === selectedCar ? "Equipped" : "Owned")
+  document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (isEquippedCar(previewCar) ? "Equipped" : "Owned")
     : owner ? `Win the pink slip · #${owner.rank} ${owner.name}` : "For sale · $1,500";
-  equipCar.disabled = carLoading || !owned || previewCar === selectedCar;
-  equipCar.textContent = previewCar === selectedCar ? "Equipped" : owned ? "Drive this car" : "Locked";
+  equipCar.disabled = carLoading || !owned || isEquippedCar(previewCar);
+  equipCar.textContent = isEquippedCar(previewCar) ? "Equipped" : owned ? "Drive this car" : "Locked";
   document.querySelector<HTMLButtonElement>("[data-open-livery]")!.disabled = carLoading || previewCar !== selectedCar;
   document.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
   const buy = document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!;
@@ -436,7 +441,7 @@ function blacklistStatus(): string {
 }
 function selectCar(): void {
   const id = previewCar;
-  if (carLoading || !ownsCar(progress.get(), id) || id === selectedCar) return;
+  if (carLoading || !ownsCar(progress.get(), id) || isEquippedCar(id)) return;
   if (!progress.preserveLegacyOwnership()) {
     carNote.textContent = "Could not save your existing ownership. Try selecting again.";
     return;

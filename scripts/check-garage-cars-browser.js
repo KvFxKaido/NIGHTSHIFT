@@ -61,6 +61,15 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   // An explicit preview overrides the saved body without writing the save.
   await page.goto(base + '?scene=garage&car=cinder&freeze=1'); await ready();
   if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder' || JSON.parse(localStorage.getItem('nightshift.settings')).car !== 'bulwark')) throw Error('Preview corrupted saved car');
+  // The URL-previewed body is already selected in memory, but still needs an
+  // explicit confirm to persist it. Confirm from the cycle selector itself.
+  if (!await page.locator('[data-equip-car]').isEnabled()) throw Error('URL preview cannot be equipped');
+  await page.locator('[data-car-cycle="1"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('nightshift.settings')).car === 'cinder'
+    && !new URL(location.href).searchParams.has('car'));
+  await page.reload(); await ready();
+  if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder')) throw Error('Confirmed URL preview lost on refresh');
   await choose('bulwark');
   if (await page.evaluate(() => new URL(location.href).searchParams.has('car'))) throw Error('Saved selection retained preview override');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
@@ -83,9 +92,11 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   await choose('cinder');
   await page.setViewportSize({width:960,height:600});
   await preview("bulwark");
-  await page.locator('[data-equip-car]').focus();
+  await page.locator('[data-car-cycle="1"]').focus();
   await page.keyboard.press('Enter');
-  await page.waitForFunction(() => __ns.state().carModel === 'ns-bulwark');
+  await page.waitForFunction(() => __ns.state().carModel === 'ns-bulwark'
+    && JSON.parse(localStorage.getItem('nightshift.settings')).car === 'bulwark'
+    && document.querySelector('[data-car-ownership]').textContent === 'Equipped');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').scrollIntoViewIfNeeded();
   await page.screenshot({path:'artifacts/garage-cars-small.png'});
   if (errors.length) throw Error(errors.join('\n'));
