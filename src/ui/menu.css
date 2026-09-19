@@ -10,6 +10,62 @@
   background: linear-gradient(90deg, rgba(3, 5, 10, .96), rgba(3, 5, 10, .55));
 }
 #start-screen[hidden] { display: none; }
+
+/* The visible main menu is a texture on Wharf Garage. The original buttons
+   stay in the accessibility tree, with projected, clipped pointer targets. */
+body.facade-menu .menu-root[data-screen="main"] {
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  backdrop-filter: none;
+  pointer-events: none;
+  animation: none;
+}
+body.facade-menu .menu-root[data-screen="main"]::before { display: none; }
+body.facade-menu [data-menu-screen="main"],
+body.facade-menu .menu-root[data-screen="main"] .menu-shell,
+body.facade-menu [data-menu-screen="main"] .menu-actions {
+  position: static;
+  width: auto;
+  animation: none;
+  transform: none;
+}
+body.facade-menu [data-menu-screen="main"] .menu-button {
+  position: fixed;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+}
+body.facade-menu [data-menu-screen="main"] > :not(nav):not(.menu-footer):not(.save-summary),
+body.facade-menu #start-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+body.facade-menu [data-menu-screen="main"] .menu-footer,
+body.facade-menu [data-menu-screen="main"] .save-summary {
+  position: fixed;
+  left: max(24px, env(safe-area-inset-left));
+  right: 24px;
+  margin: 0;
+  color: #dce8e4;
+  text-shadow: 0 2px 6px #000, 0 0 12px #000;
+}
+body.facade-menu [data-menu-screen="main"] .menu-footer { bottom: max(24px, env(safe-area-inset-bottom)); }
+body.facade-menu [data-menu-screen="main"] .save-summary { bottom: 52px; font-size: 12px; }
+body.facade-menu #start-screen {
+  justify-content: flex-end;
+  background: linear-gradient(0deg, rgba(3, 5, 10, .85), transparent 35%);
+  pointer-events: none;
+}
+body.facade-menu #enter-menu { pointer-events: auto; }
+body.facade-menu #start-screen .menu-kicker { margin-bottom: 0; }
 #enter-menu { margin-top: 24px; width: min(300px, 100%); }
 body[data-intro="waiting"] #menu-root { visibility: hidden; }
 .menu-entering { animation: menu-arrival 900ms ease-out both; }
