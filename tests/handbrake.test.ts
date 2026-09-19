@@ -1,20 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { DT, HANDLING, steeringAngleFor, type Drivetrain, type Input } from "../src/sim/sim.ts";
-import { FLAT_START, flatSim, flatStep } from "./helpers/handling.ts";
+import { DT, HANDLING, steeringAngleFor, type Input } from "../src/sim/sim.ts";
+import { everyTune, FLAT_START, flatSim, flatStep } from "./helpers/handling.ts";
 
 await RAPIER.init();
 const degrees = (radians: number) => radians * 180 / Math.PI;
-const layouts: Drivetrain[] = ["awd", "fwd", "rwd"];
+// The shared model on each layout, and every car whose tune moves it: a car may be
+// harder to catch, never uncatchable with full countersteer (design/HANDLING.md, "Cars").
+const setups = everyTune();
 
 // Long-hold tests used to require automatic recovery even with neutral input.
 // That is deliberately no longer the contract: the driver owns countersteering.
 // Keep force/finite-state checks, short-pull recovery and explicit input ownership.
 test("handbrake slides never replace the driver's requested steering", () => {
-  for (const layout of layouts) for (const speed of [15, 30, 45, 60]) {
+  for (const { label: layout, setup } of setups) for (const speed of [15, 30, 45, 60]) {
     for (const side of [-1, 1]) for (const holdTicks of [15, 30, 60, 90]) {
-      const sim = flatSim(speed, 0, layout);
+      const sim = flatSim(speed, 0, setup);
+      const handling = sim.state.handling;
       try {
         for (let tick = 0; tick < holdTicks + 120; tick++) {
           sim.body.setTranslation(FLAT_START, true);
@@ -35,11 +38,11 @@ test("handbrake slides never replace the driver's requested steering", () => {
           assert.ok(car.steering >= Math.min(previousSteering, target) - 1e-12 &&
             car.steering <= Math.max(previousSteering, target) + 1e-12, "move toward the input, never past it");
           const moved = Math.abs(car.steering - previousSteering);
-          assert.ok(moved >= Math.min(Math.abs(delta), HANDLING.steeringResponse * DT) - 1e-12);
+          assert.ok(moved >= Math.min(Math.abs(delta), handling.steeringResponse * DT) - 1e-12);
           assert.ok(moved <= Math.min(Math.abs(delta), HANDLING.countersteerResponse * DT) + 1e-12);
           assert.equal(Math.sign(car.steeringAngle), Math.sign(car.steering),
             `${layout}: automatic opposite steering at tick ${tick}`);
-          const normalAngle = steeringAngleFor(forward, car.steering);
+          const normalAngle = steeringAngleFor(forward, car.steering, handling);
           assert.ok(Math.abs(car.steeringAngle) >= Math.abs(normalAngle) - 1e-12,
             "never suppress the driver's ordinary steering");
           assert.ok(Math.abs(car.steeringAngle) <= Math.abs(car.steering) * HANDLING.maxSteeringAngle + 1e-12);
@@ -78,8 +81,8 @@ test("releasing the stick centres the wheels even while the car is still sliding
 });
 
 test("a short handbrake pull can still be caught with deliberate countersteer", (t) => {
-  for (const layout of layouts) for (const side of [-1, 1]) {
-    const sim = flatSim(30, 0, layout);
+  for (const { label: layout, setup } of setups) for (const side of [-1, 1]) {
+    const sim = flatSim(30, 0, setup);
     let peakSlip = 0;
     try {
       for (let tick = 0; tick < 150; tick++) {
@@ -89,7 +92,7 @@ test("a short handbrake pull can still be caught with deliberate countersteer", 
         peakSlip = Math.max(peakSlip, Math.abs(degrees(sim.state.vehicle.slipAngle)));
       }
       const car = sim.state.vehicle;
-      assert.ok(peakSlip > 5 && peakSlip < 15, "retain useful rear rotation");
+      assert.ok(peakSlip > 5 && peakSlip < 15, `${layout}: retain useful rear rotation (peak ${peakSlip.toFixed(2)} degrees)`);
       assert.ok(Math.abs(degrees(car.slipAngle)) < 3 && Math.abs(car.yawRate) < 0.1);
       assert.ok(car.speed > 15, "catch the slide while moving, not by stopping");
       if (layout === "awd" && side === 1) t.diagnostic(`Short pull: peak slip ${peakSlip.toFixed(2)} degrees, recovered at ${car.speed.toFixed(2)} m/s`);
@@ -98,8 +101,8 @@ test("a short handbrake pull can still be caught with deliberate countersteer", 
 });
 
 test("full manual countersteer catches longer city-speed slides without automatic steering", (t) => {
-  for (const layout of layouts) for (const side of [-1, 1]) for (const hold of [45, 60]) {
-    const sim = flatSim(30, 0, layout);
+  for (const { label: layout, setup } of setups) for (const side of [-1, 1]) for (const hold of [45, 60]) {
+    const sim = flatSim(30, 0, setup);
     let peakSlip = 0;
     let firstCounterTick = 0;
     let oneSecondSlip = 0;
@@ -119,7 +122,7 @@ test("full manual countersteer catches longer city-speed slides without automati
         }
       }
       assert.ok(firstCounterTick > 0 && firstCounterTick <= 3);
-      assert.ok(peakSlip > 10 && peakSlip < (hold === 45 ? 22 : 32));
+      assert.ok(peakSlip > 10 && peakSlip < (hold === 45 ? 22 : 32), `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
       assert.ok(Math.abs(degrees(sim.state.vehicle.slipAngle)) < 3);
       assert.ok(Math.abs(sim.state.vehicle.yawRate) < 0.1);
       assert.ok(sim.state.vehicle.speed > (hold === 45 ? 16 : 10), "recover without coming to a stop");
@@ -129,8 +132,8 @@ test("full manual countersteer catches longer city-speed slides without automati
 });
 
 test("brief highway-speed handbraking can be caught without a large opposite overshoot", () => {
-  for (const layout of layouts) for (const side of [-1, 1]) {
-    const sim = flatSim(45, 0, layout);
+  for (const { label: layout, setup } of setups) for (const side of [-1, 1]) {
+    const sim = flatSim(45, 0, setup);
     let peakSlip = 0;
     try {
       for (let tick = 0; tick < 150; tick++) {
@@ -139,10 +142,10 @@ test("brief highway-speed handbraking can be caught without a large opposite ove
           : tick < 60 ? { steer: -side } : {});
         peakSlip = Math.max(peakSlip, Math.abs(degrees(sim.state.vehicle.slipAngle)));
       }
-      assert.ok(peakSlip < 12);
-      assert.ok(Math.abs(degrees(sim.state.vehicle.slipAngle)) < 3);
-      assert.ok(Math.abs(sim.state.vehicle.yawRate) < 0.1);
-      assert.ok(sim.state.vehicle.speed > 25);
+      assert.ok(peakSlip < 12, `${layout}: peak ${peakSlip.toFixed(2)} degrees`);
+      assert.ok(Math.abs(degrees(sim.state.vehicle.slipAngle)) < 3, layout);
+      assert.ok(Math.abs(sim.state.vehicle.yawRate) < 0.1, layout);
+      assert.ok(sim.state.vehicle.speed > 25, layout);
     } finally { sim.world.free(); }
   }
 });

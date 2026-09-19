@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, type Drivetrain } from "../src/sim/sim.ts";
+import { everyTune } from "./helpers/handling.ts";
 import type { RoadWorld } from "../src/sim/road-world.ts";
 
 await RAPIER.init();
@@ -13,10 +14,12 @@ const road: RoadWorld = {
   project: () => ({ along: 0, segmentIndex: 0, distance: 0, height: 0,
     pitch: 0, ux: 0, uz: -1, width: 10000 }),
 };
+// Shared RWD, and every rear-drive car whose tune moves it: these recoveries are a floor, not a Cinder feature.
+const rearDrive = everyTune(["rwd"]);
 
 test("RWD can catch established slides after lifting without a second slide in the opposite direction", () => {
-  for (const [speed, angle, yaw] of [[20, 22, 1.3], [30, 15, 0.9]] as const) for (const direction of [-1, 1]) {
-    const sim = createSim("rwd", road, { traffic: false });
+  for (const { setup } of rearDrive) for (const [speed, angle, yaw] of [[20, 22, 1.3], [30, 15, 0.9]] as const) for (const direction of [-1, 1]) {
+    const sim = createSim(setup, road, { traffic: false });
     // Seed an established slide independently of the power-on grip tune, so
     // preventing slide entry cannot accidentally make this recovery test pass.
     const radians = angle * Math.PI / 180;
@@ -43,9 +46,9 @@ test("RWD can catch established slides after lifting without a second slide in t
 });
 
 test("RWD can add throttle while catching a slide and accelerate out without another spin", () => {
-  for (const speed of [20, 30]) for (const heldTicks of [30, 45, 60]) {
+  for (const { setup } of rearDrive) for (const speed of [20, 30]) for (const heldTicks of [30, 45, 60]) {
     for (const direction of [-1, 1]) for (const gradual of [false, true]) {
-      const sim = createSim("rwd", road, { traffic: false });
+      const sim = createSim(setup, road, { traffic: false });
       sim.body.setLinvel({ x: 0, y: 0, z: -speed }, true);
       try {
         for (let tick = 0; tick < heldTicks; tick++) {
@@ -75,9 +78,9 @@ test("RWD can add throttle while catching a slide and accelerate out without ano
 });
 
 test("RWD settles after small highway steering inputs while the throttle stays down", () => {
-  for (const mph of [85, 95, 110, 135]) for (const direction of [-1, 1]) {
+  for (const { setup } of rearDrive) for (const mph of [85, 95, 110, 135]) for (const direction of [-1, 1]) {
     for (const heldTicks of [30, 180]) {
-      const sim = createSim("rwd", road, { traffic: false });
+      const sim = createSim(setup, road, { traffic: false });
       sim.body.setLinvel({ x: 0, y: 0, z: -mph / 2.23694 }, true);
       let peakSlip = 0;
       try {

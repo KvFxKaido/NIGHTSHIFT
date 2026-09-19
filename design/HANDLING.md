@@ -193,7 +193,8 @@ drive in (Moth's three, Stray's two) and none of the others.
 
 ### The card
 
-`pnpm cars` measures each car on an unlimited flat world (`src/sim/car-card.ts`):
+`pnpm cars` measures each car on an unlimited flat world (`src/sim/car-card.ts`;
+`--try='{"power":0.7}'` measures a candidate beside the car without editing it):
 0–60 and 60–100 mph at full throttle, speed after a minute, the stop from
 100 km/h, peak lateral in the ground table's corner (6 s at full steer and 35%
 throttle from 22 m/s), turn-in (seconds to 90% of peak yaw rate in the first
@@ -217,6 +218,80 @@ backwards by it: Moth's Kestrel (#10) out-accelerated every rear-drive car, and
 Crest's Skim (#3) was the slowest car on the list. The Bulwark, which the player
 buys, was the Cinder with a better launch, immunity on grass and 6% less
 cornering: a better car, not a different one.
+
+**AI laps.** The card cannot say whether a car is different or just better, so
+the second instrument is the rival's own planner (`rivalInput`) driving the
+player's car round Ridge Circuit's three layouts and Uptown Circuit (clear, no
+traffic), three laps each, from the rival's grid slot: the same driver in each
+car, lap times out (`pnpm cars <car>... --laps`, about 45 s a car). It is not a
+pad lap: no launch, no handbrake, cornering at about 0.8 of the grip limit
+(`RIVAL_CORNERING`), and it cannot use rear-drive rotation the way a person can.
+Shawn's recorded Cinder laps on Uptown clear run 84–87 s against the AI's
+97.7 s, so read these as one car against another, never as lap times. Best
+flying lap, before any tune:
+
+| Car | Ridge Full | Ridge East | Ridge Ridge | Uptown clear |
+|---|---|---|---|---|
+| Cinder (RWD) | 74.83 | 57.73 | 48.60 | 97.65 |
+| Bulwark, Kestrel (AWD) | 71.75 | 54.87 | 46.13 | 89.90 |
+| Latch (FWD) | 76.15 | 58.85 | 49.53 | 99.52 |
+
+With the same driver every AWD car lapped **4–8% faster** than the Cinder
+everywhere, and most on streets, which are a string of launches out of junctions.
+
+### The Bulwark, revision 2 (2026-09-19)
+
+The brief, Claude's proposal that Shawn took on 2026-09-19: keep the launch and
+the immunity on grass, pay for them in top end, braking and a lazy rack; heavy
+and planted.
+
+```
+bulwark: { drivetrain: "awd", revision: 2, mass: 1_700, power: 0.7, topEnd: 0.75, topSpeed: 0.9,
+  grip: 0.95, balance: 1.1, brakes: 0.75, steering: 0.7 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Bulwark r1 | 1180 | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| **Bulwark r2** | 1700 | 2.87 | 4.03 | 126.0 | 31.2 | 12.16 | 0.42 | 5.8° |
+
+AI laps, best flying: **76.70 / 59.02 / 49.47 / 96.15 s** against the Cinder's
+74.83 / 57.73 / 48.60 / 97.65. So it is **1.5% quicker on Uptown's streets and
+1.8–2.5% slower on all three circuit layouts**, and it still pays nothing on
+grass, which the AI never uses: a city truck, not an upgrade.
+
+- **The brief alone was not enough, so power went too.** Top end, top speed,
+  brakes, steering, balance and grip together still left it faster than the
+  Cinder on all four (Uptown 92.08 s, Full 74.55 s): a 0–60 twice as quick pays
+  for everything on streets. `power` 0.8 still led by 4% on Uptown; 0.7 is the
+  first value that reads as a trade; 0.6 lost everywhere. It keeps the best
+  launch in the garage, a full second ahead of the Cinder, rather than a
+  supercar's. Without the `grip` knob it was only 0.3–0.9% slower on the
+  circuits, so the grip stays.
+- **Where each knob shows.** Brakes at 0.85 barely registered (27.8 to 29.2 m):
+  the Cinder's stop is grip-limited, and shared rolling resistance adds
+  1.3 m/s², so a truck that stops visibly longer needs 0.75. With `topEnd` at
+  0.6 the car never reached its 126 mph governor (it ran out at 120), making
+  `topSpeed` a dead knob; 0.75 lets the governor bind. `balance` 1.1 is the
+  planted part: less peak lateral, and the handbrake rotates it less.
+- **Contact.** Coasting at 12 m/s into a parked car: a Bulwark shoves a Cinder to
+  **6.65 m/s** and keeps **4.49**; a Cinder shoves a Cinder to 5.63 and keeps
+  3.26; a Cinder into a parked Bulwark moves it **4.62** and keeps **2.12**. Two
+  equal weights give the same result at any mass (5.63 either way).
+- **Still catchable.** The recovery gates run over every distinct tune now
+  (`everyTune` in `tests/helpers/handling.ts`), not only the three layouts. The
+  Bulwark recovers from every pull; it rotates less: the short pull peaks at
+  5.7 degrees against the shared model's 7.4, and the gate's floor that the
+  handbrake still does something useful is 5, so it clears by 0.7. A more planted
+  Bulwark would meet that floor first.
+- **Nothing else moved.** The golden master's 14 runs, none of which drives a
+  Bulwark, stayed bit-identical, and no rival drives one, so no `RIVAL_REVISION`.
+  No recording was made in a Bulwark.
+- **Not yet driven on a pad** (2026-09-19). Everything above is measured, and
+  none of it is feel. The first things to judge: whether 0.7 steering reads as
+  heavy or as broken in a quick left-right, whether 31 m stops feel like a truck
+  or like a fault, and whether 5.8 degrees of handbrake is still fun.
 
 ## Deliberate sim-cade assists
 

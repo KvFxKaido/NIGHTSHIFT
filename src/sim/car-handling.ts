@@ -52,7 +52,11 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // The anchor. Every recorded lap was driven in it, and RIVAL_CORNERING and the
   // route-choice PACE were fitted to those laps: tune other cars against it, never it.
   cinder: { drivetrain: "rwd", revision: 1 },
-  bulwark: { drivetrain: "awd", revision: 1 },
+  // Heavy and planted (2026-09-19): the best launch and the only grass-proof car you
+  // can buy, paid for in top end, braking, cornering and a lazy rack. Before this it
+  // was the Cinder with a better launch, and lapped 4-8% faster (design/HANDLING.md).
+  bulwark: { drivetrain: "awd", revision: 2, mass: 1_700, power: 0.7, topEnd: 0.75, topSpeed: 0.9,
+    grip: 0.95, balance: 1.1, brakes: 0.75, steering: 0.7 },
   // Sable's NS-01 under both of its ids: "blender" is the asset Sable drives, and
   // "ns01" the same car once won back. One tune, so they cannot drift apart.
   blender: NS01,

@@ -113,7 +113,7 @@ const fingerprint = (handling: CarHandling) => {
 };
 const PINNED: Record<string, { revision: number; fingerprint: string }> = {
   cinder: { revision: 1, fingerprint: "8cce6480" },
-  bulwark: { revision: 1, fingerprint: "4a3c5049" },
+  bulwark: { revision: 2, fingerprint: "0565f10f" },
   blender: { revision: 1, fingerprint: "8cce6480" },
   ns01: { revision: 1, fingerprint: "8cce6480" },
   kestrel: { revision: 1, fingerprint: "4a3c5049" },

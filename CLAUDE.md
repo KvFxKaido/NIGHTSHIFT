@@ -121,7 +121,9 @@ fixtures outside the playable bundle, and old world links redirect.
   `src/sim/car-handling.ts`, 2026-09-19) — its drivetrain (the Cinder RWD, the
   Bulwark AWD), a few multipliers and a mass that is felt only in contact — so
   changing car starts a fresh drive. `pnpm cars` measures every car; the Cinder
-  is the anchor the others are tuned against. `createSim` still defaults to the
+  is the anchor the others are tuned against. The Bulwark (r2) is the first car
+  tuned off its layout: heavy and planted, a second quicker to 60 than the
+  Cinder and slower wherever the road is fast. `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car
   and do not persist. Physics revision `four-wheel-v6`; see
@@ -426,7 +428,7 @@ pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
-pnpm cars             # every car's measured card; run before and after a tune, --json for tools
+pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 
