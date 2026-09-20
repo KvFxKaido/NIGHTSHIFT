@@ -339,6 +339,11 @@ fixtures outside the playable bundle, and old world links redirect.
   no length, and a lane still has one vertex per street point, so anything
   reading a lane's vertices must treat coincident ones as one place
   (`TrafficNetwork.bends` does). `tests/alder.test.ts` holds every lane to it.
+- A traffic vehicle's `movement` is wrong while it holds a chain: after crossing
+  into a chain of three or more it is set to `holds[1]`, the junction after next
+  (since 2026-09-09, about 0.5% of vehicle-ticks). Nothing reads it then: every
+  reader takes `holds[0]` first while anything is held, and it is recomputed on
+  release. Do the same, or fix the assignment; the forecast's ghost already has it right.
 - A parked rival is a racer traffic yields to, and it never moves: parked within
   `RACER_IN_LANE` (2.6 m) of a lane's line and facing along it, it stops that lane
   for good. Rivet did, from the middle of Harbor Way's outer lane. Park them off
@@ -492,6 +497,16 @@ up to one tick late; `?smooth=0` draws the last tick, which shakes on displays
 faster than 60 Hz.
 Staged poses are visual checks, not a driven lap; the reference-lap test is
 the driving gate, and screenshots do not certify mobile GPU performance.
+`__ns.shot()` and `?freeze=1` settle the chase camera before capturing, and the
+Standard camera trails the car by about speed / 6.8 in live play: at 140 mph a
+settled shot shows it 8.7 m closer than the player ever sees it. For the live
+frame, read the canvas in the same task as the last `__ns.drive("W1")`. Standard
+B (`?camera=standardB`) is carried with the car and its settled shot is its live one.
+`__ns.drive` silently skips a chunk it cannot parse: its letters are WASDBUJ, so
+`N60` is not sixty ticks of neutral, it is nothing. `__ns.tick(60)` is.
+Preview configs (`.claude/launch.json`): `nightshift` is `pnpm dev` on any free
+port, `nightshift-lan` the same for a phone, `nightshift-build` is `vite preview`
+on 4173 and serves whatever `dist/` holds, so `pnpm build` first.
 
 ## Commands
 

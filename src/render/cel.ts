@@ -27,6 +27,16 @@ import type { CarView } from "./car.ts";
  * a named car's paint; traffic keeps its muted paint and its lamps still do the
  * announcing (render/traffic.ts). What it is there to settle is whether a drawn
  * hazard reads better at night or only stops the rival standing out.
+ *
+ * What one staged frame showed, against the guess that the bands' floor would
+ * make traffic more legible: a van in the player's headlights goes the other way.
+ * Undrawn, the headlight spot blows its muted paint out to pale salmon, which is
+ * an accidental hazard flare. Drawn, the top band caps it at 78% of albedo and
+ * it is a flat dark maroon, with its brake lamps standing out harder against it.
+ * Out of the headlights the two looks barely differ. If the look is wanted and
+ * the flare is missed, traffic's band levels are the knob, and they are uniforms
+ * shared with the cars today. Cost, same spot and tick: 5 draw calls and 7,392
+ * triangles, 1.7% of the frame.
  */
 export type Look = "fx" | "cel" | "cel-traffic";
 export const LOOKS: readonly Look[] = ["fx", "cel", "cel-traffic"];

@@ -30,6 +30,18 @@ const WHEELS: readonly WheelId[] = ["front-left", "front-right", "rear-left", "r
  * the redline and the limiter's ignition cut, 1,100 rpm past every shift the
  * driver had heard, so flat out sounded like a missed gear. The car is held at
  * its top speed with revs in hand instead, under the shift point.
+ *
+ * Known, and left (2026-09-20):
+ * - `SHIFT_RPM` and `FLAT_OUT_RPM` were set by an assistant that cannot hear them.
+ *   If 6,650 held just under the shift point still reads as "about to shift",
+ *   lower it; if it sounds lazy, raise it. Nobody has judged either by ear yet.
+ * - This gearbox always holds the lowest gear it can, like a race box, so
+ *   cruising is busy: coasting at 45 mph is 5,200 rpm (it was 2,700 under the
+ *   bands) and a little louder off the throttle. Shifting early at light throttle
+ *   is the fix and needs hysteresis, or the gear hunts on a half-held trigger;
+ *   `engineTone` is pure and has no state to hold one in.
+ * - The 1-2 shift is the biggest drop (to 3,150) because first gear ends at
+ *   17 mph. Shifting at about 22 would soften it and change the launch's rhythm.
  */
 export const GEAR_SHIFTS: readonly number[] = [.12, .27, .43, .63];
 export const SHIFT_RPM = 7000;

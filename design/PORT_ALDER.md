@@ -1806,6 +1806,18 @@ six instanced sets per kind, independent of vehicle count. Dimensions derive
 from `TRAFFIC_KINDS`, also used by the colliders; shallow trim and the taxi sign
 are the only allowances outside that envelope. Wheels are static geometry.
 
+**What the fleet costs to draw (measured 2026-09-20, free roam by the garage).**
+The frame is 423,154 triangles in 555 draw calls. Traffic is 168,648 of those
+triangles, 40% of the frame, in 30 calls: every instanced set has
+`frustumCulled = false`, and an instanced mesh does not cull per instance anyway,
+so all 261 vehicles are submitted from everywhere on the map. About 100,000 of
+them are wheels: eight 12-sided cylinders a vehicle, mostly on cars a kilometre
+away. A named car is about 125 meshes, doubled by its ink, so the player's alone
+is 250 of the 555 draw calls, and each rival and cruiser adds its own. None of it
+matters on the PC. On the RedMagic these are the first two places to look, and
+draw calls usually run out before triangles: merge a car's static meshes, and
+drop distant traffic's wheels or cull traffic by distance.
+
 `traffic-v5` adds the SUV to the deterministic spawn mix, replacing one of three
 sedan weights: sedan 2, taxi 1, SUV 1, van 1, truck 1. Its cruise is 17 m/s.
 Vehicle count, routing and yielding rules are unchanged. Hatchback and bus are
@@ -1892,6 +1904,13 @@ the longest 187 s, and `traffic-v6` had 64, the longest 300 s. Those figures are
 chaotic, and run to run they say "both degrade", not which is worse. It is a
 capacity problem in a grid of 100 m lanes, not one of the holes above.
 
+No test soaks Port Alder's traffic. "Traffic keeps moving: no vehicle is
+stranded" runs the retired district, for two minutes; Port Alder's own test
+checks overlap, height and finite numbers. Both locks above passed the whole
+suite. A soak test is ten simulated minutes of 261 vehicles, about a minute of
+wall clock, and what it should assert is not obvious while the short blocks
+still back up on their own.
+
 **The lane that ran backwards (fixed the same day, `traffic-v7`).** It was not
 a street. 4th Ave (`sea-north-13`) has two centreline points 1.4 m apart,
 (-647, -1132) and (-648, -1133), followed by a 36 degree bend: legal, if
@@ -1913,6 +1932,11 @@ the junction's curves. Letting a junction's curve start early enough to swallow
 such a bend was tried and reverted: it fixed this one, bunched a compound curve
 elsewhere into 31 degrees a tick, and by widening the kept stretch un-rounded two
 bends that had been fine (68 ticks over 4 degrees in five minutes, from 59).
+The stretch kept for junction curves is one figure for the whole lane, the
+longest any of its movements needs, so a bend is either rounded for every
+vehicle or for none. A real fix decides per movement: which bends that
+vehicle's own curve swallows and which it rounds first. That is a redesign of
+`bendsOf` and `cornerAt`, not a constant.
 
 **Parked rivals (fixed the same day).** A parked rival is a racer traffic yields
 to, and one that never moves. Rivet stood in the road, 0.41 m off the line of
