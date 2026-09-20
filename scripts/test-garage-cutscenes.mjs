@@ -72,12 +72,17 @@ try {
   assert.ok(await page.evaluate(() => __ns.view.car.position.distanceTo({x:__ns.sim.state.vehicle.x,y:__ns.sim.state.vehicle.y,z:__ns.sim.state.vehicle.z}) < .001));
   assert.ok(await page.evaluate(() => __ns.view.camera.position.x < 22));
   await capture('handoff');
-  // A physical visit preserves the saved vehicle and simulation tick on both paths.
+  // Arrive at a different angle; every departure must use the street-facing pose.
   await page.keyboard.press('e');
   await page.waitForFunction(() => __ns.view.garageCutscene?.kind === 'enter');
   await page.keyboard.press('Escape');
   await finished();
   assert.equal(await page.evaluate(() => document.body.dataset.gameScreen), 'garage');
+  await page.evaluate(() => {
+    Object.assign(__ns.sim.state.vehicle, { x: 17, z: 911, heading: 0 });
+    __ns.sim.body.setTranslation({ x: 17, y: 2.5, z: 911 }, true);
+    __ns.sim.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+  });
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   await page.evaluate(() => { testPad.buttons[0] = { pressed: true, value: 1 }; });
   await finished();
@@ -106,7 +111,9 @@ try {
   await page.keyboard.press('e');
   await page.waitForFunction(() => document.body.dataset.gameScreen === 'garage');
   assert.equal(await page.evaluate(() => Boolean(__ns.view.garageCutscene)), false);
-  await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
+  await page.evaluate(() => { Object.assign(__ns.sim.state.vehicle, { x: 17, z: 911, heading: 0 }); });
+  await page.locator('[data-menu-screen="garage"] [data-menu-action="back"]').click();
+  assert.equal(await pose(), exitPose);
   assert.equal(await page.evaluate(() => Boolean(__ns.view.garageCutscene)), false);
   assert.equal(await page.evaluate(() => document.getElementById('menu-root').inert), false);
   assert.deepEqual(errors, []);

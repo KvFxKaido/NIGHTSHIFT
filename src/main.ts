@@ -42,9 +42,9 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setPark
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { loadMusicPreference, saveMusicPreference } from "./settings/music-preference.ts";
-import { carHandling, createSim, resetSim, step, DT, TICK_HZ,
+import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
   type CarHandling, type Drivetrain, type Input } from "./sim/sim.ts";
-import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
+import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
 import { alderCourseDraws, drawAlderCourse } from "./sim/alder-course.ts";
@@ -626,6 +626,11 @@ const menu = createMenuController({
     else if (screen === "main") onTheStreet = false;
     if (screen === "races") raceList.render();
     if (screen === "blacklist") blacklistPanel.render();
+    if (screen === "playing" && from === "garage" && !race) {
+      leaveGarage(sim, ALDER_GARAGE_EXIT);
+      previousPoses = null;
+      resetViewCamera(view);
+    }
     setViewMode(view, screen === "garage" ? "garage" : screen === "main" ? "main" : "track");
     if (screen === "garage" && from !== "garage") beginGarageShot("enter");
     else if (screen === "playing" && (from === "garage" || from === "main")

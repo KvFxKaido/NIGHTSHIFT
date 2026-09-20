@@ -656,6 +656,19 @@ export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.h
   sim.race = fresh.race;
 }
 
+/** Return from a garage without restarting traffic or the rest of the world. */
+export function leaveGarage(sim: Sim, start: RoadWorld["start"]): void {
+  if (sim.state.race) return;
+  sim.body.setTranslation({ x: start.x, y: start.y + START_Y, z: start.z }, true);
+  sim.body.setRotation(yawRotation(start.heading), true);
+  sim.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  sim.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  sim.body.resetForces(true);
+  sim.body.resetTorques(true);
+  sim.state.vehicle = initialVehicle({ ...sim.roadWorld, start }, sim.state.handling);
+  sim.state.vehicle.launch = createLaunch(true);
+}
+
 interface WheelInput {
   front: boolean;
   countersteerRecovery: number;
