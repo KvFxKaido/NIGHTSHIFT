@@ -533,6 +533,7 @@ pnpm build            # typecheck + build (what CI runs)
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
+pnpm laps:compare     # you against the rival, corner by corner, from the newest raced session: replays it and records the rival too
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json

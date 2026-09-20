@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts",
     "laps": "node --experimental-strip-types --no-warnings scripts/lap-summary.ts",
+    "laps:compare": "node --experimental-strip-types --no-warnings scripts/lap-compare.ts",
     "pace": "node --experimental-strip-types --no-warnings scripts/calibrate-pace.ts",
     "cars": "node --experimental-strip-types --no-warnings scripts/car-card.ts",
     "cars:stats": "node --experimental-strip-types --no-warnings scripts/car-stats.ts",

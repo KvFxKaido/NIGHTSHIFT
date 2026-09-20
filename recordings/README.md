@@ -23,6 +23,10 @@ replays each session against the current build; `pnpm laps --json` is for tools.
   depend on it), `physics`, `tickHz`, `race`, `layout`, `solo`, `traffic` (absent
   before street circuits, which means none), `laps`,
   `car`, `drivetrain`, `start`, and `recordedAt` (wall clock, metadata only).
+  Nothing about the rival is stored, and nothing needs to be: the input log
+  reproduces the whole race, so `pnpm laps:compare` replays a raced session and
+  records the rival through the same recorder, for the same channels from both
+  cars, corner by corner.
   `pedalAssist` is how much of the pedals' excess the tyres forgave: absent means
   all of it (the clamp), which is every session from before 2026-09-20 and every
   drag since; the game records 0 otherwise. Replay drives the lap on it.
