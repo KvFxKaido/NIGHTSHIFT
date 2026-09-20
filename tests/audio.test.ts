@@ -3,7 +3,7 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
   engineTone, tyreScrub, windLevel, smoothstep, DEFAULT_LEVELS, IDLE_RPM, REDLINE_RPM,
-  SCRUB_ONSET, SCRUB_FULL,
+  GEAR_SHIFTS, SHIFT_RPM, FLAT_OUT_RPM, SCRUB_ONSET, SCRUB_FULL,
 } from "../src/audio/audio-mix.ts";
 import { decodeManifest, shuffleOrder, MUSIC_MANIFEST_VERSION } from "../src/audio/soundtrack.ts";
 import { decodeSettings, defaultSettings, createSettingsStore, SETTINGS_VERSION } from "../src/settings/settings.ts";
@@ -60,6 +60,32 @@ test("the engine note climbs with speed and drops on each upshift", () => {
   const drops = sweep.filter((value, index) => index > 0 && value < sweep[index - 1]!).length;
   assert.equal(drops, 4, "five gear bands should produce exactly four upshift drops");
   assert.ok(sweep.every(frequency => frequency > 0));
+});
+
+test("an upshift lands where the next gear's ratio puts it, never at idle", () => {
+  // Each gear used to be a band of speed stretched from idle to the redline, so
+  // every upshift fell to 930 rpm and 100 mph at full throttle was 2,500 rpm.
+  for (const top of [HANDLING.topSpeed, 73.8]) {
+    const at = (share: number) => engineTone(stateWithUtilisation(0, share * top), gas(1), top);
+    GEAR_SHIFTS.forEach((shift, index) => {
+      const before = at(shift - 1e-6), after = at(shift + 1e-6);
+      assert.equal(before.gear, index + 1);
+      assert.equal(after.gear, index + 2);
+      assert.ok(Math.abs(before.rpm - SHIFT_RPM) < 1, `gear ${index + 1} shifts at ${before.rpm} rpm`);
+      const next = GEAR_SHIFTS[index + 1];
+      const expected = next === undefined ? FLAT_OUT_RPM * shift : SHIFT_RPM * shift / next;
+      assert.ok(Math.abs(after.rpm - expected) < 1, `gear ${index + 2} picks up at ${after.rpm}, expected ${expected}`);
+      assert.ok(after.rpm > 3000 && after.rpm < before.rpm - 1500, `${before.rpm} -> ${after.rpm}`);
+    });
+    // Revs are proportional to road speed within a gear: that is what a gear is.
+    assert.ok(Math.abs(at(.2).rpm / at(.15).rpm - .2 / .15) < 1e-9);
+    assert.ok(Math.abs(at(.9).rpm / at(.7).rpm - .9 / .7) < 1e-9);
+    assert.ok(Math.abs(at(1).rpm - FLAT_OUT_RPM) < 1e-9);
+    assert.ok(at(100 / 140).rpm > 4500, "100 mph at full throttle is in the engine's working revs");
+  }
+  assert.ok(FLAT_OUT_RPM < SHIFT_RPM && SHIFT_RPM < REDLINE_RPM);
+  // First gear pulls away from idle: the clutch slips below it.
+  assert.equal(engineTone(stateWithUtilisation(0, .5), NEUTRAL).rpm, IDLE_RPM);
 });
 
 test("rpm stays inside the idle-to-redline band at every speed and throttle", () => {
@@ -120,10 +146,9 @@ test("high-revving N/A tone layers respond distinctively to throttle and rpm", (
 test("flat out holds a steady note under the shift points and never the limiter", () => {
   // Top speed used to be the redline with the ignition cut on, 1,100 rpm past
   // every shift the driver had heard: it sounded like a missed gear.
-  const bands = [.12, .27, .43, .63];
   for (const top of [HANDLING.topSpeed, 73.8]) {
     const at = (share: number) => engineTone(stateWithUtilisation(0, share * top), gas(1), top);
-    const shifts = bands.map(share => at(share - 1e-6).rpm);
+    const shifts = GEAR_SHIFTS.map(share => at(share - 1e-6).rpm);
     const flatOut = at(1);
     assert.equal(flatOut.limiter, false, "a governed car never reaches its limiter");
     assert.equal(flatOut.gear, 5);

@@ -17,17 +17,23 @@ const WHEELS: readonly WheelId[] = ["front-left", "front-right", "rear-left", "r
  * single speed/acceleration curve and the HUD reads R/N/D — but a flat drone
  * tells a driver nothing. A note that climbs, breaks and climbs again is how
  * acceleration is heard, so the ratios exist purely to shape that.
- * Bands are fractions of top speed, so retuning HANDLING.topSpeed carries over.
  *
- * Top gear runs past the governor on purpose: the car is held at its top speed
- * with revs in hand, about 6,650 rpm, just under where the other four shift
- * (6,700 to 7,100). Ending the band at 1 put top speed on the redline, 1,100 rpm
- * past every shift the driver had heard, and on the limiter's ignition cut from
- * 139 mph: flat out sounded like a missed gear (2026-09-20).
+ * It is three authored facts: where each upshift comes, as a share of top speed
+ * so that retuning a governor carries over; the revs it comes at; and the revs
+ * flat out holds. Within a gear the revs are proportional to road speed, as in
+ * any gearbox, so an upshift lands where the next gear's ratio puts it (3,100,
+ * 4,400, 4,800 and 4,200 rpm) and climbs from there.
+ *
+ * Until 2026-09-20 each gear was a band of speed stretched from idle to the
+ * redline, which is not a gearbox: every upshift fell to 930 rpm, and 100 mph at
+ * full throttle was 2,500 rpm, lugging. Top gear's band ended at top speed, on
+ * the redline and the limiter's ignition cut, 1,100 rpm past every shift the
+ * driver had heard, so flat out sounded like a missed gear. The car is held at
+ * its top speed with revs in hand instead, under the shift point.
  */
-export const GEAR_BANDS: readonly (readonly [number, number])[] = [
-  [0, .14], [.12, .30], [.27, .47], [.43, .68], [.63, 1.1],
-] as const;
+export const GEAR_SHIFTS: readonly number[] = [.12, .27, .43, .63];
+export const SHIFT_RPM = 7000;
+export const FLAT_OUT_RPM = 6650;
 export const IDLE_RPM = 900;
 export const REDLINE_RPM = 8200;
 /** Four-stroke four: two firing events per revolution. */
@@ -76,16 +82,16 @@ export function engineTone(vehicle: VehicleState, input: Input, topSpeed: number
   if (reversing) {
     through = clamp(speed / Math.max(reference, 1));
   } else {
-    // Highest gear whose band has been entered, so the note drops on each
-    // upshift instead of sliding continuously from idle to redline.
-    for (let index = 0; index < GEAR_BANDS.length; index++) {
-      const [low, high] = GEAR_BANDS[index]!;
-      const lowSpeed = low * reference;
-      if (index === 0 || speed >= lowSpeed) {
-        gear = index + 1;
-        through = clamp((speed - lowSpeed) / Math.max((high - low) * reference, 1e-6));
-      }
-    }
+    // The highest gear whose shift has been passed. Revs follow road speed at
+    // that gear's ratio, so the note drops on each upshift to where the next
+    // gear picks up, instead of sliding from idle to the redline or back to it.
+    const share = speed / Math.max(reference, 1e-6);
+    gear = 1;
+    while (gear <= GEAR_SHIFTS.length && share >= GEAR_SHIFTS[gear - 1]!) gear++;
+    const shift = GEAR_SHIFTS[gear - 1];
+    const roadRpm = shift === undefined ? FLAT_OUT_RPM * share : SHIFT_RPM * share / shift;
+    // Below idle the clutch is slipping; first gear pulls away from there.
+    through = clamp((roadRpm - IDLE_RPM) / (REDLINE_RPM - IDLE_RPM));
   }
   // Standing revs: with no wheel speed to climb, the throttle still has to be
   // audible or the car sounds dead on the grid. This is a FLOOR under the revs,
@@ -104,11 +110,14 @@ export function engineTone(vehicle: VehicleState, input: Input, topSpeed: number
   // 3. High-cam crossover: above 5200 RPM, the valve profile hardens and screams up to 8200.
   const screamer = smoothstep(5200, 7800, rpm) * clamp(0.35 + 0.65 * input.throttle);
   // 4. Overrun: lifting off the throttle at high RPM cuts the intake and triggers exhaust decel crackle.
-  const overrun = clamp(1 - input.throttle / 0.15) * smoothstep(2600, 6200, rpm);
+  // The window is the upper part of a gear, about 60% of it by road speed. It sat
+  // at 2,600 to 6,200 while every gear fell to idle; with revs living between
+  // 3,100 and 7,000 that window was every lift above 20 mph.
+  const overrun = clamp(1 - input.throttle / 0.15) * smoothstep(4600, 7000, rpm);
   // 5. Straight-cut transmission whine: tracks speed, clearest on overrun when engine roar drops.
   const whine = clamp(speed / reference) * (0.3 + 0.7 * (1 - input.throttle));
-  // 6. Rev limiter: only a real gearbox has one to hit. The governor holds a car
-  // under the top of its last gear, so these bands never reach the redline.
+  // 6. Rev limiter: only a real gearbox has one to hit. These gears shift at
+  // SHIFT_RPM and the governor holds top gear under it, so none reaches the redline.
   const limiter = vehicle.transmission?.limiter ?? false;
 
   return {
