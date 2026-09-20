@@ -10,6 +10,8 @@
 //   pnpm laps:compare <substring>          the newest whose name contains it
 //   pnpm laps:compare <path to a .json>    that file, wherever it is
 //   pnpm laps:compare --json               the same facts, for tools
+//   pnpm laps:compare --line               against the same rival on a racing line through the streets
+//                                          (STREET_RACING_LINE): an experiment, nothing in the game drives one
 //
 // It refuses a session that does not replay exactly on this build, and says why:
 // a comparison against a run that diverged would be a comparison against nothing.
@@ -21,6 +23,7 @@ import { createAlderWorld } from "../src/sim/alder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
+import { STREET_RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
 import type { RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
 
@@ -32,7 +35,8 @@ export interface CornerSide { minMph: number; entryMph: number; exitMph: number;
 export interface Corner { lap: number; gate: number; you: CornerSide; rival: CornerSide }
 export interface Comparison {
   race: string; car: string; pedalAssist: number;
-  laps: { lap: number; you: number | null; rival: number | null }[];
+  /** `rivalReasons` is why the rival's lap would not count as evidence (lap-recorder.ts, TRACK_LIMITS): empty for a clean one. */
+  laps: { lap: number; you: number | null; rival: number | null; rivalReasons: string[] }[];
   corners: Corner[];
   /** Seconds you gained on the rival inside corner windows, and everywhere else, over the laps both finished. */
   gainedInCorners: number; gainedElsewhere: number;
@@ -78,7 +82,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
       recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
     }
     const laps = Array.from({ length: Math.max(you.laps.length, theirs.laps.length) }, (_, i) =>
-      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: theirs.laps[i]?.seconds ?? null }));
+      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: theirs.laps[i]?.seconds ?? null, rivalReasons: theirs.laps[i]?.reasons ?? [] }));
     const corners: Corner[] = [];
     let gainedInCorners = 0, total = 0;
     for (let i = 0; i < Math.min(you.laps.length, theirs.laps.length); i++) {
@@ -100,7 +104,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const dir = fileURLToPath(new URL("../recordings/laps/", import.meta.url));
-  const args = process.argv.slice(2), json = args.includes("--json"), wanted = args.find(arg => !arg.startsWith("--"));
+  const args = process.argv.slice(2), json = args.includes("--json"), line = args.includes("--line"), wanted = args.find(arg => !arg.startsWith("--"));
   const files = (await readdir(dir).catch(() => [] as string[])).filter(name => name.endsWith(".json")).sort();
   await RAPIER.init();
   // Newest first, and the first that was raced against somebody.
@@ -117,12 +121,15 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (!chosen) { console.log(wanted ? `No recording matches '${wanted}'.` : "No raced recording yet. Drive ?race=street-uptown-clear or ?race=arena-full under pnpm dev."); process.exit(1); }
   const replayed = replayLapSession(chosen.session);
   if (!replayed.ok) { console.log(`${chosen.name} does not replay on this build, so there is no rival to compare with: ${replayed.reason}`); process.exit(1); }
-  const result = compareSession(chosen.session);
+  // A line is drawn through the route once: the raced rival's is its centreline, so this is the first.
+  const result = compareSession(chosen.session, line ? withRacingLine(circuitEvent(chosen.session.race, chosen.session.laps)!.rival!, STREET_RACING_LINE) : undefined);
   if (json) console.log(JSON.stringify({ file: chosen.name, ...result }, null, 2));
   else {
     const time = (seconds: number | null) => seconds === null ? "  --   " : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;
     console.log(`${chosen.name}  ${result.race} · ${result.car} · pedal assist ${result.pedalAssist} · replays exactly\n`);
-    for (const lap of result.laps) console.log(`  lap ${lap.lap}   you ${time(lap.you)}   rival ${time(lap.rival)}${lap.you !== null && lap.rival !== null ? `   you by ${(lap.rival - lap.you).toFixed(2)} s` : ""}`);
+    if (line) console.log(`  Against a rival on a street racing line, not the one raced. ${result.playerReproduced ? "Your laps came out as recorded, so the two never touched." : "YOUR LAPS DID NOT COME OUT AS RECORDED: the two touched, and nothing below is your race."}\n`);
+    for (const lap of result.laps) console.log(`  lap ${lap.lap}   you ${time(lap.you)}   rival ${time(lap.rival)}${lap.you !== null && lap.rival !== null ? `   you by ${(lap.rival - lap.you).toFixed(2)} s` : ""}${lap.rivalReasons.length ? `   rival's lap INVALID (${lap.rivalReasons.join(", ")})` : ""}`);
+    console.log(`\n  The rival was put back on its line ${result.rivalResets} times and was never more than ${result.rivalWidest.toFixed(1)} m from the centreline.`);
     console.log(`\n  Over the laps you both finished: ${result.gainedInCorners.toFixed(2)} s gained within ${WINDOW} m of a gate, ${result.gainedElsewhere.toFixed(2)} s everywhere else.\n`);
     console.log("  lap gate   slowest mph        into it mph        out of it mph      seconds through    metres off the centreline at the slowest point (widest)");
     console.log("             you   rival        you   rival        you   rival        you   rival        you            rival");

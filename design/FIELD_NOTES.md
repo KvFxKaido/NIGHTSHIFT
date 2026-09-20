@@ -10,6 +10,36 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## A racing line through a street corner (2026-09-20)
+
+Asked for: fix lap 1, because a rival given a racing line through Uptown Circuit
+was 7 to 16 s slower on its first lap and, on one setting, "went backwards". The
+name of the bug was the first wrong thing about it.
+
+- It was not lap 1. A tick-by-tick trace showed the rival at full lock at 15 mph
+  at some corners on some laps, lap 2 included. Dumping the line sample by sample
+  showed the same corner solved as a 23 m arc on one lap and a 118 degree spike on
+  the next. The solver works coarse to fine from nodes 64 m apart, a lap is not a
+  multiple of 64 m, and which answer a corner got depended on where a node fell.
+- It was not reversing. "Went backwards" is the lap recorder's name for the car's
+  place on the track falling 20 m, and a car orbiting a hairpin does that going
+  forwards. That guess had gone into the doc as a finding.
+- The measured lap was the lucky one, so the experiment's headline (the line is
+  worth 0.6 s, the corner-speed plan is everything) was a measurement of a broken
+  line. On a sound one the line is worth 4.8 s a lap and the plan about the same.
+  That had been reported to Shawn as a correction of an earlier guess; it needed
+  correcting itself.
+- The first fix, a curvature that keeps rising past a right angle, mended thirty
+  corners out of thirty-three and was the easy part. The hairpin took three tries,
+  because each bound on the offsets moved the failure to a different lap rather
+  than removing it: the fault was offsetting from a 129 degree vertex at all.
+- Ridge Circuit's lines had to stay bit for bit the same, or the one raced
+  recording that still replays would be refused. A hash of all three, taken before
+  the first edit and compared after every one, caught that the curvature fix moves
+  two of them; so the street fixes are an option Ridge does not take.
+- Each new test was run with the fix switched off, to see it fail on the original
+  symptom and not merely pass with the fix on.
+
 ## How traffic takes a corner (2026-09-20)
 
 Asked for: more natural driving lines, since traffic overshot its turns and

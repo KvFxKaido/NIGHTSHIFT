@@ -1238,44 +1238,79 @@ gives back 2.1 s everywhere else. Over the 22 corners both drove:
 It is not late braking. The rival is quicker out of 14 of the 22, from an apex
 17 mph slower: it never over-asks its tyres and he has no pedal assist.
 
-**An experiment, not built.** The same input log was replayed against other
-rivals, and the comparison kept only where his own laps came out to the tick as
-recorded, which is the check that the two never touched.
+**An experiment, not built: a racing line through the streets.** First measured
+by replaying the same input log against other rivals. That first table was wrong,
+and is kept out of here: its line was broken, which is the next paragraph, and it
+said a racing line was worth 0.6 s a lap and the corner-speed plan was the whole
+lever. Measured again on a sound line, with the rival alone on clear streets (the
+player parked at Wharf Garage, so nothing is contact), three laps each:
 
-| rival | lap 2 | slowest point |
-|---|---|---|
-| as raced: lane arcs in its own half, plan 0.80 | 1:35.18 | 32.6 mph |
-| K1999 racing line (`withRacingLine`), plan 0.76 | 1:34.60 | 35.0 mph |
-| the same line, plan 0.88 | 1:31.30 | 38.5 mph |
-| the same line, plan 1.00 | 1:28.65 | 42.3 mph |
-| line with margins 1.2 + 0.5 m, plan 0.88 | 1:27.53 | 40.6 mph |
-| line with margins 1.2 + 0.5 m, plan 1.00 | 1:24.58 | 44.9 mph |
+| rival | lap 1 | lap 2 | lap 3 |
+|---|---|---|---|
+| as shipped: lane arcs in its own half, plan 0.80 | 1:37.78 | 1:35.18 | 1:35.18 |
+| street racing line (`STREET_RACING_LINE`), plan 0.76 | 1:32.45 | 1:30.38 | 1:29.75 |
+| the same line, plan 0.88 | 1:29.30 | 1:27.07 | 1:26.57 |
+| the same line, plan 1.00 | 1:27.03 | 1:24.80 | 1:24.40 |
+| Shawn, for scale | 1:31.78 | 1:27.53 | 1:26.47 |
 
-- **The line alone is worth almost nothing**, 0.6 s. The guess going in, that the
-  arcs' confinement to one side of the road was the gap, was wrong.
-- **The plan fraction is the lever.** On each corner where the line's radius is
-  sound, the rival did 0.76 of the grip-limited speed for that radius, as planned,
-  and Shawn did about all of it: 65 mph allowed, 52 and 60; 53, 42 and 50; 56, 44
-  and 56; 68, 54 and 69. At 1.00 on the tighter line it laps 2 s under his best.
-- **It held the road at 1.00.** No second off the carriageway, a valid lap, no
-  reset, never further than 9.1 m from the centreline, where Shawn spent 0.3 to
-  0.9 s a lap off it and ran 13.4 m wide. That does not fit "past about 0.8 its
-  tracking, not its grip, is the limit" above, which was measured on Ridge
-  Circuit's width and on streets in traffic. On clear streets, on a racing line
-  with steering feedforward, it has not been shown to hold.
-- **Four corners have a poor line.** Gates 3, 4, 7 and 10 pinch to 29, 8, 17 and
-  5 m where Shawn drove 59, 42, 42 and 37 mph. Two are close together and one is
-  a hairpin; he also crosses the pavement there, which the line may not.
+Every lap of every row is valid, with no reset, no reverse and no tick with a
+wheel off the pavement, 1.00 included.
 
-**What stands between this and a build.** Lap 1 is broken on a racing line from
-this grid: it is 7 to 16 s slower than lap 2, and on the tighter line it is
-INVALID, "went backwards": the rival reverses out of something in the first
-lap and was not found. One setting (tight margins, plan 0.76) touched the
-player. A racing line ignores lanes, which is why streets never had one (the
-header of `racing-line.ts`: the rival "sat in the traffic's own lane and ran into
-it"), so this is for clear races only until the rival reads traffic's forecast.
-And it is one driver, one circuit, one race: `RIVAL_BRAKING.speedFactor` was
-overwritten inside a probe and is 0.76 everywhere it is used.
+- **The line is worth 4.8 s a lap, and the plan as much again.** About even: 0.76
+  to 1.00 on the line is another 5.6 s. At 0.88 its flying laps are within half
+  a second of his (1:27.07 and 1:26.57 against 1:27.53 and 1:26.47); at 1.00 it is
+  two to three seconds a lap quicker.
+- **The plan fraction, per corner.** On a corner whose line is sound the rival
+  does 0.76 of the grip-limited speed for that radius, as planned, and Shawn about
+  all of it: 65 mph allowed, 52 and 60; 53, 42 and 50; 56, 44 and 56; 68, 54 and 69.
+- **It held the road at 1.00.** That does not fit "past about 0.8 its tracking,
+  not its grip, is the limit" above, which was measured on Ridge Circuit's width
+  and on streets in traffic. On clear streets, on a racing line with steering
+  feedforward, it has not been shown to hold.
+- **Margins are not a lever.** Edge and outside margins of 1.2 and 0.5 m, against
+  2.6 and 2.5, lap in 1:30.85 at 0.76: no quicker.
+- **The tightest corner left is a real one**: Harrison Terrace onto Broadway, 98
+  degrees, a 15 m line. The hairpin's is 16 m, from 4.
+
+**"Lap 1 is broken" was the solver, on any lap.** The first measurement found a
+racing-line rival 7 to 16 s slower on lap 1, and on tighter margins INVALID,
+"went backwards", and guessed it was reversing out of something. It was not
+reversing and it was not lap 1. `withRacingLine` had only ever drawn Ridge
+Circuit, whose tightest bend is a 16 m arc; a street corner is one vertex. The
+line through the same corner came out as a 23 m arc on one lap and a 4 m spike on
+the next, by where the solver's coarse nodes, 64 m apart, fell on it, and a lap is
+not a multiple of 64 m. The rival orbited each spike at full lock at 15 mph, and
+at the hairpin its place on the route ran backwards, which is what the recorder
+calls going backwards. Laps 1 and 3 had the spikes; lap 2, the one measured, had
+two of its own (gate 4 and the hairpin), so even the "good" lap was slow. Three
+faults, all in `src/sim/racing-line.ts` (`STREET_RACING_LINE`, `HAIRPIN`):
+
+1. The circle through three points is smallest at a right angle and grows again
+   past it, so a sample thrown to the outside of a corner read as a GENTLER bend
+   and was pushed further out. The curvature now keeps rising. This alone mended
+   every right-angle corner on every lap.
+2. Offsets to the inside of a corner fold where the normals meet, and at a hairpin
+   where they cross the other leg; the inside is bounded by both.
+3. Offsets from a 129 degree vertex zigzag whatever bounds them, so a hairpin's
+   samples are put on an arc first, and the room either side of the arc is the
+   asphalt the two legs share.
+
+Ridge Circuit takes none of it and its three lines are bit for bit what they were
+(the first fix moves Full's and East's, and a moved line is a `RIVAL_REVISION`
+bump that would refuse the one raced recording that still replays). With the
+fixes switched off, both new tests in `tests/racing-line.test.ts` fail on the
+original symptoms: a 118 degree kink 1,748 m along, and lap 1 at 102.12 s against
+lap 2's 94.62.
+
+**What stands between this and a build.** A racing line ignores lanes, which is
+why streets never had one (the header of `racing-line.ts`: the rival "sat in the
+traffic's own lane and ran into it"), so this is for clear races only until the
+rival reads traffic's forecast. It is one circuit. Against a human it has not
+been raced: `pnpm laps:compare --line` replays a recorded race against it, but the
+input log is blind, and a rival this much quicker is somewhere else on the road,
+so the recorded car drives into it (the tool says so, and voids its own table).
+The plan fraction is a number in `rival.ts` (`RIVAL_BRAKING.speedFactor`, 0.76);
+the rows above overwrote it inside a probe.
 
 
 ## Uptown Circuit (2026-09-13)

@@ -414,6 +414,10 @@ fixtures outside the playable bundle, and old world links redirect.
   `HANDLING`, or a rival plans corners with a grip its tyres do not have. A tune
   changes only with its `CarTune.revision`, and a rival's car with `RIVAL_REVISION`
   too; the fingerprint test prints the repin.
+- A racing line through streets is drawn with `STREET_RACING_LINE`, never `RACING_LINE`, which is Ridge Circuit's and
+  leaves 4 m spikes at street corners on some laps and not others (`racing-line.ts`). Ridge does not take the street
+  fixes: they move its lines, which is a `RIVAL_REVISION` bump. Judge a line on every lap, never the one in the middle,
+  and a rival quicker than the one raced cannot be measured by replaying the player's inputs at it: they collide.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
@@ -534,6 +538,7 @@ pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm laps:compare     # you against the rival, corner by corner, from the newest raced session: replays it and records the rival too
+pnpm laps:compare --line # the same race against a rival on a street racing line (an experiment; nothing in the game drives one)
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json

@@ -4,9 +4,12 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { arenaEvent } from "../src/sim/arena-events.ts";
 import { ARENA, arenaLap } from "../src/sim/arena.ts";
 import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
-import { RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
+import { createAlderWorld } from "../src/sim/alder.ts";
+import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
+import { HAIRPIN, RACING_LINE, STREET_RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, type RivalDefinition } from "../src/sim/rival.ts";
-import { createSim } from "../src/sim/sim.ts";
+import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
+import { STREET_GATE_RADIUS, streetCircuitEvent } from "../src/sim/street-circuit.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
 await RAPIER.init();
 
@@ -98,4 +101,71 @@ test("passing on a racing line never aims the rival off the road", () => {
     assert.ok(Math.abs(aim) <= ARENA.width / 2 - 2.2 + 1e-9, `tick ${tick}: aiming ${aim.toFixed(2)} m from the centre of a 14 m road`);
   }
   assert.ok(moved, "the rival never tried to pass; the test proves nothing");
+});
+
+// A street's corners are single vertices: right angles and one hairpin on Uptown Circuit. Drawn with RACING_LINE
+// (2026-09-20) a corner came out as a 23 m arc on one lap and a 4 m spike on the next, by where the solver's coarse
+// nodes landed on it, and the rival orbited the spike at full lock: what read as "lap 1 is broken".
+test("a street's line is sound at every corner of every lap, the hairpin included", () => {
+  const event = streetCircuitEvent(3, false, false), route = event.rival!, line = withRacingLine(route, STREET_RACING_LINE);
+  const perLap = event.race.gatesPerLap!;
+  assert.deepEqual(withRacingLine(route, STREET_RACING_LINE), line, "the same route drew a different line");
+  // No spike anywhere: a 15 m arc turns 15 degrees a sample, and the kinks were 118 to 166.
+  for (let i = 1; i < line.points.length - 1; i++) {
+    const o = line.points[i - 1]!, p = line.points[i]!, q = line.points[i + 1]!;
+    const turn = Math.abs(Math.atan2((p.x - o.x) * (q.z - p.z) - (p.z - o.z) * (q.x - p.x), (p.x - o.x) * (q.x - p.x) + (p.z - o.z) * (q.z - p.z))) * 180 / Math.PI;
+    assert.ok(turn < 45, `the line turns ${turn.toFixed(0)} degrees at one sample, ${line.along[i]!.toFixed(0)} m along`);
+    assert.ok(line.along[i]! > line.along[i - 1]!);
+  }
+  const tightest = (gate: number) => {
+    let radius = Infinity;
+    for (let d = -60; d <= 60; d++) radius = Math.min(radius, radiusAt(line, gate + d));
+    return radius;
+  };
+  let hairpins = 0;
+  for (let g = 0; g < perLap - 1; g++) {
+    const laps = [0, 1, 2].map(lap => tightest(line.gates[lap * perLap + g]!));
+    // The tightest is the 98 degree turn from Harrison Terrace onto Broadway, at 15 m. The car's own circle at full lock is 8.4.
+    for (const [lap, radius] of laps.entries()) assert.ok(radius > 12, `gate ${g + 1}, lap ${lap + 1}: the line pinches to ${radius.toFixed(1)} m`);
+    // The same corner is the same corner on every lap, or near it: the solver may settle either side of a following bend.
+    assert.ok(Math.min(...laps) > Math.max(...laps) * 0.7, `gate ${g + 1}: ${laps.map(r => r.toFixed(1)).join(", ")} m over three laps`);
+    // Still a gate the line takes: a hairpin's line runs inside its vertex, and must stay within reach of the gate there.
+    const v = route.along.findIndex(a => Math.abs(a - route.gates[g]!) < 1e-6);
+    const before = route.points[v - 1]!, vertex = route.points[v]!, after = route.points[v + 1]!, at = sampleRivalPath(line, line.gates[g]!);
+    const from = Math.hypot(at.x - vertex.x, at.z - vertex.z);
+    assert.ok(from < STREET_GATE_RADIUS - 4, `gate ${g + 1}: the line passes ${from.toFixed(1)} m from a gate ${STREET_GATE_RADIUS} m wide`);
+    const turn = Math.abs(Math.atan2((vertex.x - before.x) * (after.z - vertex.z) - (vertex.z - before.z) * (after.x - vertex.x),
+      (vertex.x - before.x) * (after.x - vertex.x) + (vertex.z - before.z) * (after.z - vertex.z))) * 180 / Math.PI;
+    if (turn <= HAIRPIN.from) continue;
+    hairpins++;
+    // Rounded, so its line runs well inside the vertex, over the asphalt the two legs share.
+    assert.ok(from > HAIRPIN.gateReach / 2, `the hairpin's line passes only ${from.toFixed(1)} m inside its vertex`);
+    assert.ok(Math.min(...laps) > 14, `the hairpin's line is a ${Math.min(...laps).toFixed(1)} m arc`);
+  }
+  assert.equal(hairpins, 1, "Uptown has one hairpin; if this is 0 the rounding is not being tested");
+});
+
+test("the rival drives a street's line from the grid: a clean first lap, no reset, no reverse, no wheel off the pavement", () => {
+  const event = streetCircuitEvent(2, false, false), line = withRacingLine(event.rival!, STREET_RACING_LINE);
+  // The player is parked at Wharf Garage, across the city, so nothing here is contact.
+  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: event.race, rival: line, traffic: false });
+  try {
+    const recorder = createLapRecorder(event.track);
+    let offPavement = 0, slowest = Infinity;
+    for (let tick = 0; tick < 240 * TICK_HZ && !sim.state.rival!.race.finished; tick++) {
+      step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+      const rival = sim.state.rival!;
+      recordTick(recorder, rival.input, rival.vehicle, rival.race, TICK_HZ);
+      if (rival.vehicle.groundContact > 0) offPavement++;
+      if (rival.race.ticks > 10 * TICK_HZ) slowest = Math.min(slowest, rival.vehicle.speed);
+    }
+    const driver = sim.state.rival!.driver, [first, second] = recorder.laps;
+    assert.equal(recorder.laps.length, 2, "the rival did not finish");
+    assert.deepEqual([first!.reasons, second!.reasons], [[], []]);
+    assert.deepEqual([driver.resets, driver.unseenResets, driver.recoveries, offPavement], [0, 0, 0, 0]);
+    // A standing start costs about two seconds. On the old line lap 1 was 7.5 s behind, and 16 with tighter margins.
+    assert.ok(first!.seconds - second!.seconds < 4, `lap 1 ${first!.seconds.toFixed(2)} s against lap 2's ${second!.seconds.toFixed(2)}`);
+    // At a spike it orbited at 14.5 mph; the hairpin's line is driven at 27.
+    assert.ok(slowest > 10, `it slowed to ${(slowest * 2.23694).toFixed(1)} mph`);
+  } finally { sim.world.free(); }
 });

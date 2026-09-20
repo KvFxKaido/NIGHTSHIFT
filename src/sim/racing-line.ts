@@ -63,6 +63,50 @@ export const RACING_LINE = {
   sweeps: 100,
 } as const;
 
+/**
+ * A street's corners (2026-09-20): a right angle or a hairpin at ONE vertex of a
+ * centreline, where a circuit's tightest bend is a 16 m arc. Drawn through Uptown
+ * Circuit with RACING_LINE, a corner came out as a 23 m arc on one lap and a 4 m
+ * spike on the next, by where the solver's coarse nodes (64 m apart, and a lap is
+ * not a multiple of that) happened to land on it. The rival orbited each spike at
+ * full lock, and at the hairpin its place on the route ran backwards: over three
+ * laps alone, 1:42.12, 1:34.62 and 1:39.93, and with tighter margins a first lap
+ * of 1:46.88 with 24 resets. It read as "lap 1 is broken"; lap 3 was too, and the
+ * lap between them only by luck. Three faults, each fixed here:
+ *
+ * - **A spike read as a gentle bend.** The circle through three points is smallest
+ *   when they turn a right angle and grows again past it. So once a sample had been
+ *   thrown to the outside of a corner (a 118 degree kink at 23rd & Harrison) its
+ *   curvature read LOWER than its neighbours asked for, and it was pushed further
+ *   out. `curvature` here keeps rising past a right angle. This alone mended every
+ *   right-angle corner on every lap.
+ * - **An offset that folds.** Normals fan in on the inside of a corner, so samples
+ *   offset past where they meet pass each other and the line runs backwards round
+ *   the apex. The inside is held to where each step of the line still covers
+ *   `foldStep` of the road's, and to the circle that touches the road here and
+ *   reaches its other leg: a hairpin's two legs are 51 degrees apart, so 7 m inside
+ *   one is across the other's line.
+ * - **A hairpin's vertex.** Bounded or not, offsets from a 129 degree vertex zigzag
+ *   (HAIRPIN), so its samples are put on an arc first.
+ *
+ * Driven alone on Uptown, clear, at the racing line's own 0.76: 1:32.45, 1:30.38,
+ * 1:29.75, every lap valid, no reset, no reverse, no wheel off the pavement, where
+ * the rival as shipped (lane arcs, its own side, 0.80) laps in 1:35.18
+ * (tests/racing-line.test.ts; design/PORT_ALDER.md, "Against a human, measured").
+ *
+ * All of it is off for Ridge Circuit, whose lines are bit for bit what they were.
+ * Its turns pass a right angle only between coarse nodes, the finer levels already
+ * put that right, and nothing on it folds; but the first fix moves Full's and
+ * East's lines, and a moved line is a moved rival (RIVAL_REVISION), which would
+ * refuse every raced recording for the sake of a line that was not broken. When
+ * that revision is next bumped for its own reasons, Ridge can take this.
+ *
+ * Nothing in the game drives a street line yet: it ignores lanes, so it is for clear
+ * streets only (above, "Not in the city"). `pnpm laps:compare --line` measures one
+ * against a recorded race.
+ */
+export const STREET_RACING_LINE = { ...RACING_LINE, sharpCorners: true, foldStep: 0.25 } as const;
+
 export interface RacingLineOptions {
   readonly spacing: number;
   readonly edgeMargin: number;
@@ -70,6 +114,69 @@ export interface RacingLineOptions {
   readonly tangentReach: number;
   readonly levels: readonly number[];
   readonly sweeps: number;
+  /** Corners at a single vertex (STREET_RACING_LINE): curvature that keeps rising past a right angle, and no folding inside one. */
+  readonly sharpCorners?: boolean;
+  /** With `sharpCorners`, the least share of the road's step that a step of the line may cover on the inside of a corner. */
+  readonly foldStep?: number;
+}
+
+/** Metres of road either way that a sample's other leg is looked for in: the legs of Uptown's hairpin share asphalt 38 m out. */
+const FOLD_WINDOW = 100;
+
+/**
+ * A hairpin is rounded before a line is drawn through it (STREET_RACING_LINE). A line is
+ * offsets from the road's samples along their normals, and at a vertex this sharp the
+ * samples either side jump sideways as the normals swing, so ANY offset to the inside
+ * zigzags: Uptown's hairpin (129 degrees) came out as a 4 m spike on one lap in three
+ * whatever bounded it. The samples there now follow an arc inside the vertex, and what
+ * the line may use either side of the arc is the asphalt itself, which at a hairpin is
+ * both legs' pavement and the wedge between them: within the margin of either leg.
+ */
+export const HAIRPIN = {
+  /** Degrees a vertex must turn to be rounded. Uptown's 98 degree corner solves cleanly as a vertex on every lap. */
+  from: 110,
+  /** Metres from the vertex the line may be at its deepest: well inside the 20 m a street gate takes. */
+  gateReach: 14,
+  /** Share of the shorter leg beside it that the arc may use, as RIVAL_STREET_CORNERS. */
+  legShare: 0.45,
+  /** Metres between the steps that find the asphalt's edge from an arc sample, and how far they look. */
+  march: 0.25,
+  marchReach: 40,
+} as const;
+
+/** A stretch of samples on a hairpin's arc, and the legs whose pavement they may use. */
+interface Pavement { from: number; to: number; legs: { ax: number; az: number; bx: number; bz: number; limit: number }[] }
+const distanceToLeg = (leg: Pavement["legs"][number], x: number, z: number) => {
+  const dx = leg.bx - leg.ax, dz = leg.bz - leg.az, t = Math.max(0, Math.min(1, ((x - leg.ax) * dx + (z - leg.az) * dz) / (dx * dx + dz * dz || 1)));
+  return Math.hypot(x - leg.ax - dx * t, z - leg.az - dz * t);
+};
+
+/** The route with each hairpin's vertex replaced by an arc: where every original point went, and the arcs. */
+function roundHairpins(points: readonly CoursePoint[], options: RacingLineOptions) {
+  const rounded: CoursePoint[] = [], origin: number[] = [], arcs: { from: number; to: number; vertex: number }[] = [];
+  const keep = 1 - (options.foldStep ?? 0);
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i - 1], q = points[i]!, r = points[i + 1];
+    const l1 = p ? Math.hypot(q.x - p.x, q.z - p.z) : 0, l2 = r ? Math.hypot(r.x - q.x, r.z - q.z) : 0;
+    if (!p || !r || l1 < 1e-6 || l2 < 1e-6) { origin.push(rounded.length); rounded.push(q); continue; }
+    const u1x = (q.x - p.x) / l1, u1z = (q.z - p.z) / l1, u2x = (r.x - q.x) / l2, u2z = (r.z - q.z) / l2;
+    const turn = Math.atan2(u1x * u2z - u1z * u2x, u1x * u2x + u1z * u2z), half = Math.abs(turn) / 2;
+    if (Math.abs(turn) * 180 / Math.PI <= HAIRPIN.from) { origin.push(rounded.length); rounded.push(q); continue; }
+    // As large as leaves the line's deepest point, the arc's own and the inside the solver may add, within reach of the gate.
+    const radius = Math.min(HAIRPIN.gateReach / (1 / Math.cos(half) - 1 + keep), HAIRPIN.legShare * Math.min(l1, l2) / Math.tan(half));
+    const T = radius * Math.tan(half), side = Math.sign(turn);
+    const sx = q.x - u1x * T, sz = q.z - u1z * T, cx = sx - u1z * side * radius, cz = sz + u1x * side * radius;
+    const count = Math.max(2, Math.ceil(radius * Math.abs(turn) / options.spacing));
+    arcs.push({ from: rounded.length, to: rounded.length + count, vertex: i });
+    origin.push(rounded.length + Math.round(count / 2));
+    for (let k = 0; k <= count; k++) {
+      const a = turn * k / count, c = Math.cos(a), sn = Math.sin(a), t = k / count;
+      // Height runs from one tangent point to the other, by way of the vertex's.
+      const y = t < 0.5 ? q.y + (p.y - q.y) * (T / l1) * (1 - 2 * t) : q.y + (r.y - q.y) * (T / l2) * (2 * t - 1);
+      rounded.push({ ...q, x: cx + (sx - cx) * c - (sz - cz) * sn, z: cz + (sx - cx) * sn + (sz - cz) * c, y });
+    }
+  }
+  return { rounded, origin, arcs };
 }
 
 interface Sample { x: number; z: number; y: number; width: number; zone: CoursePoint["zone"] }
@@ -95,16 +202,21 @@ function resample(points: readonly CoursePoint[], spacing: number): { samples: S
   return { samples, index };
 }
 
-/** Signed Menger curvature through three points, positive for a right-hand bend. */
-function curvature(ax: number, az: number, bx: number, bz: number, cx: number, cz: number): number {
+/** Signed Menger curvature through three points, positive for a right-hand bend. `sharp` keeps it rising through a
+ *  turn past a right angle, where the circle through the points grows again (STREET_RACING_LINE). */
+function curvature(ax: number, az: number, bx: number, bz: number, cx: number, cz: number, sharp = false): number {
   const ab = Math.hypot(bx - ax, bz - az), bc = Math.hypot(cx - bx, cz - bz), ac = Math.hypot(cx - ax, cz - az);
   const denominator = ab * bc * ac;
-  return denominator < 1e-12 ? 0 : 2 * ((bx - ax) * (cz - bz) - (bz - az) * (cx - bx)) / denominator;
+  if (denominator < 1e-12) return 0;
+  const cross = (bx - ax) * (cz - bz) - (bz - az) * (cx - bx);
+  // 2 sin(turn) / ac, and past a right angle 2 (2 - sin(turn)) / ac: continuous, and sharper is always more.
+  if (sharp && (bx - ax) * (cx - bx) + (bz - az) * (cz - bz) < 0) return 2 * (Math.sign(cross) * 2 * ab * bc - cross) / denominator;
+  return 2 * cross / denominator;
 }
 
 /** Offsets from the centre, positive to the right of travel, for every sample. */
-export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "width">[], options: RacingLineOptions = RACING_LINE): { offsets: number[]; normals: { x: number; z: number }[] } {
-  const n = samples.length;
+export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "width">[], options: RacingLineOptions = RACING_LINE, pavement: readonly Pavement[] = []): { offsets: number[]; normals: { x: number; z: number }[] } {
+  const n = samples.length, sharp = options.sharpCorners ?? false;
   const reach = Math.max(1, Math.round(options.tangentReach / options.spacing));
   const normals = samples.map((_, i) => {
     const a = samples[Math.max(0, i - reach)]!, b = samples[Math.min(n - 1, i + reach)]!;
@@ -117,11 +229,53 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
   for (let i = 0; i < n; i++) {
     const limit = Math.max(0, samples[i]!.width / 2 - options.edgeMargin);
     const a = samples[Math.max(0, i - reach * 2)]!, b = samples[i]!, c = samples[Math.min(n - 1, i + reach * 2)]!;
-    const bend = curvature(a.x, a.z, b.x, b.z, c.x, c.z);
-    const outside = Math.max(0, limit - options.outsideMargin * Math.min(1, Math.abs(bend) * 300));
+    const bend = curvature(a.x, a.z, b.x, b.z, c.x, c.z, sharp);
+    // On a hairpin's arc the samples are off the centreline, and the room either side is the asphalt's: as far
+    // along the normal as stays within the margin of one leg or the other.
+    const paved = pavement.find(stretch => i >= stretch.from && i <= stretch.to);
+    const room = (sign: number) => {
+      if (!paved) return limit;
+      let reached = 0;
+      for (let t = 0; t <= HAIRPIN.marchReach; t += HAIRPIN.march) {
+        const x = b.x + normals[i]!.x * sign * t, z = b.z + normals[i]!.z * sign * t;
+        if (!paved.legs.some(leg => distanceToLeg(leg, x, z) <= leg.limit)) break;
+        reached = t;
+      }
+      return reached;
+    };
+    const margin = options.outsideMargin * Math.min(1, Math.abs(bend) * 300);
     // A right-hand bend has its outside on the left.
-    right.push(bend < 0 ? outside : limit);
-    left.push(bend > 0 ? outside : limit);
+    right.push(bend < 0 ? Math.max(0, room(1) - margin) : room(1));
+    left.push(bend > 0 ? Math.max(0, room(-1) - margin) : room(-1));
+  }
+  // Inside a corner the normals fan in, and an offset past where they meet folds the line back on itself.
+  for (let i = 0; sharp && i < n - 1; i++) {
+    const a = normals[i]!, b = normals[i + 1]!;
+    const turn = Math.atan2(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z), fan = Math.hypot(b.x - a.x, b.z - a.z);
+    if (fan < 1e-9) continue;
+    // The step between two samples, along the road's direction between them: what the road gives, less what the fan takes.
+    const fx = a.z + b.z, fz = -(a.x + b.x), f = Math.hypot(fx, fz) || 1;
+    const given = ((samples[i + 1]!.x - samples[i]!.x) * fx + (samples[i + 1]!.z - samples[i]!.z) * fz) / f;
+    const room = Math.max(0, (1 - (options.foldStep ?? 0)) * given / fan);
+    // A right-hand bend has its inside on the right.
+    const inside = turn > 0 ? right : left;
+    inside[i] = Math.min(inside[i]!, room); inside[i + 1] = Math.min(inside[i + 1]!, room);
+  }
+  // And past the normals' fan, the road's other leg: the two sides of a hairpin are one stretch of asphalt, and a
+  // sample may go no nearer the other leg than its own, which is the circle touching the road here that reaches it.
+  const reachAlong = [0];
+  for (let i = 1; i < n; i++) reachAlong.push(reachAlong[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
+  for (let i = 0; sharp && i < n; i++) {
+    const normal = normals[i]!, keep = 1 - (options.foldStep ?? 0);
+    for (const direction of [-1, 1]) {
+      for (let j = i + direction; j >= 0 && j < n && Math.abs(reachAlong[j]! - reachAlong[i]!) <= FOLD_WINDOW; j += direction) {
+        if (Math.abs(reachAlong[j]! - reachAlong[i]!) <= options.tangentReach * 2) continue;
+        const dx = samples[j]!.x - samples[i]!.x, dz = samples[j]!.z - samples[i]!.z, across = dx * normal.x + dz * normal.z;
+        if (Math.abs(across) < 1e-6) continue;
+        const room = keep * (dx * dx + dz * dz) / (2 * Math.abs(across));
+        if (across > 0) right[i] = Math.min(right[i]!, room); else left[i] = Math.min(left[i]!, room);
+      }
+    }
   }
   const w = new Array<number>(n).fill(0);
   for (const stride of options.levels) {
@@ -136,14 +290,14 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
       for (let k = 2; k < nodes.length - 2; k++) {
         const i = nodes[k]!, c = samples[i]!, normal = normals[i]!;
         // The curvature this node's neighbours ask of it, weighted by distance.
-        const before = curvature(px(k - 2), pz(k - 2), px(k - 1), pz(k - 1), px(k), pz(k));
-        const after = curvature(px(k), pz(k), px(k + 1), pz(k + 1), px(k + 2), pz(k + 2));
+        const before = curvature(px(k - 2), pz(k - 2), px(k - 1), pz(k - 1), px(k), pz(k), sharp);
+        const after = curvature(px(k), pz(k), px(k + 1), pz(k + 1), px(k + 2), pz(k + 2), sharp);
         const toPrevious = Math.hypot(px(k) - px(k - 1), pz(k) - pz(k - 1)), toNext = Math.hypot(px(k + 1) - px(k), pz(k + 1) - pz(k));
         const wanted = (before * toNext + after * toPrevious) / Math.max(1e-9, toPrevious + toNext);
         // Move across the road by how far off that curvature is, through its local slope.
-        const here = curvature(px(k - 1), pz(k - 1), px(k), pz(k), px(k + 1), pz(k + 1));
+        const here = curvature(px(k - 1), pz(k - 1), px(k), pz(k), px(k + 1), pz(k + 1), sharp);
         const nudge = 0.01;
-        const moved = curvature(px(k - 1), pz(k - 1), c.x + normal.x * (w[i]! + nudge), c.z + normal.z * (w[i]! + nudge), px(k + 1), pz(k + 1));
+        const moved = curvature(px(k - 1), pz(k - 1), c.x + normal.x * (w[i]! + nudge), c.z + normal.z * (w[i]! + nudge), px(k + 1), pz(k + 1), sharp);
         const slope = (moved - here) / nudge;
         if (Math.abs(slope) < 1e-9) continue;
         w[i] = Math.max(-left[i]!, Math.min(right[i]!, w[i]! + (wanted - here) / slope * 0.5));
@@ -163,16 +317,28 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
 
 /** The same route driven on its racing line. */
 export function withRacingLine(route: RivalDefinition, options: RacingLineOptions = RACING_LINE): RivalDefinition {
-  const { samples, index } = resample(route.points, options.spacing);
-  const { offsets, normals } = racingLineOffsets(samples, options);
+  const { rounded, origin, arcs } = options.sharpCorners ? roundHairpins(route.points, options)
+    : { rounded: route.points, origin: route.points.map((_, i) => i), arcs: [] };
+  const { samples, index } = resample(rounded, options.spacing);
+  const pavement: Pavement[] = arcs.map(arc => ({ from: index[arc.from]!, to: index[arc.to]!,
+    legs: [-3, -2, -1, 0, 1, 2].map(k => [route.points[arc.vertex + k], route.points[arc.vertex + k + 1]] as const)
+      .filter((leg): leg is readonly [CoursePoint, CoursePoint] => !!leg[0] && !!leg[1])
+      .map(([a, b]) => ({ ax: a.x, az: a.z, bx: b.x, bz: b.z, limit: Math.max(0, Math.min(a.width, b.width) / 2 - options.edgeMargin) })) }));
+  const { offsets, normals } = racingLineOffsets(samples, options, pavement);
   const points: CoursePoint[] = samples.map((s, i) => ({ x: s.x + normals[i]!.x * offsets[i]!, z: s.z + normals[i]!.z * offsets[i]!,
     y: s.y, width: s.width, zone: s.zone }));
+  // `lateral` is where a point is across the ROAD. On an arc that is across the nearer leg, not from the arc.
+  const lateral = [...offsets];
+  for (const stretch of pavement) for (let i = stretch.from; i <= stretch.to; i++) {
+    const p = points[i]!, leg = stretch.legs.reduce((best, next) => distanceToLeg(next, p.x, p.z) < distanceToLeg(best, p.x, p.z) ? next : best);
+    lateral[i] = Math.sign((p.x - leg.ax) * -(leg.bz - leg.az) + (p.z - leg.az) * (leg.bx - leg.ax)) * distanceToLeg(leg, p.x, p.z);
+  }
   const along = [0];
   for (let i = 1; i < points.length; i++) along.push(along[i - 1]! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
   const gates = route.gates.map(gate => {
     const original = route.along.findIndex(a => Math.abs(a - gate) < 1e-6);
     if (original < 0) throw new RangeError(`${route.id}: gate at ${gate} m is not a point of the route`);
-    return along[index[original]!]!;
+    return along[index[origin[original]!]!]!;
   });
-  return { ...route, points, along, gates, lateral: offsets };
+  return { ...route, points, along, gates, lateral };
 }
