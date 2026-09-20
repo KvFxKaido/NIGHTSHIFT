@@ -10,7 +10,9 @@ try {
   await server?.listen();
   const base = process.env.CINDER_TEST_URL ?? `http://127.0.0.1:${server.httpServer.address().port}/`;
   console.log(`Checking Cinder at ${base}`);
-  browser = await chromium.launch();
+  // SwiftShader, as scripts/test-facade-menu.mjs does: a runner has no GPU, and
+  // the facade check stalled there until it was told to use one (PR #11).
+  browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   console.log('Browser launched');
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   page.setDefaultTimeout(60000);

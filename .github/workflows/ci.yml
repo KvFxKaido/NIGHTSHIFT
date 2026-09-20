@@ -27,11 +27,17 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:facade
         timeout-minutes: 15
+      # The Cinder's body kits, wheels and spoilers, checked in a browser the way
+      # the facade menu is: both start their own dev server and drive the real page.
+      - run: pnpm test:cinder
+        timeout-minutes: 15
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: facade-menu-captures
-          path: artifacts/facade-*.png
+          name: browser-captures
+          path: |
+            artifacts/facade-*.png
+            artifacts/cinder-*.png
 
   # The deterministic simulation suite: every handling gate, the replay checks and
   # the revision pins. It is the project's real gate (CLAUDE.md, "Commands"), and
