@@ -114,6 +114,9 @@ let solo = false;
 let lighting: DistrictLighting = "night";
 /** Draw between the last two ticks rather than at the last; `?smooth=0` turns it off. */
 let smooth = true;
+// ?assist=: how much of the pedals' excess the player's tyres forgive (SimOptions.pedalAssist).
+// A developer preview like ?drivetrain=: read from the URL, never saved, 1 without it.
+let pedalAssist = 1;
 /** The tick before the last, taken before each live step; null when there is none to blend from. */
 let previousPoses: Poses | null = null;
 try {
@@ -190,6 +193,11 @@ try {
   setLook(look === "plain" ? null : look as Look);
   // Draw between ticks (render/interpolate.ts); ?smooth=0 draws the last tick, to compare.
   smooth = params.get("smooth") !== "0";
+  const assist = params.get("assist");
+  if (assist !== null) {
+    pedalAssist = Number(assist);
+    if (!(pedalAssist >= 0 && pedalAssist <= 1)) throw new Error(`?assist= is a number from 0 to 1, not '${assist}'`);
+  }
   await RAPIER.init();
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
   // ?car=<id>&unlock=1 drives a car the career has not won, for pad testing a
@@ -235,8 +243,8 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
-const sim = createSim(carHandling(selectedCar), roadWorld, race ? { race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
-  : { encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
+const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+  : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -382,7 +390,9 @@ function newRecording(): void {
   Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
 }
 function recordStep(tickInput: Input): void {
-  if (!recorder || !circuit || !race) return;
+  // A lap driven on a previewed assist is not the car a recording names, and would
+  // replay as a divergence: it is not recorded at all.
+  if (!recorder || !circuit || !race || sim.pedalAssist !== 1) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
   const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: circuit.identity, rival: RIVAL_REVISION,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: circuit.layout, solo: circuit.solo, traffic: circuit.traffic,
@@ -796,6 +806,21 @@ function flashHeadlights(): void {
   challengePending = challengeRival !== null;
 }
 rivalPrompt.addEventListener("click", flashHeadlights);
+// The limit, felt: rumble while the pedals ask the tyres for more than they have,
+// only under an ?assist= preview, where going past it costs something. Presentation
+// only, and at most twenty times a second; a pad with no actuator is skipped.
+let nextRumble = 0;
+function rumblePedals(active: boolean): void {
+  if (sim.pedalAssist === 1 || !active || performance.now() < nextRumble) return;
+  const over = Math.max(sim.pedalFeedback.spin, sim.pedalFeedback.lock);
+  if (over <= 0.05) return;
+  nextRumble = performance.now() + 50;
+  for (const pad of navigator.getGamepads?.() ?? []) {
+    const actuator = (pad as (Gamepad & { vibrationActuator?: { playEffect?: (kind: string, effect: object) => Promise<unknown> } }) | null)?.vibrationActuator;
+    actuator?.playEffect?.("dual-rumble", { duration: 70, weakMagnitude: Math.min(1, over * 0.7), strongMagnitude: Math.min(1, sim.pedalFeedback.lock * 0.5) })?.catch(() => {});
+  }
+}
+
 // Flash is presentation only. Cache each lamp's authored intensity so swaps and
 // future car-specific lamps restore correctly after the double pulse.
 function updateFlash(dt: number, active: boolean): void {
@@ -899,7 +924,7 @@ function updateHud(): void {
     const bindings = input.bindings();
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
-  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}`
+  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${sim.pedalAssist !== 1 ? "NOT RECORDED" : recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${sim.pedalAssist !== 1 ? ` / ASSIST ${Math.round(sim.pedalAssist * 100)}%` : ""}`
     + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "")
     + (trackNoticeRemaining > 0 ? ` / ${trackNotice}` : "");
   const gamepadName = input.activeGamepadName();
@@ -1028,7 +1053,10 @@ function frame(now: number): void {
   updateHud();
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
-  audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen, sim.state.handling.topSpeed);
+  audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen, sim.state.handling.topSpeed,
+    // Heard only under a preview: at the default the tyres forgive everything, and a spin nobody pays for is noise.
+    sim.pedalAssist !== 1 ? sim.pedalFeedback : undefined);
+  rumblePedals(gameplayActive && !frozen);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,
@@ -1059,6 +1087,7 @@ installDebugApi({
   // Drivetrain is a developer control now, not a garage choice: there is no
   // button left to click, so the comparison flow resets the run directly.
   setDrivetrain: layout => { reset(layout); input.armDrivingInputGate(); },
+  setPedalAssist: value => { sim.pedalAssist = Math.max(0, Math.min(1, value)); reset(); input.armDrivingInputGate(); },
   canvas: view.renderer.domElement,
   // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {

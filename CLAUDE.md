@@ -474,6 +474,11 @@ diagnostics), `drive("W600,WD90")`, `freeze()`, `shot()`,
 menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
 `?scene=track&visit=rivet`, `?race=sable-yard-drift`.
+`?assist=0..1` (2026-09-20) is an undecided experiment, not the handling: how much
+of the pedals' excess the PLAYER'S tyres forgive, 1 being the game
+(`design/HANDLING.md`, "The pedals, as a choice"). It lives on the sim, never in a
+car's tune, so the Cinder stays the anchor and no rival is touched; a lap driven
+under it is not recorded.
 `?car=<id>` drives one of your own cars, and SILENTLY falls back to the Cinder
 for a Blacklist car the career has not won; `&unlock=1` drives it anyway, for
 pad testing a tune against another (`?race=sable-yard-drift&car=ns01&unlock=1`).

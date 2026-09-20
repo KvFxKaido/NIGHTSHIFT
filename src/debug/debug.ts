@@ -51,6 +51,7 @@ export interface DebugBridge {
   setFrozen(frozen: boolean): void;
   /** Starts a fresh run on a different drivetrain, for handling comparisons. */
   setDrivetrain(layout: Drivetrain): void;
+  setPedalAssist(value: number): void;
   isFrozen(): boolean;
   setTelemetry(visible: boolean): void;
   pause(): void;
@@ -355,6 +356,15 @@ export function installDebugApi(bridge: DebugBridge): void {
       bridge.renderOnce();
       return state();
     },
+    /** How much of the pedals' excess the player's tyres forgive, 0 to 1 (`SimOptions.pedalAssist`). A new run, like a drivetrain. */
+    assist: (value?: number) => {
+      if (value !== undefined) {
+        if (!(value >= 0 && value <= 1)) throw new RangeError(`assist is 0 to 1, not ${value}`);
+        bridge.setPedalAssist(value);
+        bridge.renderOnce();
+      }
+      return { assist: sim.pedalAssist, ...sim.pedalFeedback };
+    },
     /** Preview a chase framing. Not saved: a URL or console choice lasts the session. */
     camera: (id?: ChaseCameraId) => {
       if (id !== undefined) {
@@ -381,6 +391,7 @@ export function installDebugApi(bridge: DebugBridge): void {
       "__ns.set({paint:'ice', stance:'slammed', wheels:'alloy'})",
       "__ns.drivetrain('rwd') 'awd' | 'fwd' | 'rwd'; changing layout starts a fresh run",
       "__ns.camera('near')    'near' | 'standard' | 'far' chase framing; a preview, never saved",
+      "__ns.assist(0.5)       how much pedal excess your tyres forgive, 0..1; 1 is the game. Returns it with the live spin and lock",
       "__ns.tick(60)          advance 60 fixed ticks (works in a hidden tab)",
       "__ns.drive('W600,WD90') hold throttle 600 ticks, then throttle+right 90",
       "Drag script: U shifts up, J shifts down; A/D request lanes",

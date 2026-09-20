@@ -48,7 +48,8 @@ export interface CarAudio {
   /** Music is mixed here so one master fader governs everything. */
   readonly musicBus: GainNode;
   /** `topSpeed` is the car's own governor (`engineTone`); wind stays on the shared one. */
-  update(vehicle: VehicleState, input: Input, active: boolean, topSpeed?: number): void;
+  /** `pedals` is how far past the tyres the pedals are (`PedalFeedback`): the driven tyres spinning, the braked ones locking. */
+  update(vehicle: VehicleState, input: Input, active: boolean, topSpeed?: number, pedals?: { spin: number; lock: number }): void;
   setLevels(levels: Partial<AudioLevels>): void;
   levels(): AudioLevels;
   dispose(): void;
@@ -253,7 +254,7 @@ export function createCarAudio(context: AudioContext, initial: AudioLevels = DEF
   return {
     context,
     musicBus,
-    update(vehicle, input, active, topSpeed) {
+    update(vehicle, input, active, topSpeed, pedals) {
       if (!active) {
         glide(exhaustMasterGain.gain, 0, .08);
         glide(intakeRoarGain.gain, 0, .05);
@@ -328,9 +329,13 @@ export function createCarAudio(context: AudioContext, initial: AudioLevels = DEF
       glide(whineGain.gain, tone.whine * 0.055, .04);
 
       // Tyre scrub and wind roar
+      // The same voice, lower, for a tyre the pedals have overwhelmed: spun up or
+      // locked. Whichever is louder has it. audio-mix.ts left wheelspin out because
+      // the sim did not model it; this is the sim's own figure, not one made up here.
       const scrubbing = tyreScrub(vehicle);
-      glide(scrubGain.gain, scrubbing * .34, .03);
-      glide(scrubFilter.frequency, 1150 + scrubbing * 900, .05);
+      const overwhelmed = pedals && vehicle.speed > 1 ? Math.max(pedals.spin, pedals.lock) * .8 : 0;
+      glide(scrubGain.gain, Math.max(scrubbing, overwhelmed) * .34, .03);
+      glide(scrubFilter.frequency, overwhelmed > scrubbing ? 620 + overwhelmed * 380 : 1150 + scrubbing * 900, .05);
 
       glide(windGain.gain, windLevel(vehicle) * .3, .08);
     },

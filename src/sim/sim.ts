@@ -128,10 +128,23 @@ interface VehicleRig {
   roadWorld: RoadWorld;
   body: RAPIER.RigidBody;
   state: { vehicle: VehicleState; handling: CarHandling; race: RaceState | null };
+  /** Only the player's rig, which is the Sim, has these (`SimOptions.pedalAssist`). */
+  pedalAssist?: number;
+  pedalFeedback?: PedalFeedback;
 }
+
+/**
+ * How far past the tyres the pedals are, 0 to 1, for sound and rumble: the worst
+ * driven tyre, and the worst braked one. Presentation reads it; it is not state,
+ * is not hashed, and nothing in a tick reads it back.
+ */
+export interface PedalFeedback { spin: number; lock: number }
 
 export interface Sim {
   readonly roadWorld: RoadWorld;
+  /** `SimOptions.pedalAssist`: 1 unless previewed, and the player's car's alone. */
+  pedalAssist: number;
+  pedalFeedback: PedalFeedback;
   state: SimState;
   world: RAPIER.World;
   body: RAPIER.RigidBody;
@@ -157,6 +170,25 @@ export interface Sim {
  *  drives a scripted line through the district turns it off, because that test
  *  is about road surface and barriers, not about whether a van was in the way. */
 export interface SimOptions {
+  /**
+   * How much of the pedals' excess the tyres forgive: 1, the default and the
+   * game, is all of it. A developer preview for the PLAYER'S car only
+   * (`?assist=`, `__ns.assist`, 2026-09-20), like `?drivetrain=`.
+   *
+   * The tyre model gives cornering first call on a tyre's grip and the pedals
+   * what is left, clamped for nothing: perfect traction control and perfect ABS.
+   * Measured: from rest the Cinder pushes 7.6 m/s² at 45% throttle and at 100%,
+   * 70% and 100% leave a corner identically, and full brake costs no steering at
+   * all. So flooring it is never wrong, and is not a choice. Below 1, a tyre asked
+   * for more than it has left gives up some sideways grip and some of the push
+   * itself, in proportion to the excess (`HANDLING.pedalFrontLateralLoss` and beside it).
+   *
+   * It lives here and not in a car's handling on purpose. The Cinder is the
+   * anchor every lap, the rival's cornering and the route-choice pace were fitted
+   * to, and no rival has a throttle plan: at 1 every vehicle is bit-identical to
+   * before, and below 1 only the car being driven changes.
+   */
+  readonly pedalAssist?: number;
   readonly traffic?: boolean;
   /** Run an open-checkpoint race on this world from its start pose. */
   readonly race?: RaceDefinition;
@@ -237,6 +269,22 @@ export const HANDLING = {
   // a lower governor and a little drag, both scaled by how many tyres are on it.
   // AWD pays none of it (2026-09-13). Every shortcut has a cost; this is the cost
   // of the ones across a lot. A world without ground drives exactly as before.
+  // What a tyre loses when the pedals ask more of it than cornering has left it,
+  // at the full excess (twice what it has), with the assist fully off
+  // (`SimOptions.pedalAssist`). Sideways grip, so a floored tyre lets go of the
+  // corner; and drive or braking itself, so the most push is at the limit and not
+  // past it. With the assist on, as every car but a previewed player's has it,
+  // neither is read.
+  //
+  // By axle, because the two ends answer differently. A front tyre that lets go
+  // pushes wide, which is benign and can take a big number. A rear tyre that lets
+  // go turns the car, and a rear-drive car's rears already give cornering grip
+  // up to drive (`rwdDriveTractionShare`): with one constant of 0.45 the Cinder
+  // was planted at an assist of 0.9 and spun at 0.8, all its useful range inside a
+  // tenth of the knob. At 0.12 the whole of 0 to 1 is drivable.
+  pedalFrontLateralLoss: 0.45,
+  pedalRearLateralLoss: 0.12,
+  pedalLongitudinalLoss: 0.2,
   groundGripScale: 0.85,
   groundTopSpeedScale: 0.85, // ~119 mph with all four tyres on the ground
   groundRollingResistance: 0.6,
@@ -617,6 +665,7 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   }
   return {
     roadWorld,
+    pedalAssist: clamp(options.pedalAssist ?? 1, 0, 1), pedalFeedback: { spin: 0, lock: 0 },
     state: { physicsVersion: PHYSICS_VERSION, drivetrain: handling.drivetrain, handling, tick: 0,
       vehicle, traffic, rival, encounter, parkedRivals, cruisers, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
@@ -638,7 +687,7 @@ export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.h
   const handling = typeof setup === "string" ? carHandling(sim.state.handling.car, setup) : setup;
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(handling, sim.roadWorld, { traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
+  const fresh = createSim(handling, sim.roadWorld, { pedalAssist: sim.pedalAssist, traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
@@ -652,6 +701,7 @@ export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.h
   sim.encounterRoute = fresh.encounterRoute;
   sim.rivalDefinition = fresh.rivalDefinition;
   sim.state = fresh.state;
+  sim.pedalFeedback = fresh.pedalFeedback;
   sim.trafficBodies = fresh.trafficBodies;
   sim.race = fresh.race;
 }
@@ -681,6 +731,11 @@ interface WheelInput {
   loadFraction: number;
   driveForce: number;
   brakeForce: number;
+  /** The service brake's share of `brakeForce`: what the pedal asks, without rolling drag or the handbrake, which has its own rules. */
+  pedalBrake: number;
+  /** 1 - the assist for the player's car, 0 for every other vehicle; and whether to report the excess at all. */
+  pedalRaw: number;
+  reportPedals: boolean;
   stiffness: number;
   gripScale: number;
 }
@@ -693,6 +748,8 @@ interface TyreForces {
   brakingForce: number;
   driveForce: number;
   longitudinalBudget: number;
+  /** How far past what cornering left it the pedals asked this tyre to go, 0 to 1 at twice that. */
+  excess: number;
   telemetry: WheelState;
 }
 
@@ -755,6 +812,19 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   // Never add grip or yaw torque; stop assisting once the front slip reverses.
   const scrubScale = tyre.front && tyre.steeringAngle * slipAngle > 0
     ? 1 - tyre.countersteerRecovery * (1 - HANDLING.rwdCountersteerScrub) : 1;
+  // What the pedals ask of this tyre against what cornering would leave it. Worked
+  // out only for the player's car, and applied only with its assist turned down:
+  // every other vehicle, and the player's at the default, takes the lines below
+  // with a scale of exactly one.
+  let excess = 0;
+  if (tyre.reportPedals) {
+    const cornering = Math.min(Math.abs(lateralBudget * Math.tanh(slipAngle * tyre.stiffness) * scrubScale), lateralStopForce);
+    const left = Math.sqrt(Math.max(0, gripLimit * gripLimit - cornering * cornering)) * tyre.driveGripScale;
+    const asked = Math.abs(tyre.driveForce) + tyre.pedalBrake;
+    excess = asked > left ? clamp((asked - left) / Math.max(left, 1), 0, 1) : 0;
+  }
+  const lost = excess * tyre.pedalRaw;
+  if (lost > 0) lateralBudget *= 1 - (tyre.front ? HANDLING.pedalFrontLateralLoss : HANDLING.pedalRearLateralLoss) * lost;
   const lateralRequest = -lateralBudget * Math.tanh(slipAngle * tyre.stiffness) * scrubScale;
   const lateralForce = clamp(lateralRequest, -lateralStopForce, lateralStopForce);
 
@@ -769,12 +839,14 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
   // Lateral authority is unchanged; turning still consumes drive capacity.
   // The scale is one for AWD, coasting, braking, reverse and handbraking.
   const longitudinalGripLimit = gripLimit * tyre.driveGripScale;
-  const longitudinalBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - lateralForce * lateralForce)) * tyre.driveGripScale;
+  let longitudinalBudget = Math.sqrt(Math.max(0, gripLimit * gripLimit - lateralForce * lateralForce)) * tyre.driveGripScale;
+  // Past its peak a tyre pushes less, not the same: the most drive is at the limit.
+  if (lost > 0) longitudinalBudget *= 1 - HANDLING.pedalLongitudinalLoss * lost;
   Object.assign(telemetry, { slipAngle, lateralForce, gripLimit, longitudinalGripLimit,
     steeringAngle: tyre.steeringAngle, loadFraction: tyre.loadFraction,
     normalLoad: handling.mass * HANDLING.gravityAlongGrade * tyre.loadFraction });
   return { point, forward: wheelForward, right: wheelRight, lateralForce,
-    brakingForce, driveForce: tyre.driveForce, longitudinalBudget, telemetry };
+    brakingForce, driveForce: tyre.driveForce, longitudinalBudget, excess, telemetry };
 }
 
 function applyWheelForce(sim: VehicleRig, tyre: TyreForces, driveForce: number): { x: number; z: number } {
@@ -955,12 +1027,19 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
       driveForce: driveForce * driveShare * 0.5,
       brakeForce: (serviceBrake * brakeShare + rollingBrake * rollingShare +
         HANDLING.handbrakeDrag * handling.mass * handbrake) * 0.5,
+      pedalBrake: serviceBrake * brakeShare * 0.5,
+      pedalRaw: player ? 1 - (sim.pedalAssist ?? 1) : 0,
+      reportPedals: player,
       stiffness: wheel.front ? handling.frontCorneringStiffness :
         handling.rearCorneringStiffness * (1 - handbrake * (1 - handling.handbrakeRearStiffness)),
       gripScale: (1 - handbrake * (1 - HANDLING.handbrakeRearGrip)) *
         (onGround[index] && groundPenalty > 0 ? HANDLING.groundGripScale : 1),
     }, car.wheels[wheel.id]);
   });
+  if (player && sim.pedalFeedback) {
+    sim.pedalFeedback.spin = Math.max(0, ...patches.filter(patch => patch.driveForce !== 0).map(patch => patch.excess));
+    sim.pedalFeedback.lock = Math.max(0, ...patches.filter(patch => patch.driveForce === 0 && serviceBrake > 0).map(patch => patch.excess));
+  }
   if (car.launch?.burnout) {
     for (const patch of patches) patch.telemetry.longitudinalForce = 0;
     summarizeAxle(car.wheels["front-left"], car.wheels["front-right"], car.frontAxle);

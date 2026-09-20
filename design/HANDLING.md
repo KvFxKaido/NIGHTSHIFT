@@ -1135,6 +1135,112 @@ angle, speed and grip utilization. Angles are radians; loads/forces are newtons
 and speed is m/s. The existing telemetry toggle also shows front/rear and
 left/right load shares, plus confirmation that auto-countersteer is off.
 
+## The pedals, as a choice: an experiment (2026-09-20)
+
+Asked for: more granularity in the triggers, so that flooring it is a choice. It
+is not one today, and no trigger curve would make it one, because of the first
+assist above. Cornering gets first call on a tyre's grip and the pedals get what
+is left, clamped for nothing: perfect traction control and perfect ABS, always
+on. Measured on the flat, in the Cinder:
+
+| throttle | 0-30 mph | 0-60 mph | 0-100 mph | push at 10 mph |
+|---|---|---|---|---|
+| 45% | 1.88 s | 4.77 s | never | 7.6 m/s² |
+| 60% | 1.80 s | 3.92 s | 10.47 s | 7.6 m/s² |
+| 80% | 1.80 s | 3.87 s | 7.38 s | 7.6 m/s² |
+| 100% | 1.80 s | 3.87 s | 6.83 s | 7.6 m/s² |
+
+The top 40% of the trigger does nothing below about 60 mph. Out of a steady
+45 mph corner, 70% and 100% throttle are the identical corner; 40% is *faster*
+(61.2 mph against 58.9), a reward that already exists and that nothing tells the
+driver about. Braking into a turn from 80 mph, the car turns the same 36 degrees
+at 0%, 50% and 100% brake. The Latch (FWD) is the same; the Bulwark (AWD) is
+proportional, because its engine limits it and not its tyres.
+
+**What is built** is a developer preview, `?assist=` (0 to 1) and
+`__ns.assist()`, beside `?drivetrain=`: never saved, a new run when changed, and
+shown on the HUD's mode line. 1 is the game. Below it, a tyre asked for more than
+cornering has left it gives up grip in proportion to the excess, which runs from
+0 at the tyre's limit to 1 at twice it:
+
+- sideways grip, by `HANDLING.pedalFrontLateralLoss` (0.45) or
+  `pedalRearLateralLoss` (0.12), so a floored tyre lets go of the corner;
+- the push itself, by `pedalLongitudinalLoss` (0.2), so the most drive or
+  braking is at the limit and not past it.
+
+Both are multiplied by `1 - assist`. The handbrake is left out of what is asked:
+it has its own rules. The launch still buys room, since the room is measured
+after `driveGripScale`.
+
+By axle, because the two ends answer differently. A front tyre that lets go
+pushes wide, which is benign. A rear tyre that lets go turns the car, and the
+Cinder's rears already give cornering grip up to drive (the first assist above).
+With one constant of 0.45 the Cinder was planted at an assist of 0.9 and spun at
+0.8: the whole useful range inside a tenth of the knob. Split, all of 0 to 1 is
+drivable.
+
+**It is the player's car alone, and no car's tune.** The value lives on the sim
+(`SimOptions.pedalAssist`), not in `CarHandling` or `CAR_TUNES`. The Cinder is
+the anchor every recorded lap, `RIVAL_CORNERING` and the route-choice pace were
+fitted to, so its tune is not touched; and no rival has a throttle plan, so a
+rival on this physics would spin out of every corner at full throttle. Asked to
+try it on the Cinder only, this is how: drive the Cinder with `?assist=`. At 1
+every vehicle is bit-identical to before (the golden master is 14 of 14, the
+Cinder's card unchanged at 3.87 s to 60), and below 1 a rival's run is
+byte-identical too (`tests/pedal-assist.test.ts`). No physics revision.
+
+Measured in the Cinder, trigger floored:
+
+| assist | 0-60 mph floored | 0-60 mph at 60% | peak slip out of a 45 mph corner | turn-in at 50 / 80 / 100% brake |
+|---|---|---|---|---|
+| 1 | 3.87 s | 3.92 s | 5.4° | 36° / 36° / 36° |
+| 0.75 | 4.07 s | 3.95 s | 6.2° | 36° / 33° / 32° |
+| 0.5 | 4.28 s | 3.98 s | 9.3° | 34° / 29° / 28° |
+| 0.25 | 4.53 s | 4.02 s | 18.6° | 33° / 26° / 23° |
+| 0 | 4.82 s | 4.05 s | 29.0° | 32° / 23° / 19° |
+
+At one setting the trigger is a gradient as well: at an assist of 0, half
+throttle, 70% and the floor give 14°, 25° and 29°, and flooring it costs about
+5 mph out of the corner against half throttle. Every one of those slides is
+caught by lifting and steering into it, which is every car's floor
+(`tests/helpers/handling.ts`). Turn-in is the heading turned in 1.5 s from 80 mph at full steering.
+
+The brake is a choice only while turning. In a straight line from 80 mph, full
+brake is still the shortest stop at every setting (43.8 m forgiven, 44.4 m at
+0.5, 45.1 m at 0, against 48.9 m at 80% brake): the brakes ask for 14 m/s² of
+tyres that have 14.5, so there is almost no excess to pay for. Threshold braking
+in a straight line would need stronger brakes than tyres, which is a tune and
+not this.
+
+**Heard and felt, under a preview only.** The sim reports how far past the tyres
+the pedals are (`Sim.pedalFeedback`: `spin` for driven tyres, `lock` for braked
+ones). It is not state, is not hashed, and nothing in a tick reads it back. The
+tyre-scrub voice plays it an octave lower, and the pad rumbles with it. Neither
+runs at the default: a spin nobody pays for is noise. `audio-mix.ts` left
+wheelspin out because the sim did not model it; this is the sim's own figure.
+
+**A lap driven under a preview is not recorded**, and the HUD says NOT RECORDED
+where it says REC. It is not the car a recording names, and it would replay as a
+divergence.
+
+**Not done, and would be needed to keep it.**
+
+- It is one number for the whole car. Kept, it becomes a per-car figure
+  (`CarTune`), the Bulwark high and the NS-01 low, since the handling belongs to
+  the body; that is a physics revision, every card re-measured, and the last two
+  lap recordings that replay refused.
+- Rivals need a throttle plan first: hold the demand under what the tyre has
+  left, as the braking plan already leaves grip for cornering.
+- The trigger's own curve is the wrong way round for this. It is linear to half
+  travel and then steeper (`TRIGGER_KNEE`, there for a pad that tops out at 0.91),
+  and the band where the Cinder spins is 0.42 to 0.76 of raw travel, a third of
+  it. A power curve would spread it.
+- The keyboard is all or nothing, so on keys flooring it cannot be a choice at
+  any setting. A short ramp would make a tap a partial press.
+- Weight transfer is deliberately mild (`centerOfMassHeight: 0.12`). Raising it
+  would make a lift tuck the nose and the gas push it wide: steering with the
+  throttle without any loss of traction. Untried.
+
 ## Comparing layouts
 
 There is no Handling comparison toggle in Pause any more. Since 2026-09-12 the
