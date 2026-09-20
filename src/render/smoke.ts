@@ -184,7 +184,10 @@ export function addCelSmoke(scene: THREE.Scene): CelSmoke {
     return WHEELS.map(([id, , end]) => {
       const slide = vehicle.speed < 2 ? 0 : Math.min(1, Math.max(0, (Math.abs(vehicle.wheels[id].lateralSpeed) - SLIDE_FROM) / (SLIDE_FULL - SLIDE_FROM)));
       const isDriven = drivetrain === "awd" || (drivetrain === "rwd" ? end > 0 : end < 0);
-      return [slide, isDriven ? driven : 0];
+      // A tyre the pedals have overwhelmed (`WheelState.slip`, an ?assist= preview's):
+      // spun up it smokes like a launch gone wrong, locked it smokes less.
+      const slip = vehicle.wheels[id].slip ?? 0;
+      return [slide, Math.max(isDriven ? driven : 0, slip > 0.15 ? slip * 0.9 : slip < -0.3 ? -slip * 0.5 : 0)];
     });
   }
 

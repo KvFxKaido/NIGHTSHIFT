@@ -171,7 +171,9 @@ export const SCRUB_FULL = .95;
  *
  * Wheelspin is deliberately not in here. It would need per-wheel lockup and
  * inertia the simulation does not model yet, and faking it off longitudinal
- * force would just restore the constant tone this replaced.
+ * force would just restore the constant tone this replaced. Under an `?assist=`
+ * preview the sim does have a per-tyre slip (`WheelState.slip`), and the WebAudio
+ * half plays that, from the sim's figure and not one made up here.
  */
 export function tyreScrub(vehicle: VehicleState): number {
   let worst = 0;

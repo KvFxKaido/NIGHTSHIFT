@@ -42,6 +42,13 @@ export interface WheelState extends AxleState {
   longitudinalSpeed: number;
   lateralSpeed: number;
   rollingDistance: number; // visual free-rolling distance, not simulated wheel inertia
+  /**
+   * How far this tyre has been overwhelmed by the pedals, -1 to 1: above zero it
+   * is spinning, below it is locking (`HANDLING.wheelSpinUp`). Only the player's
+   * car under an `?assist=` preview has it. Absent everywhere else, on purpose:
+   * the default game's state keeps the shape it had, to the byte.
+   */
+  slip?: number;
 }
 
 export interface VehicleState {
@@ -285,6 +292,21 @@ export const HANDLING = {
   pedalFrontLateralLoss: 0.45,
   pedalRearLateralLoss: 0.12,
   pedalLongitudinalLoss: 0.2,
+  // Wheelspin (2026-09-20). The grip a tyre loses follows its `slip`, which
+  // follows the pedals' excess with a lag, per second: a driven tyre flares in
+  // about a seventh of a second and takes nearly half a second to hook up again,
+  // so easing off does not give the grip straight back; a braked one locks and
+  // frees faster. It is a lag on the excess and not wheel inertia: a wheel's own
+  // speed is too stiff to integrate at 60 Hz without substeps, and the excess
+  // already says which way it would go. The steady state is the excess itself,
+  // so the trigger stays a gradient.
+  wheelSpinUp: 7,
+  wheelHookUp: 2.2,
+  wheelLockUp: 12,
+  wheelRelease: 5,
+  // Drawn only: metres a second a fully spinning tyre's tread runs past the road's
+  // speed, so that it visibly whirls from a standstill. A locked one stops turning.
+  wheelSpinSurfaceSpeed: 18,
   groundGripScale: 0.85,
   groundTopSpeedScale: 0.85, // ~119 mph with all four tyres on the ground
   groundRollingResistance: 0.6,
@@ -823,7 +845,18 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
     const asked = Math.abs(tyre.driveForce) + tyre.pedalBrake;
     excess = asked > left ? clamp((asked - left) / Math.max(left, 1), 0, 1) : 0;
   }
-  const lost = excess * tyre.pedalRaw;
+  // The tyre's slip follows the excess, quickly up and slowly down, and the grip
+  // lost follows the slip: a tyre that has flared stays flared for a moment.
+  let lost = 0;
+  if (tyre.pedalRaw > 0) {
+    const target = tyre.driveForce !== 0 ? excess : -excess, was = telemetry.slip ?? 0;
+    const growing = Math.abs(target) > Math.abs(was) && target * was >= 0;
+    const rate = (growing ? target : was) >= 0
+      ? (growing ? HANDLING.wheelSpinUp : HANDLING.wheelHookUp) : (growing ? HANDLING.wheelLockUp : HANDLING.wheelRelease);
+    telemetry.slip = was + (target - was) * (1 - Math.exp(-rate * DT));
+    if (Math.abs(telemetry.slip) < 1e-4 && target === 0) telemetry.slip = 0;
+    lost = Math.abs(telemetry.slip) * tyre.pedalRaw;
+  }
   if (lost > 0) lateralBudget *= 1 - (tyre.front ? HANDLING.pedalFrontLateralLoss : HANDLING.pedalRearLateralLoss) * lost;
   const lateralRequest = -lateralBudget * Math.tanh(slipAngle * tyre.stiffness) * scrubScale;
   const lateralForce = clamp(lateralRequest, -lateralStopForce, lateralStopForce);
@@ -1037,8 +1070,13 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
     }, car.wheels[wheel.id]);
   });
   if (player && sim.pedalFeedback) {
-    sim.pedalFeedback.spin = Math.max(0, ...patches.filter(patch => patch.driveForce !== 0).map(patch => patch.excess));
-    sim.pedalFeedback.lock = Math.max(0, ...patches.filter(patch => patch.driveForce === 0 && serviceBrake > 0).map(patch => patch.excess));
+    // With the assist turned down, what the tyres are doing: their slip, which
+    // lingers. At the default there is no slip, only what the pedals are asking.
+    const slips = patches.map(patch => patch.telemetry.slip);
+    sim.pedalFeedback.spin = (sim.pedalAssist ?? 1) < 1 ? Math.max(0, ...slips.map(slip => slip ?? 0))
+      : Math.max(0, ...patches.filter(patch => patch.driveForce !== 0).map(patch => patch.excess));
+    sim.pedalFeedback.lock = (sim.pedalAssist ?? 1) < 1 ? Math.max(0, ...slips.map(slip => -(slip ?? 0)))
+      : Math.max(0, ...patches.filter(patch => patch.driveForce === 0 && serviceBrake > 0).map(patch => patch.excess));
   }
   if (car.launch?.burnout) {
     for (const patch of patches) patch.telemetry.longitudinalForce = 0;
@@ -1289,7 +1327,13 @@ function syncState(sim: VehicleRig): void {
     const wheelHeading = heading - tyre.steeringAngle;
     tyre.longitudinalSpeed = -wheelVelocity.x * Math.sin(wheelHeading) - wheelVelocity.z * Math.cos(wheelHeading);
     tyre.lateralSpeed = wheelVelocity.x * Math.cos(wheelHeading) - wheelVelocity.z * Math.sin(wheelHeading);
-    tyre.rollingDistance += tyre.longitudinalSpeed * DT;
+    // A spinning tyre's tread outruns the road and a locked one stops turning. Drawn
+    // only, and only where there is a slip; every other wheel rolls as it always did.
+    if (tyre.slip) {
+      tyre.rollingDistance += tyre.slip > 0
+        ? (tyre.longitudinalSpeed + tyre.slip * HANDLING.wheelSpinSurfaceSpeed) * DT
+        : tyre.longitudinalSpeed * (1 + tyre.slip) * DT;
+    } else tyre.rollingDistance += tyre.longitudinalSpeed * DT;
   }
   // The body follows the ground, drawn only: the grade force reads the road
   // (gradeAccelerationFor), not this. On a landform the lean is the ground's own

@@ -6,7 +6,8 @@ export function updateWheelPresentation(view: Pick<CarView, "wheelPivots" | "all
   WHEEL_LAYOUT.forEach((layout, index) => {
     const tyre = car.wheels[layout.id];
     view.wheelPivots[index]!.rotation.y = -tyre.steeringAngle;
-    // Independent free-rolling animation; not wheelspin/lockup physics yet.
+    // Free-rolling, except a tyre with a slip (an ?assist= preview's), whose rolling
+    // distance the sim has already run ahead of the road, or held back, for this.
     view.allWheels[index]!.rotation.x = -tyre.rollingDistance / HANDLING.wheelRadius;
   });
 }

@@ -1189,7 +1189,10 @@ every vehicle is bit-identical to before (the golden master is 14 of 14, the
 Cinder's card unchanged at 3.87 s to 60), and below 1 a rival's run is
 byte-identical too (`tests/pedal-assist.test.ts`). No physics revision.
 
-Measured in the Cinder, trigger floored:
+Measured in the Cinder, trigger floored, before wheelspin (below) gave the loss a
+lag. The steady state is the same and these hold to within a few percent: with
+the lag, 0-60 floored is 4.30 s at 0.5 and 4.83 s at 0, and the corner peaks at
+8.6°, 16.6° and 25.6° at 0.5, 0.25 and 0.
 
 | assist | 0-60 mph floored | 0-60 mph at 60% | peak slip out of a 45 mph corner | turn-in at 50 / 80 / 100% brake |
 |---|---|---|---|---|
@@ -1212,9 +1215,51 @@ tyres that have 14.5, so there is almost no excess to pay for. Threshold braking
 in a straight line would need stronger brakes than tyres, which is a tune and
 not this.
 
+**Wheelspin (the same day).** The first version lost grip the instant the pedals
+went over and gave it back the instant they came under, which is not what a
+spinning tyre does. Each of the player's tyres now has a `slip`
+(`WheelState.slip`, -1 to 1: above zero spinning, below it locking), and the grip
+lost follows the slip. The slip follows the excess with a lag, fast up and slow
+down: a driven tyre flares in about a seventh of a second (`wheelSpinUp: 7` a
+second) and takes nearly half a second to hook up (`wheelHookUp: 2.2`); a braked
+one locks and frees faster (12 and 5).
+
+It is a lag on the excess and not wheel inertia. A wheel's own speed is too
+stiff to integrate at 60 Hz without substeps, which is why the model never had
+one, and the excess already says which way it would go. The steady state is the
+excess itself, so the trigger stays a gradient and every figure above holds.
+
+Floored from rest at an assist of 0, the Cinder's rears are at 0.69 after 0.17 s
+and 0.97 after half a second, with the tread at 54 mph over a road doing 14.
+Eased to 35% throttle, they are still at 0.69 a sixth of a second later, 0.33
+after half a second and 0.11 after one. Bury the brake into a turn from 80 mph
+and the fronts are locked in about 0.7 s, the tread at 0 mph with the car at 54.
+
+It is drawn. A slipping tyre's rolling distance runs ahead of the road by up to
+`wheelSpinSurfaceSpeed` (18 m/s) or is held back to a stop, which the wheel mesh
+already follows; and the drawn tyre smoke takes a spun tyre as it takes a launch
+gone wrong, a locked one at half that. In the running game, 40 ticks off the
+line: rear tread 12.7 m, front 1.9 m.
+
+`slip` exists only on a previewed player's wheels. Everywhere else it is absent
+rather than zero, so the default game's state keeps its shape to the byte, and
+the golden master is still 14 of 14.
+
+**What the lag changes, and it is a real change in feel.** A stab of throttle
+now outlasts the stab. At an assist of 0.25 or below, 0.4 s of full throttle in a
+steady 45 mph corner, then back to 35% with the steering simply left where it
+was, spins the car: 58° at 0.25, 86° at 0. Held floored it does not (26° at 0),
+because under power the rear-drive slide share gives cornering grip back, and
+coming off the throttle moves load forward as it does in a real rear-drive car.
+A driver who steers into it from the end of the stab peaks at 6° and is straight
+2.5 s later, at every setting, and a test holds that. If doing nothing should be
+survivable, `wheelHookUp` is the knob: faster, and the spin outlasts the stab
+by less.
+
 **Heard and felt, under a preview only.** The sim reports how far past the tyres
 the pedals are (`Sim.pedalFeedback`: `spin` for driven tyres, `lock` for braked
-ones). It is not state, is not hashed, and nothing in a tick reads it back. The
+ones; under a preview, the tyres' own slip, so the howl lingers with the spin).
+It is not state, is not hashed, and nothing in a tick reads it back. The
 tyre-scrub voice plays it an octave lower, and the pad rumbles with it. Neither
 runs at the default: a spin nobody pays for is noise. `audio-mix.ts` left
 wheelspin out because the sim did not model it; this is the sim's own figure.

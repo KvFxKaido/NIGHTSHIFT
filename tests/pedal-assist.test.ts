@@ -132,3 +132,58 @@ test("a reset keeps the assist, and the feedback reports the excess at any setti
     assert.ok(floored > 0.9);
   }
 });
+
+// Wheelspin (2026-09-20): the grip lost follows a tyre's slip, which follows the
+// pedals' excess quickly up and slowly down, so a tyre that has flared stays flared
+// for a moment. A lag on the excess, not wheel inertia; its steady state is the
+// excess itself, which is why every test above still holds.
+test("a floored tyre flares in a moment, keeps spinning after the foot comes up, and is seen to", () => {
+  const sim = withAssist(0);
+  const rear = () => sim.state.vehicle.wheels["rear-left"], front = () => sim.state.vehicle.wheels["front-left"];
+  for (let tick = 0; tick < 30; tick++) step(sim, { ...NEUTRAL, throttle: 1 });
+  assert.ok(rear().slip! > 0.9, `half a second floored, the Cinder's rears are at ${rear().slip}`);
+  assert.equal(front().slip, 0, "and its fronts, which drive nothing, are not");
+  // The tread outruns the road: that is what is drawn.
+  const before = rear().rollingDistance;
+  step(sim, { ...NEUTRAL, throttle: 1 });
+  assert.ok((rear().rollingDistance - before) / DT > sim.state.vehicle.speed + 10, "a spinning tyre's tread runs well past the road's speed");
+  // Ease right off the limit: it does not hook up at once.
+  for (let tick = 0; tick < 12; tick++) step(sim, { ...NEUTRAL, throttle: 0.35 });
+  assert.ok(rear().slip! > 0.5, `a fifth of a second after easing off it is still at ${rear().slip}`);
+  for (let tick = 0; tick < 120; tick++) step(sim, { ...NEUTRAL, throttle: 0.35 });
+  assert.ok(rear().slip! < 0.05, `and two seconds later it has hooked up: ${rear().slip}`);
+});
+
+test("a buried brake locks the fronts into a turn, and a locked wheel is seen to stop", () => {
+  const sim = withAssist(0, 35.8);
+  for (let tick = 0; tick < 50; tick++) step(sim, { ...NEUTRAL, brake: 1, steer: 1 });
+  const front = sim.state.vehicle.wheels["front-left"];
+  assert.ok(front.slip! < -0.9, `fronts at ${front.slip}`);
+  const before = front.rollingDistance;
+  step(sim, { ...NEUTRAL, brake: 1, steer: 1 });
+  assert.ok(sim.state.vehicle.speed > 15 && Math.abs(front.rollingDistance - before) / DT < 0.2 * sim.state.vehicle.speed, "the car is still moving and the wheel has all but stopped");
+});
+
+test("a stab of throttle outlasts the stab, and a driver who reacts still catches it", () => {
+  let best = { peak: 0, caught: Infinity };
+  for (const sign of [1, -1]) {
+    const sim = withAssist(0, 20);
+    for (let tick = 0; tick < 90; tick++) step(sim, { ...NEUTRAL, steer: 0.45, throttle: 0.35 });
+    for (let tick = 0; tick < 24; tick++) step(sim, { ...NEUTRAL, steer: 0.45, throttle: 1 });
+    assert.ok(sim.state.vehicle.wheels["rear-left"].slip! > 0.5, "the stab flared the rears");
+    let peak = 0;
+    for (let tick = 0; tick < 150; tick++) { step(sim, { ...NEUTRAL, steer: Math.max(-1, Math.min(1, sign * slip(sim) * 4)), throttle: 0.2 }); peak = Math.max(peak, Math.abs(slip(sim))); }
+    if (Math.abs(slip(sim)) < best.caught) best = { peak, caught: Math.abs(slip(sim)) };
+  }
+  assert.ok(best.peak < 15 * Math.PI / 180 && best.caught < 3 * Math.PI / 180, `peak ${(best.peak * 180 / Math.PI).toFixed(1)}, then ${(best.caught * 180 / Math.PI).toFixed(1)} degrees`);
+});
+
+test("only a previewed player's tyres have a slip at all: the default game's state keeps its shape", () => {
+  const forgiven = withAssist(1);
+  for (let tick = 0; tick < 60; tick++) step(forgiven, { ...NEUTRAL, throttle: 1, steer: 0.5 });
+  assert.equal(JSON.stringify(forgiven.state).includes('"slip"'), false);
+  const raced = createSim(cinder, createAlderWorld(true), { race: ALDER_RACE, rival: ALDER_RIVAL, traffic: false, pedalAssist: 0 });
+  for (let tick = 0; tick < 60 * 8; tick++) step(raced, { ...NEUTRAL, throttle: 1 });
+  assert.equal(JSON.stringify(raced.state.rival).includes('"slip"'), false, "a rival never has one");
+  assert.equal(JSON.stringify(raced.state.vehicle).includes('"slip"'), true);
+});
