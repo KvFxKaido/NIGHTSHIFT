@@ -283,7 +283,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 | 6 | Deuce | Wager (r2, done) | RWD | 148 | governor | rotary: revs, a strong top end, the best tyres in a bend | −2.48% streets, −2.1 to −2.9% circuits |
 | 5 | Sable | NS-01 (r2, done) | RWD | 142 | governor | drift car: rotation, not speed; swings furthest and is caught from all of it | her yard: 6,340 against the Cinder's 4,929, 9 links to 6; pace −0.8 to −0.94% |
 | 4 | Plumb | Meridian (r2, done) | AWD | 146 | governor | fast wagon, built for the highway | −4.0% Uptown (her ground), −1.6 to −2.0% Ridge, −4.06% streets |
-| 3 | Crest | Skim | FWD | 138 | governor | light corner car: turn-in and grip | −3% |
+| 3 | Crest | Skim (r2, done) | FWD | 138 | governor | light corner car: the best tyres, and the traction to use them | −4.95% streets, −5.0 to −5.5% circuits |
 | 2 | Wake | Reign | AWD | 152 | governor (`topEnd` for a stronger 60–100) | the old champion: good at everything | −4% |
 | 1 | Tally | Vesper | RWD | 165 | governor 1.18, `topEnd` 1.4, `drag` 0.9 | the outlier: slippery, pulls hardest past 100 | −6% |
 

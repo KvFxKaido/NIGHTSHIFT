@@ -135,16 +135,16 @@
     }
   },
   "skim": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "skim",
       "drivetrain": "fwd",
-      "mass": 1180,
-      "zeroToSixty": 4.37,
-      "sixtyToHundred": 3.7,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 14.12,
+      "mass": 1050,
+      "zeroToSixty": 3.27,
+      "sixtyToHundred": 2.57,
+      "topSpeed": 138.1,
+      "stoppingDistance": 26.2,
+      "peakLateral": 15.75,
       "turnIn": 0.37,
       "handbrakeSlip": 7.6
     }

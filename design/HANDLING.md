@@ -783,6 +783,38 @@ she was 4.1–5.1% and 7.9%.
   nothing there. The top end (146 mph, `topEnd` 1.1) is the wagon's own.
 - **`RIVAL_REVISION` is `full-line-v19`.**
 
+### The Skim, revision 2 (2026-09-19)
+
+Crest's hardtop roadster: the lightest car, on the best tyres, and the first
+front-drive car with the traction to use them. Her stages are sprints, so the
+streets are the measure.
+
+```
+skim: { drivetrain: "fwd", revision: 2, mass: 1_050, topSpeed: 0.986, grip: 1.1,
+  traction: 1.2, balance: 0.95, steering: 1.15, handbrake: 0.85 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Skim r1 | 1180 | 4.37 | 3.70 | 140.0 | 27.8 | 14.12 | 0.37 | 7.6° |
+| **Skim r2** | 1050 | 3.27 | 2.57 | 138.1 | **26.2** | **15.75** | 0.37 | 7.6° |
+
+Street pace **4.95% quicker than the Cinder**, AI laps 5.0–5.5% quicker
+(untuned: 2.58% and 1.8–1.9% *slower*). The best cornering and the shortest stop
+on the list, and it turns in as fast as anything.
+
+- **`traction` is what front drive was missing.** Front tyres lose load under
+  power, so a FWD car gives away every junction exit: the Latch, tuned on grip
+  and balance alone, still ended 0.44% slower than the Cinder on the streets.
+  `traction` 1.2 widens only the driven tyres' push: 0–60 falls from the shared
+  4.37 s to 3.27, and her street pace goes from 2.58% slower to 4.95% quicker.
+- **The handbrake rule again.** `balance` 0.95 with the stock handbrake failed
+  three gates (city 22.3, long 42.9, highway 18.4 degrees, uncaught); at 0.85 it
+  passes all of them (7.4 / 18.7 / 26.8 / 8.4) with the same pace.
+- **`RIVAL_REVISION` is `full-line-v20`.** `pnpm golden`: exactly Crest's two runs
+  moved (free roam, where she cruises, and `gen-crest-8-unordered`).
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

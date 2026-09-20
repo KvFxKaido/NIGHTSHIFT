@@ -102,7 +102,11 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // traction that pays most on her own ground, the generated street circuits.
   meridian: { drivetrain: "awd", revision: 2, mass: 1_550, power: 0.75, topEnd: 1.1,
     topSpeed: 1.0429, brakes: 0.95, steering: 0.95 },
-  skim: { drivetrain: "fwd", revision: 1 },  // Crest: hardtop roadster
+  // Crest's hardtop roadster (2026-09-19): the lightest car on the best tyres,
+  // and the traction to use them out of a junction, which is what front drive
+  // otherwise gives away on her streets. A looser tail, so a gentler handbrake.
+  skim: { drivetrain: "fwd", revision: 2, mass: 1_050, topSpeed: 0.986, grip: 1.1,
+    traction: 1.2, balance: 0.95, steering: 1.15, handbrake: 0.85 },
   reign: { drivetrain: "awd", revision: 1 },  // Wake: upright legend coupe
   // Rivet's muscle notchback (2026-09-19): heavy, fat rear tyres, a strong top end to
   // 150 mph, poor in a bend. Her race is the drag strip, so her traction is capped
