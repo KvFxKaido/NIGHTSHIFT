@@ -725,9 +725,11 @@ ns01 (and "blender", the same car she parks in the yard):
 | NS-01 r1 | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
 | **NS-01 r2** | 1250 | 3.73 | 2.83 | 142.0 | 27.8 | 14.19 | 0.40 | **13.7°** |
 
-In Sable's yard: **4,199 against the Cinder's 3,817**, holding **21.5 degrees**
-where the Cinder holds 17.4, peaking at 39.0, and drifting 16.4% of the run
-against 14.8%. Pace is 0.8% quicker than the Cinder on the circuits and 0.94% on
+In Sable's yard, on the linking driver that replaced the one it was tuned with:
+**6,340 against the Cinder's 4,929**, with **9 linked transitions to the Cinder's
+6**, holding 18.8 degrees against 17.1, peaking at 34.2, and drifting 23.1% of the
+run against 19.5%. (On the driver that chose the tune it scored 4,199 against
+3,817, holding 21.5 against 17.4, and nothing linked at all.) Pace is 0.8% quicker than the Cinder on the circuits and 0.94% on
 the streets, under the ladder's −2%: her race is the yard, and this is the NS-01
 as a car the player wins.
 
@@ -742,13 +744,15 @@ as a car the player wins.
   because the angle comes from `balance` 0.85 and `handbrake` 1.25. It also failed
   the RWD throttle-catch gate's exit: the worst case regained 2.62 m/s where the
   gate wants 3, since less powered grip is exactly what pulls a car out of a slide.
-  At 1.03 the exit regains 3.41 m/s and the score is highest (4,199).
+  At 1.03 the exit regains 3.41 m/s and the score is highest (4,199 on that driver).
 - **`RIVAL_REVISION` is `full-line-v18`.** `pnpm golden`: exactly the two runs
   where her car appears moved (her yard, and free roam where she parks); twelve
   bit-identical.
-- **What the measure cannot see.** The drift driver links no transitions, and
-  linked transitions are worth 75 chain points each in `stepDrift`. A tune that
-  makes a car easier to flick from side to side would not show here.
+- **What the measure cannot see.** The driver links now, so a car that flicks
+  willingly shows, but it still cannot rank cars against each other: Rivet's
+  Hammer scores **7,231** here, above the drift car, because it suits the driver's
+  fixed timing. Read it as one car's tunes against each other, which is what it
+  was used for.
 
 ### The Meridian, revision 2 (2026-09-19)
 
