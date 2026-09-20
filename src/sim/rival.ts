@@ -282,8 +282,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v23": the ladder pass over the four names tuned before the street
  * measure existed or judged by their own events -- Moth, Stray, Bollard and
  * Sable (kestrel, latch, breakwater r3, ns01 r3).
+ * "full-line-v24": a street rival corners at 0.80 of the grip-limited speed
+ * instead of 0.76, as far as steering feedforward raised the ceiling. A racing
+ * line keeps 0.76, which is all its own width leaves it.
  */
-export const RIVAL_REVISION = "full-line-v23";
+export const RIVAL_REVISION = "full-line-v24";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -303,6 +306,9 @@ export const RIVAL_RACING = {
  * line's grip-limited speed, never below `minimumSpeed`, braked for at
  * `planningDeceleration` from `brakingMargin` metres before the corner.
  *
+ * `speedFactor` is a share of the grip-limited SPEED, and speed goes as the root
+ * of grip, so the grip a corner actually uses is its SQUARE.
+ *
  * Tuned 2026-09-13 against Shawn's recorded laps of Ridge Circuit (Full, RWD
  * Cinder). At the apexes he used 74-82% of the car's lateral grip and braked at
  * 7-10 m/s² into the big stops; the rival, at 0.62, 5 and 12, used 19-43% and
@@ -310,7 +316,30 @@ export const RIVAL_RACING = {
  * Corner speed was not: the rival follows the centreline with a lagging
  * steering controller, and at 0.82 it overshot the reverse bend after the
  * south junction onto the grass and ran 19.8 m wide on Sound to Sky. 0.74,
- * 0.76 and 0.78 were all clean, so 0.76 keeps a margin.
+ * 0.76 and 0.78 were all clean, so 0.76 kept a margin.
+ *
+ * 0.80 ON STREETS since 2026-09-19 (Shawn's call). RIVAL_STEERING's feedforward
+ * -- which fixes exactly the lagging controller that broke 0.82, landed the same
+ * day and reached streets with RIVAL_STREET_CORNERS -- was never swept against
+ * this. It raises the ceiling without removing it. The grass, read as
+ * `alderGround` over eight street races clear and in traffic, no longer bites at
+ * all below 0.92; what bites first now is how wide the arc runs, which
+ * `tests/rival-racing.test.ts` holds to 2 m through a 35 degree bend at 52 m/s:
+ * 1.18 m at 0.76, 1.60 at 0.80, 1.86 at 0.82, 2.16 at 0.84 and 2.49 at 0.86.
+ * 0.80 keeps a fifth of that gate in hand, where 0.82 would sit at 93% of it.
+ *
+ * So "past about 0.8 its tracking, not its grip, is the limit" still holds; what
+ * moved is the symptom, from a wheel on the grass to a wide arc, and with it the
+ * ceiling, from 0.76 to about 0.82. Sound to Sky 145.8 s to 144.2.
+ *
+ * A RACING LINE keeps 0.76 (`RIVAL_BRAKING.speedFactor`): it cannot take more.
+ * Ridge Full with Moth's Kestrel goes onto the grass for 53 ticks at 0.80, 111 at
+ * 0.82, 149 at 0.84 and 165 at 0.86, where 0.76 puts no wheel off. A K1999 line
+ * already spends the track's width on itself, running 2.2-2.6 m from the edges,
+ * so an overshoot has nowhere to go; a street rival sits half-way into its lane
+ * with metres of asphalt either side. East and Ridge stay clean throughout, so it
+ * is Full's long corners that set the ceiling
+ * (design/PORT_ALDER.md, "How hard the rival corners").
  *
  * Braking while turning (2026-09-13). The braking plan used to assume a
  * straight: from any corner back to the car, `planningDeceleration` the whole
@@ -324,7 +353,7 @@ export const RIVAL_RACING = {
  * while turning"). On a racing line the plan is RIVAL_BRAKING's instead.
  */
 export const RIVAL_CORNERING = {
-  speedFactor: 0.76,
+  speedFactor: 0.80,
   minimumSpeed: 7,
   planningDeceleration: 10,
   brakingMargin: 6,
@@ -407,6 +436,8 @@ const orbitReach = () => 2.5 * (HANDLING.frontAxleDistance + HANDLING.rearAxleDi
  * the rival stopped where it was hit, or ended on full lock circling its target.
  */
 export const RIVAL_BRAKING = {
+  /** A racing line's own corner speed: it has no room to run wide (RIVAL_CORNERING). */
+  speedFactor: 0.76,
   planningDeceleration: 14,
   /** Share of lateral grip at which cornering leaves the braking plan nothing. */
   frictionShare: 0.6,
@@ -466,7 +497,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
-    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius, handling)*RIVAL_CORNERING.speedFactor);
+    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius, handling)*plan.speedFactor);
     // A straight's limit is infinite; the profile works in finite speeds.
     limits.push(Math.min(cornerSpeed, handling.topSpeed)); curvatures.push(1 / radius);
   }

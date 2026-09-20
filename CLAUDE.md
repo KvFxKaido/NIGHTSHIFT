@@ -173,8 +173,12 @@ fixtures outside the playable bundle, and old world links redirect.
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
   it rests half-way into the inner lane going its way (`RIVAL_LANE`) and drives
   each junction as an arc within its own side (`RIVAL_STREET_CORNERS`). Its
-  cornering (`RIVAL_CORNERING`) is tuned to recorded laps; past about 0.8 of the
-  grip-limited speed its centreline tracking, not grip, puts it on the grass. On
+  cornering is tuned to recorded laps; past about 0.8 of the grip-limited speed its
+  tracking, not its grip, is the limit. Steering feedforward raised that ceiling
+  without removing it, and only on streets, so the two surfaces now take their
+  corner speed from their own plan (`design/PORT_ALDER.md`, "How hard the rival
+  corners"): a street 0.80 (`RIVAL_CORNERING`), a racing line 0.76
+  (`RIVAL_BRAKING`), which is all its own width leaves it. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for

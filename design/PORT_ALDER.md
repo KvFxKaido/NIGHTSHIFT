@@ -992,6 +992,76 @@ player's apex speed; where the player widens the corner (T2, the Jog, T9) it was
 27–42% slower. One session of one driver in one car is thin evidence; more
 sessions, the other layouts and an AWD car would show whether 0.76 generalises.
 
+### How hard the rival corners (2026-09-19)
+
+The 0.76 above was chosen because 0.82 put the rival "grass on Full, 19.8 m wide
+in the city" -- two failures, one on the racing line and one on a street -- and
+the reason given was the lagging steering controller. `RIVAL_STEERING`'s
+feedforward, which exists to fix exactly that, landed the same day and reached
+streets with `RIVAL_STREET_CORNERS`. The corner speed was never re-swept against
+it. It turns out the feedforward raises that ceiling without removing it, and
+raises it on one surface only.
+
+Re-measured with the grass read as `alderGround`, the test the v6 grip penalty
+uses, rather than as distance from a centreline, which cannot tell a 20 m street
+from a 12 m one:
+
+**Streets**, the grass (eight races, clear and in traffic, the rival's own car):
+
+| `speedFactor` | 0.76 | 0.84 | 0.86 | 0.88 | 0.92 | 1.00 |
+|---|---|---|---|---|---|---|
+| Sound to Sky | 145.8 s | 142.7 | 142.1 | 141.5 | 140.6 | 139.5 |
+| On the grass | none | none | none | none | 1.1 s, 8.3 m past the pavement | 0.6 s |
+
+**Ridge Circuit** (flying lap, Moth's Kestrel, which every arena race fields):
+
+| `speedFactor` | 0.76 | 0.80 | 0.82 | 0.84 | 0.86 |
+|---|---|---|---|---|---|
+| Full | 75.25 s | 73.68 | 73.12 | 72.63 | 72.10 |
+| Full, on the grass | **0 ticks** | 53 | 111 | 149 | 165 |
+
+East and Ridge stay clean at every value, so it is Full's long corners that set
+the ceiling there.
+
+On a street the grass no longer bites below 0.92. What bites first is how wide
+the arc runs, which `tests/rival-racing.test.ts` holds to 2 m through a 35 degree
+bend taken at 52 m/s -- the bound set when the feedforward landed, which brought
+that bend from 2.9 m to about 1.2:
+
+| `speedFactor` | 0.76 | 0.78 | 0.80 | 0.82 | 0.84 | 0.86 |
+|---|---|---|---|---|---|---|
+| Off its line | 1.18 m | 1.37 | 1.60 | **1.86** | 2.16 | 2.49 |
+
+So "past about 0.8 of the grip-limited speed its tracking, not its grip, is the
+limit" still holds, as CLAUDE.md had it all along. What moved is the symptom,
+from a wheel on the grass to a wide arc, and with it the ceiling, from 0.76 to
+about 0.82. The two surfaces want different numbers, and `route.lateral` already
+tells them apart for braking, so the corner speed now comes from the same plan:
+
+- **A street rival: 0.80** (Shawn, 2026-09-19). It keeps a fifth of the tracking
+  gate in hand where 0.82 would sit at 93% of it, so a later tune can widen the
+  arc a little without failing the test. `speedFactor` is a share of the
+  grip-limited SPEED and speed goes as the root of grip, so the grip a corner
+  uses is its square: 0.76 used 58% of the car's lateral grip, 0.80 uses 64%,
+  against Shawn's own 74-82% at an apex. Sound to Sky 145.8 s to 144.2, and no
+  wheel on the grass in any of the eight races.
+- **A racing line: 0.76**, unchanged (`RIVAL_BRAKING.speedFactor`). It has no
+  room: a K1999 line already spends the track's width on itself, running 2.2-2.6 m
+  from the edges, where a street rival sits half-way into its lane with metres of
+  asphalt either side. Ridge Circuit is untouched to the tick -- 75.25 / 58.03 /
+  48.80 and no wheel off, the same as before -- and `pnpm golden` confirms it:
+  the four street races with a rival moved, Ridge Circuit full did not.
+
+Past 1.08 the racing line stops being a line at all: Full goes 70.85 s to 83.92.
+`RIVAL_REVISION` is `full-line-v24`.
+
+Both limits were found by gates already in the suite, and both after a first pass
+had concluded 0.86 was clean everywhere. The arena test's `groundTicks === 0`
+caught the racing line, because that first pass measured the grass on streets but
+only lap times on the circuits, and the circuits it timed drove a Cinder where
+every arena race fields Moth's Kestrel. The 2 m arc bound caught the streets.
+Neither would have been found by measuring harder in the same direction.
+
 **The racing line and the trigger (2026-09-13).** A second session on circuit
 revision 2 (1:16.15, 1:13.37, 1:12.43, all valid, replaying exactly) agreed with
 the first at every unchanged corner to within 3 mph, braking for T1 at 106 m
