@@ -32,7 +32,7 @@ import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
-import { drawnEffects, setLook } from "./render/cel.ts";
+import { drawnEffects, LOOKS, setLook, type Look } from "./render/cel.ts";
 import { addCelSmoke } from "./render/smoke.ts";
 import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
 import { createDistrictBanner } from "./ui/district-banner.ts";
@@ -183,10 +183,11 @@ try {
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
   // The cars are drawn (render/cel.ts), set before any body loads. ?look=plain
-  // shows them undrawn and ?look=fx undrawn with the drawn smoke, to compare.
+  // shows them undrawn, ?look=fx undrawn with the drawn smoke and
+  // ?look=cel-traffic drawn with traffic drawn too, to compare.
   const look = params.get("look") ?? "cel";
-  if (look !== "cel" && look !== "fx" && look !== "plain") throw new Error(`Unknown look '${look}'`);
-  setLook(look === "plain" ? null : look);
+  if (look !== "plain" && !LOOKS.some(known => known === look)) throw new Error(`Unknown look '${look}'`);
+  setLook(look === "plain" ? null : look as Look);
   // Draw between ticks (render/interpolate.ts); ?smooth=0 draws the last tick, to compare.
   smooth = params.get("smooth") !== "0";
   await RAPIER.init();

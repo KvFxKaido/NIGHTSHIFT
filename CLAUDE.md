@@ -458,7 +458,9 @@ both the fallback and that the unlock grants nothing. Browser harnesses:
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
 The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
 `src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`
-undrawn with the drawn smoke, for comparison, never saved. A burnout (e-brake
+undrawn with the drawn smoke, for comparison, never saved. `?look=cel-traffic`
+(2026-09-20) draws traffic too, bands and ink without the stripe or the cyan
+rim: an undecided comparison, not the look. A burnout (e-brake
 and gas at a standstill) smokes anywhere, which is the quick way to look at it;
 Wharf Garage's apron is walled, so line up with the street before letting go.
 Live play draws each car between its last two ticks (`src/render/interpolate.ts`),

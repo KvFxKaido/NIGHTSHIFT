@@ -20,13 +20,23 @@ import type { CarView } from "./car.ts";
  * The bands are a patch on the cars' own standard materials, not a swap, so
  * paint, wheel finish and livery edits keep working on the same objects. The
  * drawn tyre smoke is its own module, render/smoke.ts.
+ *
+ * `?look=cel-traffic` is a third comparison (2026-09-20), undecided and never
+ * saved: `cel`, with traffic banded and inked as well. Traffic gets the bands and
+ * the ink and neither accent. The cyan rim is the race's colour and the stripe is
+ * a named car's paint; traffic keeps its muted paint and its lamps still do the
+ * announcing (render/traffic.ts). What it is there to settle is whether a drawn
+ * hazard reads better at night or only stops the rival standing out.
  */
-export type Look = "fx" | "cel";
+export type Look = "fx" | "cel" | "cel-traffic";
+export const LOOKS: readonly Look[] = ["fx", "cel", "cel-traffic"];
 let look: Look | null = null;
 let celOn = false;
-export function setLook(value: Look | null): void { look = value; celOn = value === "cel"; }
+export function setLook(value: Look | null): void { look = value; celOn = value === "cel" || value === "cel-traffic"; }
 /** Whether any drawn effects are on. */
 export function drawnEffects(): boolean { return look !== null; }
+/** Whether traffic is drawn too: only under `?look=cel-traffic`. */
+export function trafficDrawn(): boolean { return look === "cel-traffic"; }
 
 /** Shared by every patched material, so a value changed here changes every car. */
 export const CEL_UNIFORMS = {
@@ -63,18 +73,23 @@ const CEL_LIGHT = /* glsl */ `
   float celLight = dot(totalDiffuse, celLuma) / max(dot(material.diffuseColor, celLuma), 1e-4);
   float celBand = celLight < celThresholds.x ? celBands.x : (celLight < celThresholds.y ? celBands.y : celBands.z);
   vec3 celColor = diffuseColor.rgb * celBand;
+#ifndef CEL_BANDS_ONLY
   celColor += step(celSpecular, dot(totalSpecular, celLuma)) * celStripe;
   // The rim is an edge on the flanks. A roof seen from the chase camera is at a
   // grazing angle too, and rimmed whole it read as pale blue paint; a face
   // turned up towards the camera is not a flank.
   float celFacing = 1.0 - saturate(dot(normal, normalize(vViewPosition)));
   celColor += step(celRimEdge, celFacing) * (1.0 - step(0.55, normal.y)) * celRim * celRimStrength;
+#endif
   vec3 outgoingLight = celColor + totalEmissiveRadiance;
 `;
 const SUM_OF_LIGHT = "vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;";
 
-/** Band a car material when the preview is on; a no-op otherwise. */
-export function celMaterial<T extends THREE.MeshStandardMaterial>(material: T): T {
+/**
+ * Band a material when the cars are drawn; a no-op otherwise. `accents` are the
+ * highlight stripe and the cyan rim, a named car's; traffic is banded without.
+ */
+export function celMaterial<T extends THREE.MeshStandardMaterial>(material: T, accents = true): T {
   if (!celOn || material.userData.cel) return material;
   // The shared uniforms, reachable from any car mesh for tuning in the browser.
   material.userData.cel = CEL_UNIFORMS;
@@ -82,17 +97,18 @@ export function celMaterial<T extends THREE.MeshStandardMaterial>(material: T): 
     if (!shader.fragmentShader.includes(SUM_OF_LIGHT)) throw new Error("The standard shader no longer sums light the way the cel patch expects");
     Object.assign(shader.uniforms, CEL_UNIFORMS);
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${CEL_PARS}`)
+      .replace("#include <common>", `#include <common>\n${accents ? "" : "#define CEL_BANDS_ONLY\n"}${CEL_PARS}`)
       .replace(SUM_OF_LIGHT, CEL_LIGHT);
   };
-  material.customProgramCacheKey = () => "cel";
+  material.customProgramCacheKey = () => accents ? "cel" : "cel-bands";
   material.needsUpdate = true;
   return material;
 }
 
 /** The ink: each car mesh again, welded so its normals are smooth, pushed out
  *  along them and drawn back faces only. The push grows with depth, so the
- *  line holds about the same width on screen near and far. */
+ *  line holds about the same width on screen near and far. An instanced mesh
+ *  is placed by its instance first, or every outline would be drawn at the origin. */
 const INK = new THREE.ShaderMaterial({
   name: "cel-ink",
   uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
@@ -103,8 +119,14 @@ const INK = new THREE.ShaderMaterial({
     #include <common>
     #include <fog_pars_vertex>
     void main() {
-      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-      mvPosition.xyz += normalize(normalMatrix * normal) * inkWidth * max(-mvPosition.z, 1.5);
+      vec4 inkPosition = vec4(position, 1.0);
+      vec3 inkNormal = normal;
+      #ifdef USE_INSTANCING
+        inkPosition = instanceMatrix * inkPosition;
+        inkNormal = mat3(instanceMatrix) * inkNormal;
+      #endif
+      vec4 mvPosition = modelViewMatrix * inkPosition;
+      mvPosition.xyz += normalize(normalMatrix * inkNormal) * inkWidth * max(-mvPosition.z, 1.5);
       gl_Position = projectionMatrix * mvPosition;
       #include <fog_vertex>
     }`,

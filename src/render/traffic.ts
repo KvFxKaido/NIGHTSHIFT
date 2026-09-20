@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { trafficBodyGeometry, trafficCabin } from "./traffic-body.ts";
+import { CEL_INK, celMaterial, trafficDrawn } from "./cel.ts";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, type TrafficState } from "../sim/traffic.ts";
 
@@ -9,7 +10,8 @@ import { TRAFFIC_KINDS, trafficSignal, type TrafficKind, type TrafficNetwork, ty
  *
  * Six instanced sets per kind (paint, trim, lamps, two signals, brakes) for
  * the lot — because the count is fixed at load and never changes, which is the
- * same property that keeps the simulation's collider set constant.
+ * same property that keeps the simulation's collider set constant. A seventh,
+ * the ink, only under `?look=cel-traffic`.
  */
 
 export interface TrafficView {
@@ -136,6 +138,19 @@ export function addTraffic(scene: THREE.Scene, traffic: TrafficState, network: T
     detail.frustumCulled = false;
     details.set(kind, detail);
     root.add(detail);
+
+    // ?look=cel-traffic, a comparison (render/cel.ts): banded without a named
+    // car's accents, and one more set per kind for the ink. It shares the body's
+    // instance buffer, so wherever a body is placed its outline already is.
+    if (trafficDrawn()) {
+      celMaterial(body.material as THREE.MeshStandardMaterial, false);
+      celMaterial(detail.material as THREE.MeshStandardMaterial, false);
+      const ink = new THREE.InstancedMesh(geometry.silhouette, CEL_INK, count);
+      ink.name = `traffic-ink-${kind}`;
+      ink.instanceMatrix = body.instanceMatrix;
+      ink.frustumCulled = false;
+      root.add(ink);
+    } else geometry.silhouette.dispose();
 
     const lamp = new THREE.InstancedMesh(lampGeometry(kind),
       new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }), count);

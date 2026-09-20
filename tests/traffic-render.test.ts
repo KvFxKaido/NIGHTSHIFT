@@ -3,6 +3,7 @@ import test from "node:test";
 import * as THREE from "three";
 import { trafficBodyGeometry } from "../src/render/traffic-body.ts";
 import { addTraffic, updateTraffic } from "../src/render/traffic.ts";
+import { CEL_INK, CEL_UNIFORMS, celMaterial, setLook, trafficDrawn } from "../src/render/cel.ts";
 import { TRAFFIC_KINDS, createTraffic, type TrafficKind } from "../src/sim/traffic.ts";
 import { createAlderWorld } from "../src/sim/alder.ts";
 
@@ -47,4 +48,54 @@ test("every spawned traffic kind keeps trim and lamps attached through turns, hi
     assert.deepEqual(actual.elements, expected.elements);
   });
   assert.equal(view.root.children.length, 6 * Object.keys(TRAFFIC_KINDS).length, "draw sets scale with kinds, not vehicles");
+  for (const kind of Object.keys(TRAFFIC_KINDS)) {
+    assert.equal(view.root.getObjectByName(`traffic-ink-${kind}`), undefined, "traffic is undrawn unless asked for");
+    assert.equal(view.bodies.get(kind as TrafficKind)!.material.userData.cel, undefined);
+  }
+});
+
+test("?look=cel-traffic bands traffic without a named car's accents and inks one silhouette per kind", () => {
+  const network = createAlderWorld(true).traffic!;
+  const traffic = createTraffic(network);
+  setLook("cel-traffic");
+  try {
+    assert.equal(trafficDrawn(), true);
+    const view = addTraffic(new THREE.Scene(), traffic, network);
+    const kinds = Object.keys(TRAFFIC_KINDS) as TrafficKind[];
+    assert.equal(view.root.children.length, 7 * kinds.length, "one ink set per kind, not per vehicle");
+    updateTraffic(view, traffic, .2);
+    for (const kind of kinds) {
+      const body = view.bodies.get(kind)!, ink = view.root.getObjectByName(`traffic-ink-${kind}`) as THREE.InstancedMesh;
+      assert.equal(ink.material, CEL_INK);
+      assert.equal(ink.count, body.count);
+      // Shared, not copied: an outline can never be somewhere its body is not.
+      assert.equal(ink.instanceMatrix, body.instanceMatrix);
+      assert.ok(ink.geometry.index!.count / 3 <= 36, `${kind} ink is ${ink.geometry.index!.count / 3} triangles a vehicle`);
+      for (const material of [body.material, view.details.get(kind)!.material] as THREE.MeshStandardMaterial[]) {
+        assert.equal(material.userData.cel, CEL_UNIFORMS);
+        assert.equal(material.customProgramCacheKey(), "cel-bands", "the stripe and the cyan rim are a named car's");
+      }
+      // Lamps, signals and brakes stay lit as they were: they do the announcing.
+      assert.ok(view.lamps.get(kind)!.material instanceof THREE.MeshBasicMaterial);
+      // The hull's normals point out of corners and are shared across a corner's faces.
+      const normal = ink.geometry.getAttribute("normal"), position = ink.geometry.getAttribute("position");
+      const seen = new Map<string, string>();
+      for (let i = 0; i < normal.count; i++) {
+        assert.ok(Math.abs(Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i)) - 1) < 1e-6);
+        assert.ok(Math.abs(Math.abs(normal.getX(i)) - Math.sqrt(1 / 3)) < 1e-6, "a corner normal, not a face normal");
+      }
+      // Within one solid, coincident vertices agree, or the hull cracks along that edge.
+      for (let solid = 0; solid < position.count / 24; solid++) {
+        seen.clear();
+        for (let i = solid * 24; i < solid * 24 + 24; i++) {
+          const at = [position.getX(i), position.getY(i), position.getZ(i)].map(n => n.toFixed(5)).join(",");
+          const n = [normal.getX(i), normal.getY(i), normal.getZ(i)].map(n => n.toFixed(5)).join(",");
+          assert.equal(seen.get(at) ?? n, n, `${kind} solid ${solid} splits at ${at}`);
+          seen.set(at, n);
+        }
+      }
+    }
+  } finally { setLook(null); }
+  assert.equal(trafficDrawn(), false);
+  assert.equal(celMaterial(new THREE.MeshStandardMaterial()).userData.cel, undefined, "the look is off again for whatever runs next");
 });
