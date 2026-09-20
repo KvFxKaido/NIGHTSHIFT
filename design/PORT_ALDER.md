@@ -1447,8 +1447,20 @@ refused by name, and their numbers are here.
 - **So 0.80 was already behind him.** It was picked level with his 15:52 laps; by
   16:12 he was two seconds a lap quicker with no assist. 0.84 is level with those
   laps, 0.88 (his own number, before the cut) about a second quicker than his best
-  valid one, 0.92 level with him on the same assists. He chose 0.88. Not raced at
-  it yet.
+  valid one, 0.92 level with him on the same assists. He chose 0.88.
+- **Raced at 0.88, 16:55, no pedal assist: he lost, by 0.62 s** (`full-line-v28`;
+  replays exactly). 1:26.92, 1:22.43 (invalid: left the track), 1:22.07, his
+  quickest laps without the assist, to its 1:25.45, 1:22.98, 1:22.37. He was
+  quicker on laps 2 and 3 and never led at a gate: 1.48 s behind at the first,
+  0.05 s and 1.9 m behind at the hairpin on lap 2, 0.62 s at the flag. Within 10 m
+  for 34 s; the rival off its line for him for 17 s, no reset. Over the race he
+  gained 3.97 s within 70 m of a gate and gave back 4.58 s elsewhere, and
+  "elsewhere" is two places. The start: the launch hold, let go 0.32 s after the
+  flag, and the throttle flat for the first 11 s, which with no assist is
+  wheelspin (design/HANDLING.md: a floored start gives away about four car
+  lengths). And the hairpin to the line, every lap: 0.05 s behind became 0.92 s
+  in 120 m on lap 2, leaving the hairpin at 47 mph to its 58 on four driven wheels
+  and the clamp. At the slowest point of a corner he averaged 54 mph to its 50.
 - **What it cost the instruments.** `pnpm cars --laps` drove this race's rival
   route for its Uptown column; it now names the in-traffic race's route, on clear
   streets as before, so that column still measures what every tune was judged on
