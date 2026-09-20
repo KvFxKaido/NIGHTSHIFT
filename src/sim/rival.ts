@@ -1,3 +1,4 @@
+import { planTrafficPass, passingOffset, passingPoint, type PassingContext, type TrafficPass } from "./traffic-pass.ts";
 import { HANDLING, handlingFor, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
@@ -31,6 +32,8 @@ export interface RivalDefinition {
   readonly clearance?: number;
   /** A racing line this street route may take one corner at a time, when traffic allows (street-line.ts). */
   readonly line?: StreetLine;
+  /** Forecasted, committed overtakes for street races. */
+  readonly trafficPassing?: boolean;
 }
 /** A line carried by a centreline route as a shift from its lane, at stations `spacing` metres apart along the route's
  *  own distance (street-line.ts). */
@@ -90,6 +93,7 @@ export interface RivalDriver {
   lineGo?: boolean;
   lineRefused?: number;
   lineBlend?: number;
+  trafficPass?: TrafficPass;
 }
 export function createRivalDriver(): RivalDriver {
   return { along: 0, progressMark: 0, noProgressTicks: 0, resetCheckIn: 0, resets: 0, unseenResets: 0, resetAlong: -1e9, stuckTicks: 0, reverseTicks: 0, recoveries: 0, recoverySide: 0, bypassUntil: 0, avoidance: 0, targetSpeed: 0 };
@@ -347,8 +351,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v28": that line cornered at 0.88 (Shawn), not 0.80.
  * "full-line-v29": generated street rivals and Uptown in traffic take a cut line
  * one corner at a time when the traffic forecast allows, returning to their lane.
+ * "full-line-v30": those rivals can commit to a forecasted traffic pass, planning
+ * its pull-out, speed, clearance and return together.
  */
-export const RIVAL_REVISION = "full-line-v29";
+export const RIVAL_REVISION = "full-line-v30";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -565,7 +571,7 @@ export const RIVAL_BRAKING = {
   correction: 3,
 } as const;
 
-export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null): Input {
+export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null, trafficContext?: PassingContext): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
@@ -607,6 +613,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
   const target = sampleDrivingPath(route, Math.min(gate, driver.along + lookAhead));
+  const trafficDecision = route.trafficPassing && trafficContext ? planTrafficPass(route, driver, car, trafficContext) : undefined;
+  const pass = trafficDecision?.pass;
+  if (trafficDecision) driver.lineGo = false;
   // The street line (street-line.ts): while the corner being read may be taken, the driver blends onto its line over
   // about a second, and off it the same way the moment it may not. With no line, or no go, none of this moves anything.
   const line = route.line, corner = line?.corners[driver.lineCorner ?? -1];
@@ -616,6 +625,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // What it means to drive, for the speed plan and the steering: shifted onto the line where a corner is go.
   const planned = (at: number) => !!line && !!corner && !!driver.lineGo && at >= corner.from && at <= corner.to;
   const intended = (at: number) => {
+    if (pass) return passingPoint(route, pass, at);
     const on = sampleDrivingPath(route, at);
     if (!planned(at)) return on;
     const shift = shiftAt(line!, at);
@@ -632,7 +642,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const limits: number[] = [], curvatures: number[] = [];
   for (let d = 0; d <= previewDistance; d += 4) {
     const at = driver.along + d;
-    const a=line?intended(at-8):sampleDrivingPath(route,at-8), b=line?intended(at):sampleDrivingPath(route,at), c=line?intended(at+8):sampleDrivingPath(route,at+8);
+    const a=line||pass?intended(at-8):sampleDrivingPath(route,at-8), b=line||pass?intended(at):sampleDrivingPath(route,at), c=line||pass?intended(at+8):sampleDrivingPath(route,at+8);
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
@@ -664,11 +674,12 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const ownSide = route.lateral ? 0
     : RIVAL_LANE.share * laneOffset(target.width, { direction: 1, index: 0 }, target.width > 14 ? "collector" : "local");
   let offset = driver.along < driver.bypassUntil ? driver.recoverySide * Math.min(5, target.width / 2 - 2.2) : ownSide;
+  if (pass) offset = passingOffset(route, pass, Math.min(gate, driver.along + lookAhead));
   let blocking = false;
   // A parked or crawling player is in the way, not in the race: that one is
   // avoided and slowed for like any other obstacle. A racing player is raced.
-  const hazards = opponent && opponent.speed < RIVAL_RACING.racingSpeed ? [...obstacles, opponent] : obstacles;
-  if (opponent && opponent.speed >= RIVAL_RACING.racingSpeed && state.race && driver.along >= driver.bypassUntil
+  const hazards = opponent && (pass || opponent.speed < RIVAL_RACING.racingSpeed) ? [...obstacles, opponent] : obstacles;
+  if (!trafficDecision && opponent && opponent.speed >= RIVAL_RACING.racingSpeed && state.race && driver.along >= driver.bypassUntil
     && Math.abs(opponent.y - car.y) <= 3) {
     const dx = opponent.x - car.x, dz = opponent.z - car.z;
     const ahead = dx * target.ux + dz * target.uz, side = dx * -target.uz + dz * target.ux;
@@ -725,13 +736,25 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Where across the route it means to be at the aim point: the offset it is easing to, and as much of the line's
   // shift as it has taken up.
   const aimShift = line && blend > 0 ? shiftAt(line, Math.min(gate, driver.along + lookAhead)) : null;
-  const intent = driver.avoidance + (aimShift ? blend * (aimShift.x * normalX + aimShift.z * normalZ) : 0);
+  const intent = (pass ? offset : driver.avoidance) + (aimShift ? blend * (aimShift.x * normalX + aimShift.z * normalZ) : 0);
   for (const obstacle of hazards) {
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
     if (Math.abs(obstacle.y - routeHeightAt(route, driver.along + ahead) - aboveRoute) > 3) continue;
     const offRoute=side+carOffset;
     const length=(obstacle.length??4.2)/2+2.1;
+    if (pass) {
+      // The committed path already owns the full forecast. Keep a short,
+      // body-relative emergency check; the old straight-line arrival guess
+      // otherwise brakes for cars the curved passing path safely clears.
+      const fx = -Math.sin(car.heading), fz = -Math.cos(car.heading);
+      const immediate = dx * fx + dz * fz, lateral = dx * -fz + dz * fx;
+      if (immediate > 0 && immediate < length + car.speed * .45 && Math.abs(lateral) < 2.6) {
+        const speed = obstacle.speed * (-Math.sin(obstacle.heading) * fx - Math.cos(obstacle.heading) * fz);
+        slowFor(speed, immediate, length);
+      }
+      continue;
+    }
     if (ahead < -length || ahead > 15+car.speed*1.6) continue;
     const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
     const along=obstacle.speed*(headingX*target.ux+headingZ*target.uz);
@@ -752,6 +775,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       // an oncoming car is often genuinely in its way. That is the line's
       // problem, not this loop's.
       if (inPath && ahead>0) slowFor(along,ahead,length);
+      continue;
+    }
+    if (trafficDecision) {
+      if (inPath && ahead > 0) slowFor(along, ahead, length);
       continue;
     }
     // Same direction: pass it on whichever side is clear, the way it passes the
@@ -779,7 +806,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
-  driver.avoidance += clamp(offset-driver.avoidance,-lateralRate,lateralRate);
+  if (pass) driver.avoidance = offset;
+  else driver.avoidance += clamp(offset-driver.avoidance,-lateralRate,lateralRate);
   // However far a pass, block or dodge moves it, the car stays on the road: on a
   // racing line the room each side is measured from where the line already is.
   driver.avoidance = clamp(driver.avoidance, lowest, highest);
@@ -795,7 +823,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // Aim further along the route instead, outside that circle.
     const wideAt = Math.min(gate, driver.along + Math.max(lookAhead, orbitReach()));
     const wide = sampleDrivingPath(route, wideAt);
-    tx=wide.x-wide.uz*driver.avoidance; tz=wide.z+wide.ux*driver.avoidance;
+    const wideOffset = pass ? passingOffset(route, pass, wideAt) : driver.avoidance;
+    tx=wide.x-wide.uz*wideOffset; tz=wide.z+wide.ux*wideOffset;
     if (aimShift) { const shift = shiftAt(line!, wideAt); tx += blend * shift.x; tz += blend * shift.z; }
     error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   }
@@ -819,6 +848,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     && !(line && blend > 0 && onItsLine());
   if (lost) desiredSpeed=Math.min(desiredSpeed,10);
   if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
+  if (pass) desiredSpeed = Math.min(desiredSpeed, pass.speed);
   driver.targetSpeed=desiredSpeed;
   if (car.speed<1.2) driver.stuckTicks++; else driver.stuckTicks=0;
   if (driver.stuckTicks>100 && driver.reverseTicks===0) {

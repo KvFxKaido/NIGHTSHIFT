@@ -1152,7 +1152,8 @@ export function step(sim: Sim, rawInput: Input): void {
     if (sim.rivalDefinition.line && rival.race.countdown <= 0) readStreetLine(sim.rivalDefinition, rival.driver, rival.vehicle, rival.race.ticks, sim.roadWorld.traffic, sim.state.traffic?.vehicles ?? []);
     rival.input = rivalInput(sim.rivalDefinition, rival,
       (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
-      sim.state.vehicle);
+      sim.state.vehicle, sim.roadWorld.traffic ? { network: sim.roadWorld.traffic, vehicles: sim.state.traffic?.vehicles ?? [],
+        tick: rival.race.ticks, ground: sim.roadWorld.ground, opponent: sim.state.vehicle } : undefined);
     // It launches as the player does, from its own skill: it holds the line for as
     // much of the countdown as its rank is worth, and lets go at the flag (`launch.ts`).
     const charge = rivalLaunchCharge(sim.rivalDefinition.launch ?? RIVAL_LAUNCH_SKILL);

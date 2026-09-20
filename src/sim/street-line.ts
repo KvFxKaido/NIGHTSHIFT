@@ -128,7 +128,7 @@ export function withStreetLine(route: RivalDefinition, options: RacingLineOption
     radius.push(cross < 1e-3 ? Infinity : ab * bc * ac / (2 * cross));
   }
   const line: StreetLine = { spacing: STREET_LINE.spacing, dx, dz, x, z, radius, corners: kept, cornering, clearance: options.cutMargin ?? options.edgeMargin };
-  return { ...route, line };
+  return { ...route, line, trafficPassing: true };
 }
 
 const hits = (vehicle: TrafficVehicleState, at: { x: number; z: number; heading: number }, px: number, pz: number) => {

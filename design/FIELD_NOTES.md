@@ -10,6 +10,33 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Committing to a traffic pass (2026-09-20)
+
+Asked for: rivals that retain their competitiveness in traffic. The first slice
+is a complete passing maneuver with one chosen side and a checked return, using
+the same car physics. The implementation and measurements live in
+`PORT_ALDER.md` and `measurements/traffic-pass-v30.json`.
+
+- A clear predicted path did not mean the car would drive it. The old hazard
+  loop still braked for its own linear prediction, costing gen-7 nine seconds.
+  The accepted path has to own both steering and speed, with a short emergency
+  check for tracking error or a changed situation.
+- Holding traffic's current speed is insufficient for a merger. Checking its
+  normal acceleration as well cleared gen-20's repeated alongside contact.
+- A geometric footprint on a bend understates the real car's tracking error.
+  The new maneuver is limited to straights and gentle bends; larger bends keep
+  their existing driver. Otherwise gen-35 needed a reset despite its sampled
+  path being clear. Replacing an already-clear pass also caused a late rejoin
+  on gen-40, so a materially identical corridor is left alone.
+- A rejected plan must be inert. Applying following speed after rejection
+  changed gen-54's encounter timing enough to cause a later collision, with no
+  committed pass to implicate in the trace. A test now compares both inputs and
+  driver state against the original response to a close lead.
+
+The 83-race harness uses the actual rival slot with the player parked at Wharf.
+It measures repeatable traffic encounters, not performance against a human.
+Less contact is useful, but is not proof of pace parity with clear streets.
+
 ## A racing line through a street corner (2026-09-20)
 
 Asked for: fix lap 1, because a rival given a racing line through Uptown Circuit

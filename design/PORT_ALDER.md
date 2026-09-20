@@ -1470,6 +1470,79 @@ refused by name, and their numbers are here.
   every race with traffic still fields the lane-arc rival, ten seconds a lap off
   him, because a racing line ignores lanes.
 
+**Committed traffic passes (2026-09-20, `full-line-v30`).**
+Generated street rivals and Uptown with traffic can now plan a complete pass in
+`src/sim/traffic-pass.ts`: pull out, clear the lead, return to the lane, and check
+the road immediately after the return. The chosen side persists until the pass
+ends. Geometry, corner speed, pavement under the car's footprint, and predicted
+traffic occupancy are evaluated together. An active corner cut keeps ownership;
+an accepted pass temporarily owns steering and speed instead.
+Admission is limited to straights and gentle bends (under 0.15 radians of road
+direction change through the maneuver). On larger bends the real car can drift
+outside the geometric prediction: gen-26 clipped its lead and gen-35 needed a
+reset. Both now retain the existing driver through those bends.
+
+Planning runs every 12 ticks. Candidates must finish within a six-second
+forecast, with another two seconds checked after the exit. Traffic is forecast
+both holding speed and accelerating toward its ordinary cruise speed after a
+turn, respecting corner limits and held junctions. The player is included with a
+constant-velocity forecast. A pass is refused if either traffic forecast occupies
+it; the lead must be clear before the return, including when it accelerates.
+While committed, the plan is checked again, can slow down, extends its hold if
+the lead is still alongside, and can return behind a lead that pulled away.
+Recovery discards the maneuver. The ordinary driver remains the fallback when
+there is no admitted pass, and keeps a pass already taking essentially the same
+corridor. No vehicle power, grip, traffic behavior, or recovery advantage changes.
+A rejected candidate changes no steering, braking, or corner-line decision: an
+early version still applied following speed after rejection, and that delayed
+gen-54 into a later collision despite never committing a pass.
+
+Two integration failures mattered more than tuning the desired offset. First,
+the old linear hazard prediction braked during a pass its curved forecast had
+cleared; gen-7 lost nine seconds. The committed path now owns that prediction,
+with a short body-relative emergency check. Second, taking over an already-clear
+pass delayed the rejoin into later oncoming traffic on gen-40. It now retains the
+existing maneuver, and the real-simulation regression test catches that failure.
+Gen-20's accelerating merger is a separate regression fixture: the old driver
+changes sides while alongside; the committed pass clears it without contact.
+
+These are forecasts of observable motion and planned turns, not guarantees about
+later junction grants, queues, or a player changing direction. The batch's player
+is parked at Wharf Garage; it does not establish pace against a human racing in
+traffic. Traffic contact counts are the same approximate overlap probe used for
+v29, not physics collision events. Reproduce the comparison with
+`node --experimental-strip-types scripts/street-line-batch.ts --all --line --trace`
+and add `--legacy-pass` for v29 passing. `--output=path.jsonl` streams rows to disk.
+Browser coverage is `node scripts/test-street-line-browser.mjs --passes`.
+
+The final 83-race run is saved in
+[`measurements/traffic-pass-v30.json`](measurements/traffic-pass-v30.json), with
+source hashes, every race row, and the v29 baseline source. All 83 finished;
+25 admitted a planned pass. Eight races improved, ten slowed, and 65 retained
+their reported time. The largest loss was 0.55 s; gen-20 improved from 104.67 s
+to 103.50 s and its 113 overlap ticks fell to zero.
+
+| Measure | v29 passing | Committed passing |
+| --- | ---: | ---: |
+| Total time | 7,884.90 s | 7,883.24 s |
+| Approximate traffic-overlap ticks | 266 | 149 (-44%) |
+| Overlap during a committed pass | n/a | 0 |
+| Wheels-off-pavement ticks | 24 | 24 |
+| Unseen resets | 4 | 4 |
+| Ordinary resets | 0 | 0 |
+| Progress jumps | 5 | 5 |
+
+There were no per-race increases in off-pavement ticks or resets. Overall pace
+is effectively unchanged: this is a measured reliability improvement, not
+evidence that the rival now matches its clear-road pace in traffic.
+
+Validation: 641 tests passed in the full suite before the final admission and
+fallback fixes; the final ten planner tests passed afterward, including real
+gen-20, gen-35 and gen-40 runs. Build and diff checks passed. Browser probes
+captured active passes in gen-7 and gen-20 with no page errors, and verified
+Uptown / Clear retains its original mode. The golden harness retained eleven
+hashes; its three generated-rival runs differ from the older pre-v29 baseline.
+
 **Corner lines in traffic, enabled by default (2026-09-20, `full-line-v29`).**
 Generated street races and Uptown with traffic now carry a conditional racing line.
 The centreline route, gates, distance and reset path stay intact. Outside corner

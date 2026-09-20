@@ -1,0 +1,156 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import RAPIER from "@dimforge/rapier3d-compat";
+import { carHandling, createSim, step, type VehicleState } from "../src/sim/sim.ts";
+import { createAlderWorld } from "../src/sim/alder.ts";
+import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
+import { createRivalDriver, rivalInput, type RivalDefinition } from "../src/sim/rival.ts";
+import { laneRest } from "../src/sim/street-line.ts";
+import { evaluatePass, passingOffset, passingOverlap, planTrafficPass, type TrafficPass } from "../src/sim/traffic-pass.ts";
+import { forecastTrafficPath, TRAFFIC_KINDS, type TrafficNetwork, type TrafficVehicleState } from "../src/sim/traffic.ts";
+
+await RAPIER.init();
+const fixture = createSim("rwd");
+const car: VehicleState = { ...fixture.state.vehicle, x: laneRest(20), z: 0, y: 0, heading: 0, speed: 25, forwardSpeed: 25 };
+fixture.world.free();
+const route: RivalDefinition = { id: "pass-straight", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 },
+  points: [0, -500].map(z => ({ x: 0, y: 0, z, width: 20, zone: "freight" })), along: [0, 500], gates: [500] };
+const network: TrafficNetwork = {
+  lanes: [{ id: 0, length: 2000, entry: 0, movements: [0] }],
+  movements: [{ id: 0, junction: 0, from: 0, to: 0, conflicts: [], clear: 0, sweeps: [] }],
+  pose: (_lane, distance) => ({ x: laneRest(20), y: 0, z: -distance, heading: 0 }), height: () => 0,
+};
+const vehicle = (distance: number, speed = 10): TrafficVehicleState => ({ id: 1, kind: "sedan", lane: 0, distance,
+  speed, movement: 0, holds: [], turns: 0, x: laneRest(20), y: 0, z: -distance, heading: 0, via: -1, braking: false });
+const candidate = (): TrafficPass => ({ target: 1, from: 0, out: 30, back: 70, to: 100,
+  initial: laneRest(20), offset: -3, nextRead: 0, speed: 25 });
+
+test("a passing path clears a slow car and returns continuously to its lane", () => {
+  const pass = candidate();
+  const lead = vehicle(30);
+  const path = Array.from({ length: 26 }, (_, i) => ({ x: lead.x, z: -30 - i * .25 * 10, heading: 0, speed: 10 }));
+  assert.ok(evaluatePass(route, pass, car, 0, [{ vehicle: lead, path }]).clear);
+  assert.equal(passingOffset(route, pass, 0), pass.initial);
+  assert.ok(Math.abs(passingOffset(route, pass, pass.to) - laneRest(20)) < 1e-12);
+  assert.ok(Math.abs(passingOffset(route, pass, 29.999) - passingOffset(route, pass, 30.001)) < .001);
+  assert.ok(Math.abs(passingOffset(route, pass, 69.999) - passingOffset(route, pass, 70.001)) < .001);
+});
+
+test("a gap alongside is rejected when the rejoin is occupied, or its footprint leaves pavement", () => {
+  const pass = candidate(), blocker = vehicle(94, 0);
+  const path = Array.from({ length: 26 }, () => ({ x: blocker.x, z: blocker.z, heading: 0, speed: 0 }));
+  const blocked = evaluatePass(route, pass, car, 0, [{ vehicle: blocker, path }]);
+  assert.equal(blocked.clear, false);
+  assert.ok(blocked.collision > pass.back, "the blocker is at the return, not the pull-out");
+  assert.equal(evaluatePass(route, pass, car, 0, [], (x, z) => x < -3.5 && z < -35).clear, false);
+});
+
+test("a committed side persists and does not rejoin while still alongside the lead", () => {
+  const driver = createRivalDriver(); driver.avoidance = laneRest(20);
+  const lead = vehicle(25);
+  const before = structuredClone(lead);
+  const decision = planTrafficPass(route, driver, car, { network, vehicles: [lead], tick: 0 });
+  assert.ok(decision?.pass, "open street should admit a pass");
+  const pass = decision.pass, side = pass.offset, oldBack = pass.back;
+  driver.along = oldBack;
+  const alongside = { ...car, x: side, z: -oldBack };
+  const nextLead = vehicle(oldBack + 1);
+  planTrafficPass(route, driver, alongside, { network, vehicles: [nextLead], tick: 12 });
+  assert.equal(driver.trafficPass!.offset, side);
+  assert.ok(driver.trafficPass!.back > oldBack, "must clear the lead before returning");
+  assert.deepEqual(lead, before, "planning must not move the real traffic");
+  driver.reverseTicks = 20;
+  assert.equal(planTrafficPass(route, driver, alongside, { network, vehicles: [nextLead], tick: 24 }), undefined);
+  assert.equal(driver.trafficPass, undefined, "recovery must discard the old maneuver");
+});
+
+test("oriented footprint checks catch a crossing truck that a centre-distance check misses", () => {
+  assert.equal(passingOverlap(0, 0, 0, -1, { x: 3.5, z: 0, heading: Math.PI / 2 }, "box-truck"), true);
+  assert.equal(passingOverlap(0, 0, 0, -1, { x: 8, z: 0, heading: Math.PI / 2 }, "box-truck"), false);
+});
+
+test("passing forecasts include a lead accelerating out of a turn without changing the default forecast", () => {
+  const lead = vehicle(30, 5), original = structuredClone(lead);
+  const steady = forecastTrafficPath(network, lead, 3);
+  const accelerating = forecastTrafficPath(network, lead, 3, .25, true);
+  assert.equal(steady.at(-1)!.speed, 5);
+  assert.ok(accelerating.at(-1)!.speed > 14);
+  assert.ok(accelerating.at(-1)!.z < steady.at(-1)!.z - 10);
+  assert.deepEqual(lead, original);
+});
+
+test("the player occupies a passing corridor, and an overhead vehicle does not", () => {
+  const driver = createRivalDriver(); driver.avoidance = laneRest(20);
+  const lead = vehicle(25), context = { network, vehicles: [lead], tick: 0 };
+  const open = planTrafficPass(route, driver, car, context)!.pass!;
+  assert.ok(open);
+  const blockedDriver = createRivalDriver(); blockedDriver.avoidance = laneRest(20);
+  const blocked = planTrafficPass(route, blockedDriver, car, { ...context,
+    opponent: { x: open.offset, z: -55, y: 0, heading: 0, speed: 0 } });
+  assert.notEqual(blocked?.pass?.offset, open.offset, "must not commit through the player");
+  const bridgeDriver = createRivalDriver(); bridgeDriver.avoidance = laneRest(20);
+  assert.equal(planTrafficPass(route, bridgeDriver, car, { ...context, vehicles: [{ ...lead, y: 10 }] }), undefined);
+});
+
+test("empty traffic leaves driving inputs unchanged and an active corner line keeps ownership", () => {
+  const original = { vehicle: car, driver: createRivalDriver(), race: null };
+  const passing = structuredClone(original);
+  assert.deepEqual(rivalInput({ ...route, trafficPassing: true }, passing, [], null,
+    { network, vehicles: [], tick: 0 }), rivalInput(route, original, []));
+  assert.deepEqual(passing.driver, original.driver);
+  const corner = createRivalDriver(); corner.lineBlend = .5;
+  assert.equal(planTrafficPass(route, corner, car, { network, vehicles: [vehicle(25)], tick: 0 }), undefined);
+});
+
+test("a rejected pass leaves the existing obstacle response unchanged, including a close lead", () => {
+  const lead = vehicle(5), original = { vehicle: car, driver: createRivalDriver(), race: null };
+  original.driver.avoidance = laneRest(20);
+  const passing = structuredClone(original);
+  assert.deepEqual(rivalInput({ ...route, trafficPassing: true }, passing, [lead], null,
+    { network, vehicles: [lead], tick: 0 }), rivalInput(route, original, [lead]));
+  assert.deepEqual(passing.driver, original.driver);
+});
+
+function raceTraffic(id: string, trafficPassing: boolean) {
+  const course = drawAlderCourse(id, null), rival = { ...fieldAlderRival(course.rival), trafficPassing };
+  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival, traffic: true });
+  let contact = 0, off = 0, passing = 0;
+  try {
+    while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 160 * 60) {
+      step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+      const r = sim.state.rival!, c = r.vehicle;
+      if (r.race.countdown > 0) continue;
+      if (c.groundContact) off++;
+      if (r.driver.trafficPass) passing++;
+      const fx = -Math.sin(c.heading), fz = -Math.cos(c.heading);
+      if (sim.state.traffic!.vehicles.some(v => {
+        const dx = v.x - c.x, dz = v.z - c.z, size = TRAFFIC_KINDS[v.kind];
+        return dx * dx + dz * dz < 64 && Math.abs(dx * fx + dz * fz) < 2.1 + Math.hypot(size.length, size.width) * .375
+          && Math.abs(dx * -fz + dz * fx) < 1.05 + size.width / 2;
+      })) contact++;
+    }
+    const r = sim.state.rival!;
+    return { finished: r.race.finished, seconds: r.race.ticks / 60, contact, off, passing, resets: r.driver.resets + r.driver.unseenResets };
+  } finally { sim.world.free(); }
+}
+
+test("gen-20 passes the accelerating merger cleanly and faster than the reactive driver", () => {
+  const before = raceTraffic("gen-20", false), after = raceTraffic("gen-20", true);
+  assert.ok(before.contact > 100, "fixture must reproduce the prolonged merge contact");
+  assert.ok(after.finished && after.passing > 0);
+  assert.equal(after.contact, 0);
+  assert.equal(after.off, 0);
+  assert.equal(after.resets, 0);
+  assert.ok(after.seconds < before.seconds);
+});
+
+test("clear passes and sharp bends retain the existing driver without new recovery incidents", () => {
+  for (const [id, limit] of [["gen-40", 82], ["gen-35", 56]] as const) {
+    const result = raceTraffic(id, true);
+    assert.ok(result.finished && result.seconds < limit, id);
+    assert.equal(result.passing, 0, id);
+    assert.equal(result.contact, 0, id);
+    assert.equal(result.off, 0, id);
+    assert.equal(result.resets, 0, id);
+  }
+});

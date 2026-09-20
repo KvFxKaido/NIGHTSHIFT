@@ -1,5 +1,6 @@
 // The rival in its own slot in the sim, in traffic, with the player parked across town: with the street line, or without.
 import RAPIER from "@dimforge/rapier3d-compat";
+import { appendFileSync, writeFileSync } from "node:fs";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { alderCourseDraws, drawAlderCourse } from "../src/sim/alder-course.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
@@ -11,24 +12,29 @@ import { TRAFFIC_KINDS } from "../src/sim/traffic.ts";
 
 await RAPIER.init();
 const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace");
+const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
+if (output) writeFileSync(output, "");
 const ids = process.argv.includes("--all") ? ["street-uptown", ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`)]
   : process.argv.slice(2).filter(a => !a.startsWith("--"));
-if (!ids.length) throw new Error("Pass race ids or --all; add --line for the conditional corner line, --trace for contacts.");
+if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --output=path.jsonl to save rows.");
 for (const id of ids) {
   let route: RivalDefinition, race;
   if (id.startsWith("street-")) { const event = circuitEvent(id, 3)!; route = event.rival!; race = event.race; }
   else { if (!alderCourseDraws(id, null)) continue; const course = drawAlderCourse(id, null); route = { ...course.rival }; race = course.race; }
   const { line: _shipped, ...bare } = route as RivalDefinition & { line?: unknown };
   const rival = withLine ? withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor), Number(process.env.REACH ?? 60)) : bare;
+  if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
   const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true });
   let aborts = 0, wasGo = false, contactOnLine = 0; let contact = 0, off = 0, stray = 0, onLine = 0, racing = 0, jumps = 0, lastAlong = 0, goCorners = 0, lastCorner = -1, wentGo = false, corners = 0;
   const events: string[] = [];
+  let passTicks = 0, passes = 0, passContact = 0, lastPass = -1;
   try {
     while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 330 * TICK_HZ) {
       step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
       const r = sim.state.rival!, car = r.vehicle, d = r.driver;
       if (r.race.countdown > 0) continue;
       racing++;
+      if (d.trafficPass) { passTicks++; if (d.trafficPass.from !== lastPass) { passes++; lastPass = d.trafficPass.from; if (trace) events.push(`pass t=${(r.race.ticks / TICK_HZ).toFixed(1)} target=${d.trafficPass.target} from=${d.trafficPass.from.toFixed(0)} to=${d.trafficPass.to.toFixed(0)} offset=${d.trafficPass.offset.toFixed(1)}`); } }
       const fx = -Math.sin(car.heading), fz = -Math.cos(car.heading);
       let touching = false;
       for (const v of sim.state.traffic!.vehicles) {
@@ -38,6 +44,7 @@ for (const id of ids) {
         const spec = TRAFFIC_KINDS[v.kind], reach = Math.hypot(spec.length, spec.width) / 2;
         if (Math.abs(dx * fx + dz * fz) < 2.1 + reach * 0.75 && Math.abs(dx * -fz + dz * fx) < 0.95 + spec.width / 2 + 0.1) touching = true;
       }
+      if (touching && d.trafficPass) passContact++;
       if (touching && (d.lineBlend ?? 0) > 0.05) contactOnLine++; if (touching) { contact++; if (trace && (events.length === 0 || !events.at(-1)!.startsWith("contact") )) events.push(`contact t=${(r.race.ticks / TICK_HZ).toFixed(1)} along ${d.along.toFixed(0)} blend ${(d.lineBlend ?? 0).toFixed(2)} go ${d.lineGo} v ${(car.speed * 2.237).toFixed(0)}`); }
       else if (trace && events.at(-1)?.startsWith("contact")) events.push("clear");
       if (car.groundContact > 0) off++;
@@ -50,7 +57,8 @@ for (const id of ids) {
       if ((d.lineBlend ?? 0) > 0.9) wentGo = true; { const w = rival.line?.corners[d.lineCorner ?? -1]; if (wasGo && !d.lineGo && (d.lineBlend ?? 0) > 0.3 && w && d.along > w.from && d.along < w.to - 15) { aborts++; if (trace) events.push(`gave back t=${(r.race.ticks / TICK_HZ).toFixed(1)} along ${d.along.toFixed(0)} v ${(car.speed * 2.237).toFixed(0)}`); } } wasGo = !!d.lineGo;
     }
     const r = sim.state.rival!;
-    console.log(JSON.stringify({ id, line: withLine, seconds: r.race.finished ? +(r.race.ticks / TICK_HZ).toFixed(2) : null, contact, resets: r.driver.resets, unseen: r.driver.unseenResets,
-      reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}) }));
+    const result = JSON.stringify({ id, line: withLine, seconds: r.race.finished ? +(r.race.ticks / TICK_HZ).toFixed(2) : null, contact, resets: r.driver.resets, unseen: r.driver.unseenResets,
+      passTicks, passes, passContact, reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}) });
+    if (output) appendFileSync(output, result + "\n"); else console.log(result);
   } finally { sim.world.free(); }
 }
