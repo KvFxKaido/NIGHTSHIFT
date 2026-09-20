@@ -31,6 +31,11 @@ jobs:
       # the facade menu is: both start their own dev server and drive the real page.
       - run: pnpm test:cinder
         timeout-minutes: 15
+      # The garage cutscenes: that each one ends, that it can be skipped on every
+      # input, and that the sim is frozen behind it. Same SwiftShader launch as
+      # the two above, without which a runner with no GPU stalls (PR #11).
+      - run: pnpm test:garage-shots
+        timeout-minutes: 15
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,6 +43,7 @@ jobs:
           path: |
             artifacts/facade-*.png
             artifacts/cinder-*.png
+            artifacts/garage-shot-*.png
 
   # The deterministic simulation suite: every handling gate, the replay checks and
   # the revision pins. It is the project's real gate (CLAUDE.md, "Commands"), and
