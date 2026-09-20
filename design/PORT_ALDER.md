@@ -1217,6 +1217,66 @@ incomparable), checks the site is clear of buildings, trees and street
 pavements, that the drawn asphalt is the paved width the tyres feel, that every
 gate lies on the rival's line, and drives the rival round all three layouts.
 
+### Against a human, measured (2026-09-20)
+
+Shawn: "the AI still doesn't take angles a player would." `pnpm laps:compare`
+replays a raced session and records the rival through the same recorder, so both
+cars have the same channels from the same race. His race on
+`street-uptown-clear` (Cinder, no pedal assist; it replays exactly): 1:31.78,
+1:27.53, 1:26.47 against the rival's 1:37.82, 1:35.18.
+
+All of the margin is cornering. Per lap he gains 8.9 s within 70 m of a gate and
+gives back 2.1 s everywhere else. Over the 22 corners both drove:
+
+| | Shawn | rival |
+|---|---|---|
+| arriving | 78.4 mph | 78.7 mph |
+| slowest point | 49.5 mph | 32.6 mph |
+| leaving | 59.4 mph | 63.3 mph |
+| road used either side of the centreline | 8.7 m | 5.1 m |
+
+It is not late braking. The rival is quicker out of 14 of the 22, from an apex
+17 mph slower: it never over-asks its tyres and he has no pedal assist.
+
+**An experiment, not built.** The same input log was replayed against other
+rivals, and the comparison kept only where his own laps came out to the tick as
+recorded, which is the check that the two never touched.
+
+| rival | lap 2 | slowest point |
+|---|---|---|
+| as raced: lane arcs in its own half, plan 0.80 | 1:35.18 | 32.6 mph |
+| K1999 racing line (`withRacingLine`), plan 0.76 | 1:34.60 | 35.0 mph |
+| the same line, plan 0.88 | 1:31.30 | 38.5 mph |
+| the same line, plan 1.00 | 1:28.65 | 42.3 mph |
+| line with margins 1.2 + 0.5 m, plan 0.88 | 1:27.53 | 40.6 mph |
+| line with margins 1.2 + 0.5 m, plan 1.00 | 1:24.58 | 44.9 mph |
+
+- **The line alone is worth almost nothing**, 0.6 s. The guess going in, that the
+  arcs' confinement to one side of the road was the gap, was wrong.
+- **The plan fraction is the lever.** On each corner where the line's radius is
+  sound, the rival did 0.76 of the grip-limited speed for that radius, as planned,
+  and Shawn did about all of it: 65 mph allowed, 52 and 60; 53, 42 and 50; 56, 44
+  and 56; 68, 54 and 69. At 1.00 on the tighter line it laps 2 s under his best.
+- **It held the road at 1.00.** No second off the carriageway, a valid lap, no
+  reset, never further than 9.1 m from the centreline, where Shawn spent 0.3 to
+  0.9 s a lap off it and ran 13.4 m wide. That does not fit "past about 0.8 its
+  tracking, not its grip, is the limit" above, which was measured on Ridge
+  Circuit's width and on streets in traffic. On clear streets, on a racing line
+  with steering feedforward, it has not been shown to hold.
+- **Four corners have a poor line.** Gates 3, 4, 7 and 10 pinch to 29, 8, 17 and
+  5 m where Shawn drove 59, 42, 42 and 37 mph. Two are close together and one is
+  a hairpin; he also crosses the pavement there, which the line may not.
+
+**What stands between this and a build.** Lap 1 is broken on a racing line from
+this grid: it is 7 to 16 s slower than lap 2, and on the tighter line it is
+INVALID, "went backwards": the rival reverses out of something in the first
+lap and was not found. One setting (tight margins, plan 0.76) touched the
+player. A racing line ignores lanes, which is why streets never had one (the
+header of `racing-line.ts`: the rival "sat in the traffic's own lane and ran into
+it"), so this is for clear races only until the rival reads traffic's forecast.
+And it is one driver, one circuit, one race: `RIVAL_BRAKING.speedFactor` was
+overwritten inside a probe and is 0.76 everywhere it is used.
+
 
 ## Uptown Circuit (2026-09-13)
 

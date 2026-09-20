@@ -21,6 +21,7 @@ import { createAlderWorld } from "../src/sim/alder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
+import type { RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
 
 const MPH = 2.23694;
@@ -35,6 +36,11 @@ export interface Comparison {
   corners: Corner[];
   /** Seconds you gained on the rival inside corner windows, and everywhere else, over the laps both finished. */
   gainedInCorners: number; gainedElsewhere: number;
+  /** Whether the player's laps came out exactly as the file has them. Always true for the rival that was raced; against
+   *  another (`rival`, an experiment) it is the check that the two never touched, so the player's run is still the player's. */
+  playerReproduced: boolean;
+  /** The rival's own race: how often it was put back on its line, and its worst distance from the lap's centreline. */
+  rivalResets: number; rivalWidest: number;
 }
 
 function side(lap: RecordedLap, gate: number): CornerSide | null {
@@ -53,37 +59,42 @@ function side(lap: RecordedLap, gate: number): CornerSide | null {
     seconds: (last - first) / TICK_HZ, offsetAtApex: offset[apex]!, widest };
 }
 
-export function compareSession(session: LapSession): Comparison {
-  const event = circuitEvent(session.race, session.laps);
-  if (!event?.rival) throw new Error(`${session.race} has no rival to compare with: race one without -solo`);
+/** `rival` swaps in another driver for the same race and the same input log: an experiment, judged against the player's fixed run. */
+export function compareSession(session: LapSession, rival?: RivalDefinition): Comparison {
+  const raced = circuitEvent(session.race, session.laps);
+  if (!raced?.rival) throw new Error(`${session.race} has no rival to compare with: race one without -solo`);
+  const event = { ...raced, rival: rival ?? raced.rival };
   const handling = carHandling(session.car, session.drivetrain as Drivetrain);
   const sim = createSim(handling, createAlderWorld(true, event.start),
     { race: event.race, rival: event.rival, traffic: event.traffic, pedalAssist: session.pedalAssist ?? 1 });
   try {
-    const you = createLapRecorder(event.track), rival = createLapRecorder(event.track);
+    const you = createLapRecorder(event.track), theirs = createLapRecorder(event.track);
     const { throttle, brake, steer, handbrake } = session.inputs;
     for (let i = 0; i < throttle.length; i++) {
       const input = { throttle: throttle[i]!, brake: brake[i]!, steer: steer[i]!, handbrake: handbrake[i]! };
       step(sim, input);
       recordTick(you, input, sim.state.vehicle, sim.state.race, TICK_HZ);
       const driver = sim.state.rival!;
-      recordTick(rival, driver.input, driver.vehicle, driver.race, TICK_HZ);
+      recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
     }
-    const laps = Array.from({ length: Math.max(you.laps.length, rival.laps.length) }, (_, i) =>
-      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: rival.laps[i]?.seconds ?? null }));
+    const laps = Array.from({ length: Math.max(you.laps.length, theirs.laps.length) }, (_, i) =>
+      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: theirs.laps[i]?.seconds ?? null }));
     const corners: Corner[] = [];
     let gainedInCorners = 0, total = 0;
-    for (let i = 0; i < Math.min(you.laps.length, rival.laps.length); i++) {
-      total += rival.laps[i]!.seconds - you.laps[i]!.seconds;
+    for (let i = 0; i < Math.min(you.laps.length, theirs.laps.length); i++) {
+      total += theirs.laps[i]!.seconds - you.laps[i]!.seconds;
       // The last gate is the finish line, which is a corner on the street circuit as any other gate is.
       for (let gate = 0; gate < event.track.gatesPerLap; gate++) {
-        const mine = side(you.laps[i]!, gate), theirs = side(rival.laps[i]!, gate);
-        if (!mine || !theirs) continue;
-        corners.push({ lap: i + 1, gate: gate + 1, you: mine, rival: theirs });
-        gainedInCorners += theirs.seconds - mine.seconds;
+        const mine = side(you.laps[i]!, gate), other = side(theirs.laps[i]!, gate);
+        if (!mine || !other) continue;
+        corners.push({ lap: i + 1, gate: gate + 1, you: mine, rival: other });
+        gainedInCorners += other.seconds - mine.seconds;
       }
     }
-    return { race: session.race, car: session.car, pedalAssist: session.pedalAssist ?? 1, laps, corners, gainedInCorners, gainedElsewhere: total - gainedInCorners };
+    const playerReproduced = you.laps.length === session.recorded.length && you.laps.every((lap, i) => JSON.stringify(lap) === JSON.stringify(session.recorded[i]));
+    const rivalWidest = Math.max(0, ...theirs.laps.flatMap(lap => lap.samples.offset.map(Math.abs)));
+    return { race: session.race, car: session.car, pedalAssist: session.pedalAssist ?? 1, laps, corners, gainedInCorners, gainedElsewhere: total - gainedInCorners,
+      playerReproduced, rivalResets: sim.state.rival!.driver.resets, rivalWidest };
   } finally { sim.world.free(); }
 }
 
