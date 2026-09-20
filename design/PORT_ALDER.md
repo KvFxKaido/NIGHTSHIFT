@@ -1302,7 +1302,8 @@ fixes switched off, both new tests in `tests/racing-line.test.ts` fail on the
 original symptoms: a 118 degree kink 1,748 m along, and lap 1 at 102.12 s against
 lap 2's 94.62.
 
-**Built at 0.88 (Shawn, 2026-09-20), for Uptown Circuit / Clear.** That is the
+**Built at 0.88 (Shawn, 2026-09-20), for Uptown Circuit / Clear** (0.80 since the
+corners were cut, the same day: below). That is the
 one street race with no traffic, so it is the whole of "clear street races": its
 rival drives `STREET_RACING_LINE` and plans corners at `RIVAL_STREET_LINE`'s 0.88
 (`RivalDefinition.cornering`, which a route carries only where it differs from its
@@ -1325,10 +1326,129 @@ did: the centreline, lane arcs in its own half, 0.80. `RIVAL_REVISION` is
   valid, with no reset, no reverse and no wheel off the pavement, and lost 0.2 to
   0.4 s on the lap it was passed. In the browser build its first lap is 89.28 s,
   the same as under Node.
-- **Not raced by a person yet.** The yardstick race was against `full-line-v24`
-  and is now refused by name, which is the revision doing its job; the numbers
-  above were taken from it first. A new race on `?race=street-uptown-clear` is the
-  pad verdict, and `pnpm laps:compare` reads it.
+- **Raced by Shawn the same day** (RWD Cinder, no pedal assist; the session
+  replays exactly). 1:30.40, 1:25.63, 1:25.92 against its 1:29.47 and 1:27.27: he
+  won, 3.4 s ahead at the last gate the rival reached, where the race before was
+  won by twenty.
+  He was behind at the line after lap 1 (0.93 s) and at 14 of the first two laps' 22
+  gates, the lead changed hands seven times between gates, the cars were
+  within 10 m of each other for 50 s (closest 1.9 m), and the rival was off its
+  line passing or blocking for 33 s, with no reset and no reverse. He led from
+  gate 8 of lap 2 to the flag.
+  Where the time goes now: over the two laps both finished he gained 4.78 s within
+  70 m of a gate and gave back 4.08 s everywhere else. The rival arrives faster
+  (it brakes later) and leaves faster at nearly every gate, AWD on the clamp
+  against rear drive on a bare pedal. His margin is the three fast bends, gates 1,
+  5 and 9 (58, 67 and 52 degrees): 65 to 82 mph at the slowest point against its 45
+  to 54, from 8 to 13 m off the centreline where the line's margins hold it within
+  6 or 7. At the tight corners it is level or quicker. So if it is to be harder,
+  the road it may use at a fast bend is the lever that is left, not the fraction.
+  The yardstick race before it was against `full-line-v24` and is refused by name.
+
+**Cutting corners that are not grass (Shawn, 2026-09-20, after that race: "way
+more competitive for sure, I think what could help is letting the cpu cut corners
+that aren't grass").** Built the same day; `RIVAL_REVISION` `full-line-v28`. v26 and
+v27 were never committed: the cut at 0.80 on the dev server, before and after the
+"lost" fix below. He raced them five times in forty minutes, so those sessions are
+refused by name, and their numbers are here.
+
+- **What it does.** Every corner of the line is rounded before the line is drawn,
+  as the hairpin already was (`roundFrom` 45 degrees, `CORNER_ARC`), and on the
+  INSIDE of each the line may go wherever a car may be instead of stopping 2.6 m
+  short of the kerb. "May be" is `alderDrivable`: paved as the tyres and the lap
+  recorder judge it (`alderGround`: the carriageway, 2.8 m of pavement and the
+  corner two streets share) and 1.8 m clear of every building, tree and trunk. A
+  corner of grass, or with a building on it, is not cut. The outside of a bend
+  and every straight keep to the carriageway: it cuts corners, it does not drive
+  down pavements. Kerb props do not collide and are kept 15 to 20 m from a
+  junction, so there is nothing on a cut corner to drive through.
+- **What it is worth.** At 0.88: 1:27.07 as raced, 1:24.97 with every corner
+  rounded (an arc's room is both legs' asphalt, a vertex's only one), 1:23.12 cut.
+  Uptown Link & Broadway went from a 43 to 48 m arc to 50 to 82, Highland & Dexter
+  from 45 to 47 m to 87 to 99, and the two tightest corners from 15 and 20 m to 30
+  and 31 to 35. It passes 8 to 13 m from a vertex where it passed 3 to 7.
+- **The fraction: 0.88, by way of 0.80** (`RIVAL_STREET_LINE`). The cut was worth
+  too much to leave his 0.88 alone unasked, so Claude took it down to 0.80, level
+  with the race above, and said so. He raced that five times, was past it by the
+  second, and set it back: "set it to 0.88". Three laps alone, cut, every row clean:
+
+  | plan | lap 1 | lap 2 | lap 3 |
+  |---|---|---|---|
+  | 0.76 | 1:29.10 | 1:26.82 | 1:25.88 |
+  | 0.80 | 1:27.70 | 1:25.30 | 1:24.47 |
+  | 0.84 | 1:26.55 | 1:24.13 | 1:23.32 |
+  | 0.88 | 1:25.47 | 1:23.02 | 1:22.23 |
+  | 0.92 | 1:24.48 | 1:21.98 | 1:21.30 |
+  | Shawn, the race above, no assist | 1:30.40 | 1:25.63 | 1:25.92 |
+  | Shawn, 16:08 and 16:12, no assist | 1:29.05 | 1:23.92 | 1:23.38 (invalid) |
+  | Shawn, 16:19, pedal assist on | 1:25.62 | 1:22.18 | 1:21.30 |
+
+  At 0.88 it is about a second a lap quicker than his best valid lap with no
+  assist, which is how the game is played, and nearly two slower than his laps
+  with it.
+- **The margin where it cuts is 4 m, not 2.6** (`cutMargin`). Aiming ahead, the
+  rival runs 1.6 to 1.9 m inside its own line at a tight apex, as any driver
+  does. At 2.6 that put one tyre on the grass for 2 to 6 ticks at 23rd & Harrison
+  and Harrison & Broadway; at 3.2 for 2 ticks; at 3.6 and 4.0 for none, from 0.76
+  to 0.88.
+- **Raced, by a machine.** A second Kestrel on the same line at 0.84 and at 0.90
+  from the player's slot: within 8 m for 46 s and 20 s, in contact distance for
+  8.9 s and 0.8 s, and past it. Every rival lap valid, no reset, no reverse; a
+  tyre off the pavement for 6 to 8 ticks while it was being fought, none alone.
+  In the browser build its first lap is 87.87 s, as under Node.
+- **One thing fixed on the way.** `rivalInput` keeps the aim on the road by
+  clamping how far a pass or a block may move it, measured from the road's centre
+  (`lateral`). A line that cuts a corner is further from the centre than the road
+  is wide, so the clamp would have pushed the aim off the line, back to the road,
+  at every apex. It may no longer push past the line itself. Nothing else moves:
+  no other line is that far from its centre (golden master 14 of 14).
+- **Not lost at a cut apex.** Shawn's race with the assists on (below) showed the
+  rival at 30 mph through Harrison & Broadway on every lap. It wanted 22: "lost",
+  the 10 m/s cap for a car off the carriageway, is read from the road's centre,
+  and the line there is 8.5 m from a 14 m street's centre by design. A car within
+  the line's own `clearance` (the 4 m it checked all round) of its line is no
+  longer lost. 38.5 mph there now, 0.15 s a lap; the table above is after it.
+- **Known, and left.** 100 sweeps do not settle a street's fast bends: Uptown
+  Link & Broadway is a 70, 50 and 82 m arc over the three laps. At 1,000 sweeps
+  the laps agree within 3% and the arcs are larger (85, 72, 88), for 3 s at the
+  grid instead of 0.4; repeating the coarse-to-fine cycle does nothing, since
+  going back to a coarse level throws the fine one away. Every lap is sound.
+- **Raced once, in part** (Shawn, 16:12 the same day, while it was still being
+  checked; the session replays exactly). 1:29.08 to its 1:28.03 on lap 1, behind
+  by a second at the line; then a 1:23.38 that took the lead, INVALID (off the track
+  too long), and the race left on lap 3. Through a corner he was at 52 mph at his
+  slowest against its 46 (50 against 43 in the race before), and it now uses as
+  much road as he does: 8.5 m against 9.1, 6.7 m from the centreline at the apex
+  against his 4.1.
+- **Like for like: both on the clamp** (Shawn, 16:19, `?assist=1`, since the rival
+  always drives with the pedals' assist and he, by default, does not). 1:25.62,
+  1:22.18, 1:21.30, all valid, against its 1:28.00 and 1:25.45: he won each lap by
+  2.4 and 3.3 s. Over two laps, 4.40 s of it within 70 m of a gate and 1.25 s
+  elsewhere. At his slowest in a corner he averaged 52 mph to its 45, on LESS road
+  than it used (7.8 m against 8.5, 3.5 m from the centreline at the apex against
+  6.6): with the line no longer the difference, what is left is the fraction, and
+  by the table he drives about 0.92 of what this arithmetic calls the limit. On
+  the long straights he arrives 8 to 16 mph faster (123 against 107 into Highland &
+  Dexter), which is the cars: the Cinder does 60 to 100 in 2.97 s and 140, the
+  Kestrel 3.75 s and 130. It still leaves nearly every corner faster, on four
+  driven wheels. The assist is worth about 1.5 to 2 s a flying lap to him here,
+  and 3.4 s from a standing start (one evening, his laps still getting quicker
+  race over race: an indication, not a measurement).
+- **And again, 16:29, assists on:** 1:26.38, 1:20.80, 1:20.57 to its 1:27.68 and
+  1:25.28 (after the fix). 5.42 s of it within 70 m of a gate over two laps and
+  0.37 s elsewhere; 52 mph to 46 at the slowest, on the same road (8.4 m to 8.5).
+  Past the sweep's 0.92.
+- **16:38, assists on, the first against `full-line-v27`** (replays exactly):
+  1:25.93, 1:20.60, 1:22.67 to its 1:27.60 and 1:25.30. The same picture, 52 mph to
+  46 and 5.57 s of it in the corners over two laps. The fix shows: 38 and 39 mph
+  through Harrison & Broadway to his 40 and 41, where it had done 30. And the
+  unsettled line shows too: Uptown Link & Broadway at 58 mph on lap 1 and 50 on
+  lap 2, its 70 m and 50 m arcs, where he did 64 and 73.
+- **So 0.80 was already behind him.** It was picked level with his 15:52 laps; by
+  16:12 he was two seconds a lap quicker with no assist. 0.84 is level with those
+  laps, 0.88 (his own number, before the cut) about a second quicker than his best
+  valid one, 0.92 level with him on the same assists. He chose 0.88. Not raced at
+  it yet.
 - **What it cost the instruments.** `pnpm cars --laps` drove this race's rival
   route for its Uptown column; it now names the in-traffic race's route, on clear
   streets as before, so that column still measures what every tune was judged on
@@ -1375,8 +1495,9 @@ solo, since on streets a solo lap needs to know where to turn.
 
 **Races.** `?scene=track&race=street-uptown` in traffic; `-clear` for empty
 streets, `-solo` for no rival (`street-uptown-clear-solo`). On empty streets the
-rival drives a racing line at 0.88 (2026-09-20; "Against a human, measured",
-above); in traffic, the centreline and its lane arcs. The grid is 12 m
+rival drives a racing line that cuts the corners that are not grass, at 0.88
+(2026-09-20; "Against a human, measured", above); in traffic, the centreline and
+its lane arcs. The grid is 12 m
 behind the line in the kerb lane going the circuit's way, the rival 7 m ahead in
 the inner lane. Recording, saving, `pnpm laps` and `--verify` are Ridge Circuit's
 (`circuits.ts` resolves either); a session names the circuit (`uptown-v1`) and

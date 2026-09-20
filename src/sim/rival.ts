@@ -26,6 +26,9 @@ export interface RivalDefinition {
   /** The share of the grip-limited speed this route's corners are planned at, where it is not its surface's own
    *  (`RIVAL_CORNERING` on a street, `RIVAL_BRAKING` on a racing line): `RIVAL_STREET_LINE`. */
   readonly cornering?: number;
+  /** Metres of ground a car may be on, kept all round the line wherever it leaves the carriageway to cut a corner
+   *  (`cutMargin`, racing-line.ts). Within it of its line the car is where it means to be, not lost. */
+  readonly clearance?: number;
 }
 export interface RivalDriver {
   along: number;
@@ -291,8 +294,16 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v25": on clear streets (Uptown Circuit / Clear, the one street race
  * with no traffic) it drives a racing line at 0.88 (RIVAL_STREET_LINE). Every
  * other race drives as it did; the revision is one string, so it moves for all.
+ * "full-line-v26": that line cuts the corners that are not grass, and is cornered
+ * at 0.80 (RIVAL_STREET_LINE). Never committed: it was on the dev server for an
+ * hour, and Shawn raced it four times.
+ * "full-line-v27": the same, no longer "lost" at a cut apex. A one-line fix to a
+ * rival somebody has raced is still a revision: of the four v26 recordings two
+ * were driven before it and two after, and the name could not say which. Not
+ * committed either; raced once.
+ * "full-line-v28": that line cornered at 0.88 (Shawn), not 0.80.
  */
-export const RIVAL_REVISION = "full-line-v25";
+export const RIVAL_REVISION = "full-line-v28";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -383,11 +394,36 @@ export const RIVAL_CORNERING = {
  * | street line, 1.00 | 1:27.03 | 1:24.80 | 1:24.40 |
  * | Shawn, racing it, no pedal assist | 1:31.78 | 1:27.53 | 1:26.47 |
  *
- * 0.88 is his pace, to within half a second a flying lap; every row was clean (no
- * reset, no reverse, no wheel off the pavement). That a racing line takes 0.88
- * here and only 0.76 on Ridge Circuit (RIVAL_BRAKING) is the road: Ridge Full's
- * long corners put it on the grass at 0.80, and a street corner is over in 30 m
- * with a kerb's width of margin kept either side.
+ * 0.88 was his pace, to within half a second a flying lap, and he raced it:
+ * 1:30.40, 1:25.63, 1:25.92 to its 1:29.47 and 1:27.27, won by 3.4 s where the race
+ * before was won by twenty, the lead changing seven times. "Way more competitive",
+ * and what would help is "letting the cpu cut corners that aren't grass": he was 20
+ * to 28 mph quicker through the fast bends, from 8 to 13 m off the centreline. The
+ * line now cuts them (racing-line.ts, "Cutting corners that are not grass"), which
+ * is worth about 4 s a lap, so the fraction came down with it. With the cut:
+ *
+ * | plan | lap 1 | lap 2 | lap 3 |
+ * |---|---|---|---|
+ * | 0.76 | 1:29.10 | 1:26.82 | 1:25.88 |
+ * | 0.80 | 1:27.70 | 1:25.30 | 1:24.47 |
+ * | 0.84 | 1:26.55 | 1:24.13 | 1:23.32 |
+ * | 0.88 | 1:25.47 | 1:23.02 | 1:22.23 |
+ * | 0.92 | 1:24.48 | 1:21.98 | 1:21.30 |
+ *
+ * Shawn since, the same evening: 1:23.92 and 1:23.38 with no pedal assist, and with
+ * it 1:25.62, 1:22.18, 1:21.30, which is the like-for-like race, the rival being on
+ * the clamp always. On the same assists he drives what this arithmetic calls 0.92.
+ *
+ * **0.88 (Shawn, 2026-09-20: "set it to 0.88").** Claude first took it down to
+ * 0.80 with the cut, level with his 15:52 laps, and he raced that five times in
+ * forty minutes: by the second race he was two seconds a lap quicker than it with
+ * no assist, and with the assist on he won by 3 to 4.7 s a lap. 0.88 is about a
+ * second a lap quicker than his best valid lap without the assist (1:23.92), which
+ * is how the game is played, and nearly two slower than his laps with it. Every
+ * row was clean (no reset, no reverse, no wheel off the pavement). That a racing
+ * line takes more here than Ridge Circuit's 0.76 (RIVAL_BRAKING) is the road: Ridge
+ * Full's long corners put it on the grass at 0.80, and a street corner is over in
+ * 30 m with margin either side.
  *
  * Clear streets only. A racing line ignores lanes, and in traffic every one tried
  * ran into it (racing-line.ts); that stays so until the rival reads traffic's
@@ -602,7 +638,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Uptown Circuit, it saw the truck 1.2 m to its left as 5 m out of its path,
   // neither slowed nor moved, and pushed it at full throttle for 42 s.
   const edge = Math.max(0, target.width / 2 - 2.2);
-  const lowest = -edge - target.lateral, highest = edge - target.lateral;
+  // Never past the line itself: a line that cuts a corner over the pavement is further from the road's centre than
+  // `edge`, and these would otherwise push the aim off it, back towards the road, at every apex.
+  const lowest = Math.min(0, -edge - target.lateral), highest = Math.max(0, edge - target.lateral);
   const normalX = -target.uz, normalZ = target.ux;
   // This car's own offset in the same frame as `side`: across the route at the aim
   // point. Not `nearestSide`, which is across the nearest segment: through a corner
@@ -693,7 +731,10 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // after the Drop. On a street it was more than 5 m from the centreline, and on
   // the larger arcs of 2026-09-13 it tracked 5.5 m out at 95 mph and was braked
   // to 22 mph mid-bend on an empty street.
-  const lost = Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN;
+  // A line that cuts a corner is itself past the carriageway there, by design and over ground it has checked
+  // (`clearance`). Read from the road's centre alone, the rival was "lost" at the apex of Harrison & Broadway on every
+  // lap, 8.5 m from a 14 m street's centre and 2 m inside its own line, and braked for 22 mph where it planned 36.
+  const lost = Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN && Math.abs(nearestSide) >= (route.clearance ?? 0);
   if (lost) desiredSpeed=Math.min(desiredSpeed,10);
   if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
   driver.targetSpeed=desiredSpeed;

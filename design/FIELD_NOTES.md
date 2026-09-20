@@ -46,6 +46,18 @@ name of the bug was the first wrong thing about it.
   have moved all ten cars' numbers for no tune. It was baselined before the change
   and compared after. And a blind replay cannot test a quicker rival being raced,
   so a second planner in a quicker car was put behind it to be passed.
+- Shawn raced it (won by 3.4 s, from twenty) and asked for the CPU to cut corners
+  that are not grass. Three things that were not obvious. The lever was twice what
+  it looked: rounding every corner was worth 2.1 s a lap before anything was cut,
+  the cut about 2 more, so his 0.88 was taken down to 0.80, level with the race he
+  had just run, with the numbers laid out for him. That read was forty minutes
+  stale by the time it shipped: he raced it five times, was two seconds a lap past
+  it by the second, and set it back to 0.88. A pace tuned to one race of a driver
+  who is still getting quicker is tuned to the past. Wheels on the grass at the first try were not the
+  line's: the rival runs up to 1.9 m inside its own line at a tight apex, so the
+  margin where it cuts is the car's, 4 m. And an old clamp that keeps the aim on
+  the road by the line's distance from the centre would have quietly pushed it
+  off every cut apex, since a cut line is further out than the road is wide.
 
 ## How traffic takes a corner (2026-09-20)
 

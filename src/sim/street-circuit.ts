@@ -20,7 +20,7 @@
  * is not a lap of this circuit. Only the next gate is ever shown, with the arrow
  * for where the loop goes from it.
  */
-import { ALDER_STREETS, alderHeight } from "./alder.ts";
+import { ALDER_STREETS, alderDrivable, alderHeight } from "./alder.ts";
 import { laneOffset } from "./lanes.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
 import { STREET_RACING_LINE, withRacingLine } from "./racing-line.ts";
@@ -132,7 +132,7 @@ export function uptownLap(): StreetCircuitLap {
 
 function clearLine(route: RivalDefinition, laps: number): RivalDefinition {
   let line = clearLines.get(laps);
-  if (!line) clearLines.set(laps, line = { ...withRacingLine(route, STREET_RACING_LINE), cornering: RIVAL_STREET_LINE.speedFactor });
+  if (!line) clearLines.set(laps, line = { ...withRacingLine(route, STREET_CIRCUIT_LINE), cornering: RIVAL_STREET_LINE.speedFactor });
   return line;
 }
 
@@ -158,6 +158,8 @@ export function streetCircuitRaceFor(raceId: string): { traffic: boolean; solo: 
   return null;
 }
 
+/** A street circuit's racing line: the street line, cutting the corners this city says a car may cross (`alderDrivable`). */
+export const STREET_CIRCUIT_LINE = { ...STREET_RACING_LINE, paved: alderDrivable } as const;
 /** The line takes about half a second to draw and never changes, so each number of laps is drawn once. */
 const clearLines = new Map<number, RivalDefinition>();
 

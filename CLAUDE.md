@@ -179,8 +179,9 @@ fixtures outside the playable bundle, and old world links redirect.
   corner speed from their own plan (`design/PORT_ALDER.md`, "How hard the rival
   corners"): a street 0.80 (`RIVAL_CORNERING`), a racing line 0.76
   (`RIVAL_BRAKING`), which is all its own width leaves it. The one street race
-  with no traffic, Uptown Circuit / Clear, drives a street racing line at 0.88
-  (`RIVAL_STREET_LINE`, Shawn 2026-09-20: his pace to half a second a lap). On
+  with no traffic, Uptown Circuit / Clear, drives a street racing line that cuts
+  the corners that are not grass (`alderDrivable`), at 0.88 (`RIVAL_STREET_LINE`,
+  Shawn 2026-09-20: about a second a lap quicker than his best with no pedal assist). On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -422,6 +423,9 @@ fixtures outside the playable bundle, and old world links redirect.
   and a rival quicker than the one raced cannot be measured by replaying the player's inputs at it: they collide.
   Only a race with no traffic may have one (it ignores lanes), which today is Uptown Circuit / Clear alone; its gate
   arrows still come from the centreline, and `pnpm cars --laps` drives the in-traffic route so its column did not move.
+  Where it cuts a corner it is further from the road's centre than the road is wide, so anything in `rivalInput` that
+  bounds the aim by `lateral` must not push it past the line itself; and the cut keeps 4 m, not 2.6, because the rival
+  runs up to 1.9 m inside its own line at a tight apex. The line's pace is pinned by a test: moving it is a decision.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.

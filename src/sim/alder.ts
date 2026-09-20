@@ -5,7 +5,7 @@ import data from "./alder-data.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
 import { buildingId, layoutFingerprint, layoutHasContent, parseAnyLayout, type AuthoredLayout, type BuildingPlacement } from "./building-layout.ts";
-import { blockCorners, blockPenetration, segmentFootprintDistance, type BuildingBlock } from "./building-footprint.ts";
+import { blockCorners, blockPenetration, pointFootprintDistance, segmentFootprintDistance, spatialIndex, type BuildingBlock } from "./building-footprint.ts";
 import authoredLayout from "./alder-layout.json" with { type: "json" };
 import type { CourseProjection } from "./track.ts";
 import type { RoadWorld } from "./road-world.ts";
@@ -220,6 +220,26 @@ export function alderGround(x: number, z: number): boolean {
     if (on.distance <= on.width / 2 + ALDER_PAVEMENT) return false;
   }
   return true;
+}
+
+/** Metres a car's centre keeps from anything solid: half its width and most of a metre. */
+const DRIVABLE_CLEARANCE = 1.8;
+let solidsNear: ((x: number, z: number) => BuildingBlock[]) | undefined;
+/**
+ * Where a rival's line may cut a corner (2026-09-20, Shawn: "letting the cpu cut
+ * corners that aren't grass"): paved, as the tyres and the lap recorder judge it
+ * (`alderGround`), and clear of everything the world makes solid, buildings and
+ * trees alike. A junction's corner is both streets' pavement, which is where a
+ * player cuts it; a corner of grass, or with a building on it, is not cut.
+ */
+export function alderDrivable(x: number, z: number): boolean {
+  if (alderGround(x, z)) return false;
+  solidsNear ??= spatialIndex<BuildingBlock>([...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
+    ...ALDER_EVERGREENS.map(tree => tree.trunk)], block => {
+    const reach = Math.hypot(block.width, block.depth) / 2 + DRIVABLE_CLEARANCE;
+    return { minX: block.x - reach, maxX: block.x + reach, minZ: block.z - reach, maxZ: block.z + reach };
+  });
+  return !solidsNear(x, z).some(block => pointFootprintDistance(block, x, z) < DRIVABLE_CLEARANCE);
 }
 
 /** `from` is where a race starts: the grid unless the flash said otherwise. */

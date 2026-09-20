@@ -11,7 +11,7 @@
 //   pnpm laps:compare <path to a .json>    that file, wherever it is
 //   pnpm laps:compare --json               the same facts, for tools
 //   pnpm laps:compare --line               a race in traffic, against the same rival on a racing line through the
-//                                          streets (STREET_RACING_LINE): an experiment. Uptown / Clear's already is.
+//                                          streets (STREET_CIRCUIT_LINE): an experiment. Uptown / Clear's already is.
 //
 // It refuses a session that does not replay exactly on this build, and says why:
 // a comparison against a run that diverged would be a comparison against nothing.
@@ -23,7 +23,8 @@ import { createAlderWorld } from "../src/sim/alder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
-import { STREET_RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
+import { withRacingLine } from "../src/sim/racing-line.ts";
+import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
 import type { RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
 
@@ -124,7 +125,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   // A line is drawn through a route once, and the clear race's rival already carries its own.
   const raced = circuitEvent(chosen.session.race, chosen.session.laps)!.rival!;
   if (line && raced.lateral) { console.log(`${chosen.session.race}'s rival already drives a racing line: --line is for a race whose rival does not.`); process.exit(1); }
-  const result = compareSession(chosen.session, line ? withRacingLine(raced, STREET_RACING_LINE) : undefined);
+  const result = compareSession(chosen.session, line ? withRacingLine(raced, STREET_CIRCUIT_LINE) : undefined);
   if (json) console.log(JSON.stringify({ file: chosen.name, ...result }, null, 2));
   else {
     const time = (seconds: number | null) => seconds === null ? "  --   " : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;

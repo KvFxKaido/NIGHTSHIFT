@@ -87,7 +87,22 @@ export const RACING_LINE = {
  *   reaches its other leg: a hairpin's two legs are 51 degrees apart, so 7 m inside
  *   one is across the other's line.
  * - **A hairpin's vertex.** Bounded or not, offsets from a 129 degree vertex zigzag
- *   (HAIRPIN), so its samples are put on an arc first.
+ *   (CORNER_ARC), so its samples are put on an arc first. Every corner's are, since
+ *   the same day: below.
+ *
+ * **Cutting corners that are not grass** (Shawn, the same day, after racing it: he
+ * was 20 to 28 mph quicker through the fast bends, from 8 to 13 m off the centreline
+ * where the line was held within 6 or 7). Every vertex past `roundFrom` is rounded,
+ * and on the INSIDE of each the line may go as far as `paved` says a car may be,
+ * `cutMargin` kept all round it, instead of stopping `edgeMargin` short of the kerb:
+ * over the pavement and the corner both streets share, never onto grass, never near
+ * a building or a tree. The outside of a bend and every straight keep to the
+ * carriageway, so it cuts corners and does not drive down pavements. The rounding
+ * alone is worth 2.1 s a lap on Uptown (an arc's room is both legs' asphalt, a
+ * vertex's one leg's), and the cut about 2 more. `cutMargin` 2.6 put one tyre on the
+ * grass for 2 to 6 ticks at the two tightest corners, the car cutting 1.6 to 1.9 m
+ * inside its own line as any driver aiming ahead does; 3.2 for 2 ticks; 3.6 and 4.0
+ * for none, over 0.76 to 0.88.
  *
  * Driven alone on Uptown, clear, at the racing line's own 0.76: 1:32.45, 1:30.38,
  * 1:29.75, every lap valid, no reset, no reverse, no wheel off the pavement, where
@@ -105,7 +120,7 @@ export const RACING_LINE = {
  * for how hard). It ignores lanes, so it is for clear streets only (above, "Not in
  * the city"): every street race with traffic keeps the centreline and its lane arcs.
  */
-export const STREET_RACING_LINE = { ...RACING_LINE, sharpCorners: true, foldStep: 0.25 } as const;
+export const STREET_RACING_LINE = { ...RACING_LINE, sharpCorners: true, foldStep: 0.25, roundFrom: 45, cutMargin: 4 } as const;
 
 export interface RacingLineOptions {
   readonly spacing: number;
@@ -118,23 +133,29 @@ export interface RacingLineOptions {
   readonly sharpCorners?: boolean;
   /** With `sharpCorners`, the least share of the road's step that a step of the line may cover on the inside of a corner. */
   readonly foldStep?: number;
+  /** With `sharpCorners`, degrees a vertex must turn to be rounded before the line is drawn (CORNER_ARC). Absent, none is. */
+  readonly roundFrom?: number;
+  /** Where a car may be, for cutting a corner: true on ground the line may cross. Asked only on the inside of a rounded
+   *  corner, for the point and a ring `edgeMargin` round it. Absent, the inside is the legs' own carriageway. */
+  readonly paved?: (x: number, z: number) => boolean;
+  /** Metres of `paved` ground kept all round the line where it cuts a corner. Absent is `edgeMargin`. */
+  readonly cutMargin?: number;
 }
 
 /** Metres of road either way that a sample's other leg is looked for in: the legs of Uptown's hairpin share asphalt 38 m out. */
 const FOLD_WINDOW = 100;
 
 /**
- * A hairpin is rounded before a line is drawn through it (STREET_RACING_LINE). A line is
- * offsets from the road's samples along their normals, and at a vertex this sharp the
- * samples either side jump sideways as the normals swing, so ANY offset to the inside
- * zigzags: Uptown's hairpin (129 degrees) came out as a 4 m spike on one lap in three
- * whatever bounded it. The samples there now follow an arc inside the vertex, and what
- * the line may use either side of the arc is the asphalt itself, which at a hairpin is
- * both legs' pavement and the wedge between them: within the margin of either leg.
+ * A street corner is rounded before a line is drawn through it (STREET_RACING_LINE's
+ * `roundFrom`). A line is offsets from the road's samples along their normals, and at a
+ * sharp vertex the samples either side jump sideways as the normals swing, so an offset
+ * to the inside zigzags: Uptown's hairpin (129 degrees) came out as a 4 m spike on one
+ * lap in three whatever bounded it. The samples there follow an arc inside the vertex,
+ * and what the line may use either side of the arc is the asphalt itself: within the
+ * margin of either leg, which at a junction is both streets' and the corner between
+ * them, and on the inside whatever `paved` allows.
  */
-export const HAIRPIN = {
-  /** Degrees a vertex must turn to be rounded. Uptown's 98 degree corner solves cleanly as a vertex on every lap. */
-  from: 110,
+export const CORNER_ARC = {
   /** Metres from the vertex the line may be at its deepest: well inside the 20 m a street gate takes. */
   gateReach: 14,
   /** Share of the shorter leg beside it that the arc may use, as RIVAL_STREET_CORNERS. */
@@ -144,16 +165,19 @@ export const HAIRPIN = {
   marchReach: 40,
 } as const;
 
-/** A stretch of samples on a hairpin's arc, and the legs whose pavement they may use. */
-interface Pavement { from: number; to: number; legs: { ax: number; az: number; bx: number; bz: number; limit: number }[] }
+/** Eight directions: the ring a point's margin is checked on. */
+const RING = Array.from({ length: 8 }, (_, k) => [Math.cos(k * Math.PI / 4), Math.sin(k * Math.PI / 4)] as const);
+
+/** A stretch of samples on a corner's arc, which side is its inside, and the legs whose pavement they may use. */
+interface Pavement { from: number; to: number; inside: number; legs: { ax: number; az: number; bx: number; bz: number; limit: number }[] }
 const distanceToLeg = (leg: Pavement["legs"][number], x: number, z: number) => {
   const dx = leg.bx - leg.ax, dz = leg.bz - leg.az, t = Math.max(0, Math.min(1, ((x - leg.ax) * dx + (z - leg.az) * dz) / (dx * dx + dz * dz || 1)));
   return Math.hypot(x - leg.ax - dx * t, z - leg.az - dz * t);
 };
 
-/** The route with each hairpin's vertex replaced by an arc: where every original point went, and the arcs. */
-function roundHairpins(points: readonly CoursePoint[], options: RacingLineOptions) {
-  const rounded: CoursePoint[] = [], origin: number[] = [], arcs: { from: number; to: number; vertex: number }[] = [];
+/** The route with each sharp vertex replaced by an arc: where every original point went, and the arcs. */
+function roundCorners(points: readonly CoursePoint[], options: RacingLineOptions) {
+  const rounded: CoursePoint[] = [], origin: number[] = [], arcs: { from: number; to: number; vertex: number; inside: number }[] = [];
   const keep = 1 - (options.foldStep ?? 0);
   for (let i = 0; i < points.length; i++) {
     const p = points[i - 1], q = points[i]!, r = points[i + 1];
@@ -161,13 +185,13 @@ function roundHairpins(points: readonly CoursePoint[], options: RacingLineOption
     if (!p || !r || l1 < 1e-6 || l2 < 1e-6) { origin.push(rounded.length); rounded.push(q); continue; }
     const u1x = (q.x - p.x) / l1, u1z = (q.z - p.z) / l1, u2x = (r.x - q.x) / l2, u2z = (r.z - q.z) / l2;
     const turn = Math.atan2(u1x * u2z - u1z * u2x, u1x * u2x + u1z * u2z), half = Math.abs(turn) / 2;
-    if (Math.abs(turn) * 180 / Math.PI <= HAIRPIN.from) { origin.push(rounded.length); rounded.push(q); continue; }
+    if (Math.abs(turn) * 180 / Math.PI <= (options.roundFrom ?? Infinity)) { origin.push(rounded.length); rounded.push(q); continue; }
     // As large as leaves the line's deepest point, the arc's own and the inside the solver may add, within reach of the gate.
-    const radius = Math.min(HAIRPIN.gateReach / (1 / Math.cos(half) - 1 + keep), HAIRPIN.legShare * Math.min(l1, l2) / Math.tan(half));
+    const radius = Math.min(CORNER_ARC.gateReach / (1 / Math.cos(half) - 1 + keep), CORNER_ARC.legShare * Math.min(l1, l2) / Math.tan(half));
     const T = radius * Math.tan(half), side = Math.sign(turn);
     const sx = q.x - u1x * T, sz = q.z - u1z * T, cx = sx - u1z * side * radius, cz = sz + u1x * side * radius;
     const count = Math.max(2, Math.ceil(radius * Math.abs(turn) / options.spacing));
-    arcs.push({ from: rounded.length, to: rounded.length + count, vertex: i });
+    arcs.push({ from: rounded.length, to: rounded.length + count, vertex: i, inside: side });
     origin.push(rounded.length + Math.round(count / 2));
     for (let k = 0; k <= count; k++) {
       const a = turn * k / count, c = Math.cos(a), sn = Math.sin(a), t = k / count;
@@ -226,21 +250,30 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
   // How far each sample may go right and left: the road less the margins, and
   // less again on the outside of the road's own bend (all of it from a 300 m radius in).
   const right: number[] = [], left: number[] = [];
+  // A lapped route asks the same sample every lap.
+  const rooms = new Map<string, number>(), cutMargin = options.cutMargin ?? options.edgeMargin;
   for (let i = 0; i < n; i++) {
     const limit = Math.max(0, samples[i]!.width / 2 - options.edgeMargin);
     const a = samples[Math.max(0, i - reach * 2)]!, b = samples[i]!, c = samples[Math.min(n - 1, i + reach * 2)]!;
     const bend = curvature(a.x, a.z, b.x, b.z, c.x, c.z, sharp);
-    // On a hairpin's arc the samples are off the centreline, and the room either side is the asphalt's: as far
+    // On a corner's arc the samples are off the centreline, and the room either side is the asphalt's: as far
     // along the normal as stays within the margin of one leg or the other.
     const paved = pavement.find(stretch => i >= stretch.from && i <= stretch.to);
     const room = (sign: number) => {
       if (!paved) return limit;
+      // Inside the corner, whatever the ground allows (`paved`), the margin kept all round; else the legs' carriageway.
+      const ground = sign === paved.inside ? options.paved : undefined;
+      const key = `${b.x},${b.z},${sign}`, known = rooms.get(key);
+      if (known !== undefined) return known;
       let reached = 0;
-      for (let t = 0; t <= HAIRPIN.marchReach; t += HAIRPIN.march) {
+      for (let t = 0; t <= CORNER_ARC.marchReach; t += CORNER_ARC.march) {
         const x = b.x + normals[i]!.x * sign * t, z = b.z + normals[i]!.z * sign * t;
-        if (!paved.legs.some(leg => distanceToLeg(leg, x, z) <= leg.limit)) break;
+        const on = ground ? ground(x, z) && RING.every(([rx, rz]) => ground(x + rx * cutMargin, z + rz * cutMargin))
+          : paved.legs.some(leg => distanceToLeg(leg, x, z) <= leg.limit);
+        if (!on) break;
         reached = t;
       }
+      rooms.set(key, reached);
       return reached;
     };
     const margin = options.outsideMargin * Math.min(1, Math.abs(bend) * 300);
@@ -319,10 +352,10 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
 export function withRacingLine(route: RivalDefinition, options: RacingLineOptions = RACING_LINE): RivalDefinition {
   // A line drawn through a line doubles the offsets, which was once measured as "K1999 leaves the road" (above).
   if (route.lateral) throw new RangeError(`${route.id} already carries a racing line`);
-  const { rounded, origin, arcs } = options.sharpCorners ? roundHairpins(route.points, options)
+  const { rounded, origin, arcs } = options.sharpCorners ? roundCorners(route.points, options)
     : { rounded: route.points, origin: route.points.map((_, i) => i), arcs: [] };
   const { samples, index } = resample(rounded, options.spacing);
-  const pavement: Pavement[] = arcs.map(arc => ({ from: index[arc.from]!, to: index[arc.to]!,
+  const pavement: Pavement[] = arcs.map(arc => ({ from: index[arc.from]!, to: index[arc.to]!, inside: arc.inside,
     legs: [-3, -2, -1, 0, 1, 2].map(k => [route.points[arc.vertex + k], route.points[arc.vertex + k + 1]] as const)
       .filter((leg): leg is readonly [CoursePoint, CoursePoint] => !!leg[0] && !!leg[1])
       .map(([a, b]) => ({ ax: a.x, az: a.z, bx: b.x, bz: b.z, limit: Math.max(0, Math.min(a.width, b.width) / 2 - options.edgeMargin) })) }));
@@ -342,5 +375,5 @@ export function withRacingLine(route: RivalDefinition, options: RacingLineOption
     if (original < 0) throw new RangeError(`${route.id}: gate at ${gate} m is not a point of the route`);
     return along[index[origin[original]!]!]!;
   });
-  return { ...route, points, along, gates, lateral };
+  return { ...route, points, along, gates, lateral, ...(options.paved ? { clearance: options.cutMargin ?? options.edgeMargin } : {}) };
 }

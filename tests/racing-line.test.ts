@@ -4,12 +4,12 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { arenaEvent } from "../src/sim/arena-events.ts";
 import { ARENA, arenaLap } from "../src/sim/arena.ts";
 import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
-import { createAlderWorld } from "../src/sim/alder.ts";
+import { alderDrivable, alderGround, createAlderWorld } from "../src/sim/alder.ts";
 import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
-import { HAIRPIN, RACING_LINE, STREET_RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
+import { CORNER_ARC, RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
 import { createRivalDriver, RIVAL_STREET_LINE, rivalInput, sampleRivalPath, type RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
-import { STREET_GATE_RADIUS, streetCircuitEvent } from "../src/sim/street-circuit.ts";
+import { STREET_CIRCUIT_LINE, STREET_GATE_RADIUS, streetCircuitEvent } from "../src/sim/street-circuit.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
 await RAPIER.init();
 
@@ -108,12 +108,12 @@ test("passing on a racing line never aims the rival off the road", () => {
 // nodes landed on it, and the rival orbited the spike at full lock: what read as "lap 1 is broken".
 test("a street's line is sound at every corner of every lap, the hairpin included", () => {
   // The race in traffic has the centreline; the clear race's rival is this line, drawn once already.
-  const event = streetCircuitEvent(3, true, false), route = event.rival!, line = withRacingLine(route, STREET_RACING_LINE);
+  const event = streetCircuitEvent(3, true, false), route = event.rival!, line = withRacingLine(route, STREET_CIRCUIT_LINE);
   const perLap = event.race.gatesPerLap!;
-  assert.deepEqual(withRacingLine(route, STREET_RACING_LINE), line, "the same route drew a different line");
+  assert.deepEqual(withRacingLine(route, STREET_CIRCUIT_LINE), line, "the same route drew a different line");
   assert.deepEqual(streetCircuitEvent(3, false, false).rival!.points, line.points, "Uptown / Clear's rival is not on this line");
   // A line through a line doubles the offsets, and was once written up as the solver leaving the road.
-  assert.throws(() => withRacingLine(line, STREET_RACING_LINE), /already carries a racing line/);
+  assert.throws(() => withRacingLine(line, STREET_CIRCUIT_LINE), /already carries a racing line/);
   // No spike anywhere: a 15 m arc turns 15 degrees a sample, and the kinks were 118 to 166.
   for (let i = 1; i < line.points.length - 1; i++) {
     const o = line.points[i - 1]!, p = line.points[i]!, q = line.points[i + 1]!;
@@ -126,13 +126,14 @@ test("a street's line is sound at every corner of every lap, the hairpin include
     for (let d = -60; d <= 60; d++) radius = Math.min(radius, radiusAt(line, gate + d));
     return radius;
   };
-  let hairpins = 0;
+  let hairpins = 0, cut = 0;
   for (let g = 0; g < perLap - 1; g++) {
     const laps = [0, 1, 2].map(lap => tightest(line.gates[lap * perLap + g]!));
     // The tightest is the 98 degree turn from Harrison Terrace onto Broadway, at 15 m. The car's own circle at full lock is 8.4.
     for (const [lap, radius] of laps.entries()) assert.ok(radius > 12, `gate ${g + 1}, lap ${lap + 1}: the line pinches to ${radius.toFixed(1)} m`);
-    // The same corner is the same corner on every lap, or near it: the solver may settle either side of a following bend.
-    assert.ok(Math.min(...laps) > Math.max(...laps) * 0.7, `gate ${g + 1}: ${laps.map(r => r.toFixed(1)).join(", ")} m over three laps`);
+    // The same corner is nearly the same corner on every lap. Not exactly: 100 sweeps do not settle a street's fast bends
+    // (Uptown Link & Broadway is a 70, 50 and 82 m arc; at 1,000 sweeps 85, 72 and 88, for 3 s at the grid), and every lap is sound.
+    assert.ok(Math.min(...laps) > Math.max(...laps) * 0.6, `gate ${g + 1}: ${laps.map(r => r.toFixed(1)).join(", ")} m over three laps`);
     // Still a gate the line takes: a hairpin's line runs inside its vertex, and must stay within reach of the gate there.
     const v = route.along.findIndex(a => Math.abs(a - route.gates[g]!) < 1e-6);
     const before = route.points[v - 1]!, vertex = route.points[v]!, after = route.points[v + 1]!, at = sampleRivalPath(line, line.gates[g]!);
@@ -140,30 +141,45 @@ test("a street's line is sound at every corner of every lap, the hairpin include
     assert.ok(from < STREET_GATE_RADIUS - 4, `gate ${g + 1}: the line passes ${from.toFixed(1)} m from a gate ${STREET_GATE_RADIUS} m wide`);
     const turn = Math.abs(Math.atan2((vertex.x - before.x) * (after.z - vertex.z) - (vertex.z - before.z) * (after.x - vertex.x),
       (vertex.x - before.x) * (after.x - vertex.x) + (vertex.z - before.z) * (after.z - vertex.z))) * 180 / Math.PI;
-    if (turn <= HAIRPIN.from) continue;
+    // A corner is cut when the line passes further inside its vertex than the carriageway's own margin reaches along
+    // the bisector: over the pavement and the corner the two streets share.
+    if (from > (vertex.width / 2 - STREET_CIRCUIT_LINE.edgeMargin) / Math.cos(turn * Math.PI / 360) + 1) cut++;
+    if (turn <= 110) continue;
     hairpins++;
     // Rounded, so its line runs well inside the vertex, over the asphalt the two legs share.
-    assert.ok(from > HAIRPIN.gateReach / 2, `the hairpin's line passes only ${from.toFixed(1)} m inside its vertex`);
+    assert.ok(from > CORNER_ARC.gateReach / 2, `the hairpin's line passes only ${from.toFixed(1)} m inside its vertex`);
     assert.ok(Math.min(...laps) > 14, `the hairpin's line is a ${Math.min(...laps).toFixed(1)} m arc`);
   }
   assert.equal(hairpins, 1, "Uptown has one hairpin; if this is 0 the rounding is not being tested");
+  // It cuts the corners that are not grass (Shawn, 2026-09-20), and only those: every point of the line is on paved
+  // ground and clear of every building and tree, with the margin the rival's own corner-cutting needs on top.
+  assert.ok(cut >= 6, `only ${cut} of ${perLap - 1} corners are cut`);
+  for (const [i, p] of line.points.entries()) {
+    assert.ok(!alderGround(p.x, p.z) && alderDrivable(p.x, p.z), `the line is off the pavement or against something solid ${line.along[i]!.toFixed(0)} m along`);
+  }
+  // Drawn without the ground to ask, the inside of a corner stops at the carriageway's margin, and none is cut that far.
+  const { paved: _paved, ...kerbed } = STREET_CIRCUIT_LINE;
+  const uncut = withRacingLine(route, kerbed), deepest = (l: typeof line) => Math.max(...l.lateral!.map(Math.abs));
+  assert.ok(deepest(line) > deepest(uncut) + 1.5, `cutting reaches ${deepest(line).toFixed(1)} m from the road's centre against ${deepest(uncut).toFixed(1)}`);
 });
 
 test("the rival drives a street's line from the grid: a clean first lap, no reset, no reverse, no wheel off the pavement", () => {
-  // Uptown / Clear as the game fields it: the street line at RIVAL_STREET_LINE's 0.88.
+  // Uptown / Clear as the game fields it: the street line, corners cut, at RIVAL_STREET_LINE's fraction.
   const event = streetCircuitEvent(2, false, false), line = event.rival!;
   assert.equal(line.cornering, RIVAL_STREET_LINE.speedFactor);
   // The player is parked at Wharf Garage, across the city, so nothing here is contact.
   const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: event.race, rival: line, traffic: false });
   try {
     const recorder = createLapRecorder(event.track);
-    let offPavement = 0, slowest = Infinity;
+    let offPavement = 0, slowest = Infinity, harrison = Infinity;
+    const harrisonAndBroadway = line.gates[event.race.gatesPerLap! + 6]!;
     for (let tick = 0; tick < 240 * TICK_HZ && !sim.state.rival!.race.finished; tick++) {
       step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
       const rival = sim.state.rival!;
       recordTick(recorder, rival.input, rival.vehicle, rival.race, TICK_HZ);
       if (rival.vehicle.groundContact > 0) offPavement++;
       if (rival.race.ticks > 10 * TICK_HZ) slowest = Math.min(slowest, rival.vehicle.speed);
+      if (Math.abs(rival.driver.along - harrisonAndBroadway) < 45) harrison = Math.min(harrison, rival.vehicle.speed);
     }
     const driver = sim.state.rival!.driver, [first, second] = recorder.laps;
     assert.equal(recorder.laps.length, 2, "the rival did not finish");
@@ -171,10 +187,14 @@ test("the rival drives a street's line from the grid: a clean first lap, no rese
     assert.deepEqual([driver.resets, driver.unseenResets, driver.recoveries, offPavement], [0, 0, 0, 0]);
     // A standing start costs about two seconds. On the old line lap 1 was 7.5 s behind, and 16 with tighter margins.
     assert.ok(first!.seconds - second!.seconds < 4, `lap 1 ${first!.seconds.toFixed(2)} s against lap 2's ${second!.seconds.toFixed(2)}`);
-    // At a spike it orbited at 14.5 mph; the hairpin's line is driven at about 30.
+    // At a spike it orbited at 14.5 mph; the hairpin's line is driven at about 28.
     assert.ok(slowest > 10, `it slowed to ${(slowest * 2.23694).toFixed(1)} mph`);
-    // Its pace is a decision (Shawn, 2026-09-20): 1:27.07, against his 1:27.53 and 1:26.47 racing it. Lane arcs lap in
-    // 1:35.18 and a plan of 1.00 in 1:24.80, so a lap outside this is a different rival: look at RIVAL_STREET_LINE.
-    assert.ok(second!.seconds > 86 && second!.seconds < 88.5, `a flying lap of ${second!.seconds.toFixed(2)} s`);
+    // Where the line cuts deepest it is past the carriageway on purpose, and the rival is not lost there: read from the
+    // road's centre alone it was, at Harrison & Broadway on every lap, and braked to 30 mph where it planned 36.
+    assert.ok(harrison * 2.23694 > 35, `${(harrison * 2.23694).toFixed(1)} mph through Harrison & Broadway`);
+    // Its pace is a decision (Shawn, 2026-09-20: 0.88): 1:23.02, against his 1:23.92 with no pedal assist and 1:20.6
+    // with it. Lane arcs lap in 1:35.18, this line uncut in 1:27.07, and cut at 0.80 in 1:25.30 and at 0.92 in 1:21.98,
+    // so a lap outside this is a different rival: look at RIVAL_STREET_LINE, and at what the line may cut.
+    assert.ok(second!.seconds > 82 && second!.seconds < 84, `a flying lap of ${second!.seconds.toFixed(2)} s`);
   } finally { sim.world.free(); }
 });
