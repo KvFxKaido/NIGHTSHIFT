@@ -51,10 +51,20 @@ jobs:
   # tests was green here. `pnpm test` runs all of it in one go, which is what to run
   # locally; here it is split, because the whole suite took 16.1 minutes on a runner.
   #
-  # Two files are 40% of the suite's 830 seconds of work -- race-generator at 178 s
-  # and critique-alder at 152 s (measured 2026-09-19) -- so the slowest single file
-  # sets the floor and balancing the rest buys nothing. They get a shard each and
-  # everything else shares one, which new test files join without being listed.
+  # race-generator (214 s) and critique-alder (176 s) are still the two heaviest
+  # files, so they anchor a shard each. The other 89 are 563 s with no hot spot to
+  # split: the median file is 1.4 s, 55 of them are under 2 s, and the longest is
+  # night at 46 s (timed one file at a time, 2026-09-19). The top ten are 55% of
+  # that shard, so the balance comes from naming a few of them beside the anchors
+  # -- 325 / 337 / 291 s by these timings, where `rest` alone was 563.
+  #
+  # `rest` stays defined by EXCLUSION so a new test file joins it without being
+  # listed anywhere. The pattern anchors on `.test.ts$` because the names are
+  # prefixes of each other: a bare `rival` would swallow rival-racing,
+  # rival-speed, rival-card and rival-height.
+  #
+  # Below about 420 s there is nothing here to win: the build job, with its three
+  # browser checks, is the floor.
   tests:
     runs-on: ubuntu-latest
     strategy:
@@ -62,11 +72,11 @@ jobs:
       matrix:
         include:
           - shard: generator
-            files: tests/race-generator.test.ts
+            files: tests/race-generator.test.ts tests/night.test.ts tests/rival.test.ts tests/traffic-intent.test.ts
           - shard: critique
-            files: tests/critique-alder.test.ts
+            files: tests/critique-alder.test.ts tests/arena.test.ts tests/district.test.ts tests/encounter.test.ts tests/cruisers.test.ts tests/street-circuit.test.ts
           - shard: rest
-            files: $(ls tests/*.test.ts | grep -v -e race-generator -e critique-alder)
+            files: $(ls tests/*.test.ts | grep -vE 'tests/(race-generator|critique-alder|night|rival|arena|traffic-intent|district|encounter|cruisers|street-circuit)\.test\.ts$')
     name: tests (${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v4
