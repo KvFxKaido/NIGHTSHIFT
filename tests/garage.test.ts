@@ -8,6 +8,7 @@ import { createSim, step, type SimState } from "../src/sim/sim.ts";
 import { transitionMenu } from "../src/ui/menu-state.ts";
 import { addGarageExterior, createGarageScene } from "../src/render/garage.ts";
 import { createCar } from "../src/render/car.ts";
+import { createChaseFollowState } from "../src/render/camera.ts";
 import { render, resetViewCamera, setViewMode, type View } from "../src/render/scene.ts";
 
 await RAPIER.init();
@@ -55,6 +56,7 @@ test("garage input turns the car with the platform while the camera stays in fro
   // draw is a sink, so camera placement and car parenting remain under test.
   const view = { ...createCar(), scene: new THREE.Scene(), garageScene: createGarageScene(),
     mode: "track", garageYaw: 0, cameraOrbit: { yawOffset: 0, pitchOffset: 0 },
+    chaseFollow: createChaseFollowState(),
     camera: new THREE.PerspectiveCamera(48, 1440 / 1000, 0.1, 650),
     cameraPosition: new THREE.Vector3(), cameraTarget: new THREE.Vector3(),
     roadStart: DISTRICT_GARAGE.entrance,

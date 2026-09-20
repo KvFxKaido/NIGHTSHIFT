@@ -223,10 +223,15 @@ keeps changes usable for the session.
 Default controls: WASD/arrows or the left stick steer, W/RT accelerates, S/LT brakes,
 and Space/A applies the handbrake. The right stick orbits the camera; R3/C
 recenters it. V (remappable) or D-pad Up (fixed) cycles the chase camera through
-Near, Standard and Far; the choice saves in `nightshift.camera` on this browser,
-apart from settings and save slots, and `?camera=near|standard|far` previews one
-without saving. Near and Far are fitted to Midnight Club 3's close and zoomed-out
-cameras. D-pad Left / Right (fixed) skip to the previous / next soundtrack track
+Near, Standard, Standard B and Far; the choice saves in `nightshift.camera` on this
+browser, apart from settings and save slots, and
+`?camera=near|standard|standardB|far` previews one without saving. Near and Far
+are fitted to Midnight Club 3's close and zoomed-out cameras. Standard B is an
+experiment (2026-09-20): Standard's framing, carried with the car instead of only
+eased after it, so it sits the table's 9.9 m behind at 140 mph where Standard
+trails to 18.6 m, and pulls back on the gas and in on the brakes
+(`ChaseFollow` in `src/render/camera.ts`). It is there to be compared, then
+promoted into Standard or deleted. D-pad Left / Right (fixed) skip to the previous / next soundtrack track
 while driving, starting the music if it was off, and the HUD names the track;
 the D-pad steered until 2026-09-18. R/Y resets and H/LB toggles
 telemetry. Escape/Options pauses; arrows or the D-pad navigate menus, and

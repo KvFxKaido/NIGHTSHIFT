@@ -8,11 +8,15 @@ import type { RoadWorld } from "../sim/road-world.ts";
 import {
   CHASE_CAMERAS,
   createCameraOrbitState,
+  createChaseFollowState,
   DEFAULT_CHASE_CAMERA,
   resetCameraOrbit,
+  trackChaseFollow,
   updateCameraOrbit,
   type CameraOrbitState,
+  type ChaseCamera,
   type ChaseCameraId,
+  type ChaseFollowState,
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
 import type { CelSmoke } from "./smoke.ts";
@@ -40,6 +44,8 @@ export interface View extends CarView {
   cameraOrbit: CameraOrbitState;
   /** Which chase framing the track camera uses (`CHASE_CAMERAS`). */
   chaseCamera: ChaseCameraId;
+  /** Where a carried chase camera last saw the car (`ChaseFollow`); unknown under any other. */
+  chaseFollow: ChaseFollowState;
   mode: ViewMode;
   facadeMenu: ReturnType<typeof createFacadeMenu> | null;
   facadeCameraSnap: boolean;
@@ -174,6 +180,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     cameraTarget: new THREE.Vector3(roadWorld.start.x, roadWorld.start.y + 0.9, roadWorld.start.z),
     cameraOrbit: createCameraOrbitState(),
     chaseCamera: DEFAULT_CHASE_CAMERA,
+    chaseFollow: createChaseFollowState(),
     mode: "track",
     facadeMenu: scene.getObjectByName("district-garage") && document.querySelector('[data-menu-screen="main"]')
       ? createFacadeMenu(scene.getObjectByName("district-garage")!) : null,
@@ -214,6 +221,7 @@ export function setViewMode(view: View, mode: ViewMode): void {
   view.mode = mode;
   view.facadeMenu?.setActive(mode === "main");
   view.facadeDeparture = previous === "main" && mode === "track";
+  view.chaseFollow.known = false;
   resetCameraOrbit(view.cameraOrbit);
   view.garageYaw = 0;
 
@@ -344,8 +352,19 @@ export function render(
   const forwardX = -Math.sin(car.heading);
   const forwardZ = -Math.cos(car.heading);
   updateCameraOrbit(view.cameraOrbit, cameraLook, car.speed, frameDelta);
-  const chase = CHASE_CAMERAS[view.chaseCamera];
-  const distance = chase.distance + speedRatio * chase.distanceAtSpeed;
+  const chase: ChaseCamera = CHASE_CAMERAS[view.chaseCamera];
+  // A carried camera goes where the car went before anything is eased, so the
+  // easing below is left only the framing to settle, not the car to catch.
+  let speedChange = 0;
+  if (chase.follow) {
+    const carried = trackChaseFollow(view.chaseFollow, chase.follow, car, frameDelta);
+    view.cameraPosition.x += carried.dx;
+    view.cameraPosition.z += carried.dz;
+    view.cameraTarget.x += carried.dx;
+    view.cameraTarget.z += carried.dz;
+    speedChange = carried.distance;
+  } else view.chaseFollow.known = false;
+  const distance = chase.distance + speedRatio * chase.distanceAtSpeed + speedChange;
   // Follow where the car is travelling, not where it is pointing. Locked to the
   // heading, a slide rotates the camera with the body: the car sits square in
   // frame and the whole world swings, so slip reads as the car translating
