@@ -279,8 +279,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v21": Wake's Reign has its own tune (reign r2).
  * "full-line-v22": Tally's Vesper has its own tune (vesper r2), the last of the
  * ten, and the only car past the 140 mph cap.
+ * "full-line-v23": the ladder pass over the four names tuned before the street
+ * measure existed or judged by their own events -- Moth, Stray, Bollard and
+ * Sable (kestrel, latch, breakwater r3, ns01 r3).
  */
-export const RIVAL_REVISION = "full-line-v22";
+export const RIVAL_REVISION = "full-line-v23";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */

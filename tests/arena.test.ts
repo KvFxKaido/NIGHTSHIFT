@@ -197,7 +197,12 @@ test("each layout is a lapped race whose rival line passes through every gate", 
 // 0.60 pedal when the brake answered only excess speed; 144 m at 0.97 riding a
 // harder plan (RIVAL_BRAKING, 2026-09-13). The player brakes at about 120 m.
 test("the rival laps every layout cleanly on its racing line", () => {
-  const limits: Record<ArenaLayoutId, number> = { full: 76, east: 58, ridge: 49 };
+  // The rival's own pace, so these move when its car does: the ladder pass
+  // (2026-09-19) slowed Moth's Kestrel, which every arena race fields, from 74.5 /
+  // 57.4 / 48.2 s to 75.3 / 58.0 / 48.8. Same headroom as before, about 1.5 / 0.6 /
+  // 0.8 s. What catches a rival driving badly is below: finishing, no resets, no
+  // recoveries, never on the grass, and braking hard and late for T1.
+  const limits: Record<ArenaLayoutId, number> = { full: 77, east: 59, ridge: 50 };
   const infield: Record<ArenaLayoutId, { x: number; z: number }> = { full: { x: 3120, z: -1050 }, east: { x: 3120, z: -1050 }, ridge: { x: 2820, z: -1000 } };
   for (const id of ARENA_LAYOUT_IDS) {
     const event = arenaEvent(id, 2);

@@ -131,7 +131,9 @@ fixtures outside the playable bundle, and old world links redirect.
   the drift car (`pnpm cars --drift`), and Plumb's Meridian (r2) to a fast wagon
   4% quicker on her street circuits, and Crest's Skim (r2) to the lightest car on
   the best tyres, Wake's Reign (r2) to the all-rounder at #2, and Tally's Vesper
-  (r2) to the one car past the cap at 165 mph. Every Blacklist car is tuned
+  (r2) to the one car past the cap at 165 mph. Every Blacklist car is tuned, and
+  street pace climbs the list (`design/HANDLING.md`, "The ladder pass"), Rivet
+  apart: her race is the drag strip and she is poor on streets by design
   (`design/BLACKLIST.md`, "Top speeds and pace, per car"). `createSim` still defaults to the
   shared model on FWD, which is what the regression fixtures measure, and
   `?drivetrain=` / `__ns.drivetrain()` stay developer controls that keep the car

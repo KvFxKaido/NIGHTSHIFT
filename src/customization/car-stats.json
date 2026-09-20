@@ -30,31 +30,31 @@
     }
   },
   "kestrel": {
-    "revision": 2,
+    "revision": 3,
     "card": {
       "car": "kestrel",
       "drivetrain": "awd",
       "mass": 1150,
-      "zeroToSixty": 2.87,
-      "sixtyToHundred": 3.43,
+      "zeroToSixty": 3.12,
+      "sixtyToHundred": 3.75,
       "topSpeed": 130.2,
       "stoppingDistance": 27.8,
-      "peakLateral": 13.49,
+      "peakLateral": 13.52,
       "turnIn": 0.37,
       "handbrakeSlip": 7.8
     }
   },
   "latch": {
-    "revision": 2,
+    "revision": 3,
     "card": {
       "car": "latch",
       "drivetrain": "fwd",
       "mass": 1160,
-      "zeroToSixty": 4.15,
-      "sixtyToHundred": 3.42,
+      "zeroToSixty": 3.88,
+      "sixtyToHundred": 3.1,
       "topSpeed": 138.1,
       "stoppingDistance": 27,
-      "peakLateral": 15.1,
+      "peakLateral": 15.11,
       "turnIn": 0.38,
       "handbrakeSlip": 7.2
     }
@@ -75,18 +75,18 @@
     }
   },
   "breakwater": {
-    "revision": 2,
+    "revision": 3,
     "card": {
       "car": "breakwater",
       "drivetrain": "awd",
       "mass": 1900,
-      "zeroToSixty": 2.43,
-      "sixtyToHundred": 3.77,
-      "topSpeed": 125,
-      "stoppingDistance": 29.7,
-      "peakLateral": 12.71,
-      "turnIn": 0.42,
-      "handbrakeSlip": 6.9
+      "zeroToSixty": 2.33,
+      "sixtyToHundred": 3.57,
+      "topSpeed": 125.5,
+      "stoppingDistance": 29,
+      "peakLateral": 13.25,
+      "turnIn": 0.4,
+      "handbrakeSlip": 7.2
     }
   },
   "wager": {
@@ -105,16 +105,16 @@
     }
   },
   "ns01": {
-    "revision": 2,
+    "revision": 3,
     "card": {
       "car": "ns01",
       "drivetrain": "rwd",
       "mass": 1250,
-      "zeroToSixty": 3.73,
-      "sixtyToHundred": 2.83,
+      "zeroToSixty": 3.18,
+      "sixtyToHundred": 2.45,
       "topSpeed": 142,
       "stoppingDistance": 27.8,
-      "peakLateral": 14.19,
+      "peakLateral": 14.18,
       "turnIn": 0.4,
       "handbrakeSlip": 13.7
     }

@@ -883,6 +883,62 @@ clear of Wake's 5.97%, which is the step every rank below her has taken.
 - **`RIVAL_REVISION` is `full-line-v22`.** `pnpm golden`: only free roam, where she
   cruises, moved.
 
+### The ladder pass (2026-09-19)
+
+With all ten tuned, street pace climbed from Plumb up and did not below him: Moth
+was quicker than four names above her, and Stray was slower than the starter car.
+Two reasons, both honest — Stray and Bollard were tuned before `--streets` existed,
+and Sable was judged by her yard alone — and one pass fixed all four. The tunes
+below are revision 3; their revision 2 sections above say why each car is what it
+is, which none of this changes.
+
+| Car | Change | Street pace | 0–60 | Also |
+|---|---|---|---|---|
+| Kestrel (Moth, #10) | `power` 0.7 → **0.65** | −1.94% → **−0.50%** | 2.87 → 3.12 s | laps now level with the Cinder |
+| Latch (Stray, #9) | **`traction` 1.065** | +0.44% → **−1.13%** | 4.15 → 3.88 s | laps −1.7 to −1.8% |
+| Breakwater (Bollard, #7) | `power` 0.85 → **0.88**, `grip` 0.95 → **0.99** | −0.62% → **−1.90%** | 2.43 → 2.33 s | still 125 mph and the heaviest |
+| NS-01 (Sable, #5) | `traction` 1.03 → **1.18** | −0.94% → **−3.63%** | 3.73 → 3.18 s | drift 6,340 → **6,558** |
+
+- **Traction did the work at both ends.** It is the one knob that buys pace
+  without touching how a car behaves sideways: the Latch gets what front drive
+  always needed (the knob did not exist when it was tuned), and the NS-01 gains a
+  place and a half without moving its swing a single degree — its gates read
+  13.4 / 32.7 / 48.1 / 12.9 before and after, inside the ceilings `CAR_PEAKS`
+  pinned for it, and it drifts *better* (6,558 against 6,340, ten links).
+  Adding `grip` instead had taken the swing to 33.6 and 13.7, eating those margins
+  for the same pace.
+- **The ladder now climbs**, in street pace against the Cinder:
+
+  | #10 Moth | #9 Stray | #8 Rivet | #7 Bollard | #6 Deuce | #5 Sable | #4 Plumb | #3 Crest | #2 Wake | #1 Tally |
+  |---|---|---|---|---|---|---|---|---|---|
+  | −0.50% | −1.13% | *−0.45%* | −1.90% | −2.48% | −3.63% | −4.06% | −4.95% | −5.97% | −7.10% |
+
+  Rivet is the one deliberate dip: she races the drag strip, where she runs 12.97 s
+  against a clean Cinder's 12.95, and she is meant to be poor on streets. Street
+  pace she cannot have anyway — anything that gave it to her would also quicken her
+  quarter mile, which is pinned to stay beatable.
+- **A test that turns on which car the rival meets.** `tests/race-start.test.ts`
+  requires the rival to stay within 16 m of a centreline through a traffic race
+  from Queen Anne Climb. The Kestrel at `power` 0.66 failed it at 23.1 m: at 17 s
+  it hit a traffic car and ended 23 m out at 20 mph, then finished with no resets.
+  The neighbours say it is the traffic lottery and not the tune — 0.64: 7.2 m,
+  0.65: 7.2, 0.66: **23.1**, 0.67: 7.7, 0.68: **24.3**, 0.70: 8.1, each with four
+  or five harmless contacts except the two that met a car head on. The same chance
+  is on the record from the launch work (16.4 / 6.9 / 32.0 m at three launch
+  skills). Moth's `power` is 0.65 partly because it hits the target dead on
+  (−0.50%) and partly because it draws a clean run; the test's threshold, and the
+  rival's weakness in traffic behind it, is worth a decision of its own.
+- **The arena's lap limits followed Moth's car.** Every Ridge Circuit race fields
+  her Kestrel, so `tests/arena.test.ts` pins her pace: 74.5 / 57.4 / 48.2 s became
+  75.3 / 58.0 / 48.8, and East failed a limit of 58. The limits are now 77 / 59 /
+  50, the headroom they had before. What catches a rival driving badly is the rest
+  of that test — finishing, no resets, no recoveries, never on the grass, and
+  braking hard and late for T1 — and none of it moved.
+- **`RIVAL_REVISION` is `full-line-v23`.** `pnpm golden`: the four runs those cars
+  appear in moved (Sound to Sky and Ridge Circuit for Moth, `gen-stray-5`, and free
+  roam); ten bit-identical. Sable's parked car in her yard did not move, because a
+  handbraked car applies no drive and `traction` is drive alone.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

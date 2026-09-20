@@ -63,8 +63,8 @@ export interface CarTune {
 // Sable's NS-01 (2026-09-19): the drift coupe. A loose tail and a handbrake that
 // loosens it further, on tyres that let go early; it swings further than any other
 // car and is caught from all of it (tests/helpers/handling.ts, CAR_PEAKS).
-const NS01: CarTune = { drivetrain: "rwd", revision: 2, mass: 1_250, topSpeed: 1.0143, topEnd: 1.05,
-  traction: 1.03, balance: 0.85, handbrake: 1.25, steering: 1.1 };
+const NS01: CarTune = { drivetrain: "rwd", revision: 3, mass: 1_250, topSpeed: 1.0143, topEnd: 1.05,
+  traction: 1.18, balance: 0.85, handbrake: 1.25, steering: 1.1 };
 
 export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // The anchor. Every recorded lap was driven in it, and RIVAL_CORNERING and the
@@ -82,7 +82,7 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // Moth's rally hatch (2026-09-19): geared short, light, a quick rack. The opener's
   // car, so about even with the Cinder: before this it lapped 4-8% faster on the
   // shared AWD numbers. Launches as hard as the Bulwark, runs out at 130.
-  kestrel: { drivetrain: "awd", revision: 2, mass: 1_150, power: 0.7, topSpeed: 0.93, steering: 1.1 },
+  kestrel: { drivetrain: "awd", revision: 3, mass: 1_150, power: 0.65, topSpeed: 0.93, steering: 1.1 },
   // Tally's cab-forward coupe (2026-09-19): the one car without the 140 mph cap
   // (design/BLACKLIST.md). Past 161 the tyres, not the engine, are the wall, so a
   // slippery body is what buys 165: governor, top end and drag together. Her edge
@@ -92,12 +92,13 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // Stray's sport liftback, the kid's first tuner (2026-09-19): sticky tyres and a
   // chassis that turns on a lift, just under the Cinder at 138. On the shared FWD
   // numbers it lapped about 1.9% slower than the Cinder; now about even.
-  latch: { drivetrain: "fwd", revision: 2, mass: 1_160, topSpeed: 0.986, grip: 1.05, balance: 0.9, steering: 1.1, handbrake: 0.8 },
+  latch: { drivetrain: "fwd", revision: 3, mass: 1_160, topSpeed: 0.986, grip: 1.05, balance: 0.9,
+    steering: 1.1, handbrake: 0.8, traction: 1.065 },
   // Bollard's enclosed off-roader (2026-09-19): the heaviest car and the slowest,
   // stopped by its own air rather than a governor, and it wins every shove. All the
   // pace it has is the launch: past 60 mph the drag takes it back.
-  breakwater: { drivetrain: "awd", revision: 2, mass: 1_900, power: 0.85, drag: 1.4,
-    grip: 0.95, brakes: 0.8, steering: 0.85 },
+  breakwater: { drivetrain: "awd", revision: 3, mass: 1_900, power: 0.88, drag: 1.4,
+    grip: 0.99, brakes: 0.8, steering: 0.85 },
   // Deuce's rotary (2026-09-19): it needs revs. Skinnier tyres off the line
   // (traction 0.96) and the strongest top end on the list to 148, on the best
   // tyres anyone has in a bend. A looser tail, so a gentler handbrake with it.
