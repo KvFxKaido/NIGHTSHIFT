@@ -120,18 +120,18 @@
     }
   },
   "meridian": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "meridian",
       "drivetrain": "awd",
-      "mass": 1180,
-      "zeroToSixty": 2.07,
-      "sixtyToHundred": 2.33,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 13.3,
-      "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "mass": 1550,
+      "zeroToSixty": 2.67,
+      "sixtyToHundred": 3.17,
+      "topSpeed": 146,
+      "stoppingDistance": 28.2,
+      "peakLateral": 13.45,
+      "turnIn": 0.38,
+      "handbrakeSlip": 7.5
     }
   },
   "skim": {

@@ -98,7 +98,10 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // tyres anyone has in a bend. A looser tail, so a gentler handbrake with it.
   wager: { drivetrain: "rwd", revision: 2, mass: 1_250, power: 0.92, topEnd: 1.25, topSpeed: 1.0571,
     traction: 0.96, grip: 1.07, balance: 0.95, steering: 1.1, handbrake: 0.95 },
-  meridian: { drivetrain: "awd", revision: 1 },  // Plumb: fast wagon
+  // Plumb's fast wagon (2026-09-19): long, heavy and quick everywhere, with the
+  // traction that pays most on her own ground, the generated street circuits.
+  meridian: { drivetrain: "awd", revision: 2, mass: 1_550, power: 0.75, topEnd: 1.1,
+    topSpeed: 1.0429, brakes: 0.95, steering: 0.95 },
   skim: { drivetrain: "fwd", revision: 1 },  // Crest: hardtop roadster
   reign: { drivetrain: "awd", revision: 1 },  // Wake: upright legend coupe
   // Rivet's muscle notchback (2026-09-19): heavy, fat rear tyres, a strong top end to

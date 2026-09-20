@@ -712,6 +712,35 @@ as a car the player wins.
   linked transitions are worth 75 chain points each in `stepDrift`. A tune that
   makes a car easier to flick from side to side would not show here.
 
+### The Meridian, revision 2 (2026-09-19)
+
+Plumb's fast wagon: long, heavy and quick everywhere. Her stages are generated
+circuits, which are street circuits, so Uptown is her measure rather than Ridge.
+
+```
+meridian: { drivetrain: "awd", revision: 2, mass: 1_550, power: 0.75, topEnd: 1.1,
+  topSpeed: 1.0429, brakes: 0.95, steering: 0.95 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Meridian r1 | 1180 | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| **Meridian r2** | 1550 | 2.67 | 2.93 | 146.0 | 28.2 | 13.45 | 0.38 | 7.5° |
+
+AI laps **73.67 / 56.60 / 47.68 / 93.77 s**: 1.6–2.0% quicker than the Cinder on
+Ridge Circuit and **4.0% on Uptown**, with street sprints 4.06% quicker. Untuned
+she was 4.1–5.1% and 7.9%.
+
+- **Her ground decided the power.** `power` 0.85 read well on Ridge (3.0–3.7%
+  quicker, about the ladder's −3%) and 6.1% on Uptown, which would have put a #4
+  where #1 belongs: all-wheel drive pays most on streets, and hers are streets.
+  At 0.75 she is 4.0% on Uptown, clear of every name below her, with room above.
+- **Weight and a long wheelbase, not grip.** 1,550 kg, slightly softer brakes and
+  a slower rack; her cornering (13.45) is the shared AWD's, and the tune adds
+  nothing there. The top end (146 mph, `topEnd` 1.1) is the wagon's own.
+- **`RIVAL_REVISION` is `full-line-v19`.**
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

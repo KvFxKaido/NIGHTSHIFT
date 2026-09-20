@@ -274,8 +274,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v17": Deuce's Wager has its own tune (wager r2).
  * "full-line-v18": Sable's NS-01 has its own tune (ns01 r2), which she parks in
  * her yard as "blender", the same car.
+ * "full-line-v19": Plumb's Meridian has its own tune (meridian r2).
  */
-export const RIVAL_REVISION = "full-line-v18";
+export const RIVAL_REVISION = "full-line-v19";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
