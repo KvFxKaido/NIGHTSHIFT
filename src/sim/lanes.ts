@@ -237,6 +237,7 @@ export function laneGeometry(points: readonly CoursePoint[], lane: Lane,
   if (cached) return cached;
   const carriageway = carriagewayWidth(points);
   const vertices = points.map((_, index) => laneVertex(points, lane, index, kind, carriageway));
+  unfold(points, vertices);
   const cumulative: number[] = [0];
   for (let i = 1; i < vertices.length; i++) {
     const a = vertices[i - 1]!, b = vertices[i]!;
@@ -245,6 +246,44 @@ export function laneGeometry(points: readonly CoursePoint[], lane: Lane,
   const geometry: LaneGeometry = { vertices, cumulative };
   byLane.set(key, geometry);
   return geometry;
+}
+
+/**
+ * A lane may not run backwards along its own street.
+ *
+ * A mitred offset pulls back along the segments either side of a bend, by
+ * `offset * tan(turn / 2)` on the inside of it. Where a segment is shorter than
+ * that, the lane's vertex at its far end lands behind the vertex at its near
+ * end: the lane runs the segment backwards, and turns right round twice to do it.
+ * 4th Ave has two points 1.4 m apart followed by a 36 degree bend; its outer lane,
+ * 7.09 m out, pulls back 2.3 m, so traffic on it turned through 177 degrees, drove
+ * 0.7 m the wrong way, and turned through 177 degrees again (2026-09-20). It is
+ * the street's shape that is legal and the offset that was not.
+ *
+ * Both ends of such a segment go to where the lane lines of its neighbours meet,
+ * which is the mitre the lane would have had without the short segment. The
+ * vertices keep their places in the list, one to a street point, so the segment
+ * is left with no length rather than removed.
+ */
+function unfold(points: readonly CoursePoint[], vertices: { x: number; z: number }[]): void {
+  for (let pass = 0; pass < 4; pass++) {
+    let folded = false;
+    for (let i = 1; i < vertices.length - 2; i++) {
+      const along = segmentDirection(points, i), a = vertices[i]!, b = vertices[i + 1]!;
+      if ((b.x - a.x) * along.x + (b.z - a.z) * along.z >= -1e-9) continue;
+      // The lane line into this segment runs through `a` the way the street arrives; the one out of it, through `b` the way it leaves.
+      const before = segmentDirection(points, i - 1), after = segmentDirection(points, i + 1);
+      const cross = before.x * after.z - before.z * after.x;
+      const meet = Math.abs(cross) < 1e-9 ? { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 } : (() => {
+        const t = ((b.x - a.x) * after.z - (b.z - a.z) * after.x) / cross;
+        return { x: a.x + before.x * t, z: a.z + before.z * t };
+      })();
+      vertices[i] = meet;
+      vertices[i + 1] = { ...meet };
+      folded = true;
+    }
+    if (!folded) return;
+  }
 }
 
 /** How far a lane runs along ITS OWN path, which is not its street's length. */

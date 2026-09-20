@@ -332,6 +332,13 @@ fixtures outside the playable bundle, and old world links redirect.
   on a corner it had finished. Every tick is guarded, in `tests/alder.test.ts` and
   `tests/traffic-intent.test.ts`; the other traffic invariants sample every tenth
   tick and cannot see a one-tick discontinuity.
+- An offset lane folds where a street segment is shorter than its mitre's
+  pull-back (`offset * tan(turn / 2)`): the lane runs that segment backwards.
+  `unfold` in `lanes.ts` repairs the lane and leaves the street alone, whose
+  lengths route choice and stored courses are drawn from. A repaired segment has
+  no length, and a lane still has one vertex per street point, so anything
+  reading a lane's vertices must treat coincident ones as one place
+  (`TrafficNetwork.bends` does). `tests/alder.test.ts` holds every lane to it.
 - A parked rival is a racer traffic yields to, and it never moves: parked within
   `RACER_IN_LANE` (2.6 m) of a lane's line and facing along it, it stops that lane
   for good. Rivet did, from the middle of Harbor Way's outer lane. Park them off

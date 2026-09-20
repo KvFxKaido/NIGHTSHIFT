@@ -1859,8 +1859,8 @@ than 4 degrees went from 9,892 in 704 places to 60 in 18, and steps more than
 median 0.4 degrees from the way it is moving, where it was 137; it turns at 50
 degrees a second, where it was 196; it pulls 0.6 g, where it was 5.6. What is
 left: a few vertices too close to a junction for the movement's curve to
-swallow, and one street near (-642, -1137) whose polyline doubles back on itself
-through 177 degrees, which is a fault in the street and not in how it is driven.
+swallow, and what looked like one street near (-642, -1137) doubling back on
+itself through 177 degrees, which was a lane and is fixed (below).
 Seen from above in `?lighting=blockout`, six right turns in a row, box trucks
 among them, cleared their kerb points.
 
@@ -1891,6 +1891,28 @@ before it: over thirty minutes `traffic-v5` had 43 standstills of over a minute,
 the longest 187 s, and `traffic-v6` had 64, the longest 300 s. Those figures are
 chaotic, and run to run they say "both degrade", not which is worse. It is a
 capacity problem in a grid of 100 m lanes, not one of the holes above.
+
+**The lane that ran backwards (fixed the same day, `traffic-v7`).** It was not
+a street. 4th Ave (`sea-north-13`) has two centreline points 1.4 m apart,
+(-647, -1132) and (-648, -1133), followed by a 36 degree bend: legal, if
+redundant. A mitred offset pulls back along the segments either side of a bend
+by `offset * tan(turn / 2)` on its inside, and the outer lane, 7.09 m out, pulls
+back 2.3 m along a segment 1.4 m long. Its vertex at the far end landed behind
+the one at the near end, so the lane ran that segment backwards: traffic turned
+through 177 degrees, drove 0.7 m the wrong way, and turned through 177 degrees
+again. It was the only such place in 9,310 lane segments. `unfold` in
+`src/sim/lanes.ts` puts both ends of such a segment where its neighbours' lane
+lines meet, the mitre the lane would have had without the short segment, and
+leaves the segment with no length so that a lane still has a vertex for every
+street point. The street data is untouched, which matters: its lengths are what
+route choice and every stored course are drawn from.
+
+What is left there is the street's own 36 degree bend, taken as one 32 degree
+tick: it is 12 m short of a junction on a 55 m lane, inside the stretch kept for
+the junction's curves. Letting a junction's curve start early enough to swallow
+such a bend was tried and reverted: it fixed this one, bunched a compound curve
+elsewhere into 31 degrees a tick, and by widening the kept stretch un-rounded two
+bends that had been fine (68 ticks over 4 degrees in five minutes, from 59).
 
 **Parked rivals (fixed the same day).** A parked rival is a racer traffic yields
 to, and one that never moves. Rivet stood in the road, 0.41 m off the line of

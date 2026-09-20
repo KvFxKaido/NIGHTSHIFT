@@ -320,10 +320,14 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
     const { street, lane } = entries[id]!;
     const { vertices, cumulative } = laneGeometry(street.points, lane, street.kind);
     const total = cumulative[cumulative.length - 1]!, list: TrafficBend[] = [];
-    for (let i = 1; i < vertices.length - 1; i++) {
-      const before = vertices[i - lane.direction]!, at = vertices[i]!, after = vertices[i + lane.direction]!;
+    // Vertices that stand on the one before them are one place, not two: a lane
+    // keeps a vertex for every street point, and an unfolded segment has no length.
+    const places = vertices.map((_, i) => i).filter(i => i === 0
+      || Math.hypot(vertices[i]!.x - vertices[i - 1]!.x, vertices[i]!.z - vertices[i - 1]!.z) > 1e-6);
+    for (let k = 1; k < places.length - 1; k++) {
+      const i = places[k]!;
+      const before = vertices[places[k - lane.direction]!]!, at = vertices[i]!, after = vertices[places[k + lane.direction]!]!;
       const inX = at.x - before.x, inZ = at.z - before.z, outX = after.x - at.x, outZ = after.z - at.z;
-      if (Math.hypot(inX, inZ) < 1e-6 || Math.hypot(outX, outZ) < 1e-6) continue;
       const turn = Math.atan2(-outX, -outZ) - Math.atan2(-inX, -inZ);
       list.push({ distance: lane.direction === 1 ? cumulative[i]! : total - cumulative[i]!, turn: Math.atan2(Math.sin(turn), Math.cos(turn)) });
     }

@@ -45,7 +45,12 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // v5 adds SUVs to the deterministic fleet, with their own collision dimensions.
 // v6 (2026-09-20): corners and lane bends are driven as curves and slowed for
 // (`Corner`), where a vehicle used to drive to its lane's end and slide onto the next.
-export const TRAFFIC_REVISION = "traffic-v6";
+// v7 (2026-09-20): a lane no longer runs backwards over a street segment shorter
+// than its mitre (`unfold` in lanes.ts). One lane of 4th Ave is 1.4 m shorter. It
+// is too short to start a vehicle on, so traffic is laid out exactly as before;
+// but its length is part of the reservation spans at both its junctions, and
+// traffic differs from v6 within ten seconds, from the first vehicle through them.
+export const TRAFFIC_REVISION = "traffic-v7";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,

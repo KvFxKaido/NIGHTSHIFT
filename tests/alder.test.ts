@@ -6,6 +6,7 @@ import { segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createTraffic, stepTraffic, trafficCornering, TRAFFIC_KINDS, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { TRAFFIC_HEIGHT_STEP } from "../src/sim/street-traffic.ts";
+import { laneGeometry, lanes } from "../src/sim/lanes.ts";
 import { hasContact } from "./helpers/handling.ts";
 
 await RAPIER.init();
@@ -201,4 +202,39 @@ test("a car on a hillside leans with it; on authored track it stays level", () =
     for (let i = 0; i < 240; i++) step(track, { throttle: 1, brake: 0, steer: 0.3, handbrake: 0 });
     assert.equal(track.state.vehicle.roll, 0);
   } finally { track.world.free(); }
+});
+
+// A mitred offset pulls back along the segments either side of a bend, and where
+// a segment is shorter than that the lane ran it backwards: 4th Ave's outer lane
+// turned traffic through 177 degrees, drove it 0.7 m the wrong way and turned it
+// through 177 degrees again, over two street points 1.4 m apart (2026-09-20).
+test("no lane runs backwards along its street, however short a segment it is offset from", () => {
+  let segments = 0;
+  for (const street of ALDER_STREETS) for (const lane of lanes(street.kind)) {
+    const { vertices, cumulative } = laneGeometry(street.points, lane, street.kind);
+    assert.equal(vertices.length, street.points.length, "a lane keeps a vertex for every street point");
+    for (let i = 0; i < vertices.length - 1; i++) {
+      const a = street.points[i]!, b = street.points[i + 1]!, length = Math.hypot(b.x - a.x, b.z - a.z);
+      if (length < 1e-6) continue;
+      const run = ((vertices[i + 1]!.x - vertices[i]!.x) * (b.x - a.x) + (vertices[i + 1]!.z - vertices[i]!.z) * (b.z - a.z)) / length;
+      assert.ok(run > -1e-6, `${street.id} lane ${lane.direction}/${lane.index} runs ${(-run).toFixed(2)} m backwards over segment ${i}`);
+      assert.ok(cumulative[i + 1]! >= cumulative[i]!);
+      segments++;
+    }
+  }
+  assert.ok(segments > 5000);
+  // The shape that did it, on its own: a 1.4 m segment, then 36 degrees to the right, offset 7 m to the right.
+  const bend = 36 * Math.PI / 180, width = 20;
+  const points = [{ x: 0, z: 0 }, { x: 0, z: -30 }, { x: 0, z: -31.4 }, { x: 40 * Math.sin(bend), z: -31.4 - 40 * Math.cos(bend) }]
+    .map(point => ({ ...point, width })) as unknown as Parameters<typeof laneGeometry>[0];
+  const outer = lanes("arterial").find(lane => lane.direction === 1 && lane.index === 1)!;
+  const { vertices, cumulative } = laneGeometry(points, outer, "arterial");
+  assert.ok(Math.hypot(vertices[2]!.x - vertices[1]!.x, vertices[2]!.z - vertices[1]!.z) < 1e-9, "the short segment is left with no length");
+  // Where the two long segments' lane lines meet: the mitre of a plain 36 degree bend at the far point of the short segment.
+  assert.ok(vertices[1]!.z < -28 && vertices[1]!.z > -31.4 && vertices[1]!.x > 6.5, `${JSON.stringify(vertices[1])}`);
+  for (let i = 1; i < cumulative.length; i++) assert.ok(cumulative[i]! >= cumulative[i - 1]!);
+  // A lane on the outside of the same bend never folded and is untouched.
+  const inside = lanes("arterial").find(lane => lane.direction === -1 && lane.index === 1)!;
+  const other = laneGeometry(points, inside, "arterial").vertices;
+  assert.ok(Math.hypot(other[2]!.x - other[1]!.x, other[2]!.z - other[1]!.z) > 1);
 });
