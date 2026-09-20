@@ -1135,7 +1135,46 @@ angle, speed and grip utilization. Angles are radians; loads/forces are newtons
 and speed is m/s. The existing telemetry toggle also shows front/rear and
 left/right load shares, plus confirmation that auto-countersteer is off.
 
-## The pedals, as a choice: an experiment (2026-09-20)
+## The pedals, as a choice (2026-09-20)
+
+**Decided by Shawn, 2026-09-20: the player drives with no pedal assist**, outside
+the drag strip. It began the same day as an experiment, which is how the rest of
+this section reads; this is where it ended.
+
+- **Why.** "Flooring it should be a choice," and the computer could not beat him:
+  taking the player's traction control and ABS away was, in his words, the most
+  effective thing to close that gap. No rival is touched.
+- **The rivals are not advantaged by it.** A rival keeps the clamp, and with no
+  assist a tyre asked for exactly what it has left delivers exactly that, with
+  nothing lost. So a rival on the clamp drives, force for force, as a rival on the
+  player's tyres with a perfect right foot would: the car is the same whoever
+  drives it, and the driver is not. "No grip change for AI" holds. It is also why
+  a car's card (`pnpm cars`) still stands: it is the car under a perfect foot.
+- **The drag strip keeps the assist** (`defaultPedalAssist`,
+  `src/sim/pedal-assist.ts`). Its balance is a fiftieth of a second, struck on the
+  clamp: a floored Cinder beats the Hammer 12.95 s to 12.97. With no assist it
+  loses by 0.60 s floored and by 0.22 s feathered at 70% to 60 mph, so only a foot
+  held at the tyre's limit for a quarter of a mile would win, and Rivet would be a
+  wall in the career. A test holds both margins, and says to look again if the
+  Hammer is retuned.
+- **What it costs off the line.** Sound to Sky, a perfect launch, five seconds
+  after the flag: 97.6 m floored on the clamp, 80.3 m floored without it, 92.9 m
+  feathered at 60% to 60 mph. A rival's launch is unchanged, so a floored start now
+  gives away about four car lengths.
+- **`createSim` still defaults to the clamp.** Only the game asks for none. Tests,
+  fixtures, the golden master (14 of 14) and the cards drive what they drove. No
+  physics revision: the model at 1 is bit-identical, and the assist is a recorded
+  fact of a run, like its drivetrain.
+- **Recordings carry it.** A lap session names the assist it was driven on
+  (`LapSession.pedalAssist`, absent meaning the clamp, which is every older
+  session), and replay drives it the same; a lap that claims the wrong one is
+  caught. The HUD's mode line names the assist only when `?assist=` has moved it
+  off the default for that race.
+- **Not dealt with.** On a keyboard the throttle is all or nothing, so a keyboard
+  player is now always past the tyres at low speed, with no way to choose
+  otherwise: a ramp, or an assist for keys only, is owed. The route-choice pace
+  was fitted to laps driven on the clamp, and a human's laps from here on are not.
+  The trigger's curve is still the wrong way round for this (below).
 
 Asked for: more granularity in the triggers, so that flooring it is a choice. It
 is not one today, and no trigger curve would make it one, because of the first

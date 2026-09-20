@@ -23,6 +23,9 @@ replays each session against the current build; `pnpm laps --json` is for tools.
   depend on it), `physics`, `tickHz`, `race`, `layout`, `solo`, `traffic` (absent
   before street circuits, which means none), `laps`,
   `car`, `drivetrain`, `start`, and `recordedAt` (wall clock, metadata only).
+  `pedalAssist` is how much of the pedals' excess the tyres forgave: absent means
+  all of it (the clamp), which is every session from before 2026-09-20 and every
+  drag since; the game records 0 otherwise. Replay drives the lap on it.
 - `inputs`: throttle, brake, steer and handbrake for every sim tick from the
   first, unrounded. With the identity this reproduces the run exactly; a file
   from another world, circuit revision or physics revision is refused rather

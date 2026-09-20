@@ -33,6 +33,7 @@ import { createInputController, mapGamepad } from "./input/input.ts";
 import { applyCarCustomization, createCar, type CarView } from "./render/car.ts";
 import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-car.ts";
 import { drawnEffects, LOOKS, setLook, type Look } from "./render/cel.ts";
+import { defaultPedalAssist } from "./sim/pedal-assist.ts";
 import { addCelSmoke } from "./render/smoke.ts";
 import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
 import { createDistrictBanner } from "./ui/district-banner.ts";
@@ -114,9 +115,10 @@ let solo = false;
 let lighting: DistrictLighting = "night";
 /** Draw between the last two ticks rather than at the last; `?smooth=0` turns it off. */
 let smooth = true;
-// ?assist=: how much of the pedals' excess the player's tyres forgive (SimOptions.pedalAssist).
-// A developer preview like ?drivetrain=: read from the URL, never saved, 1 without it.
-let pedalAssist = 1;
+// How much of the pedals' excess the player's tyres forgive (SimOptions.pedalAssist):
+// none by default, but all of it on the drag strip (sim/pedal-assist.ts). ?assist= is a
+// developer comparison like ?drivetrain=: read from the URL, never saved.
+let requestedAssist: number | null = null;
 /** The tick before the last, taken before each live step; null when there is none to blend from. */
 let previousPoses: Poses | null = null;
 try {
@@ -195,8 +197,8 @@ try {
   smooth = params.get("smooth") !== "0";
   const assist = params.get("assist");
   if (assist !== null) {
-    pedalAssist = Number(assist);
-    if (!(pedalAssist >= 0 && pedalAssist <= 1)) throw new Error(`?assist= is a number from 0 to 1, not '${assist}'`);
+    requestedAssist = Number(assist);
+    if (!(requestedAssist >= 0 && requestedAssist <= 1)) throw new Error(`?assist= is a number from 0 to 1, not '${assist}'`);
   }
   await RAPIER.init();
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
@@ -243,6 +245,7 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
   ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
+const pedalAssist = requestedAssist ?? defaultPedalAssist(race);
 const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
@@ -390,14 +393,14 @@ function newRecording(): void {
   Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
 }
 function recordStep(tickInput: Input): void {
-  // A lap driven on a previewed assist is not the car a recording names, and would
-  // replay as a divergence: it is not recorded at all.
-  if (!recorder || !circuit || !race || sim.pedalAssist !== 1) return;
+  if (!recorder || !circuit || !race) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
   const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: circuit.identity, rival: RIVAL_REVISION,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: circuit.layout, solo: circuit.solo, traffic: circuit.traffic,
     ...(circuit.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
-    car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: roadWorld.start });
+    car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
+    // What the tyres forgave is part of how the lap was driven; replay drives it the same. Left out when it is the clamp, as every older session was.
+    ...(sim.pedalAssist !== 1 ? { pedalAssist: sim.pedalAssist } : {}), start: roadWorld.start });
   const id = recording.id;
   recording.status = "SAVING";
   void saveLaps(session).then(result => {
@@ -924,7 +927,7 @@ function updateHud(): void {
     const bindings = input.bindings();
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
-  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${sim.pedalAssist !== 1 ? "NOT RECORDED" : recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${sim.pedalAssist !== 1 ? ` / ASSIST ${Math.round(sim.pedalAssist * 100)}%` : ""}`
+  modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${sim.pedalAssist !== defaultPedalAssist(race) ? ` / ASSIST ${Math.round(sim.pedalAssist * 100)}%` : ""}`
     + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "")
     + (trackNoticeRemaining > 0 ? ` / ${trackNotice}` : "");
   const gamepadName = input.activeGamepadName();

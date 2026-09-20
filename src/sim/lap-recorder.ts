@@ -170,6 +170,9 @@ export interface LapSession {
   /** The car's tune revision (`CarTune.revision`). Absent in sessions from before
    *  per-car handling, when every car drove the shared numbers: revision 1. */
   carRevision?: number;
+  /** `SimOptions.pedalAssist` the lap was driven on. Absent when it was the clamp (1),
+   *  which is every session from before 2026-09-20 and every drag since. */
+  pedalAssist?: number;
   start: { x: number; y: number; z: number; heading: number; pitch: number };
   trackLimits: typeof TRACK_LIMITS;
   channels: readonly LapChannel[];

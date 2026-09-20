@@ -34,10 +34,10 @@ test("a solo race is the same race with nobody else on the circuit", () => {
 /** Two laps of Ridge, solo, the player driven along the centreline by the rival's own controller,
  *  in the car that line names (the Kestrel), so the planner and the tyres agree and the session
  *  records the car and revision it was actually driven in, as main.ts does. */
-function drive(laps = 2) {
+function drive(laps = 2, pedalAssist = 1) {
   const event = arenaEvent("ridge", laps, true);
   const line = arenaEvent("ridge", laps, false).rival!;
-  const sim = createSim(carHandling(line.car!), createAlderWorld(true, event.start), { race: event.race, traffic: false });
+  const sim = createSim(carHandling(line.car!), createAlderWorld(true, event.start), { race: event.race, traffic: false, pedalAssist });
   const recorder = createLapRecorder(event.track);
   const driver = createRivalDriver();
   const completed: number[] = [];
@@ -49,7 +49,8 @@ function drive(laps = 2) {
   }
   const session = lapSession(recorder, { id: "2026-09-13-120000-arena-ridge-solo", recordedAt: "2026-09-13T12:00:00.000Z",
     world: sim.roadWorld.id, arena: ARENA_IDENTITY, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
-    laps, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: event.start });
+    laps, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
+    ...(pedalAssist !== 1 ? { pedalAssist } : {}), start: event.start });
   const result = { event, sim, recorder, completed, session: JSON.parse(JSON.stringify(session)) as LapSession };
   sim.world.free();
   return result;
@@ -100,6 +101,22 @@ test("a recording replays exactly, and one changed input or another build is cau
   const { arena: _arena, ...unnamed } = session;
   assert.match((replayLapSession(unnamed as LapSession) as { reason: string }).reason, /circuit ridge-circuit-v1/);
   assert.equal(session.physics, PHYSICS_VERSION);
+});
+
+// The game drives the player with no pedal assist since 2026-09-20 (sim/pedal-assist.ts),
+// so a lap has to say what its tyres forgave, or nothing recorded from then on replays.
+test("a lap replays on the assist it was driven on, and one that claims another is caught", () => {
+  const raw = drive(1, 0);
+  assert.equal(raw.session.pedalAssist, 0);
+  assert.deepEqual(replayLapSession(raw.session), { ok: true, laps: 1 });
+  // The same inputs on the clamp are a different lap.
+  const { pedalAssist: _assist, ...claimsTheClamp } = raw.session;
+  assert.equal(replayLapSession(claimsTheClamp as LapSession).ok, false, "a lap driven with no assist replayed as one driven on the clamp");
+  // And a session from before the field, or a drag since, names none and is driven on the clamp, as it was.
+  const clamped = drive(1);
+  assert.equal("pedalAssist" in clamped.session, false);
+  assert.deepEqual(replayLapSession(clamped.session), { ok: true, laps: 1 });
+  assert.equal(replayLapSession({ ...clamped.session, pedalAssist: 0 }).ok, false);
 });
 
 /** A fake run along a track: position `distance` metres round the lap, on the centreline plus `offset`. */

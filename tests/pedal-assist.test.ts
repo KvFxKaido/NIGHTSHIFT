@@ -5,6 +5,8 @@ import { createAlderWorld } from "../src/sim/alder.ts";
 import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 import { ALDER_RACE } from "../src/sim/alder.ts";
 import { DT, carHandling, createSim, resetSim, step, type Input, type Sim } from "../src/sim/sim.ts";
+import { defaultPedalAssist } from "../src/sim/pedal-assist.ts";
+import { HARBOR_DRAG, DRAG_START, RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
 import { flatSim, NEUTRAL } from "./helpers/handling.ts";
 
 await RAPIER.init();
@@ -195,4 +197,33 @@ test("only a previewed player's tyres have a slip at all: the default game's sta
   for (let tick = 0; tick < 60 * 8; tick++) step(raced, { ...NEUTRAL, throttle: 1 });
   assert.equal(JSON.stringify(raced.state.rival).includes('"slip"'), false, "a rival never has one");
   assert.equal(JSON.stringify(raced.state.vehicle).includes('"slip"'), true);
+});
+
+// No assist is the game's default for the player since 2026-09-20 (Shawn), everywhere
+// but the drag strip. `createSim` still defaults to the clamp: only the game asks.
+test("the game drives the player with no assist, except on the drag strip, and this is why", () => {
+  assert.equal(defaultPedalAssist(null), 0);
+  assert.equal(defaultPedalAssist({ kind: "circuit" }), 0);
+  assert.equal(defaultPedalAssist({ kind: "drift" }), 0);
+  assert.equal(defaultPedalAssist({}), 0);
+  assert.equal(defaultPedalAssist(HARBOR_DRAG), 1);
+  const sim = createSim(cinder, createAlderWorld(true), { traffic: false });
+  assert.equal(sim.pedalAssist, 1, "a sim nobody asked anything of is still on the clamp: tests, fixtures and the cars' cards drive it");
+  sim.world.free();
+  // The quarter mile's balance is a fiftieth of a second, struck on the clamp: a clean Cinder just beats the Hammer.
+  // Off it, flooring it loses by more than half a second. If the Hammer is ever retuned so that this no longer
+  // holds, the drag strip's exception has lost its reason: look at `defaultPedalAssist` again.
+  const margin = (pedalAssist: number) => {
+    const race = createSim(cinder, createAlderWorld(true, DRAG_START), { race: HARBOR_DRAG, rival: RIVET_DRAG_DRIVER, traffic: false, pedalAssist });
+    for (let tick = 0; tick < 3600 && !(race.state.race!.finished && race.state.rival!.race.finished); tick++) {
+      const box = race.state.vehicle.transmission!;
+      step(race, { throttle: tick < 180 ? .52 : 1, brake: 0, steer: 0, handbrake: 0, shiftUp: box.rpm >= 7550 && box.shiftTicks === 0 } as Input);
+    }
+    const seconds = (race.state.rival!.race.ticks - race.state.race!.ticks) * DT;
+    race.world.free();
+    return seconds;
+  };
+  const clamped = margin(1), raw = margin(0);
+  assert.ok(clamped > 0 && clamped < 0.2, `on the clamp a floored Cinder wins by ${clamped.toFixed(2)} s`);
+  assert.ok(raw < -0.3, `with no assist it loses by ${(-raw).toFixed(2)} s`);
 });

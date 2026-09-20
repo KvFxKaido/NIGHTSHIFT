@@ -340,6 +340,13 @@ fixtures outside the playable bundle, and old world links redirect.
   no length, and a lane still has one vertex per street point, so anything
   reading a lane's vertices must treat coincident ones as one place
   (`TrafficNetwork.bends` does). `tests/alder.test.ts` holds every lane to it.
+- A rival on the clamp is not a rival with more grip. With no assist, a tyre asked
+  for exactly what it has left delivers exactly that, so the clamp (an assist of
+  1, which every rival, cruiser and fixture drives) is the player's tyres under a
+  perfect right foot, force for force. "No grip change for AI" holds, and the
+  cards still stand. What would break it is giving a rival a number the player
+  cannot reach, or taking the drag strip off the clamp without retuning the Hammer:
+  that race is won by 0.02 s (`tests/pedal-assist.test.ts`).
 - A parked rival is a racer traffic yields to, and it never moves: parked within
   `RACER_IN_LANE` (2.6 m) of a lane's line and facing along it, it stops that lane
   for good. Rivet did, from the middle of Harbor Way's outer lane. Park them off
@@ -474,11 +481,13 @@ diagnostics), `drive("W600,WD90")`, `freeze()`, `shot()`,
 menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
 `?scene=track&visit=rivet`, `?race=sable-yard-drift`.
-`?assist=0..1` (2026-09-20) is an undecided experiment, not the handling: how much
-of the pedals' excess the PLAYER'S tyres forgive, 1 being the game
-(`design/HANDLING.md`, "The pedals, as a choice"). It lives on the sim, never in a
-car's tune, so the Cinder stays the anchor and no rival is touched; a lap driven
-under it is not recorded.
+The player drives with no pedal assist (Shawn, 2026-09-20), except on the drag
+strip: `defaultPedalAssist` in `src/sim/pedal-assist.ts`, and `design/HANDLING.md`,
+"The pedals, as a choice". `?assist=0..1` overrides it for a session, 1 being the
+old clamp, and the HUD names it when it has. The value lives on the sim
+(`SimOptions.pedalAssist`), never in a car's tune, so the Cinder stays the anchor
+and no rival is touched; `createSim` still defaults to 1, so tests, the golden
+master and the cards are as they were. A lap records the assist it was driven on.
 A preview link needs `scene=track` (or a `race=`) to be driven at all. A bare
 `?assist=0.5` or `?drivetrain=awd` lands on the title, and Continue loads a slot,
 which is authoritative over preview links by design (`loadSaveUrl` rebuilds the
