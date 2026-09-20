@@ -44,3 +44,18 @@ test("layout selection does not displace garage customization or telemetry links
     "drivetrain:fwd", "go:garage", 'customize:{"paint":"ice"}', "go:garage", "telemetry:true",
   ]);
 });
+
+// A race link is a request for that race (2026-09-20). The press-to-start title
+// arrived after `?race=<id>` was documented as a way to reach one, and left such
+// a link loading the race and the car and then waiting on the menu behind them.
+test("a race link goes to the track, and an explicit scene still wins", () => {
+  assert.deepEqual(captureDeepLink("?race=sable-yard-drift"), ["go:track"]);
+  assert.deepEqual(captureDeepLink("?race=gen-moth-7&car=ns01&unlock=1"), ["go:track"],
+    "a previewed car does not change where a race link goes");
+  assert.deepEqual(captureDeepLink("?scene=main&race=sable-yard-drift"), ["go:main"],
+    "?scene=main asked for the title");
+  assert.deepEqual(captureDeepLink("?scene=garage&race=sable-yard-drift"), ["go:garage"]);
+  // Without a race there is nothing to go to: a bare preview leaves the screen alone.
+  assert.deepEqual(captureDeepLink("?car=ns01&unlock=1"), []);
+  assert.deepEqual(captureDeepLink("?drivetrain=rwd"), ["drivetrain:rwd"]);
+});

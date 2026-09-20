@@ -163,6 +163,22 @@ export default async function checkFacadeMenu(page, base) {
   const firstDraw = await page.evaluate(() => window.__facadeFirstDraw);
   assert(Math.hypot(firstDraw.position[0] - saved.position.x, firstDraw.position[2] - saved.position.z) < .1,
     `Continue drew the wrong first pose: ${JSON.stringify({ saved: saved.position, firstDraw })}`);
+  // A deep link says where it is going, so it does not wait at the title
+  // (2026-09-20). `?race=<id>` was documented as a way to reach a race before
+  // this screen existed; without both halves -- the splash in ui/menu.ts and the
+  // scene in debug.ts -- the race and its car load and then sit behind it.
+  await page.goto(`${base}?race=sable-yard-drift`);
+  await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.body.dataset.gameScreen === 'playing', null, { timeout: 60000 });
+  assert(await page.evaluate(() => document.body.dataset.intro) === 'entered', 'a race link waited at the press-to-start screen');
+  assert(await page.evaluate(() => document.getElementById('start-screen').hidden), 'the start screen stayed up behind a race');
+  assert(await page.evaluate(() => !!__ns.sim.state.race?.drift), 'a race link did not load its race');
+  // Asking for the title still gets it.
+  await page.goto(`${base}?scene=main&race=sable-yard-drift`);
+  await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready', null, { timeout: 120000 });
+  assert(await page.evaluate(() => document.body.dataset.gameScreen) === 'main', '?scene=main did not stay at the menu');
+  console.log('[facade] A race link skips the title; ?scene=main keeps it');
+
   assert(errors.length === 0, errors.join('\n'));
-  return { checks: '3D pointer alignment, activation gating, first-frame pose, unordered beacons, keyboard, standard gamepad, garage, submenus, frozen simulation, drive, pause, seven-row mobile, reduced motion, Continue first draw', hits, mobile, firstDraw, errors };
+  return { checks: '3D pointer alignment, activation gating, first-frame pose, unordered beacons, keyboard, standard gamepad, garage, submenus, frozen simulation, drive, pause, seven-row mobile, reduced motion, Continue first draw, race deep link', hits, mobile, firstDraw, errors };
 }

@@ -430,6 +430,13 @@ export function applyDeepLink(api: {
   }
   if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause" || scene === "races" || scene === "blacklist") {
     api.go(scene);
+  } else if (scene === null && params.has("race")) {
+    // A race link is a request for that race, so it does not stop at the title
+    // (2026-09-20). The press-to-start screen was added after `?race=<id>` was
+    // documented as a way to reach one, and it left every such link loading the
+    // race and the car and then sitting on the menu looking at them. An explicit
+    // `?scene=` still wins, so `?scene=main&race=...` waits at the title.
+    api.go("track");
   }
   if (camera !== null) api.camera(camera);
   if (params.get("telemetry") === "1") api.telemetry(true);

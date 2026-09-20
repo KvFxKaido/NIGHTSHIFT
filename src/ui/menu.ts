@@ -74,7 +74,13 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   let state: MenuState = createInitialMenuState();
   const intro = document.getElementById("start-screen")!;
   const startButton = document.getElementById("enter-menu") as HTMLButtonElement;
-  let awaitingStart = !new URLSearchParams(location.search).has("scene");
+  // A deep link has already said where it is going, so it does not wait at the
+  // title. `?race=<id>` counts as one (2026-09-20): it was documented as a way
+  // to reach a race before this screen existed, and without this the race and
+  // its car load and then sit behind the splash. The scene router sends it to
+  // the track (debug.ts, applyDeepLink).
+  const deepLink = new URLSearchParams(location.search);
+  let awaitingStart = !deepLink.has("scene") && !deepLink.has("race");
   intro.hidden = !awaitingStart;
   root.inert = awaitingStart;
   document.body.dataset.intro = awaitingStart ? "waiting" : "entered";
