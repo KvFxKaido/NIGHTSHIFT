@@ -745,6 +745,9 @@ Effects supporting speed may include:
 
 The camera should enhance speed without interfering with steering precision.
 
+Where the chase camera stands against this list, measured, and what has been
+proposed and not decided: `design/SPEED.md`.
+
 ---
 
 ## 15. Presentation

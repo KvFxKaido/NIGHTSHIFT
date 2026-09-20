@@ -276,6 +276,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
 | Rendering, and the city's look | `src/render/` | `design/LOOK.md` (what may enter the city), `design/DISTRICT.md` (night dressing) |
+| Chase cameras and the sense of speed | `src/render/camera.ts`, `scene.ts` | `design/SPEED.md` (measured, one experiment built, proposals undecided) |
 | Race list: playlist store, list model and screen | `src/settings/playlist.ts`, `race-build.ts`, `src/ui/race-list.ts`, `race-list-panel.ts` | `design/PORT_ALDER.md` |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
