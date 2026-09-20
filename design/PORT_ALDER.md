@@ -1461,6 +1461,61 @@ refused by name, and their numbers are here.
   lengths). And the hairpin to the line, every lap: 0.05 s behind became 0.92 s
   in 120 m on lap 2, leaving the hairpin at 47 mph to its 58 on four driven wheels
   and the clamp. At the slowest point of a corner he averaged 54 mph to its 50.
+- **Pad verdict (Shawn, 2026-09-20, after that loss):** "That felt great btw, the
+  loss felt like it was my fault and I felt exactly where I was pressing, feels
+  good enough to start talking slip stream now but I haven't tested it in traffic
+  yet." On 2026-09-13 slipstream was put off because it "needs the rival within
+  reach and it never was" (below, "Street pace"): within 20 m for 9.2 s of a race
+  then, within 10 m for 34 s of this one. In traffic there is nothing to test yet:
+  every race with traffic still fields the lane-arc rival, ten seconds a lap off
+  him, because a racing line ignores lanes.
+
+**Could the line be taken corner by corner in traffic? Measured, nothing built
+(2026-09-20).** The idea from 2026-09-13 again ("the whole road when a corner is
+clear", below), now that there are two whole paths to choose between, the lane
+arcs and the cut line, and a forecast that is exact. One number first: how often
+is the line through a corner clear of forecast traffic when the rival gets there?
+
+Method. The 82 sprints `gen-1` to `gen-82` and Uptown in traffic, the shipped
+rival driving its lane arcs, unchanged. `STREET_CIRCUIT_LINE` drawn through each
+route; a corner is where the line bends tighter than 150 m, 40 m either side.
+About 30 m before each, one verdict: for every traffic car within 260 m,
+`forecastTraffic` to the moment the line would have the rival at each sample (its
+speed now, the line's corner speeds at 0.88, 4 m/s² on and 10 off), 0.75 s either
+side, and a hit is that sample inside the car's own box plus half a Kestrel and
+0.6 m. The same for the lane path. Then the truth: where traffic really was at
+those moments.
+
+- **The line generalises.** 83 of 83 routes took one, none with a turn past 17
+  degrees at a sample. Uptown was the only street route it had ever drawn.
+- **80.1% of 700 corners are clear** (8.4 a race). Median race 83%, worst 40%,
+  every corner clear in 14 of 83. Tighter than 30 m, 87%; 30 to 60 m, 73%; wider,
+  85%. Uptown itself, 17 of 28.
+- **What blocks it is oncoming traffic**: 95 of the 139, 39 going its way, 5
+  crossing. In 102 of the 139 the lane is clear and only the line is blocked; in
+  37 the lane is blocked too, which is traffic in the way of any driver.
+- **The forecast was right at 681 of 700.** Nine called blocked were clear, which
+  is pace left behind. **Ten called clear were not (1.8% of the clear ones, one
+  in eight races)**, and traffic cannot be pushed, so that is the number that
+  decides it. Each was a car the forecast had seen and put somewhere else:
+  - three oncoming taxis at full speed, 7 to 9 s after the verdict, at the far
+    end of a 200 to 300 m window: cars that were waiting at a line with no claim,
+    which a forecast holds there and the junction then let go (its header says as
+    much: "a forecast, not a promise");
+  - three going the rival's way through the junction at 19 to 20 mph, 6 to 14 m
+    from the real rival: traffic answering a racer the forecast does not know
+    about, and cars its ordinary traffic loop already sees;
+  - four slow cars, 1.5 to 3.4 s out, picking up speed the forecast does not give
+    them back after a corner or a stop.
+- **So: viable, and not as one verdict.** Every miss is a long look or a car
+  changing speed. A rival that decides once, 30 m out, for the next 10 s would hit
+  something about every eighth race, which is the 2026-09-13 result again. One that
+  re-reads every tick, commits only as far ahead as the forecast is exact (2 to 3
+  s), treats a car waiting at a line that feeds the corner as about to pull out,
+  and can fall back to its lane mid-corner, has not been measured. That is the
+  build, and its gate is this batch: no contact the lane-arc rival does not have.
+- **Not measured: what it is worth.** On clear streets the line and 0.88 are 12 s
+  a lap on Uptown. Four corners in five of that is a guess, not a number.
 - **What it cost the instruments.** `pnpm cars --laps` drove this race's rival
   route for its Uptown column; it now names the in-traffic race's route, on clear
   streets as before, so that column still measures what every tune was judged on
