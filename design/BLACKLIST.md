@@ -218,15 +218,17 @@ the player wins (`design/PROCEDURAL_RACES.md`), so each route that beats her
 works once. Exists: `design/reference/characters/tally/`, Vesper in
 `assets/cars/ns-vesper-01.blend`; cruises the city's middle; three unordered stages for the Vesper.
 
-*Proposed:* Vesper is the one car on the list without the 140 mph cap (see
-"The 140 mph cap" below). If she cannot be caught on a straight, a route she
-has not driven is the only way past her, which is the lesson the list has been
-teaching; on an equal car the last race could be won by driving cleaner.
+*Done, 2026-09-19:* the Vesper is the one car on the list without the 140 mph
+cap, at 165 mph (`vesper` r2, `design/HANDLING.md`). If she cannot be caught on a
+straight, a route she has not driven is the only way past her, which is the lesson
+the list has been teaching; on an equal car the last race could be won by driving
+cleaner.
 
 ## The 140 mph cap (proposed 2026-09-13; direction agreed 2026-09-19)
 
-No car goes past about 140 mph (`HANDLING.topSpeed` in `src/sim/sim.ts`); a
-car's tune may lower its own governor, and none yet raises it. Shawn thinks of that as
+The Vesper goes to 165 mph and no other car passes about 152
+(`HANDLING.topSpeed` in `src/sim/sim.ts` is 140, and a car's tune bends it).
+Until 2026-09-19 nothing raised it. Shawn thinks of that as
 a beginner cap: it holds while per-car handling models are worked out and it is
 decided which cars should be faster than which. The first car to lose it would
 be #1's Vesper.
@@ -285,7 +287,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 | 4 | Plumb | Meridian (r2, done) | AWD | 146 | governor | fast wagon, built for the highway | −4.0% Uptown (her ground), −1.6 to −2.0% Ridge, −4.06% streets |
 | 3 | Crest | Skim (r2, done) | FWD | 138 | governor | light corner car: the best tyres, and the traction to use them | −4.95% streets, −5.0 to −5.5% circuits |
 | 2 | Wake | Reign (r2, done) | AWD | 152 | governor, `topEnd` 1.15 | the old champion: good at everything | −5.97% streets, −3.8 to −5.7% circuits |
-| 1 | Tally | Vesper | RWD | 165 | governor 1.18, `topEnd` 1.4, `drag` 0.9 | the outlier: slippery, pulls hardest past 100 | −6% |
+| 1 | Tally | Vesper (r2, done) | RWD | 165 | governor 1.18, `topEnd` 1.4, `drag` 0.9 | the outlier: slippery, pulls hardest past 100 | −7.10% streets, −5.9 to −6.4% circuits |
 
 - **Every top speed here is reachable**, checked with `pnpm cars <car> --try`:
   150, 148 and 152 on the governor alone, the Vesper at 165.0 with the three

@@ -165,18 +165,18 @@
     }
   },
   "vesper": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "vesper",
       "drivetrain": "rwd",
-      "mass": 1180,
-      "zeroToSixty": 3.87,
-      "sixtyToHundred": 2.97,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 14.18,
+      "mass": 1300,
+      "zeroToSixty": 3.13,
+      "sixtyToHundred": 2.22,
+      "topSpeed": 165.2,
+      "stoppingDistance": 26.3,
+      "peakLateral": 15.3,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "handbrakeSlip": 7.9
     }
   }
 }

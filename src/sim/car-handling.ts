@@ -83,7 +83,12 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // car, so about even with the Cinder: before this it lapped 4-8% faster on the
   // shared AWD numbers. Launches as hard as the Bulwark, runs out at 130.
   kestrel: { drivetrain: "awd", revision: 2, mass: 1_150, power: 0.7, topSpeed: 0.93, steering: 1.1 },
-  vesper: { drivetrain: "rwd", revision: 1 },  // Tally: cab-forward coupe; visual mid-engine layout
+  // Tally's cab-forward coupe (2026-09-19): the one car without the 140 mph cap
+  // (design/BLACKLIST.md). Past 161 the tyres, not the engine, are the wall, so a
+  // slippery body is what buys 165: governor, top end and drag together. Her edge
+  // is the straight and the top end; Crest keeps the best tyres.
+  vesper: { drivetrain: "rwd", revision: 2, mass: 1_300, topSpeed: 1.18, topEnd: 1.4, drag: 0.9,
+    grip: 1.08, traction: 1.1, balance: 0.95, brakes: 1.05, steering: 1.1, handbrake: 0.9 },
   // Stray's sport liftback, the kid's first tuner (2026-09-19): sticky tyres and a
   // chassis that turns on a lift, just under the Cinder at 138. On the shared FWD
   // numbers it lapped about 1.9% slower than the Cinder; now about even.

@@ -846,6 +846,43 @@ which would leave #1 nowhere to go.
 - **`RIVAL_REVISION` is `full-line-v21`.** `pnpm golden`: only free roam, where he
   cruises, moved.
 
+### The Vesper, revision 2 (2026-09-19)
+
+Tally's car, the last of the ten, and the only one past the 140 mph cap
+(`design/BLACKLIST.md`). Her stages are unordered races across the city.
+
+```
+vesper: { drivetrain: "rwd", revision: 2, mass: 1_300, topSpeed: 1.18, topEnd: 1.4, drag: 0.9,
+  grip: 1.08, traction: 1.1, balance: 0.95, brakes: 1.05, steering: 1.1, handbrake: 0.9 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Vesper r1 | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| **Vesper r2** | 1300 | 3.13 | 2.22 | **165.2** | 26.3 | 15.30 | 0.37 | 7.9° |
+
+Street pace **7.10% quicker than the Cinder**, AI laps 5.9–6.4% quicker: a point
+clear of Wake's 5.97%, which is the step every rank below her has taken.
+
+- **165 mph is three knobs, not one** ("The ceiling"): past 161 the tyres are the
+  wall, so `topSpeed` 1.18 and `topEnd` 1.4 only reach it with `drag` 0.9. A
+  slippery body is what buys the straight, and it is hers alone.
+- **Her edge is the straight, not the tyres.** `grip` 1.08 leaves Crest's 1.1 the
+  best in a bend: the last race is meant to be lost on a line she knows, not on
+  cornering. The 60–100 of 2.22 s, quickest on the list, is the same idea.
+- **The handbrake, from both sides again.** At 1 the city pull hit the cap (22.0)
+  and the long pull passed it (32.7); at 0.85 the throttle-catch gate's slide fell
+  to 5.0 degrees against a floor of 5. At 0.9 every gate passes with margin: 7.8 /
+  19.5 / 28.6 / 8.6, and the seeding slide is 5.4.
+- **Route choice cannot see her yet.** `pnpm alder:critique` prices routes at a
+  fixed 50 m/s (112 mph) top; she runs 165, so the model understates what a long
+  straight is worth to her. The critique's output is unchanged by this tune,
+  because the model is not per-car — which is the point: whether a priced alley is
+  still worth taking in her car is unmeasured (`design/BLACKLIST.md`).
+- **`RIVAL_REVISION` is `full-line-v22`.** `pnpm golden`: only free roam, where she
+  cruises, moved.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

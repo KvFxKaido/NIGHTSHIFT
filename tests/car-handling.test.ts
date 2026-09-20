@@ -124,7 +124,7 @@ const PINNED: Record<string, { revision: number; fingerprint: string }> = {
   blender: { revision: 2, fingerprint: "0bb11bc9" },
   ns01: { revision: 2, fingerprint: "0bb11bc9" },
   kestrel: { revision: 2, fingerprint: "1460a837" },
-  vesper: { revision: 1, fingerprint: "5caa34f4" },
+  vesper: { revision: 2, fingerprint: "cbf665e3" },
   latch: { revision: 2, fingerprint: "9f4e3c1d" },
   breakwater: { revision: 2, fingerprint: "aaeccb5c" },
   wager: { revision: 2, fingerprint: "a36a598e" },
