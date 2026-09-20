@@ -59,11 +59,15 @@ test("shift taps survive between ticks, holds never repeat, and pause entry disc
 });
 
 test("standard triggers map to analog throttle and brake", () => {
-  const input = mapGamepad(gamepad([0], { 6: 0.35, 7: 0.8 }));
-  assert.equal(input.throttle, triggerValue(0.8));
+  const input = mapGamepad(gamepad([0], { 6: 0.35, 7: 0.85 }));
+  assert.equal(input.throttle, triggerValue(0.85));
+  assert.ok(input.throttle > 0.85 && input.throttle < 1, "past the knee the pull is stretched towards full");
   assert.equal(input.brake, 0.35);
-  // Up to the knee a trigger delivers what it reads.
-  for (const value of [0, 0.01, 0.25, 0.5]) {
+  // Up to the knee a trigger delivers what it reads. That has to cover the throttle a
+  // driver holds at the tyres' limit with no pedal assist, 0.2 to 0.7 and a little over:
+  // with the knee at half travel the stretch sat on top of the upper half of it.
+  assert.equal(TRIGGER_KNEE, 0.8);
+  for (const value of [0, 0.01, 0.25, 0.42, 0.5, 0.65, 0.7, 0.8]) {
     const partialPull = mapGamepad(gamepad([0], { 6: value, 7: value }));
     assert.equal(partialPull.throttle, value);
     assert.equal(partialPull.brake, value);

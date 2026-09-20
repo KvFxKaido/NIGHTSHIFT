@@ -67,7 +67,18 @@ const DRIVING_GATE_MAX_SAMPLES = 30;
 // is full, and between TRIGGER_KNEE and it the value is scaled up to meet it.
 // Below the knee a trigger delivers exactly what it reads, so resting offsets and
 // light pulls are unchanged, and the mapping stays continuous and increasing.
-export const TRIGGER_KNEE = 0.5;
+//
+// The knee is at the top of the travel (2026-09-20; it was at half). Since the
+// player drives with no pedal assist, the throttle that matters is the tyres'
+// limit: about 0.42 delivered from rest in the Cinder, 0.5 at 30 mph, 0.65 at 60,
+// lower in a corner. At a knee of 0.5 the stretch sat on top of that, 1.32 of
+// delivered throttle per unit of travel through the upper half of the band a
+// driver is trying to hold. Here everything up to 0.8 is one to one, and the
+// stretch is the last eighth of the pull, between "most of it" and "all of it",
+// where nothing is being held. A power curve, the obvious answer, is the wrong
+// one: it spreads the bottom of the travel and squeezes the limit, 1.31 at 0.42
+// for an exponent of 1.6 where this is 1.00.
+export const TRIGGER_KNEE = 0.8;
 export const TRIGGER_FULL = 0.88;
 export function triggerValue(value: number): number {
   if (value <= TRIGGER_KNEE) return value;

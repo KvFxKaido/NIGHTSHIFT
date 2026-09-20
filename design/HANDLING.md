@@ -1170,11 +1170,19 @@ this section reads; this is where it ended.
   session), and replay drives it the same; a lap that claims the wrong one is
   caught. The HUD's mode line names the assist only when `?assist=` has moved it
   off the default for that race.
+- **The trigger's curve, fixed the same day.** The stretch that lets a pad topping
+  out at 0.91 reach full throttle began at half travel (`TRIGGER_KNEE`), on top of
+  the throttle a driver holds at the tyres' limit: 1.32 of delivered throttle per
+  unit of travel from 0.5 up. It now begins at 0.8, so everything up to there is one
+  to one and the band from 0.2 to 0.7 gets half the trigger instead of 45% of it.
+  A power curve was the first suggestion and is the wrong one, worked through
+  before building: it spreads the bottom of the travel and squeezes the limit
+  (38% of the trigger and 1.31 at 0.42 for an exponent of 1.6). Recordings store
+  what was delivered, so none is affected.
 - **Not dealt with.** On a keyboard the throttle is all or nothing, so a keyboard
   player is now always past the tyres at low speed, with no way to choose
   otherwise: a ramp, or an assist for keys only, is owed. The route-choice pace
   was fitted to laps driven on the clamp, and a human's laps from here on are not.
-  The trigger's curve is still the wrong way round for this (below).
 
 Asked for: more granularity in the triggers, so that flooring it is a choice. It
 is not one today, and no trigger curve would make it one, because of the first
@@ -1329,10 +1337,9 @@ divergence.
   lap recordings that replay refused.
 - Rivals need a throttle plan first: hold the demand under what the tyre has
   left, as the braking plan already leaves grip for cornering.
-- The trigger's own curve is the wrong way round for this. It is linear to half
-  travel and then steeper (`TRIGGER_KNEE`, there for a pad that tops out at 0.91),
-  and the band where the Cinder spins is 0.42 to 0.76 of raw travel, a third of
-  it. A power curve would spread it.
+- The trigger's own curve was the wrong way round for this, linear to half travel
+  and then steeper. Fixed, above; and "a power curve would spread it", which this
+  line said, was wrong.
 - The keyboard is all or nothing, so on keys flooring it cannot be a choice at
   any setting. A short ramp would make a tap a partial press.
 - Weight transfer is deliberately mild (`centerOfMassHeight: 0.12`). Raising it
