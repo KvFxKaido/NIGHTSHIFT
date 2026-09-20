@@ -98,9 +98,14 @@ test("high-revving N/A tone layers respond distinctively to throttle and rpm", (
   assert.ok(wideOpenHighSpeed.exhaustDrive > idle.exhaustDrive);
   assert.ok(wideOpenHighSpeed.exhaustDrive > coastingHighSpeed.exhaustDrive);
 
-  // High-cam screamer crossover: inactive at low RPM, engaged at high RPM under throttle
+  // High-cam screamer crossover: inactive at low RPM, engaged at high RPM under
+  // throttle. Only a drag gearbox gets near the redline; the speed bands shift
+  // or top out before it.
+  const nearRedline = stateWithUtilisation(0, 40);
+  nearRedline.transmission = { ...createTransmission(), rpm: 7900, gear: 3 };
   assert.equal(lowSpeedGas.screamer, 0, "screamer crossover must not engage at low revs");
-  assert.ok(wideOpenHighSpeed.screamer > 0.8, "screamer crossover must scream near redline");
+  assert.ok(engineTone(nearRedline, gas(1)).screamer > 0.8, "screamer crossover must scream near redline");
+  assert.ok(wideOpenHighSpeed.screamer > 0 && wideOpenHighSpeed.screamer < 0.8, "flat out is on the cam, not at the top of it");
 
   // Overrun: silent under power, active when lifting throttle at speed
   assert.equal(wideOpenHighSpeed.overrun, 0, "overrun must be silent under full throttle");
@@ -109,10 +114,26 @@ test("high-revving N/A tone layers respond distinctively to throttle and rpm", (
   // Transmission whine: increases with speed and unmasked off-throttle
   assert.ok(coastingHighSpeed.whine > wideOpenHighSpeed.whine, "whine is unmasked off-throttle");
 
-  // Rev limiter: triggers at top of rev range under throttle
-  const bouncing = engineTone(stateWithUtilisation(0, HANDLING.topSpeed * 1.05), gas(1));
-  assert.equal(bouncing.limiter, true, "rev limiter must cut when bouncing at redline under gas");
   assert.equal(coastingHighSpeed.limiter, false, "limiter must not cut off-throttle");
+});
+
+test("flat out holds a steady note under the shift points and never the limiter", () => {
+  // Top speed used to be the redline with the ignition cut on, 1,100 rpm past
+  // every shift the driver had heard: it sounded like a missed gear.
+  const bands = [.12, .27, .43, .63];
+  for (const top of [HANDLING.topSpeed, 73.8]) {
+    const at = (share: number) => engineTone(stateWithUtilisation(0, share * top), gas(1), top);
+    const shifts = bands.map(share => at(share - 1e-6).rpm);
+    const flatOut = at(1);
+    assert.equal(flatOut.limiter, false, "a governed car never reaches its limiter");
+    assert.equal(flatOut.gear, 5);
+    assert.ok(flatOut.rpm < Math.min(...shifts), `${flatOut.rpm} rpm flat out, shifts at ${shifts.map(Math.round).join(", ")}`);
+    assert.ok(flatOut.rpm > 6200, `${flatOut.rpm} rpm: flat out should still sound worked`);
+    // Still climbing all the way there, so the last 10 mph are heard.
+    assert.ok(at(1).rpm > at(.97).rpm && at(.97).rpm > at(.9).rpm);
+  }
+  // Past the governor is not a state the sim reaches; if it ever is, it is the top of the gear, not a stutter.
+  assert.equal(engineTone(stateWithUtilisation(0, HANDLING.topSpeed * 1.2), gas(1)).limiter, false);
 });
 
 test("tyres are silent inside their cornering budget and audible past it", () => {

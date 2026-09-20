@@ -18,9 +18,15 @@ const WHEELS: readonly WheelId[] = ["front-left", "front-right", "rear-left", "r
  * tells a driver nothing. A note that climbs, breaks and climbs again is how
  * acceleration is heard, so the ratios exist purely to shape that.
  * Bands are fractions of top speed, so retuning HANDLING.topSpeed carries over.
+ *
+ * Top gear runs past the governor on purpose: the car is held at its top speed
+ * with revs in hand, about 6,650 rpm, just under where the other four shift
+ * (6,700 to 7,100). Ending the band at 1 put top speed on the redline, 1,100 rpm
+ * past every shift the driver had heard, and on the limiter's ignition cut from
+ * 139 mph: flat out sounded like a missed gear (2026-09-20).
  */
 export const GEAR_BANDS: readonly (readonly [number, number])[] = [
-  [0, .14], [.12, .30], [.27, .47], [.43, .68], [.63, 1],
+  [0, .14], [.12, .30], [.27, .47], [.43, .68], [.63, 1.1],
 ] as const;
 export const IDLE_RPM = 900;
 export const REDLINE_RPM = 8200;
@@ -60,7 +66,7 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   return t * t * (3 - 2 * t);
 }
 
-/** `topSpeed` is the car's own governor: an engine revs out where its car tops out. */
+/** `topSpeed` is the car's own governor: its gears are spread over its own range, so every car tops out on the same note. */
 export function engineTone(vehicle: VehicleState, input: Input, topSpeed: number = HANDLING.topSpeed): EngineTone {
   const reversing = vehicle.forwardSpeed < -.5;
   const speed = Math.abs(vehicle.forwardSpeed);
@@ -101,8 +107,9 @@ export function engineTone(vehicle: VehicleState, input: Input, topSpeed: number
   const overrun = clamp(1 - input.throttle / 0.15) * smoothstep(2600, 6200, rpm);
   // 5. Straight-cut transmission whine: tracks speed, clearest on overrun when engine roar drops.
   const whine = clamp(speed / reference) * (0.3 + 0.7 * (1 - input.throttle));
-  // 6. Rev limiter: bouncing at the top of the rev range under throttle.
-  const limiter = vehicle.transmission?.limiter ?? (revved >= 0.98 && input.throttle > 0.6);
+  // 6. Rev limiter: only a real gearbox has one to hit. The governor holds a car
+  // under the top of its last gear, so these bands never reach the redline.
+  const limiter = vehicle.transmission?.limiter ?? false;
 
   return {
     gear: vehicle.transmission?.gear ?? (reversing ? 0 : gear),

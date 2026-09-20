@@ -887,7 +887,7 @@ function updateHud(): void {
   [rival?.vehicle, sim.state.encounter, ...sim.state.parkedRivals.map(parked => parked.vehicle), ...sim.state.cruisers.map(cruiser => cruiser.vehicle)]
     .filter((vehicle): vehicle is NonNullable<typeof vehicle> => !!vehicle),
   // The tachometer follows the engine you hear; the sim has no gears outside drag races.
-  { rpm: engineTone(car, lastInput).rpm, redlineRpm: REDLINE_RPM });
+  { rpm: engineTone(car, lastInput, sim.state.handling.topSpeed).rpm, redlineRpm: REDLINE_RPM });
   const driftPanel = document.getElementById("drift-instruments")!;
   driftPanel.hidden = !raceState?.drift;
   if (raceState?.drift) {
@@ -1091,7 +1091,7 @@ installDebugApi({
     return {
       state: audio ? audio.context.state : "absent" as const,
       levels: audioLevels,
-      engineHz: engineTone(vehicle, lastInput).frequency,
+      engineHz: engineTone(vehicle, lastInput, sim.state.handling.topSpeed).frequency,
       scrub: tyreScrub(vehicle),
       wind: windLevel(vehicle),
       tracks: soundtrack?.tracks().length ?? 0,
