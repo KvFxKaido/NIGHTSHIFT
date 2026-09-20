@@ -926,8 +926,13 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
       // Drop the movement just completed only when a later one in the chain
       // takes over; otherwise it is released below, once actually clear.
       if (vehicle.holds.length > 1) vehicle.holds.shift();
+      // The movement off the lane it is now on: the chain's next, which is what
+      // `chooseMovement` would say too, since the chain was built from it. This
+      // read `holds[1]`, the junction after next, from 2026-09-09 until 2026-09-20.
+      // Nothing ever saw it: every reader takes `holds[0]` first while anything is
+      // held. It is right now so that the next reader need not know that.
       vehicle.movement = vehicle.holds.length > 1
-        ? vehicle.holds[1]! : chooseMovement(network, vehicle);
+        ? vehicle.holds[0]! : chooseMovement(network, vehicle);
       ground = advance(network, vehicle, ground, Infinity);
     }
     // Released once clear on the far side, which is where the crossing ends.

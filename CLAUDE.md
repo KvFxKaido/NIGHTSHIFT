@@ -340,11 +340,6 @@ fixtures outside the playable bundle, and old world links redirect.
   no length, and a lane still has one vertex per street point, so anything
   reading a lane's vertices must treat coincident ones as one place
   (`TrafficNetwork.bends` does). `tests/alder.test.ts` holds every lane to it.
-- A traffic vehicle's `movement` is wrong while it holds a chain: after crossing
-  into a chain of three or more it is set to `holds[1]`, the junction after next
-  (since 2026-09-09, about 0.5% of vehicle-ticks). Nothing reads it then: every
-  reader takes `holds[0]` first while anything is held, and it is recomputed on
-  release. Do the same, or fix the assignment; the forecast's ghost already has it right.
 - A parked rival is a racer traffic yields to, and it never moves: parked within
   `RACER_IN_LANE` (2.6 m) of a lane's line and facing along it, it stops that lane
   for good. Rivet did, from the middle of Harbor Way's outer lane. Park them off

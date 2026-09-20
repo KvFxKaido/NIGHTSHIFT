@@ -269,3 +269,20 @@ test("no parked rival stands in a lane, so traffic never queues behind one", () 
   }
   assert.ok(longest < 60 * 20, `a vehicle stood ${(longest / 60).toFixed(0)} s in the road behind Rivet`);
 });
+
+// From 2026-09-09 to 2026-09-20 a vehicle that crossed into a chain of three or
+// more movements had `movement` set to the junction after next. Nothing read it
+// while it was wrong, which is luck a field should not need.
+test("a vehicle's movement is always one off the lane it is on, chains included", () => {
+  const traffic = createTraffic(network);
+  let chained = 0;
+  for (let tick = 0; tick < 60 * 120; tick++) {
+    stepTraffic(network, traffic, DT);
+    for (const vehicle of traffic.vehicles) {
+      if (vehicle.holds.length >= 2 && network.movements[vehicle.holds[0]!]!.from === vehicle.lane) chained++;
+      assert.ok(vehicle.movement >= 0 && network.movements[vehicle.movement]!.from === vehicle.lane,
+        `#${vehicle.id} on lane ${vehicle.lane} has movement ${vehicle.movement}, which leaves lane ${network.movements[vehicle.movement]?.from}, holding ${JSON.stringify(vehicle.holds)}, at tick ${tick}`);
+    }
+  }
+  assert.ok(chained > 1000, `only ${chained} vehicle-ticks were inside a chain; the test does not reach the case`);
+});
