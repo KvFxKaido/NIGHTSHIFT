@@ -106,6 +106,106 @@ const windows = turns.map((turn, i) => {
   return { turn, from: start, to };
 });
 
+// --sensitivity: what the MAP does when the pace constants move, which is the
+// question "should a 165 mph car be priced differently?" asked of the draw
+// rather than of the car. It needs no recordings, so it runs anywhere.
+//
+// A leg's class is the verdict the map gets; the draw is what the player gets.
+// They do not move together: the classes are nearly pace-proof and the draw is
+// chaotic in it, because the leg window is fixed in SECONDS and decides which
+// junctions are candidates at all (design/PROCEDURAL_RACES.md, "The pace model
+// is the course's, not the car's"). Re-run it when the city grows.
+if (process.argv.includes("--sensitivity")) {
+  const { ALDER_BLOCKS, alderHeight } = await import("../src/sim/alder.ts");
+  const { buildRoutingGraph, measureLeg, route } = await import("../src/sim/route-choice.ts");
+  const { GENERATOR, generateRace } = await import("../src/sim/race-generator.ts");
+  // PACE is the shipped constant; this tool is the one place that moves it, and
+  // it puts it back before it exits.
+  const shipped = { top: PACE.top, bend90: PACE.bend(90) };
+  const setPace = (top: number, bend90: number) => {
+    (PACE as { top: number }).top = top;
+    (PACE as { bend: (degrees: number) => number }).bend = d => bend90 * Math.pow(d / 90, 1.5);
+  };
+  const build = () => buildRoutingGraph(ALDER_STREETS, alderHeight, ALDER_BLOCKS);
+  setPace(shipped.top, shipped.bend90);
+  const reference = build();
+  const stride = 8, seeds = 120;
+  const froms = reference.choicePoints.filter((_, i) => i % stride === 0);
+  const origins = reference.choicePoints.filter((_, i) => i % 17 === 0);
+  const pairs = froms.flatMap(from => reference.choicePoints
+    .filter(to => to !== from)
+    .map(to => ({ from, to, time: route(reference, from, to).time }))
+    .filter(p => isFinite(p.time) && p.time >= GENERATOR.leg.min && p.time <= GENERATOR.leg.max)
+    .map(({ from, to }) => ({ from, to })));
+  const sample = (top: number, bend90: number) => {
+    setPace(top, bend90);
+    const graph = build();
+    const legs = pairs.map(({ from, to }) => {
+      const leg = measureLeg(graph, from, to);
+      return { kind: leg.kind, via: leg.via.map(d => `${d.id}:${d.reversed ? 1 : 0}`).join(">") };
+    });
+    const window = new Set<string>();
+    for (const from of reference.choicePoints) for (const to of reference.choicePoints) {
+      if (from === to) continue;
+      const t = route(graph, from, to).time;
+      if (isFinite(t) && t >= GENERATOR.leg.min && t <= GENERATOR.leg.max) window.add(`${from}|${to}`);
+    }
+    const races: string[] = [];
+    for (let seed = 1; seed <= seeds; seed++) {
+      const origin = origins[seed % origins.length]!;
+      for (const circuit of [false, true]) {
+        const race = generateRace(graph, seed, origin, { x: 1, z: 0 }, [], null, circuit);
+        races.push(race ? `${origin}>${race.legs.map(l => l.to).join(">")}` : "-");
+      }
+    }
+    return { legs, window, races };
+  };
+  const base = sample(shipped.top, shipped.bend90);
+  const counts = (legs: { kind: string }[]) => ["priced", "even", "free", "twin", "none"]
+    .map(k => `${k} ${legs.filter(l => l.kind === k).length}`).join(" ");
+  // Around the fitted pace: the fleet's street-pace spread is about 7% (the
+  // ladder pass), and the naive reading of a 165 mph car is 73.8 m/s.
+  const variants = [
+    { label: "7% quicker (the fleet's spread)", top: shipped.top * 1.071, bend90: shipped.bend90 },
+    { label: "7% quicker, corner cost with it", top: shipped.top * 1.071, bend90: shipped.bend90 * 0.92 },
+    { label: "140 mph governor", top: 62.6, bend90: shipped.bend90 },
+    { label: "165 mph governor", top: 73.8, bend90: shipped.bend90 },
+    { label: "165 mph, corner cost with it", top: 73.8, bend90: shipped.bend90 * 1.6 },
+    { label: "7% slower", top: shipped.top / 1.071, bend90: shipped.bend90 },
+  ];
+  const rows = variants.map(v => {
+    const s = sample(v.top, v.bend90);
+    let classMoved = 0, routeMoved = 0, racesMoved = 0, entered = 0, left = 0;
+    for (let i = 0; i < s.legs.length; i++) {
+      if (s.legs[i]!.kind !== base.legs[i]!.kind) classMoved++;
+      if (s.legs[i]!.via !== base.legs[i]!.via) routeMoved++;
+    }
+    for (let i = 0; i < s.races.length; i++) if (s.races[i] !== base.races[i]) racesMoved++;
+    for (const k of s.window) if (!base.window.has(k)) entered++;
+    for (const k of base.window) if (!s.window.has(k)) left++;
+    return { ...v, counts: counts(s.legs), classMoved, routeMoved, racesMoved, entered, left, window: s.window.size };
+  });
+  setPace(shipped.top, shipped.bend90);
+  const pct = (n: number, of: number) => `${((n / of) * 100).toFixed(1)}%`;
+  if (asJson) {
+    console.log(JSON.stringify({ shipped, legs: pairs.length, draws: base.races.length, window: base.window.size, rows }, null, 2));
+  } else {
+    console.log(`Pace sensitivity: ${pairs.length} legs in the generator's window, ${base.races.length} draws (${seeds} seeds x sprint and circuit), ${base.window.size} junction pairs inside ${GENERATOR.leg.min}-${GENERATOR.leg.max} s.`);
+    console.log(`shipped  top ${shipped.top} m/s  90° turn ${shipped.bend90} s   ${counts(base.legs)}`);
+    for (const r of rows) {
+      console.log(`
+${r.label}: top ${r.top.toFixed(1)} m/s, 90° turn ${r.bend90.toFixed(2)} s`);
+      console.log(`  ${r.counts}`);
+      console.log(`  legs reclassified ${r.classMoved} (${pct(r.classMoved, pairs.length)}), fastest route moved ${r.routeMoved} (${pct(r.routeMoved, pairs.length)})`);
+      console.log(`  candidate window ${r.window} pairs: ${r.entered} entered, ${r.left} left (${pct(r.entered + r.left, base.window.size)} churn)`);
+      console.log(`  races drawn differently: ${r.racesMoved} of ${base.races.length} (${pct(r.racesMoved, base.races.length)})`);
+    }
+    console.log(`
+The draw moves far more than the verdicts do. PACE is the city's constant, not a car's: tests/route-choice.test.ts keeps car handling out of the draw.`);
+  }
+  process.exit(0);
+}
+
 const dir = fileURLToPath(new URL("../recordings/laps/", import.meta.url));
 const files = (await readdir(dir).catch(() => [] as string[])).filter(name => name.endsWith(".json")).sort();
 type Observation = { file: string; traffic: boolean; lap: number; window: number; seconds: number; length: number; degrees: number;

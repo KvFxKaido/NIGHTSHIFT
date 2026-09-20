@@ -73,7 +73,16 @@ export function sightDistance(at: Corner, back: Dir, arm: Dir, corners: readonly
  *  (2026-09-15, `pnpm pace`): 153 corner windows put the pace at 50.7 m/s and a
  *  90-degree turn at 2.47 s, where the guesses were 32 m/s and 2.5 s. Exponent
  *  1 fitted a little better than 1.5, mostly on one downhill hairpin; kept at
- *  1.5. Width and grade are still proposals: one loop cannot separate them. */
+ *  1.5. Width and grade are still proposals: one loop cannot separate them.
+ *
+ *  `top` is a street pace, not a car's top speed: 50.7 m/s is 114 mph, under the
+ *  Cinder's own 140 mph governor, because it is what a car holds between corners
+ *  on city streets. It is the CITY's constant and never a car's, even now that
+ *  ten cars are tuned and one runs 165 mph — at the Vesper's measured street
+ *  pace (53.8 m/s) one leg of 1,252 changes class, and 532 of 600 seeds draw a
+ *  different race anyway, so a pace that knew the car would redraw every stored
+ *  course on a car change (design/PROCEDURAL_RACES.md, and the import-closure
+ *  test in tests/route-choice.test.ts that keeps a car out of the draw). */
 export const PACE = {
   top: 50,
   widthFactor: (width: number) => 0.94 + 0.06 * Math.max(0, Math.min(1, (width - 16) / 8)),

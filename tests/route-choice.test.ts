@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { sightDistance, blindness, routeRisk, SIGHT_CLEAR, buildRoutingGraph, route } from "../src/sim/route-choice.ts";
 import { alderRouting, ALDER_STREETS, ALDER_GARAGE, alderHeight } from "../src/sim/alder.ts";
 import released from "../assets/maps/alder/belltown-slice.json" with { type: "json" };
@@ -73,4 +74,40 @@ test("a blind approach raises the risk of the route that takes it, and an open o
     else assert.ok(near(route, street), `${d.id} arrives open but its route risk moved`);
   }
   assert.ok(raised >= 30, `only ${raised} approaches raised a route's risk`);
+});
+
+// The pace model is a property of the COURSE, not of the car that drives it.
+// Measured 2026-09-19 by `pnpm pace --sensitivity`: moving PACE.top 7% (the
+// fleet's street-pace spread, the Vesper against the Cinder) with the corner
+// cost moved to match reclassifies 2 legs of 646 and moves no fastest route —
+// and still redraws 212 of 240 races, because the leg window is fixed in
+// seconds: 728 junction pairs enter it and 118 leave, and the weighted draw
+// diverges from the first gate that lands differently.
+// So a pace that knew the car would redraw every stored course when the player
+// changed car, and a stored course's identity (ALDER_VERSION, the kind's
+// revision, race id, start) has no car in it. Hence: no car reaches the draw.
+test("nothing the race draw depends on can see a car's handling", () => {
+  const root = new URL("../src/sim/", import.meta.url);
+  const closure = new Map<string, string>();   // module -> the module that pulled it in
+  const walk = (file: string, from: string) => {
+    if (closure.has(file)) return;
+    closure.set(file, from);
+    const source = readFileSync(new URL(file, root), "utf8");
+    // Value imports only: `import type` is erased, so it can carry a shape but
+    // never a number. An inline `type` specifier still loads its module.
+    for (const match of source.matchAll(/import\s+(type\s+)?[^;]*?from\s+"\.\/([\w.-]+\.ts)"/g)) {
+      if (!match[1]) walk(match[2]!, file);
+    }
+  };
+  walk("route-choice.ts", "the draw");
+  walk("race-generator.ts", "the draw");
+  const chain = (file: string): string => {
+    const names = [file];
+    for (let at = closure.get(file)!; at !== "the draw"; at = closure.get(at)!) names.push(at);
+    return names.reverse().join(" -> ");
+  };
+  for (const file of ["car-handling.ts", "sim.ts", "car-card.ts"]) {
+    assert.ok(!closure.has(file), `the draw reaches ${file}: ${closure.has(file) ? chain(file) : ""}`);
+  }
+  assert.ok(closure.size > 3, `only ${closure.size} modules scanned; the import scan found nothing to follow`);
 });

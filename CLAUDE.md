@@ -387,6 +387,10 @@ fixtures outside the playable bundle, and old world links redirect.
   handing back or offering one; a stored course that throws on load retries forever.
   A start whose junction draws nothing draws one street on (`generateRaceFrom`); two
   waterfront lanes still draw nothing, so keep cruise routes off them.
+- The route-choice `PACE` is the city's constant, never a car's: its `top` is a
+  street pace (114 mph, under every governor), and moving it to the fastest car's
+  redraws most seeds while reclassifying almost no legs. `tests/route-choice.test.ts`
+  scans the draw's import closure to keep `car-handling.ts` out of it.
 - Changing what a seed draws means bumping that kind's `GENERATOR_REVISIONS`
   entry, and every kind's for the shared draw (route choice, `PACE`, turfs, gate
   rules): a stored race is (`ALDER_VERSION`, its kind's revision, race id, start).
@@ -450,6 +454,7 @@ pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
+pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json
 pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)

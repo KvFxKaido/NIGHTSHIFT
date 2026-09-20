@@ -124,3 +124,43 @@ first two wins could affect later stages, not resurrect a retired street rival.
   `ALDER_VERSION` and its kind's `GENERATOR_REVISIONS` entry.
 - Only flashed rivals learn, and only from races the player won against them.
   The field in a race is not a learner.
+
+## The pace model is the course's, not the car's (2026-09-19)
+
+`PACE` in `src/sim/route-choice.ts` prices every street the draw considers, and
+its `top` was fitted to recorded Uptown laps in the Cinder. With ten tuned cars
+in the game and Tally's Vesper running 165 mph, the obvious question is whether
+the draw should know which car is racing. It should not, and the measurement is
+what says so rather than taste.
+
+- **`top` is not a top speed.** The fit (`pnpm pace`, 153 corner windows) puts it
+  at 50.7 m/s — 114 mph, well under the Cinder's own 140 mph governor — because
+  it is the straight-equivalent pace a car actually holds between corners on
+  city streets. The fleet's spread in that number is the ladder's street pace:
+  the Vesper is 7.1% quicker than the Cinder, so its equivalent `top` is about
+  53.8 m/s, not 73.8. For scale, traffic moves the same fitted number by 1.3 m/s
+  (clear laps fit 51.7, laps in traffic 50.4), so whether the street is busy
+  matters about as much to the model as which of the ten cars is on it.
+- **Over that spread the map's verdicts barely move.** `pnpm pace --sensitivity`
+  measures it, over 646 legs in the generator's window: 7% quicker with the
+  corner cost moved to match reclassifies 2 legs and moves no fastest route.
+  Even at the naive 73.8 m/s the `free` legs — the defect class, the shortcut
+  that costs nothing — go 123 to 117 and `priced` 98 to 101; most of the
+  movement is `twin` against `even`, the two classes that both mean "no
+  shortcut either way".
+- **But the draw itself is chaotic in the pace.** The same 7% that reclassified
+  two legs redrew 212 of 240 races (120 seeds x sprint and circuit). The leg
+  window is fixed in SECONDS, so it decides which junctions are candidates at
+  all: 728 junction pairs enter the 8-28 s window and 118 leave it, 17% churn on
+  5,020, and the weighted draw diverges from the first gate that lands
+  differently. The window also grows — 5,020 pairs to 5,630 — so a car-aware
+  pace would make the fast cars' races longer in ground as well as different.
+  A pace that knew the car would therefore redraw every stored course the moment
+  the player changed car — and a stored course's identity (`ALDER_VERSION`, its
+  kind's revision, race id, start) has no car in it.
+
+So the pace model stays a declared constant of the city. `tests/route-choice.test.ts`
+holds it there by scanning the draw's import closure: nothing `route-choice.ts` or
+`race-generator.ts` reaches at runtime may see `car-handling.ts`. A future race
+that wants to be priced for its driver needs a car in the stored identity first,
+and that is a scope decision, not a tuning one.
