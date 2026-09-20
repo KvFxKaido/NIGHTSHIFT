@@ -1,5 +1,5 @@
 import type { MenuCommand } from "../input/input.ts";
-import type { CarCustomization, CustomizationCategory } from "../customization/customization.ts";
+import { customizationOption, bodyPresetIsMixed, type CarCustomization, type CustomizationCategory } from "../customization/customization.ts";
 import type { AudioLevels } from "../audio/audio-mix.ts";
 import {
   createInitialMenuState,
@@ -147,8 +147,11 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     const customization = callbacks.getCustomization();
     root.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => {
       const category = button.dataset.customization as CustomizationCategory;
-      button.setAttribute("aria-pressed", String(button.dataset.option === customization[category]));
+      const selected = category === "bodyKit" && bodyPresetIsMixed(customization) ? "mixed" : customizationOption(customization, category);
+      button.setAttribute("aria-pressed", String(button.dataset.option === selected));
     });
+    const note = root.querySelector<HTMLElement>("[data-body-preset-note]");
+    if (note) note.textContent = bodyPresetIsMixed(customization) ? "Custom mix · choose a kit to match all bodywork." : "Kits match front, sides, rear and spoiler.";
   }
 
   function focusFirstItem(): void {

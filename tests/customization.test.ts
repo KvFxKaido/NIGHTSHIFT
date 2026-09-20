@@ -6,6 +6,7 @@ import {
   WHEEL_OPTIONS,
   createDefaultCustomization,
   updateCustomization,
+  customizationOption, bodyPresetIsMixed,
 } from "../src/customization/customization.ts";
 
 test("default customization references shipped options", () => {
@@ -26,6 +27,22 @@ test("customization updates one visual category without mutating the old state",
 test("unknown customization options are ignored", () => {
   const defaults = createDefaultCustomization();
   assert.equal(updateCustomization(defaults, "wheels", "not-a-wheel"), defaults);
+});
+
+test("legacy kits resolve into slots and choosing a kit replaces a custom mix", () => {
+  const oldStreet = { ...createDefaultCustomization(), bodyKit: "street" };
+  for (const slot of ["front", "skirts", "rear", "spoiler"] as const) assert.equal(customizationOption(oldStreet, slot), "street");
+  const mixed = updateCustomization(updateCustomization(oldStreet, "front", "race"), "spoiler", "none");
+  assert.ok(bodyPresetIsMixed(mixed));
+  assert.equal(customizationOption(mixed, "rear"), "street");
+  const race = updateCustomization({ ...mixed, wheelDesign: "mesh", tint: "dark" }, "bodyKit", "race");
+  assert.equal(bodyPresetIsMixed(race), false);
+  assert.equal(race.spoiler, "wing");
+  assert.equal(race.rear, "race");
+  assert.equal(race.tint, "dark");
+  assert.equal(race.wheelDesign, "mesh");
+  const stock = updateCustomization(race, "bodyKit", "stock");
+  for (const slot of ["front", "skirts", "rear", "spoiler"] as const) assert.equal(stock[slot], "stock");
 });
 
 test("lower stances progressively tuck the wheels behind the fenders", () => {

@@ -93,7 +93,7 @@ function hits(tyre: ReturnType<typeof tyreEnvelope>, triangle: Triangle): boolea
 test("the shipped Cinder is valid, small, texture-free glTF with no rig or cutters", async () => {
   const report = await validator.validateBytes(new Uint8Array(bytes));
   assert.equal(report.issues.numErrors, 0, JSON.stringify(report.issues.messages));
-  assert.ok(bytes.byteLength < 600_000, `${bytes.byteLength} bytes is too large for one low-poly body`);
+  assert.ok(bytes.byteLength < 750_000, `${bytes.byteLength} bytes is too large for the body and three parts sets`);
   const json = JSON.parse(new TextDecoder().decode(
     bytes.subarray(20, 20 + new DataView(bytes.buffer, bytes.byteOffset).getUint32(12, true))));
   assert.ok(!json.nodes.some((node: { name?: string }) => /studio|clearance/.test(node.name ?? "")),
@@ -120,4 +120,48 @@ test("the Cinder body clears spinning wheels through steering at all stances", a
       }
     }
   }
+});
+
+test("Cinder factory and street parts switch as whole groups on the shared rig", async () => {
+  const view = await car();
+  const defaults = { paint: "ice", wheels: "alloy", stance: "street" };
+  const kit = (id: string) => view.bodyShell.getObjectByName(`cinder-front-${id}`)!;
+  assert.equal(kit("stock").visible, true);
+  assert.equal(kit("street").visible, false);
+  applyCarCustomization(view, { ...defaults, bodyKit: "street", wheelDesign: "six" });
+  assert.equal(kit("stock").visible, false);
+  assert.equal(kit("street").visible, true);
+  assert.equal(view.bodyShell.getObjectByName("street-trunk-lip")!.parent!.name, "cinder-spoiler-street");
+  for (const rolling of view.allWheels) {
+    const variants = rolling.children.filter(object => object.userData.customizationSlot === "wheelDesign");
+    assert.equal(variants.length, 3);
+    for (const variant of variants) assert.equal(variant.visible, variant.userData.customizationOption === "six");
+  }
+  applyCarCustomization(view, defaults);
+  assert.equal(kit("stock").visible, true);
+  assert.equal(kit("street").visible, false);
+});
+
+test("every body mix equips one variant per slot and tint leaves mirrors alone", async () => {
+  const view = await car();
+  const defaults = { paint: "ice", wheels: "alloy", stance: "slammed", bodyKit: "race" };
+  for (const front of ["stock", "street", "race"]) for (const skirts of ["stock", "street", "race"]) for (const rear of ["stock", "street", "race"]) {
+    for (const spoiler of ["none", "stock", "street", "wing"]) {
+      applyCarCustomization(view, { ...defaults, front, skirts, rear, spoiler, wheelDesign: "mesh", tint: "dark" });
+      for (const [slot, value] of Object.entries({ front, skirts, rear, spoiler })) {
+        const visible = view.bodyShell.children.filter(object => object.userData.customizationSlot === slot && object.visible);
+        assert.equal(visible.length, 1, `${slot} has exactly one equipped variant`);
+        assert.equal(visible[0]!.userData.customizationOption, value);
+      }
+    }
+  }
+  const window = meshes(view.bodyShell).find(mesh => (mesh.material as THREE.Material).name === "cinder-window-tint")!;
+  const mirror = view.bodyShell.getObjectByName("mirror-glass-left") as THREE.Mesh;
+  assert.ok(window, "independently editable glazing survived optimization");
+  assert.notEqual(window.material, mirror.material);
+  assert.equal((window.material as THREE.MeshStandardMaterial).color.getHex(), 0x030609);
+  const mirrorColor = (mirror.material as THREE.MeshStandardMaterial).color.getHex();
+  applyCarCustomization(view, { ...defaults, tint: "stock" });
+  assert.equal((window.material as THREE.MeshStandardMaterial).color.getHex(), 0x111d2c);
+  assert.equal((mirror.material as THREE.MeshStandardMaterial).color.getHex(), mirrorColor);
 });

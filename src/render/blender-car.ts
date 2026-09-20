@@ -77,6 +77,9 @@ export function createBlenderCar(asset: THREE.Group, rootName = "ns-coupe-01", m
   const materials = new Map<string, THREE.MeshStandardMaterial>();
   const names = new Set<string>();
   root.traverse(object => {
+    if (object.userData.customizationSlot) {
+      object.visible = object.userData.customizationOption === "stock";
+    }
     if (!(object instanceof THREE.Mesh)) return;
     if (!(object.material instanceof THREE.MeshStandardMaterial)) {
       throw new Error(`NS-01 '${object.name}' must use an exported standard material`);

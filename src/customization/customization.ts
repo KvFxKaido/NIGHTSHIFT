@@ -44,12 +44,63 @@ export const STANCE_OPTIONS: readonly StanceOption[] = [
   { id: "slammed", name: "Slammed", bodyOffset: -0.075, wheelInset: 0.035 },
 ];
 
-export type CustomizationCategory = "paint" | "wheels" | "stance";
+export const BODY_KIT_OPTIONS = [
+  { id: "stock", name: "Stock" },
+  { id: "street", name: "Street kit" },
+  { id: "race", name: "Race kit" },
+] as const;
+export const WHEEL_DESIGN_OPTIONS = [
+  { id: "stock", name: "Factory five" },
+  { id: "six", name: "Six spoke" },
+  { id: "mesh", name: "Split ten" },
+] as const;
+export const SPOILER_OPTIONS = [
+  { id: "none", name: "Clean trunk" }, { id: "stock", name: "Factory lip" },
+  { id: "street", name: "Ducktail" }, { id: "wing", name: "Race wing" },
+] as const;
+// Opaque stylized glass: vary its surface, not transparency into an unauthored cabin.
+export const TINT_OPTIONS = [
+  { id: "stock", name: "Factory", color: 0x111d2c, roughness: .16, metalness: .60 },
+  { id: "smoke", name: "Smoke", color: 0x091018, roughness: .24, metalness: .30 },
+  { id: "dark", name: "Midnight", color: 0x030609, roughness: .32, metalness: .12 },
+] as const;
+export const CUSTOMIZATION_OPTIONS = {
+  paint: PAINT_OPTIONS, wheels: WHEEL_OPTIONS, stance: STANCE_OPTIONS,
+  bodyKit: BODY_KIT_OPTIONS, wheelDesign: WHEEL_DESIGN_OPTIONS,
+  front: BODY_KIT_OPTIONS, skirts: BODY_KIT_OPTIONS, rear: BODY_KIT_OPTIONS,
+  spoiler: SPOILER_OPTIONS, tint: TINT_OPTIONS,
+};
+export type CustomizationCategory = keyof typeof CUSTOMIZATION_OPTIONS;
+export const CUSTOMIZATION_CATEGORIES = Object.keys(CUSTOMIZATION_OPTIONS) as CustomizationCategory[];
+export const BODY_PRESET_CATEGORIES: CustomizationCategory[] = ["bodyKit", "front", "skirts", "rear", "spoiler"];
 
 export interface CarCustomization {
   paint: string;
   wheels: string;
   stance: string;
+  /** Missing on older saves means factory parts. Currently authored for Cinder. */
+  bodyKit?: string;
+  wheelDesign?: string;
+  front?: string;
+  skirts?: string;
+  rear?: string;
+  spoiler?: string;
+  tint?: string;
+}
+
+/** Resolve old whole-kit saves and new individual parts through one catalog. */
+export function customizationOption(current: CarCustomization, category: CustomizationCategory): string {
+  const kit = BODY_KIT_OPTIONS.some(option => option.id === current.bodyKit) ? current.bodyKit! : "stock";
+  const fallback = category === "front" || category === "skirts" || category === "rear" ? kit
+    : category === "spoiler" ? (kit === "race" ? "wing" : kit) : CUSTOMIZATION_OPTIONS[category][0]!.id;
+  const value = current[category] ?? fallback;
+  return CUSTOMIZATION_OPTIONS[category].some(option => option.id === value) ? value : fallback;
+}
+
+export function bodyPresetIsMixed(current: CarCustomization): boolean {
+  const kit = customizationOption(current, "bodyKit");
+  return ["front", "skirts", "rear"].some(slot => customizationOption(current, slot as CustomizationCategory) !== kit)
+    || customizationOption(current, "spoiler") !== (kit === "race" ? "wing" : kit);
 }
 
 export function createDefaultCustomization(): CarCustomization {
@@ -61,11 +112,9 @@ export function updateCustomization(
   category: CustomizationCategory,
   optionId: string,
 ): CarCustomization {
-  const options = category === "paint"
-    ? PAINT_OPTIONS
-    : category === "wheels"
-      ? WHEEL_OPTIONS
-      : STANCE_OPTIONS;
+  const options = CUSTOMIZATION_OPTIONS[category];
   if (!options.some((option) => option.id === optionId)) return current;
+  if (category === "bodyKit") return { ...current, bodyKit: optionId, front: optionId,
+    skirts: optionId, rear: optionId, spoiler: optionId === "race" ? "wing" : optionId };
   return { ...current, [category]: optionId };
 }

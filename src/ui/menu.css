@@ -376,6 +376,9 @@ body[data-game-screen="pause"] #hud {
   gap: 13px;
 }
 
+[data-cinder-parts] { margin-top: 13px; }
+[data-cinder-parts][hidden] { display: none; }
+
 .garage-control {
   min-width: 0;
   margin: 0;

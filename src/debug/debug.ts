@@ -5,6 +5,7 @@
    what a person clicking would get. */
 
 import * as THREE from "three";
+import { CUSTOMIZATION_CATEGORIES, type CarCustomization } from "../customization/customization.ts";
 import type { View } from "../render/scene.ts";
 import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
 import { BLENDER_CARS, isBlenderCarId as isPlayerCarId } from "../render/blender-car.ts";
@@ -154,7 +155,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     return document.body.dataset.gameScreen ?? "unknown";
   }
 
-  function set(options: { paint?: string; wheels?: string; stance?: string }): string[] {
+  function set(options: Partial<CarCustomization>): string[] {
     const applied: string[] = [];
     for (const [category, option] of Object.entries(options)) {
       if (!option) continue;
@@ -260,6 +261,10 @@ export function installDebugApi(bridge: DebugBridge): void {
         paint: selected("paint"),
         wheels: selected("wheels"),
         stance: selected("stance"),
+        bodyKit: selected("bodyKit"),
+        wheelDesign: selected("wheelDesign"),
+        front: selected("front"), skirts: selected("skirts"), rear: selected("rear"),
+        spoiler: selected("spoiler"), tint: selected("tint"),
       },
       vehicle: {
         x: Number(car.x.toFixed(2)),
@@ -328,7 +333,7 @@ export function installDebugApi(bridge: DebugBridge): void {
     const screen = document.body.dataset.gameScreen;
     url.searchParams.set("scene", screen === "playing" ? "track" : screen ?? "main");
     url.searchParams.set("drivetrain", sim.state.drivetrain);
-    for (const category of ["paint", "wheels", "stance"]) {
+    for (const category of CUSTOMIZATION_CATEGORIES) {
       const option = selected(category);
       if (option) url.searchParams.set(category, option);
     }
@@ -398,7 +403,7 @@ export function installDebugApi(bridge: DebugBridge): void {
 
 export function applyDeepLink(api: {
   go(screen: DebugScreen): string;
-  set(options: { paint?: string; wheels?: string; stance?: string }): string[];
+  set(options: Partial<CarCustomization>): string[];
   drive(script: string): unknown;
   freeze(frozen?: boolean): boolean;
   telemetry(visible?: boolean): void;
@@ -418,14 +423,10 @@ export function applyDeepLink(api: {
     api.drivetrain(drivetrain);
   }
   // Customization lives on the garage screen, so select it there before leaving.
-  const wantsCustomization = ["paint", "wheels", "stance"].some((key) => params.has(key));
+  const wantsCustomization = CUSTOMIZATION_CATEGORIES.some((key) => params.has(key));
   if (wantsCustomization) api.go("garage");
   if (wantsCustomization) {
-    api.set({
-      paint: params.get("paint") ?? undefined,
-      wheels: params.get("wheels") ?? undefined,
-      stance: params.get("stance") ?? undefined,
-    });
+    api.set(Object.fromEntries(CUSTOMIZATION_CATEGORIES.map(key => [key, params.get(key) ?? undefined])));
   }
   if (scene === "track" || scene === "garage" || scene === "main" || scene === "pause" || scene === "races" || scene === "blacklist") {
     api.go(scene);

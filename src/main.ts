@@ -24,7 +24,7 @@ import { createControlsPanel } from "./ui/controls.ts";
 import { keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
-  updateCustomization,
+  updateCustomization, BODY_PRESET_CATEGORIES,
 } from "./customization/customization.ts";
 import { PLAYER_CAR_IDS, drivetrainFor } from "./customization/cars.ts";
 import { renderCarStats } from "./ui/car-stats.ts";
@@ -458,6 +458,12 @@ function renderCarSelection(): void {
   equipCar.textContent = isEquippedCar(previewCar) ? "Equipped" : owned ? "Drive this car" : "Locked";
   document.querySelector<HTMLButtonElement>("[data-open-livery]")!.disabled = carLoading || previewCar !== selectedCar;
   document.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
+  document.querySelectorAll<HTMLElement>("[data-cinder-parts]").forEach(section => {
+    section.hidden = previewCar !== "cinder";
+    section.querySelectorAll<HTMLButtonElement>("button").forEach(button => {
+      button.disabled = previewCar !== "cinder" || carLoading || previewCar !== selectedCar;
+    });
+  });
   const buy = document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!;
   buy.hidden = career.bulwarkOwned || previewCar !== "bulwark";
   buy.disabled = career.cash < BULWARK_PRICE || carLoading;
@@ -564,7 +570,8 @@ const menu = createMenuController({
     applyCarCustomization(view, customization);
     if (category === "paint") liveryEditor.useFactoryPaint();
     liveryEditor.refresh();
-    saveSettings({ customization: { [category]: customization[category] } }, [category]);
+    const changed = category === "bodyKit" ? BODY_PRESET_CATEGORIES : [category];
+    saveSettings({ customization: Object.fromEntries(changed.map(key => [key, customization[key]])) }, changed);
   },
   screenChanged: (screen, state) => {
     frontEndMusic = usesMenuTheme(state);

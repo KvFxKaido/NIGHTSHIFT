@@ -3,6 +3,7 @@ import {
   PAINT_OPTIONS,
   STANCE_OPTIONS,
   WHEEL_OPTIONS,
+  customizationOption, TINT_OPTIONS,
   type CarCustomization,
 } from "../customization/customization.ts";
 
@@ -846,6 +847,21 @@ export function applyCarCustomization(
   customization: CarCustomization,
 ): void {
   const paint = PAINT_OPTIONS.find((option) => option.id === customization.paint) ?? PAINT_OPTIONS[0]!;
+  // Variant groups come from Blender extras. Hide the whole group so its cel
+  // outlines, shadows and children always follow the equipped part.
+  car.carVisual.traverse(object => {
+    const slot: unknown = object.userData.customizationSlot;
+    if (slot === "front" || slot === "skirts" || slot === "rear" || slot === "spoiler" || slot === "wheelDesign") {
+      object.visible = object.userData.customizationOption === customizationOption(customization, slot);
+    }
+    if (object instanceof THREE.Mesh && object.material instanceof THREE.MeshStandardMaterial
+      && object.material.name === "cinder-window-tint") {
+      const tint = TINT_OPTIONS.find(option => option.id === customizationOption(customization, "tint"))!;
+      object.material.color.setHex(tint.color);
+      object.material.roughness = tint.roughness;
+      object.material.metalness = tint.metalness;
+    }
+  });
   car.paintMaterial.color.setHex(paint.color);
   car.paintMaterial.roughness = paint.roughness;
   car.paintMaterial.metalness = paint.metalness;

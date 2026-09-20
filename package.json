@@ -15,6 +15,7 @@
     "dev": "node scripts/scan-music.mjs && vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:facade": "node scripts/test-facade-menu.mjs",
+    "test:cinder": "node scripts/test-cinder-parts.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "district:critique": "node --experimental-strip-types --no-warnings scripts/critique-district.ts",

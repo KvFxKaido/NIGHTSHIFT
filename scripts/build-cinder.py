@@ -427,6 +427,8 @@ if first_child.type!="MESH":
         "Blender 5.3 alpha's glTF exporter needs a MESH first or it raises "
         "KeyError: 'material_identifiers'. Rename it to sort after 'coachwork'.")
 bpy.context.preferences.filepaths.save_version=0
+import runpy
+runpy.run_path(str(ROOT / 'scripts/build-cinder-parts.py'))['install_parts']()
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))
 exec(compile((ROOT/"scripts/export-cinder.py").read_text(),"export-cinder.py","exec"))
 if "--render" in sys.argv:

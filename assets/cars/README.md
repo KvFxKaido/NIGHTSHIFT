@@ -155,3 +155,34 @@ remain available. The shared simulation, collider and wheel pivots are unchanged
 
 Proportion reference: https://www.cars.com/research/lexus-is_300-2001/
 Geometry is authored here; no third-party model or texture is included.
+
+### Cinder interchangeable parts
+
+The source includes three coherent body sets: factory, street and race. Front
+lips, side skirts, rear valances and spoilers can also be selected separately.
+Spoilers offer a clean trunk, factory lip, ducktail and supported race wing.
+Factory five-spoke, dished six-spoke and split-ten centers share tyres, barrels,
+hubs and pivots. The complete texture-free GLB is about 625 KB.
+
+Each variant parent has `customizationSlot` (`front`, `skirts`, `rear`,
+`spoiler` or `wheelDesign`) and `customizationOption` extras. Runtime switches
+the entire group, including cel outlines and shadows. The window material is
+separate from the mirrors; three opaque glass finishes retain the stylized
+look without exposing an unauthored interior.
+
+Run Blender with `--background assets/cars/ns-cinder-01.blend --python-exit-code 1 --python
+scripts/build-cinder-parts.py` to regenerate only the parts, preserving the
+stock body. Then run the usual optimizer. The full Cinder builder also installs
+the parts. Export all variants; select them in the garage at runtime.
+
+Garage choices persist. Older saves default to stock; earlier whole-kit saves
+resolve to their matching individual parts. `bodyKit` is a preset: choosing
+one writes all four body slots together while retaining wheels, tint, paint
+and stance. An individual part override produces a custom mix. Other car
+bodies do not expose these Cinder slots. All parts are cosmetic.
+
+Preview with `?scene=garage&car=cinder&bodyKit=race&wheelDesign=mesh&tint=dark`.
+Individual URL fields (`front`, `skirts`, `rear`, `spoiler`) override the preset.
+`pnpm test:cinder` checks kits, mixing, reload, driving, stock restoration and
+mobile controls. Asset tests check every body triangle against swept wheels
+at every stance, all 108 body/spoiler combinations, and tint/mirror isolation.

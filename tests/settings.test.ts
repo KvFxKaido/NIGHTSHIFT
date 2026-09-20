@@ -15,6 +15,21 @@ const example = { car: "cinder" as const,
   customization: { paint: "ice", wheels: "alloy", stance: "slammed" },
   audio: { ...DEFAULT_LEVELS } };
 
+test("Cinder parts persist while older settings keep factory parts without recovery", () => {
+  const legacy = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, ...example }));
+  assert.equal(legacy.status, "saved");
+  assert.equal(legacy.settings.customization.bodyKit, undefined);
+  const disk = storage();
+  disk.setItem(SETTINGS_KEY, JSON.stringify({ version: SETTINGS_VERSION, ...example }));
+  const store = createSettingsStore(() => disk);
+  store.update({ customization: { bodyKit: "street", wheelDesign: "six" } });
+  assert.deepEqual(createSettingsStore(() => disk).get().customization,
+    { ...example.customization, bodyKit: "street", wheelDesign: "six" });
+  assert.throws(() => store.update({ customization: { bodyKit: "widebody" } }), RangeError);
+  store.update({ customization: { bodyKit: "stock", wheelDesign: "stock" } });
+  assert.equal(createSettingsStore(() => disk).get().customization.bodyKit, "stock");
+});
+
 test("a fresh settings store uses defaults without writing on startup", () => {
   const disk = storage();
   const store = createSettingsStore(() => disk);
