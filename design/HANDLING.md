@@ -1163,8 +1163,8 @@ shown on the HUD's mode line. 1 is the game. Below it, a tyre asked for more tha
 cornering has left it gives up grip in proportion to the excess, which runs from
 0 at the tyre's limit to 1 at twice it:
 
-- sideways grip, by `HANDLING.pedalFrontLateralLoss` (0.45) or
-  `pedalRearLateralLoss` (0.12), so a floored tyre lets go of the corner;
+- sideways grip, on a rear tyre only, by `pedalRearLateralLoss` (0.12), so a
+  floored rear lets go of the corner. A front tyre never does: see the brake, below;
 - the push itself, by `pedalLongitudinalLoss` (0.2), so the most drive or
   braking is at the limit and not past it.
 
@@ -1172,12 +1172,20 @@ Both are multiplied by `1 - assist`. The handbrake is left out of what is asked:
 it has its own rules. The launch still buys room, since the room is measured
 after `driveGripScale`.
 
-By axle, because the two ends answer differently. A front tyre that lets go
-pushes wide, which is benign. A rear tyre that lets go turns the car, and the
+The rear number is small because a rear tyre that lets go turns the car, and the
 Cinder's rears already give cornering grip up to drive (the first assist above).
-With one constant of 0.45 the Cinder was planted at an assist of 0.9 and spun at
-0.8: the whole useful range inside a tenth of the knob. Split, all of 0 to 1 is
-drivable.
+With 0.45 the Cinder was planted at an assist of 0.9 and spun at 0.8: the whole
+useful range inside a tenth of the knob. At 0.12 all of 0 to 1 is drivable.
+
+**The fronts keep their steering.** The first version took 45% of a front tyre's
+sideways grip as well, and it was wrong. Shawn, the same evening, having driven
+every setting: "braking straightens the car for some reason now." It did: with
+the steering held in a 60 mph turn, a buried brake turned the car 13.7 degrees in
+a second at an assist of 0 where the forgiving car turns 19.1, and on a keyboard,
+whose brake is all or nothing, that was every corner. It also broke this model's
+own rule, written in `sampleWheelForces`: front tyres keep full lateral grip so
+that "a hard pedal cannot erase steering." An overwhelmed front now only stops
+(or, driven, pushes) less.
 
 **It is the player's car alone, and no car's tune.** The value lives on the sim
 (`SimOptions.pedalAssist`), not in `CarHandling` or `CAR_TUNES`. The Cinder is
@@ -1194,21 +1202,26 @@ lag. The steady state is the same and these hold to within a few percent: with
 the lag, 0-60 floored is 4.30 s at 0.5 and 4.83 s at 0, and the corner peaks at
 8.6°, 16.6° and 25.6° at 0.5, 0.25 and 0.
 
-| assist | 0-60 mph floored | 0-60 mph at 60% | peak slip out of a 45 mph corner | turn-in at 50 / 80 / 100% brake |
-|---|---|---|---|---|
-| 1 | 3.87 s | 3.92 s | 5.4° | 36° / 36° / 36° |
-| 0.75 | 4.07 s | 3.95 s | 6.2° | 36° / 33° / 32° |
-| 0.5 | 4.28 s | 3.98 s | 9.3° | 34° / 29° / 28° |
-| 0.25 | 4.53 s | 4.02 s | 18.6° | 33° / 26° / 23° |
-| 0 | 4.82 s | 4.05 s | 29.0° | 32° / 23° / 19° |
+| assist | 0-60 mph floored | 0-60 mph at 60% | peak slip out of a 45 mph corner | turn-in at 50 / 80 / 100% brake | mph left, same brakes |
+|---|---|---|---|---|---|
+| 1 | 3.87 s | 3.92 s | 5.4° | 36° / 36° / 36° | 50.2 / 44.0 / 41.5 |
+| 0.75 | 4.07 s | 3.95 s | 6.2° | 36° / 36° / 36° | 50.3 / 44.3 / 42.1 |
+| 0.5 | 4.28 s | 3.98 s | 9.3° | 36° / 36° / 36° | 50.3 / 44.6 / 42.8 |
+| 0.25 | 4.53 s | 4.02 s | 18.6° | 36° / 36° / 37° | 50.3 / 44.8 / 43.5 |
+| 0 | 4.82 s | 4.05 s | 29.0° | 36° / 36° / 37° | 50.4 / 45.1 / 44.2 |
 
 At one setting the trigger is a gradient as well: at an assist of 0, half
 throttle, 70% and the floor give 14°, 25° and 29°, and flooring it costs about
 5 mph out of the corner against half throttle. Every one of those slides is
 caught by lifting and steering into it, which is every car's floor
-(`tests/helpers/handling.ts`). Turn-in is the heading turned in 1.5 s from 80 mph at full steering.
+(`tests/helpers/handling.ts`). Turn-in is the heading turned in 1.5 s from 80 mph
+at full steering, and the last column the speed left after it: the brake columns
+are from after the fronts were given their steering back.
 
-The brake is a choice only while turning. In a straight line from 80 mph, full
+So the brake is barely a choice, and that is the honest result. Burying it into a
+turn costs no steering at any setting; it costs the stop, and not much of it
+(44.2 mph left at an assist of 0 against 41.5 forgiven), because a locked tyre
+slows the car a fifth less. In a straight line from 80 mph, full
 brake is still the shortest stop at every setting (43.8 m forgiven, 44.4 m at
 0.5, 45.1 m at 0, against 48.9 m at 80% brake): the brakes ask for 14 m/s² of
 tyres that have 14.5, so there is almost no excess to pay for. Threshold braking
@@ -1233,7 +1246,8 @@ Floored from rest at an assist of 0, the Cinder's rears are at 0.69 after 0.17 s
 and 0.97 after half a second, with the tread at 54 mph over a road doing 14.
 Eased to 35% throttle, they are still at 0.69 a sixth of a second later, 0.33
 after half a second and 0.11 after one. Bury the brake into a turn from 80 mph
-and the fronts are locked in about 0.7 s, the tread at 0 mph with the car at 54.
+and the fronts are locked in about 0.7 s, the tread at 0 mph with the car at 54:
+seen and heard to lock, and stopping less for it, but still steering.
 
 It is drawn. A slipping tyre's rolling distance runs ahead of the road by up to
 `wheelSpinSurfaceSpeed` (18 m/s) or is held back to a stop, which the wheel mesh

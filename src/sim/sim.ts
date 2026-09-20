@@ -188,7 +188,7 @@ export interface SimOptions {
    * 70% and 100% leave a corner identically, and full brake costs no steering at
    * all. So flooring it is never wrong, and is not a choice. Below 1, a tyre asked
    * for more than it has left gives up some sideways grip and some of the push
-   * itself, in proportion to the excess (`HANDLING.pedalFrontLateralLoss` and beside it).
+   * itself, in proportion to the excess (`HANDLING.pedalRearLateralLoss` and beside it).
    *
    * It lives here and not in a car's handling on purpose. The Cinder is the
    * anchor every lap, the rival's cornering and the route-choice pace were fitted
@@ -283,13 +283,15 @@ export const HANDLING = {
   // past it. With the assist on, as every car but a previewed player's has it,
   // neither is read.
   //
-  // By axle, because the two ends answer differently. A front tyre that lets go
-  // pushes wide, which is benign and can take a big number. A rear tyre that lets
-  // go turns the car, and a rear-drive car's rears already give cornering grip
-  // up to drive (`rwdDriveTractionShare`): with one constant of 0.45 the Cinder
-  // was planted at an assist of 0.9 and spun at 0.8, all its useful range inside a
-  // tenth of the knob. At 0.12 the whole of 0 to 1 is drivable.
-  pedalFrontLateralLoss: 0.45,
+  // Rear tyres only. "A hard pedal cannot erase steering" is this model's own rule
+  // (sampleWheelForces): a front tyre keeps its sideways grip whatever the pedals
+  // ask. The first version took 45% of it, and a buried brake pushed the car
+  // straight on, 13.7 degrees in a second where the forgiving car turns 19.1, and
+  // every time on a keyboard, whose brake is all or nothing. An overwhelmed front
+  // now only pushes or stops less. A rear tyre that lets go turns the car, and a
+  // rear-drive car's rears already give cornering grip up to drive
+  // (`rwdDriveTractionShare`): at 0.45 the Cinder was planted at an assist of 0.9
+  // and spun at 0.8. At 0.12 the whole of 0 to 1 is drivable.
   pedalRearLateralLoss: 0.12,
   pedalLongitudinalLoss: 0.2,
   // Wheelspin (2026-09-20). The grip a tyre loses follows its `slip`, which
@@ -857,7 +859,7 @@ function sampleWheelForces(sim: VehicleRig, tyre: WheelInput, telemetry: WheelSt
     if (Math.abs(telemetry.slip) < 1e-4 && target === 0) telemetry.slip = 0;
     lost = Math.abs(telemetry.slip) * tyre.pedalRaw;
   }
-  if (lost > 0) lateralBudget *= 1 - (tyre.front ? HANDLING.pedalFrontLateralLoss : HANDLING.pedalRearLateralLoss) * lost;
+  if (lost > 0 && !tyre.front) lateralBudget *= 1 - HANDLING.pedalRearLateralLoss * lost;
   const lateralRequest = -lateralBudget * Math.tanh(slipAngle * tyre.stiffness) * scrubScale;
   const lateralForce = clamp(lateralRequest, -lateralStopForce, lateralStopForce);
 

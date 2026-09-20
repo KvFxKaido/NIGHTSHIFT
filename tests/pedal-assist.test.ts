@@ -45,10 +45,11 @@ function cornerExit(assist: number, throttle: number): { peak: number; caught: n
   return best;
 }
 
-function turnIn(assist: number, brake: number): number {
+/** Full steering from 80 mph with the brake held for 1.5 s: degrees turned, and the speed left. */
+function turnIn(assist: number, brake: number): { turned: number; speed: number } {
   const sim = withAssist(assist, 35.8), from = sim.state.vehicle.heading;
   for (let tick = 0; tick < 90; tick++) step(sim, { ...NEUTRAL, steer: 1, brake });
-  return Math.abs(Math.atan2(Math.sin(sim.state.vehicle.heading - from), Math.cos(sim.state.vehicle.heading - from))) * 180 / Math.PI;
+  return { turned: Math.abs(Math.atan2(Math.sin(sim.state.vehicle.heading - from), Math.cos(sim.state.vehicle.heading - from))) * 180 / Math.PI, speed: sim.state.vehicle.speed };
 }
 
 const SCRIPT: readonly Input[] = [
@@ -109,13 +110,21 @@ test("out of a corner, more trigger is more angle, and every slide is caught", (
   assert.ok(floored.at(-1)! < 45 * Math.PI / 180, "fully off is a slide, not a spin");
 });
 
-test("burying the brake costs turn-in, once the tyres stop forgiving it", () => {
-  const forgiven = [0, 0.5, 1].map(brake => turnIn(1, brake));
-  assert.ok(Math.max(...forgiven) - Math.min(...forgiven) < 2, `at the default the brake does not touch the steering: ${forgiven.map(turn => turn.toFixed(0)).join(", ")} degrees`);
-  for (const assist of [0.5, 0]) {
-    const turns = [0.5, 0.8, 1].map(brake => turnIn(assist, brake));
-    assert.ok(turns[0]! > turns[1]! && turns[1]! > turns[2]!, `assist ${assist}: ${turns.map(turn => turn.toFixed(0)).join(" > ")} degrees`);
+// "A hard pedal cannot erase steering" is the model's own rule. The first version
+// of this broke it: a buried brake took 45% of the fronts' sideways grip and pushed
+// the car straight on, which on a keyboard, whose brake is all or nothing, was every
+// corner (Shawn, 2026-09-20: "braking straightens the car for some reason now").
+test("a buried brake never straightens the car: the fronts keep their steering at every setting", () => {
+  const forgiven = turnIn(1, 1).turned;
+  for (const assist of [0.75, 0.5, 0.25, 0]) for (const brake of [0.5, 0.8, 1]) {
+    const { turned } = turnIn(assist, brake);
+    assert.ok(turned > forgiven - 1.5, `assist ${assist}, brake ${brake}: turned ${turned.toFixed(1)} degrees against the forgiving car's ${forgiven.toFixed(1)}`);
   }
+  // What over-braking costs instead is the stop: a locked tyre slows the car less.
+  const shed = [1, 0.5, 0].map(assist => turnIn(assist, 1).speed);
+  assert.ok(shed[0]! < shed[1]! && shed[1]! < shed[2]!, `left with ${shed.map(speed => mph(speed).toFixed(1)).join(" < ")} mph`);
+  // Below the tyres' limit the brake is the same brake.
+  assert.ok(Math.abs(turnIn(0, 0.5).speed - turnIn(1, 0.5).speed) < 0.15);
 });
 
 test("a reset keeps the assist, and the feedback reports the excess at any setting", () => {
