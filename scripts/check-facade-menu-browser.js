@@ -10,7 +10,7 @@ export default async function checkFacadeMenu(page, base) {
     const frame = () => ++frames === 6 ? resolve() : requestAnimationFrame(frame);
     requestAnimationFrame(frame);
   }));
-  const screen = name => page.waitForFunction(name => document.body.dataset.gameScreen === name, name);
+  const screen = name => page.waitForFunction(name => document.body.dataset.gameScreen === name && !__ns.view.garageCutscene, name);
   const main = action => page.locator(`[data-menu-screen="main"] [data-menu-action="${action}"]`);
   const back = name => page.locator(`[data-menu-screen="${name}"] [data-menu-action="back"]`).click();
   const capture = async path => {

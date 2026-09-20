@@ -21,10 +21,12 @@ import { ALDER_SKY, NIGHT_HAZE, NIGHT_ZENITH } from "./sky.ts";
 import { updateWheelPresentation } from "./wheels.ts";
 import { createFacadeMenu } from "./facade-menu.ts";
 import { ALDER_GARAGE } from "../sim/alder.ts";
+import { shotProgress, easeShot, type GarageCutscene } from "./garage-cutscene.ts";
 
 export type ViewMode = "track" | "garage" | "main";
 
 export interface View extends CarView {
+  garageCutscene?: GarageCutscene;
   roadStart: RoadWorld["start"];
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -274,6 +276,13 @@ function renderGarage(view: View, frameDelta: number, cameraLook: CameraLook): v
   const blend = 1 - Math.exp(-8.5 * frameDelta);
   view.cameraPosition.lerp(targetPosition, blend);
   view.cameraTarget.lerp(targetLook, blend);
+  if (view.garageCutscene?.kind === "enter") {
+    const t = easeShot(shotProgress(view.garageCutscene));
+    view.car.position.z = (1 - t) * .8;
+    view.allWheels.forEach(wheel => { wheel.rotation.x = t * .8 / .36; });
+    view.cameraPosition.copy(targetPosition).add(new THREE.Vector3(1.1, -.7, .8).multiplyScalar(1 - t));
+    view.cameraTarget.copy(targetLook).add(new THREE.Vector3(0, 0, view.car.position.z));
+  }
   view.camera.position.copy(view.cameraPosition);
   view.camera.lookAt(view.cameraTarget);
   view.camera.fov = 48;
@@ -363,6 +372,13 @@ export function render(
     car.y + chase.lookHeight + Math.sin(car.pitch) * lookAhead * forwardFocus,
     car.z + forwardZ * lookAhead * forwardFocus,
   );
+  // The shutter is a solid wall. Keep a chase camera behind an outward-facing
+  // car on the forecourt side until there is enough space for its full distance.
+  const garageFaceX = ALDER_GARAGE.building.x - ALDER_GARAGE.building.depth / 2;
+  if (car.x < garageFaceX && Math.abs(car.z - ALDER_GARAGE.building.z) < ALDER_GARAGE.building.width / 2 + 2
+    && Math.abs(targetPosition.z - ALDER_GARAGE.building.z) < ALDER_GARAGE.building.width / 2 + 2) {
+    targetPosition.x = Math.min(targetPosition.x, garageFaceX - 1);
+  }
   if (view.facadeDeparture) {
     // Saved drives and race starts can be far from the facade. Never sweep the
     // camera across the city or through buildings to reach those destinations.
@@ -380,6 +396,27 @@ export function render(
   view.camera.lookAt(view.cameraTarget);
   view.camera.clearViewOffset();
   view.camera.fov = chase.fov + speedRatio * chase.fovAtSpeed;
+  if (view.garageCutscene?.kind === "exit") {
+    const shot = view.garageCutscene;
+    const progress = shotProgress(shot);
+    const roll = shot.roll ? 1.2 * (1 - easeShot(progress / .6)) : 0;
+    view.car.position.x -= forwardX * roll;
+    view.car.position.z -= forwardZ * roll;
+    if (shot.roll) view.allWheels.forEach(wheel => { wheel.rotation.x -= roll / .36; });
+    const sideX = Math.cos(car.heading), sideZ = -Math.sin(car.heading);
+    const side = sideX > 0 ? -1 : 1;
+    const framing = Math.min(2.2, Math.max(1, .95 / view.camera.aspect));
+    const shotCamera = new THREE.Vector3(view.car.position.x + (sideX * side * 5.8 - forwardX * 3.2) * framing,
+      car.y + 1.5 * framing, view.car.position.z + (sideZ * side * 5.8 - forwardZ * 3.2) * framing);
+    shotCamera.x = Math.min(shotCamera.x, garageFaceX - 1);
+    const shotTarget = view.car.position.clone().add(new THREE.Vector3(0, .55, 0));
+    const handoff = easeShot((progress - .4) / .6);
+    view.cameraPosition.copy(shotCamera).lerp(targetPosition, handoff);
+    view.cameraTarget.copy(shotTarget).lerp(targetLook, handoff);
+    view.camera.position.copy(view.cameraPosition);
+    view.camera.lookAt(view.cameraTarget);
+    view.camera.fov = THREE.MathUtils.lerp(48, chase.fov, handoff);
+  }
   view.camera.updateProjectionMatrix();
   // After the camera: the beacon's sign faces it and points the exit its way.
   updateRaceBeacon(view.race, state.race, view.surface, view.camera);

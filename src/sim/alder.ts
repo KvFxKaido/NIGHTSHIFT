@@ -24,6 +24,8 @@ export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
   entrance:{x:17,y:2,z:910,heading:0,pitch:0}};
+/** Clear of the shutter, nose pointing out across the forecourt toward the street. */
+export const ALDER_GARAGE_EXIT = {x:13,y:2,z:910,heading:Math.PI/2,pitch:0};
 export const GARAGE_PLOT_ID = buildingId(garageBuilding);
 /** The paved apron in front of Wharf Garage (drawn as `garage-forecourt`). */
 export const ALDER_FORECOURT: BuildingBlock = {x:6.5,z:910,width:31,depth:40,height:1,base:2,rotation:0};
@@ -222,7 +224,7 @@ export function alderGround(x: number, z: number): boolean {
 
 /** `from` is where a race starts: the grid unless the flash said otherwise. */
 export function createAlderWorld(racing = false, from: RoadWorld["start"] = start): RoadWorld {
-  return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE.entrance,
+  return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE_EXIT,
     solids: [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_EVERGREENS.map(tree => tree.trunk)],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,

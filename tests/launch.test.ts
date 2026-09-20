@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { ALDER_RACE, createAlderWorld } from "../src/sim/alder.ts";
+import { ALDER_RACE, ALDER_GARAGE, createAlderWorld } from "../src/sim/alder.ts";
 import { drawAlderCourse } from "../src/sim/alder-course.ts";
 import { HARBOR_DRAG, DRAG_START, RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
 import { BLACKLIST_LAUNCH, createLaunch, LAUNCH, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch } from "../src/sim/launch.ts";
@@ -119,7 +119,9 @@ const frontAxle = (v: { x: number; z: number; heading: number }) =>
   ({ x: v.x - Math.sin(v.heading) * HANDLING.frontAxleDistance, z: v.z - Math.cos(v.heading) * HANDLING.frontAxleDistance });
 
 test("in free roam the stick swings the tail round the front wheels, and the launch out of it is a race launch's worth", () => {
-  const world = createAlderWorld(false);
+  // Keep the measured launch benchmark at its original heading and location.
+  // The player now spawns facing out of the garage; that is covered by garage.test.
+  const world = { ...createAlderWorld(false), start: ALDER_GARAGE.entrance };
   const run = (steer: number, burnout: boolean) => {
     const sim = createSim("rwd", world);
     for (let i = 0; i < 30; i++) step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });

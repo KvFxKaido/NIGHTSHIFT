@@ -65,7 +65,8 @@ import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } 
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { loadMenuTheme, type MenuTheme } from "./audio/menu-theme.ts";
-import { usesMenuTheme } from "./ui/menu-state.ts";
+import { usesMenuTheme, type MenuScreen } from "./ui/menu-state.ts";
+import { createGarageCutscene, advanceGarageCutscene, shotProgress, easeShot } from "./render/garage-cutscene.ts";
 import { engineTone, REDLINE_RPM, tyreScrub, windLevel, type AudioLevels } from "./audio/audio-mix.ts";
 import { createSettingsStore, settingsStatusMessage, withoutSettingsOverrides,
   type SettingsPatch, type SettingsUrlKey } from "./settings/settings.ts";
@@ -535,6 +536,40 @@ const savePanel = createSavesPanel(saves, () => ({
 }));
 /** Whether a drive is under way, so the race list can draw a race from where the car is. */
 let onTheStreet = false;
+let previousScreen: MenuScreen = "main";
+const reducedGarageMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const garageShotSkip = document.querySelector<HTMLButtonElement>("#garage-shot-skip")!;
+function finishGarageShot(): void {
+  if (!view.garageCutscene) return;
+  view.garageCutscene.elapsed = view.garageCutscene.duration;
+  // Draw the exact endpoint before releasing either the controls or the camera.
+  render(view, sim.state, 0, { x: 0, y: 0 });
+  view.garageCutscene = undefined;
+  delete document.body.dataset.garageCinematic;
+  document.getElementById("menu-root")!.inert = false;
+  garageShotSkip.hidden = true;
+  // Enter can trigger the skip button's native click before the input queue
+  // drains. Do not let that same press activate a garage item or re-enter it.
+  input.consumeMenuCommands();
+  previousPoses = null;
+  input.armDrivingInputGate();
+  if (view.mode === "garage") document.querySelector<HTMLButtonElement>('[data-menu-screen="garage"] button:not(:disabled)')?.focus();
+  else view.renderer.domElement.focus({ preventScroll: true });
+}
+function beginGarageShot(kind: "enter" | "exit"): void {
+  if (reducedGarageMotion.matches) return;
+  const car = sim.state.vehicle;
+  const roll = canEnterGarage(ALDER_GARAGE, car, !!race) && Math.abs(car.heading - Math.PI / 2) < .15;
+  view.garageCutscene = createGarageCutscene(kind, roll);
+  document.body.dataset.garageCinematic = kind;
+  document.body.style.setProperty("--garage-shot-fade", "1");
+  document.getElementById("menu-root")!.inert = true;
+  garageShotSkip.hidden = false;
+  garageShotSkip.focus();
+}
+garageShotSkip.addEventListener("click", finishGarageShot);
+reducedGarageMotion.addEventListener("change", event => { if (event.matches) finishGarageShot(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) finishGarageShot(); });
 const menu = createMenuController({
   enterMenu: () => {
     enteredMenu = true;
@@ -574,6 +609,9 @@ const menu = createMenuController({
     saveSettings({ customization: Object.fromEntries(changed.map(key => [key, customization[key]])) }, changed);
   },
   screenChanged: (screen, state) => {
+    const from = previousScreen;
+    previousScreen = screen;
+    if (view.garageCutscene) finishGarageShot();
     frontEndMusic = usesMenuTheme(state);
     syncMenuMusic();
     if (screen !== "garage") {
@@ -589,6 +627,9 @@ const menu = createMenuController({
     if (screen === "races") raceList.render();
     if (screen === "blacklist") blacklistPanel.render();
     setViewMode(view, screen === "garage" ? "garage" : screen === "main" ? "main" : "track");
+    if (screen === "garage" && from !== "garage") beginGarageShot("enter");
+    else if (screen === "playing" && (from === "garage" || from === "main")
+      && canEnterGarage(ALDER_GARAGE, sim.state.vehicle, !!race)) beginGarageShot("exit");
   },
   getAudioLevels: () => audioLevels,
   setAudioLevel: (channel, value) => {
@@ -646,7 +687,7 @@ for (const event of ["pointerdown", "keydown"] as const) {
 const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
 const garageAvailable = () => canEnterGarage(ALDER_GARAGE, sim.state.vehicle, sim.state.race !== null);
 garagePrompt.addEventListener("click", () => {
-  if (menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
+  if (!view.garageCutscene && menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
 });
 
 const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElement;
@@ -878,12 +919,20 @@ function frame(now: number): void {
   menuTheme?.update();
   refreshControlHints(input.activeGamepadName(), input.bindings());
   const commands = input.consumeMenuCommands();
-  if (commands.includes("flash")) flashHeadlights();
-  if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
+  garageShotSkip.textContent = input.activeGamepadName()
+    ? `Skip · ${padLabel(0, input.activeGamepadName())} / Enter / Esc` : "Skip · Enter / Esc";
+  if (view.garageCutscene) {
+    if (commands.some(command => command === "confirm" || command === "back" || command === "pause")) finishGarageShot();
+  } else if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
     menu.enterGarage();
   } else if (!liveryEditor.handleBack(commands)) menu.handleCommands(commands);
-  const gameplayActive = menu.isGameplayActive();
-  const garageActive = menu.isGarageActive();
+  if (view.garageCutscene) {
+    if (advanceGarageCutscene(view.garageCutscene, frameDelta)) finishGarageShot();
+    else document.body.style.setProperty("--garage-shot-fade", String(1 - easeShot(shotProgress(view.garageCutscene) / .16)));
+  }
+  const gameplayActive = menu.isGameplayActive() && !view.garageCutscene;
+  const garageActive = menu.isGarageActive() && !view.garageCutscene;
+  if (gameplayActive && commands.includes("flash")) flashHeadlights();
   // The card is the prompt: whoever the flash would reach, or whoever it just
   // did. A rival with no card cannot be offered, which is what the roster test
   // in tests/rival-card.test.ts is for.
@@ -965,7 +1014,7 @@ function frame(now: number): void {
   updateHud();
   // Once per frame, never inside the tick: audio reads the simulation and can
   // neither change it nor make a run irreproducible.
-  audio?.update(sim.state.vehicle, lastInput, menu.isGameplayActive() && !frozen, sim.state.handling.topSpeed);
+  audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen, sim.state.handling.topSpeed);
   const renderStart = measuring ? performance.now() : 0;
   render(
     view,

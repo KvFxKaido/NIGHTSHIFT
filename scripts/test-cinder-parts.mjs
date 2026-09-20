@@ -32,7 +32,7 @@ try {
       };
     } });
   });
-  const ready = () => page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready', null, { timeout: 120000 });
+  const ready = () => page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready' && !__ns.view.garageCutscene, null, { timeout: 120000 });
   const capture = async name => {
     await page.evaluate(async () => {
       const img = new Image();
@@ -93,7 +93,7 @@ try {
   await page.evaluate(() => { __ns.view.garageYaw = Math.PI; });
   await capture('race-restored');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
-  await page.waitForFunction(() => document.body.dataset.gameScreen === 'playing');
+  await page.waitForFunction(() => document.body.dataset.gameScreen === 'playing' && !__ns.view.garageCutscene);
   await page.evaluate(() => { __ns.drive('W120'); });
   assert.ok((await equipped()).includes('cinder-spoiler-wing'));
   await capture('race-drive');

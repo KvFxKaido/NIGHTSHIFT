@@ -376,6 +376,21 @@ body[data-game-screen="pause"] #hud {
   gap: 13px;
 }
 
+body[data-garage-cinematic] #menu-root,
+body[data-garage-cinematic] #hud { opacity: 0; pointer-events: none; }
+#garage-shot-shade { display: none; }
+body[data-garage-cinematic] #garage-shot-shade {
+  display: block; position: fixed; inset: 0; z-index: 22; pointer-events: none;
+  background: rgba(0, 0, 0, var(--garage-shot-fade, 0));
+  border-top: 4vh solid #030509; border-bottom: 4vh solid #030509;
+}
+#garage-shot-skip {
+  position: fixed; bottom: 5vh; right: 24px; z-index: 23;
+  padding: 12px 16px; border: 1px solid #75dfff; background: #08121de6;
+  color: #e2e5e1; cursor: pointer; font: inherit;
+}
+#garage-shot-skip[hidden] { display: none; }
+
 [data-cinder-parts] { margin-top: 13px; }
 [data-cinder-parts][hidden] { display: none; }
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { ALDER_DATA as data, ALDER_BLOCKS, ALDER_GARAGE, ALDER_STREETS, ALDER_RACE, createAlderWorld, alderHeight, projectOntoAlder } from "../src/sim/alder.ts";
+import { ALDER_DATA as data, ALDER_BLOCKS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_STREETS, ALDER_RACE, createAlderWorld, alderHeight, projectOntoAlder } from "../src/sim/alder.ts";
 import { segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { createSim, step } from "../src/sim/sim.ts";
 import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficVehicleState } from "../src/sim/traffic.ts";
@@ -62,10 +62,10 @@ test("Port Alder race spawn drives north clear of buildings and replays identica
 });
 
 test("Port Alder free roam starts at the garage while races retain their street grid",()=>{
-  assert.deepEqual(createAlderWorld().start,ALDER_GARAGE.entrance);
-  assert.notDeepEqual(createAlderWorld(true).start,ALDER_GARAGE.entrance);
-  const entrance=ALDER_GARAGE.entrance,building=ALDER_GARAGE.building;
-  assert.ok(segmentFootprintDistance(building,entrance,{x:entrance.x,z:entrance.z+9})>=4.9,"chase camera sits inside garage");
+  assert.deepEqual(createAlderWorld().start,ALDER_GARAGE_EXIT);
+  assert.notDeepEqual(createAlderWorld(true).start,ALDER_GARAGE_EXIT);
+  const exit=ALDER_GARAGE_EXIT,building=ALDER_GARAGE.building;
+  assert.ok(segmentFootprintDistance(building,exit,{x:exit.x+7.2,z:exit.z})>=1.7,"chase camera sits inside garage");
 });
 
 // A vehicle changing lanes is written onto the new lane at the distance it
