@@ -28,7 +28,7 @@ export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:gara
 export const ALDER_GARAGE_EXIT = {x:13,y:2,z:910,heading:Math.PI/2,pitch:0};
 export const GARAGE_PLOT_ID = buildingId(garageBuilding);
 /** The paved apron in front of Wharf Garage (drawn as `garage-forecourt`). */
-export const ALDER_FORECOURT: BuildingBlock = {x:6.5,z:910,width:31,depth:40,height:1,base:2,rotation:0};
+export const ALDER_FORECOURT: BuildingBlock = {x:11.5,z:910,width:21,depth:40,height:1,base:2,rotation:0};
 export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...data.buildings,garageBuilding];
 export const ALDER_LAYOUT_BASELINE = layoutFingerprint(GENERATED_ALDER_BLOCKS.map(block=>
   Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000]))));

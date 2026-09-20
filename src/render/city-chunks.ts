@@ -78,7 +78,7 @@ export const CHUNK_SIZE = 512;
  * is not in this list is left exactly as it was built.
  */
 export const CHUNKED_SCENERY = [
-  "alder-asphalt", "alder-pavement", "alder-ground", "alder-outskirts", "alder-lane-paint",
+  "alder-asphalt", "alder-pavement", "alder-ground", "alder-outskirts", "alder-lane-paint", "alder-lane-paint-white",
   "alder-lamp-posts", "alder-lamp-heads", "alder-lamp-pools",
   "port-pier-lamp-posts", "port-pier-lamp-heads", "port-deck-pools",
   "alder-yard-masts", "alder-yard-heads",

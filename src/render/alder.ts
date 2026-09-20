@@ -2,13 +2,14 @@ import { addBroadcastTower } from "./broadcast-tower.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
-  ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
+  ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
 import { addEvergreens } from "./evergreens.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
-import { laneMarkings, pathLength, pathSamples } from "../sim/lanes.ts";
+import { roadMarkings } from "./road-markings.ts";
+import { asphaltMaterial } from "./asphalt.ts";
 import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing } from "./night.ts";
 import { buildingFrontage } from "../sim/frontage.ts";
 import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
@@ -108,11 +109,12 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       positions.set([x,alderHeight(x,z)+lift,z],i/2*3);
     }
     const geometry=new THREE.BufferGeometry(); geometry.setAttribute("position",new THREE.BufferAttribute(positions,3)); geometry.computeVertexNormals();
-    const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
+    if (name === "alder-asphalt") geometry.setAttribute("uv", new THREE.Float32BufferAttribute(points.map(v => v / 8), 2));
+    const mesh=new THREE.Mesh(geometry,name === "alder-asphalt" ? asphaltMaterial(color) : new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
       polygonOffset:lift>0,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
     mesh.name=name; mesh.receiveShadow=true;scene.add(mesh);
   }
-  surface("alder-asphalt",data.asphalt,night?0x283440:0x424e54);
+  surface("alder-asphalt",data.asphalt,night?0x46515b:0x62686b);
   surface("alder-pavement",data.pavement,night?0x4b515b:0x879090);
   surface("alder-ground",data.ground,night?0x182322:0x425148);
   for (const park of data.parks) surface(park.id,park.surface,night?0x263d31:0x54764c,.012);
@@ -143,8 +145,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   surface("alder-outskirts",outskirts,night?0x182322:0x425148);
   const buildings=ALDER_BLOCKS.filter(block=>block!==ALDER_GARAGE.building);
   addGarageExterior(scene,ALDER_GARAGE.building);
-  const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(31,40),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
-  forecourt.rotation.x=-Math.PI/2;forecourt.position.set(6.5,2.012,910);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
+  const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
+  forecourt.rotation.x=-Math.PI/2;forecourt.position.set(ALDER_FORECOURT.x,ALDER_FORECOURT.base+.012,ALDER_FORECOURT.z);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
   if(night){
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
     addNightBuildings(scene,buildings.map((b,index)=>{
@@ -161,27 +163,27 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     buildings.forEach((b,i)=>{pose.position.set(b.x,b.base+b.height/2,b.z);pose.rotation.y=-b.rotation;pose.scale.set(b.width,b.height,b.depth);pose.updateMatrix();blocks.setMatrixAt(i,pose.matrix);});
     blocks.name="alder-buildings";blocks.castShadow=true;scene.add(blocks);
   }
-  const paint: THREE.BufferGeometry[]=[];
-  function strip(ax:number,az:number,bx:number,bz:number,width:number):void {
+  const paint: Record<"yellow" | "white", THREE.BufferGeometry[]>={yellow:[],white:[]};
+  function strip(ax:number,az:number,bx:number,bz:number,width:number,color:"yellow" | "white"):void {
     const dx=bx-ax,dz=bz-az,length=Math.hypot(dx,dz),nx=-dz/length*width/2,nz=dx/length*width/2;
     const points=[[ax+nx,az+nz],[bx+nx,bz+nz],[ax-nx,az-nz],[ax-nx,az-nz],[bx+nx,bz+nz],[bx-nx,bz-nz]];
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flatMap(([x,z])=>[x!,alderHeight(x!,z!)+.025,z!]),3));
-    paint.push(geometry);
+    paint[color].push(geometry);
   }
-  for(const street of ALDER_STREETS) {
-    const length=pathLength(street.points);
-    // Leave junction mouths open. No arrows impose a route on the player.
-    for(const sample of pathSamples(street.points,10)) for(const mark of laneMarkings(sample.width,street.kind)) {
-      if(sample.distance<12||sample.distance>length-20)continue;
-      if(mark.kind==='edge')continue;
-      const {x,z,dirX:ux,dirZ:uz}=sample,span=mark.kind==='centre'?8:4;
-      strip(x-uz*mark.offset,z+ux*mark.offset,x+ux*span-uz*mark.offset,z+uz*span+ux*mark.offset,.14);
+  for (const mark of roadMarkings(ALDER_STREETS)) strip(mark.ax,mark.az,mark.bx,mark.bz,.13,mark.color);
+  for (const color of ["yellow", "white"] as const) {
+    const merged = paint[color].length ? mergeGeometries(paint[color]) : null;
+    if (merged) {
+      merged.computeVertexNormals();
+      const mesh = new THREE.Mesh(merged,new THREE.MeshStandardMaterial({
+        color:color === "yellow" ? 0xc9ad60 : 0xc9cbc5,roughness:.95,side:THREE.DoubleSide,
+        polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,
+      }));
+      mesh.name=color === "yellow" ? "alder-lane-paint" : "alder-lane-paint-white";scene.add(mesh);
     }
+    paint[color].forEach(g=>g.dispose());
   }
-  const merged=mergeGeometries(paint);
-  if(merged){const mesh=new THREE.Mesh(merged,new THREE.MeshBasicMaterial({color:0xe9c879,side:THREE.DoubleSide}));mesh.name='alder-lane-paint';scene.add(mesh);}
-  paint.forEach(g=>g.dispose());
   const concrete=new THREE.MeshStandardMaterial({color:0x4e5d64,roughness:.9});
   const red=new THREE.MeshStandardMaterial({color:0xb34833,roughness:.6});
   function box(name:string,x:number,y:number,z:number,w:number,h:number,d:number,material:THREE.Material):void {
