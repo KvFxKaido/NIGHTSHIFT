@@ -4,7 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { ALDER_DATA as data, ALDER_BLOCKS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_STREETS, ALDER_RACE, createAlderWorld, alderHeight, projectOntoAlder } from "../src/sim/alder.ts";
 import { segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { createSim, step } from "../src/sim/sim.ts";
-import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { createTraffic, stepTraffic, trafficCornering, TRAFFIC_KINDS, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { TRAFFIC_HEIGHT_STEP } from "../src/sim/street-traffic.ts";
 import { hasContact } from "./helpers/handling.ts";
 
@@ -156,7 +156,7 @@ test("Port Alder traffic keeps moving on finite, connected lane paths", () => {
     if(!offGround)for(const v of traffic.vehicles){
       const drop=Math.abs(v.y-alderHeight(v.x,v.z));
       if(drop>=.02){offGround=`#${v.id} ${drop.toFixed(3)} m off the ground at tick ${tick}`+
-        `${v.blendLeft>0?" (mid-crossing)":" (settled on its lane)"}`;break;}
+        `${trafficCornering(network,v)?" (on a corner)":" (on its lane)"}`;break;}
     }
     for(let i=0;i<traffic.vehicles.length;i++)for(let j=i+1;j<traffic.vehicles.length;j++){
       const a=traffic.vehicles[i]!,b=traffic.vehicles[j]!;

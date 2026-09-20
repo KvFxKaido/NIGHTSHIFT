@@ -43,7 +43,9 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
  * junctions held for a racer that could not stop before reaching them.
  */
 // v5 adds SUVs to the deterministic fleet, with their own collision dimensions.
-export const TRAFFIC_REVISION = "traffic-v5";
+// v6 (2026-09-20): corners and lane bends are driven as curves and slowed for
+// (`Corner`), where a vehicle used to drive to its lane's end and slide onto the next.
+export const TRAFFIC_REVISION = "traffic-v6";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -152,12 +154,19 @@ export interface TrafficSweep {
   readonly to: number;
 }
 
+/** A vertex of a lane's own polyline: metres along the lane, and how far it turns there (positive is left). */
+export interface TrafficBend { readonly distance: number; readonly turn: number }
+
 /** What traffic needs from a world to drive it. Supplied by whichever world has
  *  lanes; `RoadWorld.traffic` is optional and Blackglass has none. */
 export interface TrafficNetwork {
   readonly lanes: readonly TrafficLane[];
   readonly movements: readonly TrafficMovement[];
   pose(lane: number, distance: number): LanePose;
+  /** Where a lane turns along its own length, in order. A world without them has lanes driven as drawn. */
+  bends?(lane: number): readonly TrafficBend[];
+  /** Metres from a lane's line to the kerb on its right, at least. A world that cannot say is taken to have half a lane's. */
+  kerb?(lane: number): number;
   /** Ground height anywhere, not only on a lane. A vehicle crossing a junction
    *  is briefly between two lanes, and `pose` can only answer for one of them. */
   height(x: number, z: number): number;
@@ -190,22 +199,11 @@ export interface TrafficVehicleState {
   z: number;
   heading: number;
   /**
-   * The offset from the new lane's pose back to where the vehicle actually was
-   * when it last crossed into that lane, and how much of it is left to absorb.
-   *
-   * Lanes are independent offset polylines, so the start of the next lane is
-   * not the end of the previous one: writing the new lane's pose directly moved
-   * a vehicle several metres sideways in a single tick. Traffic bodies are
-   * kinematic, so that swept the body through anything beside it. The offset is
-   * closed off as the vehicle drives instead, which keeps the pose continuous.
+   * The movement it arrived on this lane by, or -1: which corner it is still
+   * driving out of (`Corner`). `holds` cannot say, because a chain drops each
+   * movement as the next takes over.
    */
-  blendX: number;
-  blendZ: number;
-  blendHeading: number;
-  /** Metres of offset still to absorb; 0 when not crossing. */
-  blendLeft: number;
-  /** What blendLeft started at, so the blend has a fraction to interpolate. */
-  blendSpan: number;
+  via: number;
   /** Slowing, or held at a standstill: what its brake lights show. */
   braking: boolean;
 }
@@ -235,12 +233,343 @@ const MAX_CHAIN = 4;
 /** A vehicle with no claim aims to stop this far short of the entry line. */
 const STOP_SHORT = 2;
 
+/**
+ * How a movement is driven (2026-09-20): a curve from the lane it arrives on to
+ * the lane it leaves by, tangent to both, standing in for the last `a` metres of
+ * the one and the first `b` of the other.
+ *
+ * Lanes are independent offset polylines, so they do not meet: a right turn's
+ * lane runs 1.75 m past the lane it turns into and the next begins 1.75 m back,
+ * and a left turn's stops that far short. Until now a vehicle drove to the end of
+ * its lane, was put on the next, and had the step between them and the change of
+ * heading interpolated away over the next few metres, each on its own schedule.
+ * Measured over 1,136 turns: the body pointed a median 140 degrees from the way
+ * it was moving in a right turn and 70 in a left, turned at 180 degrees a second
+ * with single ticks of 90, and took it all at cruise, 36 to 38 mph.
+ *
+ * Bookkeeping is untouched: a vehicle is still on a lane at a distance, which is
+ * what every reservation, gap and entry line is measured in. Only where that puts
+ * it on the ground changes, and how fast the distance runs. The curve is shorter
+ * than the lane ends it replaces, so the ground is covered along the curve's own
+ * length and the lane distance read back from it (`advance`): the vehicle moves
+ * at exactly its speed the whole way, which is also what lets a corner have a
+ * speed in real m/s, and lane distance simply runs faster while it is on one.
+ */
+interface Corner {
+  readonly a: number;
+  readonly b: number;
+  readonly x: readonly [number, number, number, number];
+  readonly z: readonly [number, number, number, number];
+  /** The curve's own length, which is less than the `a + b` of lane it stands in for wherever it cuts a corner. */
+  readonly length: number;
+  /** The curve's parameter at equal shares of its length, so it is driven by distance, not by parameter. */
+  readonly params: Float64Array;
+  /** What the corner is taken at, m/s. Infinity where it is no corner at all. */
+  readonly speed: number;
+}
+
+const CORNER = {
+  /**
+   * A turn is rounded as wide as its kerb lets it be. The kerbs are square: the
+   * road is a mitred ribbon and a junction's pavements meet in a point, so inside
+   * a right turn that point stands `kerb / cos(turn / 2)` from where the lane lines
+   * meet, and an arc of radius r reaches `r (1 / cos(turn / 2) - 1)` towards it.
+   * Keeping half the widest body (the box truck, and a little) clear of it gives
+   * the radius, which is tight at a right angle and tighter past one, because that
+   * is what a square kerb leaves. A fixed 4.5 m put an SUV's corner on the point of
+   * an acute junction. A left turn has the same arc a lane further out, and at a
+   * junction never less than `left`: it sweeps the middle, where there is no kerb.
+   */
+  body: 1.3, kerb: 1.75, lane: 3.5, left: 8, widest: 14,
+  /** A turn sharper or gentler than these is not rounded about where its lane lines meet: they barely meet. */
+  gentlest: 25 * Math.PI / 180, sharpest: 155 * Math.PI / 180,
+  /** Lane swapped for curve either side where there is no such meeting point: straight on, or back the way it came. */
+  straight: 6, about: 4,
+  /** Least lane either side, however the lines fall; most, as a share of the lane, so two corners never overlap on a short one. */
+  least: 1, share: 0.45, most: 25,
+  /** Most lane either side of a bend in a lane's own polyline that its curve stands in for. */
+  reach: 12,
+  /** A vertex turning less than this is left as drawn: two degrees is a twitch nobody sees. */
+  bend: 2 * Math.PI / 180,
+  /**
+   * Sideways acceleration a corner is taken at, and the braking a driver plans on
+   * for one. Brisk, not cautious, and for a reason: a turning vehicle holds its
+   * junction for as long as the turn takes, and at a cautious 3.5 m/s² (right
+   * turns at 10 mph) the fleet crossed a fifth fewer junctions and twice as many
+   * stood waiting. At 6 it is 14 mph and a ninth fewer.
+   */
+  lateral: 6, comfort: 3.5,
+  /** No corner is taken slower than this, however tight: a two-metre connector between junctions would otherwise stop traffic. */
+  crawl: 2,
+  steps: 32,
+} as const;
+
+const wrapAngle = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+
+/** The radius a turn of `turn` radians (positive is left) is rounded to, `kerb` metres from the lane line to the kerb inside it. */
+function cornerRadius(turn: number, kerb: number): number {
+  const half = Math.cos(Math.abs(turn) / 2);
+  const right = Math.max(1.5, Math.min(CORNER.widest, (kerb - CORNER.body * half) / Math.max(1e-6, 1 - half)));
+  return turn > 0 ? right + CORNER.lane : right;
+}
+
+const corners = new WeakMap<TrafficNetwork, Map<number, Corner | null>>();
+function cornerOf(network: TrafficNetwork, id: number): Corner | null {
+  let cache = corners.get(network);
+  if (!cache) corners.set(network, cache = new Map());
+  let corner = cache.get(id);
+  if (corner === undefined) cache.set(id, corner = buildCorner(network, network.movements[id]!));
+  return corner;
+}
+
+function buildCorner(network: TrafficNetwork, movement: TrafficMovement): Corner | null {
+  const from = network.lanes[movement.from]!, to = network.lanes[movement.to]!;
+  const end = network.pose(movement.from, from.length), start = network.pose(movement.to, 0);
+  const turn = wrapAngle(start.heading - end.heading), sharp = Math.abs(turn);
+  let a: number, b: number;
+  if (sharp < CORNER.gentlest) a = b = CORNER.straight;
+  else if (sharp > CORNER.sharpest) a = b = CORNER.about;
+  else {
+    // Where the two lane lines meet, measured along each: past the end of the
+    // one (a left turn), short of it (a right), and the same for the other's start.
+    const ax = -Math.sin(end.heading), az = -Math.cos(end.heading), bx = -Math.sin(start.heading), bz = -Math.cos(start.heading);
+    const det = az * bx - ax * bz, dx = start.x - end.x, dz = start.z - end.z;
+    const alongA = (dz * bx - dx * bz) / det;
+    const alongB = (ax * alongA - dx) * bx + (az * alongA - dz) * bz;
+    // The tangent a fillet of this radius needs, and no less than reaches back onto both lanes.
+    const kerb = Math.min(network.kerb?.(movement.from) ?? CORNER.kerb, network.kerb?.(movement.to) ?? CORNER.kerb);
+    const radius = turn > 0 ? Math.max(CORNER.left, cornerRadius(turn, kerb)) : cornerRadius(turn, kerb);
+    const tangent = Math.min(CORNER.most, Math.max(radius * Math.tan(sharp / 2), alongA + CORNER.least, CORNER.least - alongB));
+    a = tangent - alongA;
+    b = tangent + alongB;
+  }
+  a = Math.max(Math.min(a, from.length * CORNER.share), Math.min(CORNER.least, from.length * CORNER.share));
+  b = Math.max(Math.min(b, to.length * CORNER.share, movement.clear), Math.min(CORNER.least, to.length * CORNER.share));
+  return curveBetween(network.pose(movement.from, from.length - a), network.pose(movement.to, b), a, b);
+}
+
+/** The curve from one lane pose to another, standing in for `a` metres of lane before it and `b` after. */
+function curveBetween(p0: LanePose, p3: LanePose, a: number, b: number): Corner | null {
+  const chord = Math.hypot(p3.x - p0.x, p3.z - p0.z);
+  if (chord < 0.5) return null;
+  // Control arms that make the curve a circular arc where the ends allow one,
+  // and a plain smooth blend (a third of the chord) where there is no turn.
+  const swing = Math.abs(wrapAngle(p3.heading - p0.heading));
+  const arm = chord * (swing < 1e-3 ? 1 / 3 : (2 / 3) * Math.tan(swing / 4) / Math.sin(swing / 2));
+  // Neither arm past where the two tangents meet. Where the ends are not
+  // mirror images (a skewed junction, a lane that bends inside the curve) an arm
+  // that reaches past it pulls the curve into a hook: all its turning in a metre
+  // at one end, 8 degrees in a tick and 33 m/s² sideways on three junctions.
+  const ax = -Math.sin(p0.heading), az = -Math.cos(p0.heading), bx = -Math.sin(p3.heading), bz = -Math.cos(p3.heading);
+  const det = az * bx - ax * bz, dx = p3.x - p0.x, dz = p3.z - p0.z;
+  let arm0 = arm, arm3 = arm;
+  if (Math.abs(det) > 1e-6) {
+    const ahead = (dz * bx - dx * bz) / det, behind = (dx * az - dz * ax) / det;
+    if (ahead > 0 && behind > 0) { arm0 = Math.min(arm, ahead * 0.9); arm3 = Math.min(arm, behind * 0.9); }
+  }
+  const x = [p0.x, p0.x + ax * arm0, p3.x - bx * arm3, p3.x] as const;
+  const z = [p0.z, p0.z + az * arm0, p3.z - bz * arm3, p3.z] as const;
+
+  const lengths = new Float64Array(CORNER.steps + 1);
+  let px = x[0], pz = z[0], tightest = 0;
+  for (let i = 0; i <= CORNER.steps; i++) {
+    const u = i / CORNER.steps, [cx, cz, tx, tz] = bezier(x, z, u);
+    if (i) lengths[i] = lengths[i - 1]! + Math.hypot(cx - px, cz - pz);
+    px = cx; pz = cz;
+    // Curvature, from the curve's second derivative: the tightest point is what a corner's speed answers to.
+    const sx = 6 * (1 - u) * (x[2] - 2 * x[1] + x[0]) + 6 * u * (x[3] - 2 * x[2] + x[1]);
+    const sz = 6 * (1 - u) * (z[2] - 2 * z[1] + z[0]) + 6 * u * (z[3] - 2 * z[2] + z[1]);
+    const speed2 = tx * tx + tz * tz;
+    if (speed2 > 1e-9) tightest = Math.max(tightest, Math.abs(tx * sz - tz * sx) / (speed2 * Math.sqrt(speed2)));
+  }
+  const length = lengths[CORNER.steps]!;
+  const params = new Float64Array(CORNER.steps + 1);
+  for (let i = 1, j = 1; i <= CORNER.steps; i++) {
+    const want = length * i / CORNER.steps;
+    while (j < CORNER.steps && lengths[j]! < want) j++;
+    const span = lengths[j]! - lengths[j - 1]!;
+    params[i] = (j - 1 + (span > 1e-12 ? (want - lengths[j - 1]!) / span : 1)) / CORNER.steps;
+  }
+  const speed = tightest < 1 / 120 ? Infinity : Math.max(CORNER.crawl, Math.sqrt(CORNER.lateral / tightest));
+  return { a, b, x, z, length, params, speed };
+}
+
+function bezier(x: readonly number[], z: readonly number[], u: number): [number, number, number, number] {
+  const v = 1 - u, b0 = v * v * v, b1 = 3 * v * v * u, b2 = 3 * v * u * u, b3 = u * u * u;
+  const d0 = 3 * v * v, d1 = 6 * v * u, d2 = 3 * u * u;
+  return [
+    b0 * x[0]! + b1 * x[1]! + b2 * x[2]! + b3 * x[3]!, b0 * z[0]! + b1 * z[1]! + b2 * z[2]! + b3 * z[3]!,
+    d0 * (x[1]! - x[0]!) + d1 * (x[2]! - x[1]!) + d2 * (x[3]! - x[2]!), d0 * (z[1]! - z[0]!) + d1 * (z[2]! - z[1]!) + d2 * (z[3]! - z[2]!),
+  ];
+}
+
+interface Bend { readonly from: number; readonly corner: Corner }
+
+const laneBends = new WeakMap<TrafficNetwork, Map<number, readonly Bend[]>>();
+const arrivals = new WeakMap<TrafficNetwork, Map<number, number[]>>();
+/** A lane's rounded bends, in order. None reaches into the lane a junction's corner stands in for, at either end. */
+function bendsOf(network: TrafficNetwork, id: number): readonly Bend[] {
+  let cache = laneBends.get(network);
+  if (!cache) laneBends.set(network, cache = new Map());
+  let bends = cache.get(id);
+  if (bends) return bends;
+  const drawn = (network.bends?.(id) ?? []).filter(bend => Math.abs(bend.turn) >= CORNER.bend);
+  const built: Bend[] = [];
+  if (drawn.length) {
+    let into = arrivals.get(network);
+    if (!into) {
+      arrivals.set(network, into = new Map());
+      for (const movement of network.movements) { const list = into.get(movement.to); if (list) list.push(movement.id); else into.set(movement.to, [movement.id]); }
+    }
+    const lane = network.lanes[id]!;
+    const first = Math.max(0, ...(into.get(id) ?? []).map(movement => cornerOf(network, movement)?.b ?? 0));
+    const last = lane.length - Math.max(0, ...lane.movements.map(movement => cornerOf(network, movement)?.a ?? 0));
+    drawn.forEach((bend, i) => {
+      const before = i ? drawn[i - 1]!.distance : -Infinity, after = i + 1 < drawn.length ? drawn[i + 1]!.distance : Infinity;
+      const radius = cornerRadius(bend.turn, network.kerb?.(id) ?? CORNER.kerb);
+      const tangent = Math.min(radius * Math.tan(Math.abs(bend.turn) / 2), CORNER.reach,
+        (bend.distance - before) * CORNER.share, (after - bend.distance) * CORNER.share, bend.distance - first, last - bend.distance);
+      if (tangent < 0.3) return;
+      const corner = curveBetween(network.pose(id, bend.distance - tangent), network.pose(id, bend.distance + tangent), tangent, tangent);
+      if (corner) built.push({ from: bend.distance - tangent, corner });
+    });
+  }
+  cache.set(id, bends = built);
+  return bends;
+}
+
+/** The corner a vehicle is on and how far through the lane it replaces, or null on its lane. */
+interface OnCorner {
+  readonly corner: Corner;
+  /** Metres into the lane the curve replaces, and the lane distance at which that is zero (negative on the lane a turn leaves by). */
+  readonly along: number;
+  readonly from: number;
+  /**
+   * The lane distance at which this lane's stretch of the curve ends: a turn's
+   * first stretch ends with its lane and carries on in the next. Held as the very
+   * number the test for being on the curve compares against, never rebuilt from
+   * `from`: rebuilt, it came out 2e-15 short of `b`, and a vehicle that had
+   * finished its corner was still on it, going nowhere at 9 mph.
+   */
+  readonly end: number;
+}
+
+function cornerAt(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): OnCorner | null {
+  const lane = network.lanes[vehicle.lane]!;
+  // Leaving: the movement it holds from here, or has decided on. Deciding is
+  // pure (`movementAt`), so a vehicle waiting at the line is on the curve it will drive.
+  for (const id of [vehicle.holds[0], vehicle.movement]) {
+    if (id === undefined || id < 0 || network.movements[id]!.from !== vehicle.lane) continue;
+    const corner = cornerOf(network, id);
+    if (corner && vehicle.distance >= lane.length - corner.a) {
+      return { corner, along: vehicle.distance - (lane.length - corner.a), from: lane.length - corner.a, end: lane.length };
+    }
+    break;
+  }
+  if (vehicle.via >= 0 && network.movements[vehicle.via]!.to === vehicle.lane) {
+    const corner = cornerOf(network, vehicle.via);
+    if (corner && vehicle.distance < corner.b) return { corner, along: corner.a + vehicle.distance, from: -corner.a, end: corner.b };
+  }
+  for (const bend of bendsOf(network, vehicle.lane)) {
+    if (vehicle.distance < bend.from) break;
+    const span = bend.corner.a + bend.corner.b;
+    if (vehicle.distance < bend.from + span) return { corner: bend.corner, along: vehicle.distance - bend.from, from: bend.from, end: bend.from + span };
+  }
+  return null;
+}
+
+/** Where the next curve ahead on this lane begins, or Infinity: a bend, or the corner of the movement it will take. */
+function nextCorner(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): number {
+  let next = Infinity;
+  for (const bend of bendsOf(network, vehicle.lane)) if (bend.from >= vehicle.distance) { next = bend.from; break; }
+  for (const id of [vehicle.holds[0], vehicle.movement]) {
+    if (id === undefined || id < 0 || network.movements[id]!.from !== vehicle.lane) continue;
+    const corner = cornerOf(network, id);
+    if (corner) next = Math.min(next, Math.max(vehicle.distance, network.lanes[vehicle.lane]!.length - corner.a));
+    break;
+  }
+  return next;
+}
+
+/**
+ * Drive `ground` metres along the vehicle's lane, no further than `stop` or the
+ * lane's end, and hand back what is left. On its lane a metre of ground is a
+ * metre of lane. On a curve the ground is covered along the curve's own length
+ * and the lane distance read back from it, exactly: a curve can be a fraction of
+ * the lane it replaces, lane distance then runs many times faster than the
+ * vehicle, and stepping it at a rate sampled once a tick threw one van 21.6 m
+ * past the end of its corner in a single tick.
+ */
+function advance(network: TrafficNetwork, vehicle: TrafficVehicleState, ground: number, stop: number): number {
+  const limit = Math.min(network.lanes[vehicle.lane]!.length, stop);
+  for (let guard = 0; guard < 32 && ground > 1e-12 && vehicle.distance < limit; guard++) {
+    const on = cornerAt(network, vehicle);
+    if (!on) {
+      const next = Math.min(limit, nextCorner(network, vehicle));
+      const room = next - vehicle.distance;
+      if (ground < room) { vehicle.distance += ground; return 0; }
+      vehicle.distance = next;
+      ground -= room;
+      continue;
+    }
+    // Metres of lane to a metre of curve, and how much curve is left before this stretch ends.
+    const scale = (on.corner.a + on.corner.b) / on.corner.length;
+    const end = Math.min(on.end, limit), room = (end - vehicle.distance) / scale;
+    if (ground < room) { vehicle.distance = Math.min(end, vehicle.distance + ground * scale); return 0; }
+    vehicle.distance = end;
+    ground -= Math.max(0, room);
+  }
+  return ground;
+}
+
+/** Whether a vehicle is on a curve, a junction's or a bend's, rather than on its lane as drawn. */
+export function trafficCornering(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): boolean {
+  return cornerAt(network, vehicle) !== null;
+}
+
+/**
+ * The fastest a vehicle may be going here for the corner it is in or coming to:
+ * the corner's own speed on it, and on the way in whatever still brakes to that
+ * by where the curve starts, at the rate a driver plans on, not the one they have.
+ */
+function cornerLimit(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): number {
+  const on = cornerAt(network, vehicle);
+  let limit = on ? on.corner.speed : Infinity;
+  const brakingFor = (corner: Corner, before: number) => {
+    if (corner.speed !== Infinity && before >= 0) limit = Math.min(limit, Math.sqrt(corner.speed * corner.speed + 2 * CORNER.comfort * before));
+  };
+  for (const bend of bendsOf(network, vehicle.lane)) brakingFor(bend.corner, bend.from - vehicle.distance);
+  for (const id of [vehicle.holds[0], vehicle.movement]) {
+    if (id === undefined || id < 0 || network.movements[id]!.from !== vehicle.lane) continue;
+    const corner = cornerOf(network, id);
+    if (corner) brakingFor(corner, network.lanes[vehicle.lane]!.length - corner.a - vehicle.distance);
+    break;
+  }
+  return limit;
+}
+
 function place(network: TrafficNetwork, vehicle: TrafficVehicleState): void {
-  const pose = network.pose(vehicle.lane, vehicle.distance);
-  vehicle.x = pose.x;
-  vehicle.y = pose.y;
-  vehicle.z = pose.z;
-  vehicle.heading = pose.heading;
+  const on = cornerAt(network, vehicle);
+  if (!on) {
+    const pose = network.pose(vehicle.lane, vehicle.distance);
+    vehicle.x = pose.x;
+    vehicle.y = pose.y;
+    vehicle.z = pose.z;
+    vehicle.heading = pose.heading;
+    return;
+  }
+  const { corner } = on;
+  const at = Math.max(0, Math.min(1, on.along / (corner.a + corner.b))) * CORNER.steps;
+  const i = Math.min(CORNER.steps - 1, Math.floor(at));
+  const u = corner.params[i]! + (corner.params[i + 1]! - corner.params[i]!) * (at - i);
+  const [x, z, dx, dz] = bezier(corner.x, corner.z, u);
+  vehicle.x = x;
+  vehicle.z = z;
+  vehicle.heading = Math.atan2(-dx, -dz);
+  // Under the curve, not from either lane: the two do not meet the ground at the
+  // same place, and across the hill districts a lane's height left a turning
+  // vehicle floating or sunk. `tests/alder.test.ts` holds it to 2 cm.
+  vehicle.y = network.height(x, z);
 }
 
 /** The movement a vehicle takes at the end of `lane`, on its `turns`-th
@@ -248,57 +577,6 @@ function place(network: TrafficNetwork, vehicle: TrafficVehicleState): void {
 function movementAt(network: TrafficNetwork, id: number, lane: number, turns: number): number {
   const options = network.lanes[lane]!.movements;
   return options[mix(id * 40503 + turns) % options.length]!;
-}
-
-/** Longest offset absorbed in one crossing. Beyond this a vehicle would spend
- *  most of a street catching up, which reads as drifting rather than turning. */
-const BLEND_CAP = 24;
-
-/**
- * Begin absorbing the step from `from` to wherever the new lane just put it.
- *
- * Held as the offset back to where the vehicle was, not as that point. The new
- * lane's pose keeps advancing, so interpolating toward it chases a receding
- * target: the correction grows with every metre driven instead of shrinking,
- * and costs about two extra steps a tick rather than a fraction of one.
- */
-function beginHandoff(vehicle: TrafficVehicleState, from: { x: number; z: number; heading: number }): void {
-  const dx = from.x - vehicle.x, dz = from.z - vehicle.z;
-  const jump = Math.hypot(dx, dz);
-  if (jump <= 1e-6) return;
-  vehicle.blendX = dx;
-  vehicle.blendZ = dz;
-  // Shortest arc: a U-turn must not unwind the long way round.
-  vehicle.blendHeading = Math.atan2(Math.sin(from.heading - vehicle.heading),
-    Math.cos(from.heading - vehicle.heading));
-  // Spread over twice the offset, so closing it adds half a step per tick to
-  // the step the vehicle was already taking, rather than a whole one.
-  vehicle.blendSpan = Math.min(jump, BLEND_CAP) * 2;
-  vehicle.blendLeft = vehicle.blendSpan;
-}
-
-/**
- * Add what is left of the crossing offset to the lane pose, decaying it to zero
- * as the vehicle drives. At the crossing tick the offset is still whole, so the
- * pose is where the vehicle already was; by the end of the span it is nothing,
- * and the vehicle is exactly on its lane.
- *
- * `y` is resampled under the blended point rather than kept from the lane. The
- * two lanes do NOT meet the ground at the same place: across the hill districts
- * that left a turning vehicle floating above or sunk into the road, which
- * `tests/alder.test.ts` measures against `alderHeight` to within 2 cm.
- */
-function absorbHandoff(network: TrafficNetwork, vehicle: TrafficVehicleState, travelled: number): void {
-  if (vehicle.blendLeft <= 0 || vehicle.blendSpan <= 0) return;
-  // A vehicle stopped inside a junction still has to converge, or it would hold
-  // its offset until it moved again. Small enough never to outrun its own step.
-  vehicle.blendLeft = Math.max(0, vehicle.blendLeft - Math.max(travelled, vehicle.blendSpan / 600));
-  const left = vehicle.blendLeft / vehicle.blendSpan;
-  vehicle.x += vehicle.blendX * left;
-  vehicle.z += vehicle.blendZ * left;
-  vehicle.heading += vehicle.blendHeading * left;
-  vehicle.y = network.height(vehicle.x, vehicle.z);
-  if (vehicle.blendLeft === 0) vehicle.blendSpan = 0;
 }
 
 function chooseMovement(network: TrafficNetwork, vehicle: TrafficVehicleState): number {
@@ -327,9 +605,26 @@ function hasRefuge(network: TrafficNetwork, movement: TrafficMovement, length: n
  * same crossing in five minutes. Answering it properly means reserving time
  * windows rather than movements, which this does not do.
  */
+/**
+ * Whether a movement `vehicle` wants crosses one somebody holds.
+ *
+ * Not counting a holder whose movement delivers it onto `vehicle`'s own lane
+ * behind it (2026-09-20). Two movements conflict wherever their swept paths
+ * overlap, and the movement onto a lane overlaps the run-up of every movement off
+ * its far end, since that run-up reaches back most of a short lane. But a car
+ * arriving behind you on your lane is a queue, which the follower rule owns, as
+ * the network's own conflict pass says of a merge. Counted as a crossing it is a
+ * lock: the car at the line is refused because of the car behind it, which
+ * cannot release what it holds until it is clear, which it cannot be while the
+ * car at the line stands in its way. It was always possible and needed the
+ * follower to be waiting at its own line when the leader cleared; since traffic
+ * slows for its corners that is the usual case, and on the 73 m of lane 429 it
+ * stopped 16 vehicles in ten minutes.
+ */
 function crossingBusy(network: TrafficNetwork, holders: Map<number, TrafficVehicleState[]>,
-  movement: number): boolean {
-  return network.movements[movement]!.conflicts.some(conflict => holders.has(conflict.other));
+  movement: number, vehicle: Readonly<TrafficVehicleState>): boolean {
+  return network.movements[movement]!.conflicts.some(conflict => (holders.get(conflict.other) ?? []).some(holder =>
+    !(network.movements[conflict.other]!.to === vehicle.lane && (holder.lane !== vehicle.lane || holder.distance < vehicle.distance))));
 }
 
 function chainFor(network: TrafficNetwork, vehicle: TrafficVehicleState): number[] {
@@ -373,7 +668,7 @@ export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING
         id, kind, lane: lane.id, distance: first + (next - travelled),
         speed: TRAFFIC_KINDS[kind].cruise,
         movement: -1, holds: [], turns: 0, x: 0, y: 0, z: 0, heading: 0,
-        blendX: 0, blendZ: 0, blendHeading: 0, blendLeft: 0, blendSpan: 0, braking: false,
+        via: -1, braking: false,
       };
       vehicle.movement = chooseMovement(network, vehicle);
       place(network, vehicle);
@@ -489,15 +784,19 @@ function racerGap(network: TrafficNetwork, vehicle: TrafficVehicleState, racers:
 }
 
 const movementPaths = new WeakMap<TrafficNetwork, Map<number, LanePose[]>>();
-/** A movement's path as a polyline: its lane from the entry line, the handoff, the far lane to where it is clear. */
+/** A movement's path as a polyline: its lane from the entry line, the corner as it is driven, the far lane to where it is clear. */
 function movementPath(network: TrafficNetwork, id: number): LanePose[] {
   let cache = movementPaths.get(network);
   if (!cache) movementPaths.set(network, cache = new Map());
   let path = cache.get(id);
   if (!path) {
     const movement = network.movements[id]!, from = network.lanes[movement.from]!, to = network.lanes[movement.to]!;
-    path = [network.pose(movement.from, Math.max(0, from.length - from.entry)), network.pose(movement.from, from.length),
-      network.pose(movement.to, 0), network.pose(movement.to, Math.min(to.length, movement.clear))];
+    const corner = cornerOf(network, id);
+    const turn: LanePose[] = corner
+      ? [0, .2, .4, .6, .8, 1].map(u => { const [x, z, dx, dz] = bezier(corner.x, corner.z, u); return { x, y: 0, z, heading: Math.atan2(-dx, -dz) }; })
+      : [network.pose(movement.from, from.length), network.pose(movement.to, 0)];
+    path = [network.pose(movement.from, Math.max(0, from.length - Math.max(from.entry, corner?.a ?? 0))), ...turn,
+      network.pose(movement.to, Math.min(to.length, Math.max(movement.clear, corner?.b ?? 0)))];
     cache.set(id, path);
   }
   return path;
@@ -570,7 +869,15 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     .sort((a, b) => toEntry(a) - toEntry(b) || a.id - b.id);
   for (const vehicle of waiting) {
     const chain = chainFor(network, vehicle);
-    if (chain.some(id => holders.has(id) || crossingBusy(network, holders, id))) continue;
+    if (chain.some(id => holders.has(id) || crossingBusy(network, holders, id, vehicle))) continue;
+    // Head of every approach it claims, not only its own (2026-09-20). A chain
+    // claims the movements off the far end of each short lane it runs through,
+    // and whoever is already on one of those lanes is ahead of it for them. A box
+    // truck was granted a chain through a lane with a sedan waiting at its line:
+    // the truck then held the movement the sedan was first in the queue for,
+    // stopped behind it, and neither could ever move. The chain waits for the
+    // lanes it runs through to empty, which asks nothing of anyone it could block.
+    if (chain.slice(0, -1).some(id => (byLane.get(network.movements[id]!.to) ?? []).some(other => other !== vehicle))) continue;
     if (!mayEnter(network, byLane, vehicle, chain)) continue;
     // A racer in the junction, or crossing it before this vehicle could be clear, has it.
     const clearIn = Math.min(RACER_HORIZON.max, (toEntry(vehicle) + 30) / Math.max(3, vehicle.speed));
@@ -587,41 +894,36 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
       // claim has no right to any part of the junction.
       gap = Math.min(gap, Math.max(0, toEntry(vehicle) - STOP_SHORT) + MIN_GAP);
     }
-    // Linear follower: full cruise at a comfortable gap, stopped at the bumper.
-    const target = Math.max(0, Math.min(spec.cruise, (gap - MIN_GAP) / HEADWAY));
+    // Linear follower: full cruise at a comfortable gap, stopped at the bumper,
+    // and no faster than the corner it is in or coming to is taken.
+    const target = Math.max(0, Math.min(spec.cruise, (gap - MIN_GAP) / HEADWAY, cornerLimit(network, vehicle)));
     const rate = target > vehicle.speed ? ACCELERATION : BRAKING;
     const was = vehicle.speed;
     vehicle.speed += Math.max(-rate * dt, Math.min(rate * dt, target - vehicle.speed));
     vehicle.speed = Math.max(0, vehicle.speed);
     // Brake lights: slowing by more than 1 m/s², or held at a standstill.
     vehicle.braking = vehicle.speed < was - dt * 1 || (target < 0.5 && vehicle.speed < 0.5);
-    vehicle.distance += vehicle.speed * dt;
-
     // The entry line is a hard barrier, not a target to aim at. Everything here
     // rests on the invariant that no vehicle is ever past it without holding the
-    // movement beyond, so it is enforced rather than hoped for.
+    // movement beyond, so it is where a vehicle holding nothing stops being driven.
     const line = network.lanes[vehicle.lane]!.length - network.lanes[vehicle.lane]!.entry;
-    if (!vehicle.holds.length && vehicle.distance > line) {
-      vehicle.distance = line;
-      vehicle.speed = 0;
-    }
+    let ground = advance(network, vehicle, vehicle.speed * dt, vehicle.holds.length ? Infinity : Math.max(vehicle.distance, line));
+    if (!vehicle.holds.length && ground > 1e-9) vehicle.speed = 0;
 
-    // Where it stood before any crossing, which is what the new pose has to
-    // stay continuous with.
-    const held = { x: vehicle.x, z: vehicle.z, heading: vehicle.heading };
-    const laneBefore = vehicle.lane;
     let current = network.lanes[vehicle.lane]!;
     // `while`, not `if`: a short connector can be crossed inside one tick.
     while (vehicle.distance >= current.length) {
-      vehicle.distance -= current.length;
+      vehicle.distance = 0;
       vehicle.turns++;
-      vehicle.lane = network.movements[vehicle.holds[0]!]!.to;
+      vehicle.via = vehicle.holds[0]!;
+      vehicle.lane = network.movements[vehicle.via]!.to;
       current = network.lanes[vehicle.lane]!;
       // Drop the movement just completed only when a later one in the chain
       // takes over; otherwise it is released below, once actually clear.
       if (vehicle.holds.length > 1) vehicle.holds.shift();
       vehicle.movement = vehicle.holds.length > 1
         ? vehicle.holds[1]! : chooseMovement(network, vehicle);
+      ground = advance(network, vehicle, ground, Infinity);
     }
     // Released once clear on the far side, which is where the crossing ends.
     if (vehicle.holds.length === 1) {
@@ -632,19 +934,18 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
       }
     }
     place(network, vehicle);
-    if (vehicle.lane !== laneBefore) beginHandoff(vehicle, held);
-    absorbHandoff(network, vehicle, vehicle.speed * dt);
   }
 }
 
 /**
  * Where a vehicle will be `seconds` from now if it keeps its speed and its plan
  * (2026-09-13). It drives the same lanes, takes the movements it holds and then
- * the ones `movementAt` has already decided, makes the same handoff slide onto
- * each new lane, and stops at the entry line of any junction it holds no claim
- * for, because that is the rule it drives by. A forecast, not a promise: a car
- * granted a junction in the meantime pulls out, and one that brakes for a queue
- * is further back than this says.
+ * the ones `movementAt` has already decided, rounds each corner on the same curve
+ * and slows for it as the tick does, and stops at the entry line of any junction
+ * it holds no claim for, because that is the rule it drives by. A forecast, not a
+ * promise: a car granted a junction in the meantime pulls out, one that brakes
+ * for a queue is further back than this says, and one that has slowed for a
+ * corner is forecast still slow after it, where the car itself speeds up again.
  *
  * Not read by the rival yet. Reading it where the rival would reach each car cut
  * circling and strays over 42 races in traffic, but on one pinned seed it passed a
@@ -657,33 +958,30 @@ export function forecastTraffic(network: TrafficNetwork, vehicle: Readonly<Traff
   const ghost: TrafficVehicleState = { ...vehicle, holds: [...vehicle.holds] };
   let left = seconds;
   while (left > 1e-9) {
-    // Coarse steps on a lane, the tick's own step across a lane change: the slide
-    // onto the new lane starts from where the car was the step before, and a coarse
-    // step starts it from the wrong place (1.2 m off after two seconds at 0.1 s).
+    // Coarse steps where the speed holds, the tick's own step where a corner is
+    // being braked for: the speed follows a braking curve there, and a coarse step
+    // does not integrate it as the tick does. The ground itself is exact at any step.
     const coarse = Math.min(step, left);
-    const crossing = ghost.holds.length > 0 && ghost.distance + ghost.speed * coarse >= network.lanes[ghost.lane]!.length;
-    const dt = crossing ? Math.min(fine, coarse) : coarse;
+    const limit = cornerLimit(network, ghost);
+    const dt = limit < ghost.speed + 1 ? Math.min(fine, coarse) : coarse;
     left -= dt;
-    const before = ghost.distance;
-    ghost.distance += ghost.speed * dt;
+    ghost.speed = Math.min(ghost.speed, limit);
     const line = network.lanes[ghost.lane]!.length - network.lanes[ghost.lane]!.entry;
-    if (!ghost.holds.length && before <= line && ghost.distance > line) ghost.distance = line;
-    const held = { x: ghost.x, z: ghost.z, heading: ghost.heading };
-    const laneBefore = ghost.lane;
+    let ground = advance(network, ghost, ghost.speed * dt, ghost.holds.length || ghost.distance > line ? Infinity : line);
     let current = network.lanes[ghost.lane]!;
     while (ghost.distance >= current.length && ghost.holds.length) {
-      ghost.distance -= current.length;
+      ghost.distance = 0;
       ghost.turns++;
-      ghost.lane = network.movements[ghost.holds[0]!]!.to;
+      ghost.via = ghost.holds[0]!;
+      ghost.lane = network.movements[ghost.via]!.to;
       current = network.lanes[ghost.lane]!;
       if (ghost.holds.length > 1) ghost.holds.shift();
       else ghost.holds = [];
       ghost.movement = ghost.holds.length ? ghost.holds[0]! : chooseMovement(network, ghost);
+      ground = advance(network, ghost, ground, ghost.holds.length ? Infinity : Math.max(0, current.length - current.entry));
     }
     if (ghost.distance >= current.length) ghost.distance = current.length;
     place(network, ghost);
-    if (ghost.lane !== laneBefore) beginHandoff(ghost, held);
-    absorbHandoff(network, ghost, ghost.speed * dt);
   }
   return { x: ghost.x, z: ghost.z, heading: ghost.heading };
 }

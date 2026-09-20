@@ -10,6 +10,36 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## How traffic takes a corner (2026-09-20)
+
+Asked for: more natural driving lines, since traffic overshot its turns and
+rotated awkwardly. Measured first, every tick: in a right turn the body pointed a
+median 137 degrees from the way it was moving. Lanes are offset polylines that do
+not meet, so a right turn drove past the lane it wanted and was slid back onto
+it, position and heading on separate schedules, at 36 mph.
+
+The fix is a curve per movement, and per vertex of a lane's own polyline, which
+turned out to be the other half: every remaining snap after the junctions were
+fixed was mid-street, 90 degrees in a tick where a street turns a corner. What
+went wrong on the way is the useful part:
+
+- Lane distance has to run faster than the vehicle on a curve that cuts a corner.
+  Stepped at a rate sampled once a tick, one van moved 21.6 m in a tick. The
+  ground is now integrated along the curve and the distance read back.
+- A curve's end rebuilt as `from + span` came out 2e-15 short of the `b` the
+  "am I on it" test compared against. Sixty vehicles sat on corners they had
+  finished, reporting 9 mph. The end is now the same number the test uses.
+- A fixed turning radius put an SUV's corner on the point of an acute junction:
+  the kerbs are square. The radius comes from the kerb geometry instead.
+- Slowing for corners tripled how long a turning vehicle held its junction, and
+  within minutes that turned two old holes in the reservation rules into locks
+  (design/PORT_ALDER.md, "How traffic takes a corner"). Both were findable only
+  by soaking traffic alone for ten minutes and asking each stopped vehicle which
+  rule refused it; every existing test passed straight through them.
+- The worry that a traffic revision would cost recorded laps was wrong, and only
+  `pnpm laps --verify` said so: the in-traffic sessions were already refused, for
+  the rival's revisions.
+
 ## Traffic roster (2026-09-18)
 
 The first fleet pass replaces stacked boxes with sedan, SUV, panel van and

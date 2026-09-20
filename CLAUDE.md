@@ -318,14 +318,26 @@ fixtures outside the playable bundle, and old world links redirect.
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
-- Lanes are independent offset polylines, so consecutive lanes do not meet. A
-  vehicle changing lane absorbs that offset as it drives (`beginHandoff` /
-  `absorbHandoff` in `traffic.ts`); it is never written straight onto the new
-  lane. Doing that moved a vehicle up to 15 m in a single tick on 85% of turns,
-  and traffic bodies are kinematic, so the sweep evicted whatever was beside
-  them — it launched the race rival at 42 m/s. The per-tick step is guarded in
-  `tests/alder.test.ts`; every other traffic invariant samples every tenth tick
-  and cannot see a one-tick discontinuity.
+- Lanes are independent offset polylines, so consecutive lanes do not meet, and
+  a lane's heading snaps at each of its own vertices. Traffic drives a curve over
+  both (`Corner` in `traffic.ts`, since traffic-v6): tangent to the lane at each
+  end, covered along its own length. It is never written straight onto the next
+  lane: that moved a vehicle up to 15 m in a single tick on 85% of turns, and
+  traffic bodies are kinematic, so the sweep evicted whatever was beside them — it
+  launched the race rival at 42 m/s. Lane and distance stay the bookkeeping
+  everything else is measured in; a curve is shorter than the lane it replaces, so
+  the ground is integrated along the curve and the distance read back (`advance`).
+  Stepping distance at a rate instead threw a van 21.6 m in one tick, and a
+  curve's end rebuilt from its start came out 2e-15 short, which parked a vehicle
+  on a corner it had finished. Every tick is guarded, in `tests/alder.test.ts` and
+  `tests/traffic-intent.test.ts`; the other traffic invariants sample every tenth
+  tick and cannot see a one-tick discontinuity.
+- Anything that makes traffic wait at its lines more finds holes in the
+  reservation rules that fast traffic hid. Two were locks (2026-09-20): a car
+  refused because of the car queued behind it on its own lane (a queue, not a
+  crossing), and a chain granted through a lane somebody was already waiting on.
+  Soak traffic alone for ten minutes and list what has stood for over one; a test
+  that runs two minutes at the shipped density passed through both.
 - `#race[hidden] { display: none; }` is load-bearing; the readout's own
   `display: flex` beats the attribute. The rival contact card is
   the same shape: it is `display: grid`, so the rule naming `#rival-challenge[hidden]`

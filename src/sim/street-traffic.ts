@@ -1,6 +1,6 @@
 import type { Street } from "./street-path.ts";
-import { laneLength, lanes, lanePose, lanesPerDirection, type Lane } from "./lanes.ts";
-import { TRAFFIC_KINDS, type TrafficLane, type TrafficMovement, type TrafficNetwork } from "./traffic.ts";
+import { carriagewayWidth, laneGeometry, laneLength, laneOffset, lanes, lanePose, lanesPerDirection, type Lane } from "./lanes.ts";
+import { TRAFFIC_KINDS, type TrafficBend, type TrafficLane, type TrafficMovement, type TrafficNetwork } from "./traffic.ts";
 
 export const JUNCTION_SEARCH = 70;
 /** Slack added to a reservation zone beyond the last crossing found in it. */
@@ -311,9 +311,36 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
       ...laneMovements[id]!.map(movement => backReach[movement]!))),
   }));
 
+  // Where each lane's own polyline turns, in its direction of travel. Exact,
+  // from its vertices, and only worked out for lanes something drives.
+  const bends = new Map<number, readonly TrafficBend[]>();
+  const bendsOf = (id: number): readonly TrafficBend[] => {
+    let found = bends.get(id);
+    if (found) return found;
+    const { street, lane } = entries[id]!;
+    const { vertices, cumulative } = laneGeometry(street.points, lane, street.kind);
+    const total = cumulative[cumulative.length - 1]!, list: TrafficBend[] = [];
+    for (let i = 1; i < vertices.length - 1; i++) {
+      const before = vertices[i - lane.direction]!, at = vertices[i]!, after = vertices[i + lane.direction]!;
+      const inX = at.x - before.x, inZ = at.z - before.z, outX = after.x - at.x, outZ = after.z - at.z;
+      if (Math.hypot(inX, inZ) < 1e-6 || Math.hypot(outX, outZ) < 1e-6) continue;
+      const turn = Math.atan2(-outX, -outZ) - Math.atan2(-inX, -inZ);
+      list.push({ distance: lane.direction === 1 ? cumulative[i]! : total - cumulative[i]!, turn: Math.atan2(Math.sin(turn), Math.cos(turn)) });
+    }
+    bends.set(id, found = list.sort((a, b) => a.distance - b.distance));
+    return found;
+  };
+
   return {
     lanes: trafficLanes,
     height: heightAt,
+    bends: bendsOf,
+    // From the lane's line to the edge of its carriageway, at the street's
+    // narrowest: a street flares into its junctions, so there is never less.
+    kerb: id => {
+      const { street, lane } = entries[id]!, width = carriagewayWidth(street.points);
+      return width / 2 - Math.abs(laneOffset(width, lane, street.kind));
+    },
     movements: movements.map(movement => ({
       ...movement, conflicts: conflicts[movement.id]!, sweeps: sweeps[movement.id]!,
       // Hold the claim until clear of the shared tarmac on the far side, not

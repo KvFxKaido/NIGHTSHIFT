@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { DT } from "../src/sim/sim.ts";
-import { createTraffic, forecastTraffic, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { createTraffic, forecastTraffic, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
 
 // Traffic's plan (2026-09-13): which way each car turns is decided when it enters
 // a lane, so where it is going is a fact the sim holds. The rival reads it as a
@@ -13,30 +13,37 @@ test("a forecast is where a car that keeps its speed actually goes, turns and ju
   const traffic = createTraffic(network);
   for (let tick = 0; tick < 60 * 30; tick++) stepTraffic(network, traffic, DT);
   const seconds = 2, ticks = Math.round(seconds / DT);
-  const forecasts = traffic.vehicles.map(vehicle => forecastTraffic(network, vehicle, seconds));
-  const startLane = traffic.vehicles.map(v => v.lane);
-  // A car granted a junction during the window changed its plan; the forecast says so and cannot know it.
-  const noClaim = traffic.vehicles.map(v => !v.holds.length);
-  const speeds = traffic.vehicles.map(v => ({ min: v.speed, max: v.speed }));
-  for (let tick = 0; tick < ticks; tick++) {
-    stepTraffic(network, traffic, DT);
-    traffic.vehicles.forEach((v, i) => { speeds[i]!.min = Math.min(speeds[i]!.min, v.speed); speeds[i]!.max = Math.max(speeds[i]!.max, v.speed); });
-  }
   let steady = 0, turned = 0, worst = 0;
-  traffic.vehicles.forEach((vehicle, i) => {
-    if (speeds[i]!.max - speeds[i]!.min > 1e-6) return;
-    if (noClaim[i] && vehicle.lane !== startLane[i]) return;
-    if (noClaim[i] && vehicle.holds.length) return;
-    const error = Math.hypot(forecasts[i]!.x - vehicle.x, forecasts[i]!.z - vehicle.z);
-    worst = Math.max(worst, error);
-    steady++;
-    if (vehicle.lane !== startLane[i]) turned++;
-  });
+  // Several windows, not one: traffic slows for its corners (2026-09-20), so few
+  // vehicles hold one speed across a junction in any two seconds. The ones that do
+  // drive the same curve at the same rate, which is what this holds the forecast to.
+  // One that slowed only for a corner matches as closely; one that slowed for a
+  // queue does not, and from outside the two look the same, so neither is counted.
+  for (let window = 0; window < 8; window++) {
+    const forecasts = traffic.vehicles.map(vehicle => forecastTraffic(network, vehicle, seconds));
+    const startLane = traffic.vehicles.map(v => v.lane);
+    // A car granted a junction during the window changed its plan; the forecast says so and cannot know it.
+    const noClaim = traffic.vehicles.map(v => !v.holds.length);
+    const speeds = traffic.vehicles.map(v => ({ min: v.speed, max: v.speed }));
+    for (let tick = 0; tick < ticks; tick++) {
+      stepTraffic(network, traffic, DT);
+      traffic.vehicles.forEach((v, i) => { speeds[i]!.min = Math.min(speeds[i]!.min, v.speed); speeds[i]!.max = Math.max(speeds[i]!.max, v.speed); });
+    }
+    traffic.vehicles.forEach((vehicle, i) => {
+      if (speeds[i]!.max - speeds[i]!.min > 1e-6) return;
+      if (noClaim[i] && vehicle.lane !== startLane[i]) return;
+      if (noClaim[i] && vehicle.holds.length) return;
+      const error = Math.hypot(forecasts[i]!.x - vehicle.x, forecasts[i]!.z - vehicle.z);
+      worst = Math.max(worst, error);
+      steady++;
+      if (vehicle.lane !== startLane[i]) turned++;
+    });
+  }
   assert.ok(steady > 100, `only ${steady} vehicles kept their speed; the test proves little`);
   assert.ok(turned > 5, `only ${turned} steady vehicles crossed a junction; the test does not reach a turn`);
   assert.ok(worst < 0.25, `a steady vehicle ended ${worst.toFixed(2)} m from its forecast`);
   // A car with no claim on the junction ahead stops at its entry line, whatever its speed.
-  const approaching = traffic.vehicles.find(v => !v.holds.length && v.blendLeft <= 0 && network.lanes[v.lane]!.length - network.lanes[v.lane]!.entry > 60)!;
+  const approaching = traffic.vehicles.find(v => !v.holds.length && !trafficCornering(network, v) && network.lanes[v.lane]!.length - network.lanes[v.lane]!.entry > 60)!;
   const lane = network.lanes[approaching.lane]!, line = lane.length - lane.entry;
   const unclaimed = { ...approaching, distance: line - 20, speed: 10, holds: [] };
   const at = network.pose(unclaimed.lane, unclaimed.distance);
@@ -57,13 +64,13 @@ test("a car signals the way it then turns, and signals nothing going straight on
     stepTraffic(network, traffic, DT);
     for (const vehicle of traffic.vehicles) {
       const seen = watching.get(vehicle.id);
-      if (!seen && vehicle.holds.length === 0 && vehicle.blendLeft <= 0 && toLine(vehicle) <= SIGNAL_RANGE && toLine(vehicle) > SIGNAL_RANGE - 5) {
+      if (!seen && vehicle.holds.length === 0 && !trafficCornering(network, vehicle) && toLine(vehicle) <= SIGNAL_RANGE && toLine(vehicle) > SIGNAL_RANGE - 5) {
         watching.set(vehicle.id, { movement: vehicle.movement, signal: trafficSignal(network, vehicle), heading: vehicle.heading, x: vehicle.x, z: vehicle.z });
       } else if (seen) {
         const movement = network.movements[seen.movement]!;
         if (vehicle.lane !== movement.from && vehicle.lane !== movement.to) { watching.delete(vehicle.id); continue; }
         // On the leaving lane, clear of the junction and off the handoff slide: the turn it made.
-        if (vehicle.lane !== movement.to || vehicle.distance < movement.clear || vehicle.blendLeft > 0) continue;
+        if (vehicle.lane !== movement.to || vehicle.distance < movement.clear || trafficCornering(network, vehicle)) continue;
         const turn = Math.atan2(Math.sin(vehicle.heading - seen.heading), Math.cos(vehicle.heading - seen.heading)) * 180 / Math.PI;
         const leftward = (vehicle.x - seen.x) * -Math.cos(seen.heading) + (vehicle.z - seen.z) * Math.sin(seen.heading);
         outcomes.push({ signal: seen.signal, turn: Math.abs(turn) < 10 ? turn : Math.abs(turn) * Math.sign(leftward) });
@@ -84,7 +91,7 @@ test("a car signals the way it then turns, and signals nothing going straight on
 function cruising(traffic: ReturnType<typeof createTraffic>, clearAhead: number) {
   return traffic.vehicles.find(v => {
     const lane = network.lanes[v.lane]!;
-    return v.speed > 10 && !v.holds.length && v.blendLeft <= 0 && lane.length - lane.entry - v.distance > clearAhead
+    return v.speed > 10 && !v.holds.length && !trafficCornering(network, v) && lane.length - lane.entry - v.distance > clearAhead
       && !traffic.vehicles.some(o => o !== v && o.lane === v.lane && o.distance > v.distance && o.distance - v.distance < clearAhead);
   })!;
 }
@@ -119,7 +126,7 @@ function junctionRun(withRacer: boolean, arriveTick = 0, pick = 0, speed = 20) {
     for (let tick = 0; tick < 60 * 20; tick++) stepTraffic(network, traffic, DT);
     const vehicle = traffic.vehicles.filter(v => {
       const lane = network.lanes[v.lane]!, toLine = lane.length - lane.entry - v.distance;
-      return !v.holds.length && v.movement >= 0 && v.speed > 8 && toLine > 45 && toLine < 60 && v.blendLeft <= 0;
+      return !v.holds.length && v.movement >= 0 && v.speed > 8 && toLine > 45 && toLine < 60 && !trafficCornering(network, v);
     })[pick]!;
     const movement = network.movements[vehicle.movement]!, lane = network.lanes[movement.from]!;
     const point = network.pose(movement.from, lane.length);
@@ -165,4 +172,54 @@ test("traffic does not claim a junction a racer at 123 mph could not stop short 
   const crossed = junctionRun(true, arrive, pick, 55);
   assert.ok(crossed.passedAt > clear.claimedAt, "the racer was through before the junction would have been claimed; the test proves nothing");
   assert.ok(crossed.claimedAt < 0 || crossed.claimedAt >= crossed.passedAt, `it claimed the junction at tick ${crossed.claimedAt}, with a racer at 55 m/s arriving at ${crossed.passedAt}`);
+});
+
+// How traffic gets round a corner (2026-09-20). It used to drive to the end of
+// its lane, be put on the next one, and have the step between the two and the
+// change of heading interpolated away on separate schedules: over five minutes
+// 9,892 ticks turned it more than 4 degrees (704 places), its body pointed a
+// median 140 degrees from the way it was moving in a right turn, and it took
+// every corner at cruise. Now a corner, and a bend in a lane's own polyline, is
+// a curve tangent to the lane at both ends, driven along its own length.
+//
+// Every tick of every vehicle, not every tenth: a one-tick discontinuity is
+// exactly what this guards, and sampling cannot see one.
+test("traffic rounds its corners: it points where it is going, covers the ground at its speed, and slows", () => {
+  const traffic = createTraffic(network);
+  const wrap = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+  const before = traffic.vehicles.map(v => ({ x: v.x, z: v.z, heading: v.heading, speed: v.speed, cornering: false }));
+  const fastest = Math.max(...Object.values(TRAFFIC_KINDS).map(kind => kind.cruise));
+  let ticks = 0, snapped = 0, offSpeed = 0, worstStep = 0, worstSlip = 0, cornered = 0;
+  const sideways: number[] = [];
+  for (let tick = 0; tick < 60 * 60; tick++) {
+    stepTraffic(network, traffic, DT);
+    traffic.vehicles.forEach((v, i) => {
+      const was = before[i]!, dx = v.x - was.x, dz = v.z - was.z, moved = Math.hypot(dx, dz);
+      const turned = Math.abs(wrap(v.heading - was.heading)), cornering = trafficCornering(network, v);
+      ticks++;
+      worstStep = Math.max(worstStep, moved);
+      if (turned > 4 * Math.PI / 180) snapped++;
+      // The step lies between what the speed before and the speed after would cover.
+      const least = Math.min(v.speed, was.speed) * DT, most = Math.max(v.speed, was.speed) * DT;
+      if (moved < least - 0.01 || moved > most + 0.01) offSpeed++;
+      if (cornering && was.cornering) {
+        cornered++;
+        if (moved > 0.02) worstSlip = Math.max(worstSlip, Math.abs(wrap(v.heading - Math.atan2(-dx, -dz))));
+        sideways.push(v.speed * turned / DT);
+      }
+      Object.assign(was, { x: v.x, z: v.z, heading: v.heading, speed: v.speed, cornering });
+    });
+  }
+  assert.ok(cornered > 50_000, `only ${cornered} vehicle-ticks were on a curve; the test proves little`);
+  // No vehicle is ever moved further in a tick than the fastest one drives in one, give or take the curve table's
+  // own grain (a curve is 32 straight pieces). A lane change used to be worth 15 m.
+  assert.ok(worstStep <= fastest * DT * 1.05, `a vehicle moved ${worstStep.toFixed(4)} m in one tick, against ${(fastest * DT).toFixed(4)} m at cruise`);
+  // What is left is a few vertices too close to a junction to round, and one street whose polyline doubles back on itself.
+  assert.ok(snapped / ticks < 1e-4, `${snapped} of ${ticks} ticks turned a vehicle more than 4 degrees (it was 1 in 475)`);
+  assert.ok(offSpeed / ticks < 1e-4, `${offSpeed} of ${ticks} steps were over 1 cm off the vehicle's speed (it was 1 in 41)`);
+  assert.ok(worstSlip < 5 * Math.PI / 180, `on a curve a body pointed ${(worstSlip * 180 / Math.PI).toFixed(1)} degrees from the way it was moving`);
+  // Slowed for: all but a hundredth of the time on a curve is within what it is meant to be taken at (6 m/s²).
+  sideways.sort((a, b) => a - b);
+  const p99 = sideways[Math.floor(sideways.length * 0.99)]!;
+  assert.ok(p99 < 7.5, `a corner was taken at ${p99.toFixed(1)} m/s² sideways, 99th percentile (at cruise it was over 50)`);
 });

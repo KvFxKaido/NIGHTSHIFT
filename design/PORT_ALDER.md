@@ -1812,3 +1812,90 @@ Vehicle count, routing and yielding rules are unchanged. Hatchback and bus are
 possible later additions, not part of this slice. The presentation harness is
 `scripts/check-traffic-roster-browser.js`; it captures a live street and a
 separate front/rear inspection lineup, with the rear brakes lit.
+
+## How traffic takes a corner (2026-09-20, `traffic-v6`)
+
+Traffic drove to the end of its lane, was put on the next one, and had the step
+between the two and the change of heading interpolated away over the next few
+metres, each on its own schedule. Lanes are offset polylines that do not meet: a
+right turn's lane runs past the one it turns into and the next begins that far
+back, so a right turn was a zigzag. Measured over 1,136 turns, every tick: the
+body pointed a median 140 degrees from the way it was moving in a right turn and
+70 in a left, it turned at 180 degrees a second, and it took the corner at
+cruise, 36 to 38 mph, which is 5.6 g. The same happened mid-street: a lane's
+heading is piecewise constant, so a street with a bend in it snapped a vehicle
+round by the whole angle in one tick, 90 degrees where a street turns a corner.
+
+Now a movement is driven as a curve from the lane it arrives on to the lane it
+leaves by, tangent to both (`Corner` in `src/sim/traffic.ts`), and so is every
+vertex of a lane's own polyline that turns more than two degrees. The body's
+heading is the curve's tangent, so it points where it is going.
+
+- **How wide.** As wide as a square kerb allows. The road is a mitred ribbon and
+  a junction's pavements meet in a point, which stands `kerb / cos(turn / 2)` from
+  where the lane lines meet; an arc of radius r reaches `r (1 / cos(turn / 2) - 1)`
+  towards it. Keeping 1.3 m of body clear gives the radius, from each lane's own
+  distance to its kerb (`TrafficNetwork.kerb`): wide on a wide street, tight at a
+  right angle on a narrow one, tighter past a right angle. A fixed 4.5 m put an
+  SUV's corner on the point of an acute junction. A left turn is the same arc a
+  lane further out, and at a junction at least 8 m: it sweeps the middle.
+- **How fast.** Whatever 6 m/s² sideways allows at the curve's tightest point,
+  never under 2 m/s, braked for at 3.5 m/s² on the way in. Right turns come out
+  at about 14 mph and lefts at about 17, and the brake lights come on before the
+  corner, beside the indicator that was already flashing. Brisk on purpose: see
+  what it costs, below.
+- **What did not change.** A vehicle is still on a lane at a distance, which is
+  what every reservation, conflict span, gap and entry line is measured in, and
+  the conflict pass still reads the lanes as drawn. A curve is shorter than the
+  lane ends it stands in for, so the ground is covered along the curve's own
+  length and the lane distance read back from it: the vehicle moves at exactly
+  its speed, and its distance runs faster while it is on a curve.
+- **The forecast** drives the same curves and brakes for them the same way. A
+  vehicle that has slowed for a corner is forecast still slow after it.
+
+Over five minutes of the whole fleet, every tick: ticks turning a vehicle more
+than 4 degrees went from 9,892 in 704 places to 60 in 18, and steps more than
+1 cm off the vehicle's speed from 115,160 to 20. In a right turn the body is a
+median 0.4 degrees from the way it is moving, where it was 137; it turns at 50
+degrees a second, where it was 196; it pulls 0.6 g, where it was 5.6. What is
+left: a few vertices too close to a junction for the movement's curve to
+swallow, and one street near (-642, -1137) whose polyline doubles back on itself
+through 177 degrees, which is a fault in the street and not in how it is driven.
+Seen from above in `?lighting=blockout`, six right turns in a row, box trucks
+among them, cleared their kerb points.
+
+**What it costs, and two holes it found.** A turning vehicle holds its junction
+for as long as the turn takes. At a cautious 3.5 m/s² the fleet crossed a fifth
+fewer junctions in five minutes and 13 of 261 stood waiting where 5 had; at 6 it
+is a ninth fewer (14.8 junctions a vehicle against 16.6) and 8 waiting. Vehicles
+waiting at their lines became the usual case instead of the rare one, and that
+turned two holes in the reservation rules, both already there, into locks within
+minutes:
+
+- A movement onto a lane "conflicts" with every movement off its far end, because
+  their swept paths overlap along the lane. So a car at its line was refused
+  because of the car queued *behind* it, which could not release what it held
+  until it was clear, which it could not be with the first car in its way. Lane
+  429, 73 m long, stopped 16 vehicles in ten minutes. A holder that arrives on
+  your own lane behind you is a queue, as the conflict pass already says of a
+  merge, and `crossingBusy` now treats it as one.
+- A chain claims the movements off the far end of every short lane it runs
+  through, but only its own approach was checked for being at the head of the
+  queue. A box truck was granted a chain through a lane with a sedan waiting at
+  its line, then held the movement the sedan was first for and stopped behind it.
+  A chain now waits until the lanes it runs through are empty.
+
+**What is not fixed.** The short blocks around (-750, -1100) back up in every
+build after about twenty minutes of traffic left to itself, this one and the one
+before it: over thirty minutes `traffic-v5` had 43 standstills of over a minute,
+the longest 187 s, and `traffic-v6` had 64, the longest 300 s. Those figures are
+chaotic, and run to run they say "both degrade", not which is worse. It is a
+capacity problem in a grid of 100 m lanes, not one of the holes above. A parked
+rival standing in a live lane is a second source of queues, and an older one:
+traffic yields to it as to any racer, and it never moves.
+
+No recording that replayed is lost to `traffic-v6`. Of thirteen sessions two
+replay in this build at all, both clear of traffic, and both still replay
+exactly; the six recorded in traffic were already refused, one for predating
+traffic revisions and five for the rival's. The golden master agrees: nine runs
+with no traffic in them are bit-identical, the five with traffic moved.
