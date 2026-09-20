@@ -7,7 +7,7 @@ import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
 import { HAIRPIN, RACING_LINE, STREET_RACING_LINE, withRacingLine } from "../src/sim/racing-line.ts";
-import { createRivalDriver, rivalInput, sampleRivalPath, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, RIVAL_STREET_LINE, rivalInput, sampleRivalPath, type RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { STREET_GATE_RADIUS, streetCircuitEvent } from "../src/sim/street-circuit.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
@@ -107,9 +107,13 @@ test("passing on a racing line never aims the rival off the road", () => {
 // (2026-09-20) a corner came out as a 23 m arc on one lap and a 4 m spike on the next, by where the solver's coarse
 // nodes landed on it, and the rival orbited the spike at full lock: what read as "lap 1 is broken".
 test("a street's line is sound at every corner of every lap, the hairpin included", () => {
-  const event = streetCircuitEvent(3, false, false), route = event.rival!, line = withRacingLine(route, STREET_RACING_LINE);
+  // The race in traffic has the centreline; the clear race's rival is this line, drawn once already.
+  const event = streetCircuitEvent(3, true, false), route = event.rival!, line = withRacingLine(route, STREET_RACING_LINE);
   const perLap = event.race.gatesPerLap!;
   assert.deepEqual(withRacingLine(route, STREET_RACING_LINE), line, "the same route drew a different line");
+  assert.deepEqual(streetCircuitEvent(3, false, false).rival!.points, line.points, "Uptown / Clear's rival is not on this line");
+  // A line through a line doubles the offsets, and was once written up as the solver leaving the road.
+  assert.throws(() => withRacingLine(line, STREET_RACING_LINE), /already carries a racing line/);
   // No spike anywhere: a 15 m arc turns 15 degrees a sample, and the kinks were 118 to 166.
   for (let i = 1; i < line.points.length - 1; i++) {
     const o = line.points[i - 1]!, p = line.points[i]!, q = line.points[i + 1]!;
@@ -146,7 +150,9 @@ test("a street's line is sound at every corner of every lap, the hairpin include
 });
 
 test("the rival drives a street's line from the grid: a clean first lap, no reset, no reverse, no wheel off the pavement", () => {
-  const event = streetCircuitEvent(2, false, false), line = withRacingLine(event.rival!, STREET_RACING_LINE);
+  // Uptown / Clear as the game fields it: the street line at RIVAL_STREET_LINE's 0.88.
+  const event = streetCircuitEvent(2, false, false), line = event.rival!;
+  assert.equal(line.cornering, RIVAL_STREET_LINE.speedFactor);
   // The player is parked at Wharf Garage, across the city, so nothing here is contact.
   const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: event.race, rival: line, traffic: false });
   try {
@@ -165,7 +171,10 @@ test("the rival drives a street's line from the grid: a clean first lap, no rese
     assert.deepEqual([driver.resets, driver.unseenResets, driver.recoveries, offPavement], [0, 0, 0, 0]);
     // A standing start costs about two seconds. On the old line lap 1 was 7.5 s behind, and 16 with tighter margins.
     assert.ok(first!.seconds - second!.seconds < 4, `lap 1 ${first!.seconds.toFixed(2)} s against lap 2's ${second!.seconds.toFixed(2)}`);
-    // At a spike it orbited at 14.5 mph; the hairpin's line is driven at 27.
+    // At a spike it orbited at 14.5 mph; the hairpin's line is driven at about 30.
     assert.ok(slowest > 10, `it slowed to ${(slowest * 2.23694).toFixed(1)} mph`);
+    // Its pace is a decision (Shawn, 2026-09-20): 1:27.07, against his 1:27.53 and 1:26.47 racing it. Lane arcs lap in
+    // 1:35.18 and a plan of 1.00 in 1:24.80, so a lap outside this is a different rival: look at RIVAL_STREET_LINE.
+    assert.ok(second!.seconds > 86 && second!.seconds < 88.5, `a flying lap of ${second!.seconds.toFixed(2)} s`);
   } finally { sim.world.free(); }
 });

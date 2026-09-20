@@ -39,6 +39,13 @@ name of the bug was the first wrong thing about it.
   two of them; so the street fixes are an option Ridge does not take.
 - Each new test was run with the fix switched off, to see it fail on the original
   symptom and not merely pass with the fix on.
+- Built the same day at 0.88 for Uptown Circuit / Clear, which turned out to be the
+  only street race with no traffic: "clear street races" is one race. What nearly
+  went unnoticed is who else drove that rival's route: `pnpm cars --laps` used it
+  as its Uptown column, the instrument every car's tune was judged on, and would
+  have moved all ten cars' numbers for no tune. It was baselined before the change
+  and compared after. And a blind replay cannot test a quicker rival being raced,
+  so a second planner in a quicker car was put behind it to be passed.
 
 ## How traffic takes a corner (2026-09-20)
 

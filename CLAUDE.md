@@ -178,7 +178,9 @@ fixtures outside the playable bundle, and old world links redirect.
   without removing it, and only on streets, so the two surfaces now take their
   corner speed from their own plan (`design/PORT_ALDER.md`, "How hard the rival
   corners"): a street 0.80 (`RIVAL_CORNERING`), a racing line 0.76
-  (`RIVAL_BRAKING`), which is all its own width leaves it. On
+  (`RIVAL_BRAKING`), which is all its own width leaves it. The one street race
+  with no traffic, Uptown Circuit / Clear, drives a street racing line at 0.88
+  (`RIVAL_STREET_LINE`, Shawn 2026-09-20: his pace to half a second a lap). On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -418,6 +420,8 @@ fixtures outside the playable bundle, and old world links redirect.
   leaves 4 m spikes at street corners on some laps and not others (`racing-line.ts`). Ridge does not take the street
   fixes: they move its lines, which is a `RIVAL_REVISION` bump. Judge a line on every lap, never the one in the middle,
   and a rival quicker than the one raced cannot be measured by replaying the player's inputs at it: they collide.
+  Only a race with no traffic may have one (it ignores lanes), which today is Uptown Circuit / Clear alone; its gate
+  arrows still come from the centreline, and `pnpm cars --laps` drives the in-traffic route so its column did not move.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
@@ -538,7 +542,7 @@ pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm laps:compare     # you against the rival, corner by corner, from the newest raced session: replays it and records the rival too
-pnpm laps:compare --line # the same race against a rival on a street racing line (an experiment; nothing in the game drives one)
+pnpm laps:compare --line # a race in traffic, against a rival on a street racing line instead (an experiment; Uptown / Clear's already is)
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json

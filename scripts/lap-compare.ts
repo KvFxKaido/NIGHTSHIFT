@@ -10,8 +10,8 @@
 //   pnpm laps:compare <substring>          the newest whose name contains it
 //   pnpm laps:compare <path to a .json>    that file, wherever it is
 //   pnpm laps:compare --json               the same facts, for tools
-//   pnpm laps:compare --line               against the same rival on a racing line through the streets
-//                                          (STREET_RACING_LINE): an experiment, nothing in the game drives one
+//   pnpm laps:compare --line               a race in traffic, against the same rival on a racing line through the
+//                                          streets (STREET_RACING_LINE): an experiment. Uptown / Clear's already is.
 //
 // It refuses a session that does not replay exactly on this build, and says why:
 // a comparison against a run that diverged would be a comparison against nothing.
@@ -121,8 +121,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (!chosen) { console.log(wanted ? `No recording matches '${wanted}'.` : "No raced recording yet. Drive ?race=street-uptown-clear or ?race=arena-full under pnpm dev."); process.exit(1); }
   const replayed = replayLapSession(chosen.session);
   if (!replayed.ok) { console.log(`${chosen.name} does not replay on this build, so there is no rival to compare with: ${replayed.reason}`); process.exit(1); }
-  // A line is drawn through the route once: the raced rival's is its centreline, so this is the first.
-  const result = compareSession(chosen.session, line ? withRacingLine(circuitEvent(chosen.session.race, chosen.session.laps)!.rival!, STREET_RACING_LINE) : undefined);
+  // A line is drawn through a route once, and the clear race's rival already carries its own.
+  const raced = circuitEvent(chosen.session.race, chosen.session.laps)!.rival!;
+  if (line && raced.lateral) { console.log(`${chosen.session.race}'s rival already drives a racing line: --line is for a race whose rival does not.`); process.exit(1); }
+  const result = compareSession(chosen.session, line ? withRacingLine(raced, STREET_RACING_LINE) : undefined);
   if (json) console.log(JSON.stringify({ file: chosen.name, ...result }, null, 2));
   else {
     const time = (seconds: number | null) => seconds === null ? "  --   " : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;

@@ -78,7 +78,10 @@ for (const car of cars) {
     const { circuitEvent, createAlderWorld, createRivalDriver, rivalInput, createSim, step, TICK_HZ } = lapTools;
     row.laps = {};
     for (const raceId of circuits) {
-      const event = circuitEvent(raceId, 3)!;
+      // Uptown is driven on the route the rival has in traffic, the centreline with its lane arcs, on clear streets:
+      // what this column has always measured, and what every street race but Uptown / Clear is driven on. The clear
+      // race's own rival has a racing line since 2026-09-20, which would move every car's number for no tune.
+      const event = circuitEvent(raceId === "street-uptown-clear" ? "street-uptown" : raceId, 3)!;
       // From the rival's own grid slot, on its own line, in this car.
       const route = { ...event.rival!, car };
       const sim = createSim(carHandling(car), createAlderWorld(true, route.start), { race: event.race, traffic: false });

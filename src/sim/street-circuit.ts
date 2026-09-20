@@ -23,7 +23,8 @@
 import { ALDER_STREETS, alderHeight } from "./alder.ts";
 import { laneOffset } from "./lanes.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
-import { withExits, type RivalDefinition } from "./rival.ts";
+import { STREET_RACING_LINE, withRacingLine } from "./racing-line.ts";
+import { RIVAL_STREET_LINE, withExits, type RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import type { LapTrack } from "./lap-recorder.ts";
@@ -129,6 +130,12 @@ export function uptownLap(): StreetCircuitLap {
   return lapCache;
 }
 
+function clearLine(route: RivalDefinition, laps: number): RivalDefinition {
+  let line = clearLines.get(laps);
+  if (!line) clearLines.set(laps, line = { ...withRacingLine(route, STREET_RACING_LINE), cornering: RIVAL_STREET_LINE.speedFactor });
+  return line;
+}
+
 export interface StreetCircuitEvent {
   readonly layout: typeof UPTOWN.id;
   /** The circuit's revision, which a recording names. */
@@ -150,6 +157,9 @@ export function streetCircuitRaceFor(raceId: string): { traffic: boolean; solo: 
   }
   return null;
 }
+
+/** The line takes about half a second to draw and never changes, so each number of laps is drawn once. */
+const clearLines = new Map<number, RivalDefinition>();
 
 export function streetCircuitEvent(laps = STREET_CIRCUIT_LAPS, traffic = true, solo = false): StreetCircuitEvent {
   if (!Number.isInteger(laps) || laps < 1) throw new RangeError(`A street circuit race needs whole laps, not ${laps}`);
@@ -181,7 +191,7 @@ export function streetCircuitEvent(laps = STREET_CIRCUIT_LAPS, traffic = true, s
   const checkpoints: Checkpoint[] = Array.from({ length: laps }, () => lap.gates.map((gate, g) => ({
     id: `${streetCircuitRaceId()}-${g + 1}`, name: gate.name, x: gate.x, z: gate.z, radius: STREET_GATE_RADIUS,
   }))).flat();
-  // Every road race fields Moth's Kestrel. On streets the rival drives the centreline.
+  // Every road race fields Moth's Kestrel. In traffic the rival drives the centreline, with its lane arcs.
   const route: RivalDefinition = { id: `${streetCircuitRaceId()}-driver`, car: "kestrel", start: rivalStart, points, along, gates };
   const race: RaceDefinition = { id, name: `${UPTOWN.name}${traffic ? "" : " / Clear"}${solo ? " / Solo" : ""}`, kind: "circuit", laps,
     gatesPerLap: lap.gates.length, countdownTicks: COUNTDOWN_TICKS, checkpoints };
@@ -189,7 +199,9 @@ export function streetCircuitEvent(laps = STREET_CIRCUIT_LAPS, traffic = true, s
     layout: UPTOWN.id, identity: STREET_CIRCUIT_IDENTITY, solo, traffic, start,
     track: { points: lap.points, gatesPerLap: lap.gates.length },
     // The arrows come from the route even when nobody drives it: on streets a solo lap needs to know where to turn.
+    // From the centreline in all four races, so they are the same race whoever is in it.
     race: withExits(race, route),
-    rival: solo ? null : route,
+    // With no traffic there are no lanes to keep to, and the rival drives the whole road (RIVAL_STREET_LINE).
+    rival: solo ? null : traffic ? route : clearLine(route, laps),
   };
 }

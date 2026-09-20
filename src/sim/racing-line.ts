@@ -101,9 +101,9 @@ export const RACING_LINE = {
  * refuse every raced recording for the sake of a line that was not broken. When
  * that revision is next bumped for its own reasons, Ridge can take this.
  *
- * Nothing in the game drives a street line yet: it ignores lanes, so it is for clear
- * streets only (above, "Not in the city"). `pnpm laps:compare --line` measures one
- * against a recorded race.
+ * Uptown Circuit / Clear drives one (street-circuit.ts; RIVAL_STREET_LINE in rival.ts
+ * for how hard). It ignores lanes, so it is for clear streets only (above, "Not in
+ * the city"): every street race with traffic keeps the centreline and its lane arcs.
  */
 export const STREET_RACING_LINE = { ...RACING_LINE, sharpCorners: true, foldStep: 0.25 } as const;
 
@@ -317,6 +317,8 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
 
 /** The same route driven on its racing line. */
 export function withRacingLine(route: RivalDefinition, options: RacingLineOptions = RACING_LINE): RivalDefinition {
+  // A line drawn through a line doubles the offsets, which was once measured as "K1999 leaves the road" (above).
+  if (route.lateral) throw new RangeError(`${route.id} already carries a racing line`);
   const { rounded, origin, arcs } = options.sharpCorners ? roundHairpins(route.points, options)
     : { rounded: route.points, origin: route.points.map((_, i) => i), arcs: [] };
   const { samples, index } = resample(rounded, options.spacing);

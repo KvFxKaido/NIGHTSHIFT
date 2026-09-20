@@ -6,7 +6,7 @@ import { circuitEvent, isCircuitRace } from "../src/sim/circuits.ts";
 import { createLapRecorder, lapSession, recordTick, type LapSession } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
-import { createRivalDriver, rivalInput, RIVAL_REVISION, sampleRivalPath } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, RIVAL_REVISION, RIVAL_STREET_LINE, sampleRivalPath } from "../src/sim/rival.ts";
 import { STREET_CIRCUIT_IDENTITY, STREET_GATE_RADIUS, streetCircuitEvent, streetCircuitRaceFor, streetCircuitRaceId, UPTOWN, uptownLap } from "../src/sim/street-circuit.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
@@ -65,6 +65,14 @@ test("four races: traffic or clear, rival or solo, the same gates and grid, and 
     assert.deepEqual(event.race.checkpoints.map(g => [g.x, g.z, g.exit]), events[0]!.race.checkpoints.map(g => [g.x, g.z, g.exit]));
     assert.ok(event.race.checkpoints.slice(0, -1).every(g => g.exit), `${event.race.id}: a gate has no arrow`);
   }
+  // The rival differs, and only the rival: in traffic the centreline and its lane arcs, on clear streets the whole road.
+  const [inTraffic, , clear] = events;
+  assert.equal(inTraffic!.rival!.lateral, undefined); assert.equal(inTraffic!.rival!.cornering, undefined);
+  assert.ok(clear!.rival!.lateral, "Uptown / Clear's rival has no racing line");
+  assert.equal(clear!.rival!.cornering, RIVAL_STREET_LINE.speedFactor);
+  assert.deepEqual([clear!.rival!.id, clear!.rival!.car, clear!.rival!.start, clear!.rival!.gates.length],
+    [inTraffic!.rival!.id, inTraffic!.rival!.car, inTraffic!.rival!.start, inTraffic!.rival!.gates.length]);
+  assert.equal(streetCircuitEvent(3, false, false).rival, clear!.rival, "the line was drawn twice");
   // Grid: both cars in the lanes going the circuit's way, the player behind in the kerb lane.
   const event = events[0]!, lap = uptownLap();
   const kerb = laneOffset(lap.points[0]!.width, { direction: 1, index: 1 }), inner = laneOffset(lap.points[0]!.width, { direction: 1, index: 0 });

@@ -1238,7 +1238,7 @@ gives back 2.1 s everywhere else. Over the 22 corners both drove:
 It is not late braking. The rival is quicker out of 14 of the 22, from an apex
 17 mph slower: it never over-asks its tyres and he has no pedal assist.
 
-**An experiment, not built: a racing line through the streets.** First measured
+**A racing line through the streets: measured, then built (below).** First measured
 by replaying the same input log against other rivals. That first table was wrong,
 and is kept out of here: its line was broken, which is the next paragraph, and it
 said a racing line was worth 0.6 s a lap and the corner-speed plan was the whole
@@ -1302,15 +1302,40 @@ fixes switched off, both new tests in `tests/racing-line.test.ts` fail on the
 original symptoms: a 118 degree kink 1,748 m along, and lap 1 at 102.12 s against
 lap 2's 94.62.
 
-**What stands between this and a build.** A racing line ignores lanes, which is
-why streets never had one (the header of `racing-line.ts`: the rival "sat in the
-traffic's own lane and ran into it"), so this is for clear races only until the
-rival reads traffic's forecast. It is one circuit. Against a human it has not
-been raced: `pnpm laps:compare --line` replays a recorded race against it, but the
-input log is blind, and a rival this much quicker is somewhere else on the road,
-so the recorded car drives into it (the tool says so, and voids its own table).
-The plan fraction is a number in `rival.ts` (`RIVAL_BRAKING.speedFactor`, 0.76);
-the rows above overwrote it inside a probe.
+**Built at 0.88 (Shawn, 2026-09-20), for Uptown Circuit / Clear.** That is the
+one street race with no traffic, so it is the whole of "clear street races": its
+rival drives `STREET_RACING_LINE` and plans corners at `RIVAL_STREET_LINE`'s 0.88
+(`RivalDefinition.cornering`, which a route carries only where it differs from its
+surface's own). Every race with traffic, Uptown in traffic included, drives as it
+did: the centreline, lane arcs in its own half, 0.80. `RIVAL_REVISION` is
+`full-line-v25`.
+
+- **Why only there.** A racing line ignores lanes, which is why streets never had
+  one (the header of `racing-line.ts`: the rival "sat in the traffic's own lane and
+  ran into it"). That holds until the rival reads traffic's forecast.
+- **The same race otherwise.** The four Uptown races keep the same gates, grid and
+  arrows, which are read from the centreline for all of them, so solo recordings
+  and the circuit's identity (`uptown-v1`) are untouched.
+- **Nothing about the car.** Same Kestrel, same tyres, same clamp, no reading of
+  race position. 0.88 is a driver using more of the grip the car always had, which
+  Shawn uses about all of.
+- **Raced, by a machine.** The same planner in a second Kestrel at 0.95 and at
+  1.00, from the player's grid slot: within 8 m of the rival for 37 s and 20 s, in
+  contact distance for 1.6 s and 0.9 s, and past it. The rival kept every lap
+  valid, with no reset, no reverse and no wheel off the pavement, and lost 0.2 to
+  0.4 s on the lap it was passed. In the browser build its first lap is 89.28 s,
+  the same as under Node.
+- **Not raced by a person yet.** The yardstick race was against `full-line-v24`
+  and is now refused by name, which is the revision doing its job; the numbers
+  above were taken from it first. A new race on `?race=street-uptown-clear` is the
+  pad verdict, and `pnpm laps:compare` reads it.
+- **What it cost the instruments.** `pnpm cars --laps` drove this race's rival
+  route for its Uptown column; it now names the in-traffic race's route, on clear
+  streets as before, so that column still measures what every tune was judged on
+  (Cinder 96.33 s, Kestrel 95.17 s, before and after).
+- **Open.** It is one circuit and one driver. 0.88 came from one race against one
+  rival, so expect to move it; the test pins the flying lap between 86 and 88.5 s
+  so that moving it is a decision.
 
 
 ## Uptown Circuit (2026-09-13)
@@ -1349,7 +1374,9 @@ Only the next gate shows, with its arrow; the arrows come from the route even
 solo, since on streets a solo lap needs to know where to turn.
 
 **Races.** `?scene=track&race=street-uptown` in traffic; `-clear` for empty
-streets, `-solo` for no rival (`street-uptown-clear-solo`). The grid is 12 m
+streets, `-solo` for no rival (`street-uptown-clear-solo`). On empty streets the
+rival drives a racing line at 0.88 (2026-09-20; "Against a human, measured",
+above); in traffic, the centreline and its lane arcs. The grid is 12 m
 behind the line in the kerb lane going the circuit's way, the rival 7 m ahead in
 the inner lane. Recording, saving, `pnpm laps` and `--verify` are Ridge Circuit's
 (`circuits.ts` resolves either); a session names the circuit (`uptown-v1`) and

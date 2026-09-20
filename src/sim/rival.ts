@@ -23,6 +23,9 @@ export interface RivalDefinition {
   readonly lateral?: readonly number[];
   /** How well this driver launches, 0-1 (`launch.ts`). Absent is `RIVAL_LAUNCH_SKILL`. */
   readonly launch?: number;
+  /** The share of the grip-limited speed this route's corners are planned at, where it is not its surface's own
+   *  (`RIVAL_CORNERING` on a street, `RIVAL_BRAKING` on a racing line): `RIVAL_STREET_LINE`. */
+  readonly cornering?: number;
 }
 export interface RivalDriver {
   along: number;
@@ -285,8 +288,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v24": a street rival corners at 0.80 of the grip-limited speed
  * instead of 0.76, as far as steering feedforward raised the ceiling. A racing
  * line keeps 0.76, which is all its own width leaves it.
+ * "full-line-v25": on clear streets (Uptown Circuit / Clear, the one street race
+ * with no traffic) it drives a racing line at 0.88 (RIVAL_STREET_LINE). Every
+ * other race drives as it did; the revision is one string, so it moves for all.
  */
-export const RIVAL_REVISION = "full-line-v24";
+export const RIVAL_REVISION = "full-line-v25";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -360,6 +366,35 @@ export const RIVAL_CORNERING = {
   /** Share of lateral grip at which cornering leaves the braking plan nothing. */
   frictionShare: 0.9,
 } as const;
+
+/**
+ * A racing line through clear streets, and how hard it is cornered (2026-09-20,
+ * Shawn: "build it at 0.88"). He beat the rival on Uptown Circuit / Clear by
+ * 6 to 8 s a lap, all of it within 70 m of a gate: 49.5 mph at the slowest point
+ * of a corner against its 32.6. Half of that was the line (lane arcs within its
+ * own half of the street, against the whole road: 4.8 s a lap) and half was how
+ * much of the grip it planned to use. The rival alone, three laps:
+ *
+ * | | lap 1 | lap 2 | lap 3 |
+ * |---|---|---|---|
+ * | lane arcs, 0.80 (every other street race) | 1:37.78 | 1:35.18 | 1:35.18 |
+ * | street line, 0.76 | 1:32.45 | 1:30.38 | 1:29.75 |
+ * | street line, 0.88 | 1:29.30 | 1:27.07 | 1:26.57 |
+ * | street line, 1.00 | 1:27.03 | 1:24.80 | 1:24.40 |
+ * | Shawn, racing it, no pedal assist | 1:31.78 | 1:27.53 | 1:26.47 |
+ *
+ * 0.88 is his pace, to within half a second a flying lap; every row was clean (no
+ * reset, no reverse, no wheel off the pavement). That a racing line takes 0.88
+ * here and only 0.76 on Ridge Circuit (RIVAL_BRAKING) is the road: Ridge Full's
+ * long corners put it on the grass at 0.80, and a street corner is over in 30 m
+ * with a kerb's width of margin kept either side.
+ *
+ * Clear streets only. A racing line ignores lanes, and in traffic every one tried
+ * ran into it (racing-line.ts); that stays so until the rival reads traffic's
+ * forecast. It is the same car on the same tyres under the same clamp: no grip,
+ * power or mass is changed, and nothing reads race position.
+ */
+export const RIVAL_STREET_LINE = { speedFactor: 0.88 } as const;
 
 /**
  * Steering feedforward (2026-09-13). The rival steered on heading error alone,
@@ -497,7 +532,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const ab=Math.hypot(b.x-a.x,b.z-a.z), bc=Math.hypot(c.x-b.x,c.z-b.z), ac=Math.hypot(c.x-a.x,c.z-a.z);
     const cross=Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x));
     const radius=cross<.001?Infinity:ab*bc*ac/(2*cross);
-    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius, handling)*plan.speedFactor);
+    const cornerSpeed=Math.max(RIVAL_CORNERING.minimumSpeed, maxCorneringSpeed(radius, handling)*(route.cornering ?? plan.speedFactor));
     // A straight's limit is infinite; the profile works in finite speeds.
     limits.push(Math.min(cornerSpeed, handling.topSpeed)); curvatures.push(1 / radius);
   }
