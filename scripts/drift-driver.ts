@@ -7,15 +7,28 @@ const clamp = (value: number, low: number, high: number) => Math.max(low, Math.m
 const wrap = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
 
 /** One driver for every tune: follow the yard line, flick into a bend, then
- * catch excess slip with countersteer. No car identity or handling knobs. */
+ * counter-flick on exit and catch excess slip with countersteer.
+ * No car identity or handling knobs. */
 function createDriftDriver(): (car: VehicleState) => Input {
-  let index = 1, flick = 0, cooldown = 0;
+  let index = 1, flick = 0, cooldown = 0, held = 0, transition = 0, side = 0;
   return car => {
     if (Math.hypot(car.x - YARD_LINE[index]!.x, car.z - YARD_LINE[index]!.z) < 16) {
       index = (index + 1) % (YARD_LINE.length - 1);
     }
     const target = YARD_LINE[index]!;
-    const error = wrap(Math.atan2(car.x - target.x, car.z - target.z) - car.heading);
+    let error = wrap(Math.atan2(car.x - target.x, car.z - target.z) - car.heading);
+    // Once a slide is held and the next waypoint is nearly ahead, ask for the
+    // opposite side before the chain banks. Commit for 55 ticks: a slow swap
+    // can miss the link. The 45-tick pull still releases at the slip ceiling;
+    // the two-second cooldown leaves time to return to the yard line.
+    held = Math.abs(car.slipAngle) >= .18 ? held + 1 : 0;
+    if (!transition && held >= 18 && Math.abs(error) < .25 && cooldown === 0) {
+      side = -Math.sign(car.slipAngle);
+      transition = 55;
+      flick = 45;
+      cooldown = 120;
+    }
+    if (transition > 0) { error = side * .45; transition--; }
     // Ask for up to 26 degrees into the bend, tapering to zero on its exit.
     // Positive slip needs positive steer to catch it in the sim's convention.
     const targetSlip = Math.sign(error) * Math.min(.45, Math.abs(error));

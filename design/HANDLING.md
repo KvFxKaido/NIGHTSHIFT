@@ -387,35 +387,73 @@ on average).
 yard, traffic off and Sable parked, with the game's contact and chain scoring.
 The script-only driver follows `YARD_LINE`, requests up to 26 degrees of slip
 into a corner, flicks the handbrake when speed and angle permit, then catches
-slip error with proportional countersteer and modulates throttle. The same
-controller and constants drive every car; no launch, teleport or per-car help.
-It combines with `--laps`, `--streets`, `--try` and `--json`.
+slip error with proportional countersteer and modulates throttle. On exit,
+after 18 ticks above 0.18 radians of slip and with the next waypoint within
+0.25 radians of straight ahead, it asks for the opposite side for 55 ticks,
+with up to 45 ticks of handbrake (still released at the slip ceiling). A
+120-tick cooldown lets it return to the line. This gives a willing car time
+to swap before the game's 60 idle ticks bank its chain; it never reads or
+changes the score to arrange a link. The same controller and constants drive
+every car; no launch, teleport or per-car help. It combines with `--laps`,
+`--streets`, `--try` and `--json`; text calls transitions `links`, JSON retains
+`drift.transitions`.
 
 | Car | Score / 3000 | Mean / best drift angle | Drifting share | Links / clips |
 |---|---|---|---|---|
-| Cinder r1 | 3817 | 17.39 / 26.39 degrees | 14.80% | 0 / 11 |
-| NS-01 r1 | 3817 | 17.39 / 26.39 degrees | 14.80% | 0 / 11 |
-| Wager r2 | 3011 | 17.03 / 25.56 degrees | 13.37% | 0 / 11 |
-| Bulwark r2 | 305 | 12.73 / 15.34 degrees | 7.26% | 0 / 0 |
-| Breakwater r2 | 366 | 12.74 / 15.03 degrees | 8.56% | 0 / 0 |
+| Cinder r1 | 4929 | 17.12 / 28.67 degrees | 19.48% | 6 / 9 |
+| NS-01 r2 | 6340 | 18.78 / 34.21 degrees | 23.07% | 9 / 9 |
+| Wager r2 | 3768 | 16.07 / 27.41 degrees | 17.54% | 5 / 8 |
+| Bulwark r2 | 301 | 12.99 / 15.69 degrees | 7.06% | 0 / 0 |
+| Breakwater r2 | 368 | 12.91 / 15.13 degrees | 8.56% | 0 / 0 |
 
-All five finished without spins, contacts or leaving the bounds. Angles use
-only the game's scoring drift ticks; share excludes the countdown. Spins and
-contacts count episodes, not every consecutive tick of an incident. The NS-01
-check scores **4105 loose** (`balance: 0.85, handbrake: 1.2`) against **3612
-planted** (`balance: 1.2, handbrake: 0.6`), **13.6% higher**, with the same eleven
-clips and no incidents: the measure responds to the tune's drift behaviour.
-Repeated five-car text and NS-01 candidate JSON commands were byte-identical.
-Timed around `measureDrift` (world setup included, card/imports excluded), the
-first car took 12.77 s and the next four 3.08-3.28 s each during validation.
+All twelve garage cars completed 5400 event ticks without spins, contacts or
+leaving the bounds. Other cars' links / clips: Kestrel 4 / 10, Vesper 6 / 9,
+Latch 0 / 0, Meridian 4 / 10, Skim 4 / 10, Reign 4 / 10, Hammer 10 / 9.
+All five rear-drive cars link; Bulwark, Breakwater and Latch still earn no
+clips. Angles use only scoring drift ticks; share excludes the countdown.
+Spins and contacts count episodes, not consecutive ticks of one incident.
 
-The rear-drive cars beating the planted AWD pair is believable; Cinder and
-NS-01 share a tune and tie. Wager's lower angle and drift time put it behind
-them despite its quicker street pace. This ranks short corner drifts and zone
-access with one driver, not expert potential: it banks short chains and these
-runs link no transitions. Zone order amplifies a missed clip, and steering,
-grip and the driven line also affect scores; this is not a universal ordering
-of drift cars or a replacement for pad driving.
+The NS-01 check scores **6287 loose** (`balance: 0.85, handbrake: 1.2`)
+against **3730 planted** (`balance: 1.2, handbrake: 0.6`), **68.6% higher**,
+with **9 versus 3 links**, nine clips each and no incidents. The balance
+sweep (only `balance` overridden) is:
+
+| Override | 0.8 | 0.9 | none (stock 0.85) | 1.1 | 1.2 |
+|---|---|---|---|---|---|
+| Score | 6405 | 6255 | 6340 | 5708 | 5615 |
+| Links | 9 | 9 | 9 | 9 | 9 |
+| Clips | 9 | 9 | 9 | 8 | 8 |
+
+This is strictly decreasing in **actual balance order**: 0.8, stock 0.85,
+0.9, 1.1, 1.2. It is not decreasing in the requested column order because
+stock is already looser than 0.9; `--try` replaces a knob, not multiplies it.
+Every candidate completed without incidents. Two executions of
+`pnpm cars cinder ns01 wager bulwark breakwater --drift --json` produced
+byte-identical output (SHA-256
+`dc34bbc1fb42cd9f7d2ec6c03a13bf650ab755796be2101b10e1c10fb048f2fa`).
+
+Timed around `measureDrift`, including world setup but excluding imports and
+card measurements, with the full suite running concurrently. `pnpm test` passed
+all 587 tests in 309.93 s; `pnpm build` passed with the existing large-chunk
+warning:
+
+| Car | Seconds | Car | Seconds |
+|---|---|---|---|
+| Cinder (first, cold) | 12.13 | Bulwark | 3.51 |
+| NS-01 | 3.19 | Kestrel | 3.18 |
+| Vesper | 3.48 | Latch | 3.42 |
+| Breakwater | 3.12 | Wager | 3.05 |
+| Meridian | 3.10 | Skim | 3.16 |
+| Reign | 3.39 | Hammer | 3.30 |
+
+The five-car ordering puts the NS-01 first and the planted AWD pair last.
+The instrument now measures swaps as well as corner angle, but its fixed
+flick duration and exit threshold reward compatibility with this driver.
+Hammer scores **7231 with 10 links**, ahead of the NS-01 across the full garage;
+this is not a universal ordering of drift potential. Zone order amplifies a
+missed clip, and steering, grip and the driven line also affect scores. The
+balance sweep holds here, not necessarily for every tune or route; pad driving
+remains the check on expert potential.
 
 ### The Bulwark, revision 2 (2026-09-19)
 
