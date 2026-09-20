@@ -30,6 +30,12 @@ export interface CarCard {
   /** Peak body slip in degrees: a half-second handbrake pull at 30 m/s with 70% steer,
    *  half a second of half countersteer, then the stick centred. */
   readonly handbrakeSlip: number;
+  /** Seconds the car spends in a held slide, summed over the nine entries of
+   *  `SLIDE_ENTRIES`. How much sideways the car offers, where `handbrakeSlip`
+   *  is only the peak of a poke. */
+  readonly slideSeconds: number;
+  /** Mean body slip in degrees over those seconds: how far out it sits. */
+  readonly slideAngle: number;
 }
 
 const MPH = 0.44704;
@@ -54,6 +60,57 @@ function drive(sim: Sim, seconds: number, input: (tick: number) => Partial<Input
 }
 
 const round = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
+const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
+const slipDegrees = (sim: Sim) => {
+  const car = sim.state.vehicle;
+  return Math.atan2(car.lateralSpeed, Math.abs(car.forwardSpeed)) * 180 / Math.PI;
+};
+
+/** Nine ways into a slide: three steering angles by three flick lengths, in
+ *  ticks. A car that only slides on one of them is harder to get sideways than
+ *  one that slides on all nine, and the sweep is what says so. */
+const SLIDE_ENTRIES = [0.5, 0.7, 0.9].flatMap(steer => [20, 30, 40].map(flick => ({ steer, flick })));
+/** The slide the bench counts: body slip between `low` and `high` degrees, still
+ *  moving forwards at `floor` m/s or more. Under `low` the car has straightened,
+ *  over `high` it has spun, and both end the run once it has been out of the
+ *  window for `lapse` ticks. `target` is the angle the hold law aims at. */
+const SLIDE = { speed: 25, target: 25, hold: 6, low: 12, high: 55, floor: 8, lapse: 15 } as const;
+
+/**
+ * One entry, held by ONE control law for every car: keep steering into the
+ * corner and countersteer on whatever slip exceeds the target, with throttle
+ * holding the entry speed. Slip runs opposite in sign to the steer that made
+ * it, so adding sign(slip) x excess bleeds the lock off and past it into
+ * opposite lock. No car identity is in the law, which is the point: what
+ * differs between cars is the car.
+ *
+ * The measure is deliberately peaked in the handbrake rather than rising with
+ * it (measured 2026-09-19 on the NS-01: 0.6 never breaks traction and every
+ * entry straightens, 1.25 holds eight of nine, 1.6 spins five of nine). A car
+ * that snaps past `high` is not a drift car; it is a car that spins.
+ */
+function slide(handling: CarHandling, steer: number, flick: number): { ticks: number; angle: number } {
+  const sim = rolling(handling, SLIDE.speed);
+  try {
+    drive(sim, flick / TICK_HZ, () => ({ steer, throttle: 0.3, handbrake: 1 }));
+    let ticks = 0, angle = 0, lapsed = 0, started = false;
+    drive(sim, SLIDE.hold, () => {
+      const slip = slipDegrees(sim);
+      return {
+        steer: clamp(steer + Math.sign(slip) * clamp((Math.abs(slip) - SLIDE.target) / 15, 0, 1.6), -1, 1),
+        throttle: clamp(0.5 + (SLIDE.speed - sim.state.vehicle.speed) * 0.15, 0, 1),
+      };
+    }, tick => {
+      const car = sim.state.vehicle, size = Math.abs(slipDegrees(sim));
+      if (size >= SLIDE.low && size <= SLIDE.high && car.speed >= SLIDE.floor && car.forwardSpeed > 2) {
+        started = true; ticks++; angle += size; lapsed = 0;
+        return false;
+      }
+      return started ? ++lapsed >= SLIDE.lapse : tick > TICK_HZ;
+    });
+    return { ticks, angle };
+  } finally { sim.world.free(); }
+}
 
 export function measureCar(handling: CarHandling): CarCard {
   const full = () => ({ throttle: 1 });
@@ -88,10 +145,14 @@ export function measureCar(handling: CarHandling): CarCard {
       () => { const car = sim.state.vehicle; peak = Math.max(peak, Math.abs(Math.atan2(car.lateralSpeed, Math.abs(car.forwardSpeed)))); });
     return peak * 180 / Math.PI;
   });
+  const slides = SLIDE_ENTRIES.map(entry => slide(handling, entry.steer, entry.flick));
+  const slideTicks = slides.reduce((sum, run) => sum + run.ticks, 0);
+  const slideAngle = slideTicks ? slides.reduce((sum, run) => sum + run.angle, 0) / slideTicks : 0;
   return {
     car: handling.car, drivetrain: handling.drivetrain, mass: handling.mass,
     zeroToSixty: round(zeroToSixty, 2), sixtyToHundred: round(sixtyToHundred, 2), topSpeed: round(topSpeed, 1),
     stoppingDistance: round(stoppingDistance, 1), peakLateral: round(peakLateral, 2), turnIn: round(turnIn, 2),
     handbrakeSlip: round(handbrakeSlip, 1),
+    slideSeconds: round(slideTicks / TICK_HZ, 2), slideAngle: round(slideAngle, 1),
   };
 }

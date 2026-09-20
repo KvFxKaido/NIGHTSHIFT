@@ -11,7 +11,9 @@
       "stoppingDistance": 27.8,
       "peakLateral": 14.18,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "handbrakeSlip": 7.6,
+      "slideSeconds": 9.73,
+      "slideAngle": 21.3
     }
   },
   "bulwark": {
@@ -26,7 +28,9 @@
       "stoppingDistance": 31.2,
       "peakLateral": 12.16,
       "turnIn": 0.42,
-      "handbrakeSlip": 5.8
+      "handbrakeSlip": 5.8,
+      "slideSeconds": 2.1,
+      "slideAngle": 17.8
     }
   },
   "kestrel": {
@@ -41,7 +45,9 @@
       "stoppingDistance": 27.8,
       "peakLateral": 13.52,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.8
+      "handbrakeSlip": 7.8,
+      "slideSeconds": 4.68,
+      "slideAngle": 19.9
     }
   },
   "latch": {
@@ -56,7 +62,9 @@
       "stoppingDistance": 27,
       "peakLateral": 15.11,
       "turnIn": 0.38,
-      "handbrakeSlip": 7.2
+      "handbrakeSlip": 7.2,
+      "slideSeconds": 3.77,
+      "slideAngle": 16.6
     }
   },
   "hammer": {
@@ -71,7 +79,9 @@
       "stoppingDistance": 30.1,
       "peakLateral": 13.48,
       "turnIn": 0.38,
-      "handbrakeSlip": 7
+      "handbrakeSlip": 7,
+      "slideSeconds": 10.45,
+      "slideAngle": 21.6
     }
   },
   "breakwater": {
@@ -86,7 +96,9 @@
       "stoppingDistance": 29,
       "peakLateral": 13.25,
       "turnIn": 0.4,
-      "handbrakeSlip": 7.2
+      "handbrakeSlip": 7.2,
+      "slideSeconds": 4.23,
+      "slideAngle": 18.1
     }
   },
   "wager": {
@@ -101,7 +113,9 @@
       "stoppingDistance": 26.6,
       "peakLateral": 15.16,
       "turnIn": 0.37,
-      "handbrakeSlip": 8.4
+      "handbrakeSlip": 8.4,
+      "slideSeconds": 10.55,
+      "slideAngle": 20
     }
   },
   "ns01": {
@@ -116,7 +130,9 @@
       "stoppingDistance": 27.8,
       "peakLateral": 14.18,
       "turnIn": 0.4,
-      "handbrakeSlip": 13.7
+      "handbrakeSlip": 13.7,
+      "slideSeconds": 15.02,
+      "slideAngle": 29.6
     }
   },
   "meridian": {
@@ -131,7 +147,9 @@
       "stoppingDistance": 28.2,
       "peakLateral": 13.45,
       "turnIn": 0.38,
-      "handbrakeSlip": 7.5
+      "handbrakeSlip": 7.5,
+      "slideSeconds": 4.58,
+      "slideAngle": 19.4
     }
   },
   "skim": {
@@ -146,7 +164,9 @@
       "stoppingDistance": 26.2,
       "peakLateral": 15.75,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "handbrakeSlip": 7.6,
+      "slideSeconds": 3.55,
+      "slideAngle": 16.4
     }
   },
   "reign": {
@@ -161,7 +181,9 @@
       "stoppingDistance": 26.5,
       "peakLateral": 14.12,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.1
+      "handbrakeSlip": 7.1,
+      "slideSeconds": 3.53,
+      "slideAngle": 16.2
     }
   },
   "vesper": {
@@ -176,7 +198,9 @@
       "stoppingDistance": 26.3,
       "peakLateral": 15.3,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.9
+      "handbrakeSlip": 7.9,
+      "slideSeconds": 9.7,
+      "slideAngle": 18.7
     }
   }
 }

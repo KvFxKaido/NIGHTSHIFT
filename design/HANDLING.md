@@ -455,6 +455,80 @@ missed clip, and steering, grip and the driven line also affect scores. The
 balance sweep holds here, not necessarily for every tune or route; pad driving
 remains the check on expert potential.
 
+Taken apart on 2026-09-19, the Hammer's lead is not compatibility with this
+driver's timing: see "The slide, and why the yard score is not a ranking" below,
+and rank cars on the card's slide columns rather than on this score.
+
+### The slide, and why the yard score is not a ranking (2026-09-19)
+
+The yard event above ends with a caveat -- the Hammer scores 7,231 against the
+NS-01's 6,558, "not a universal ordering of drift potential". Taken apart, it is
+worse than a caveat: the score cannot rank cars at all, and it is nothing to do
+with the driver's flick constants.
+
+Both cars earn **identical** fixed points, 1,800 from nine clips and 750 from ten
+links, and the NS-01 builds **more** raw chain from speed and angle, 1,505 against
+1,329. It still loses by 673, because the event is a chain game. The NS-01 banks
+18 times, nine of them scraps (26, 11, 49, 3 points) worth 1 x multiplier; the
+Hammer banks 11 times, seven at x2. A car that drifts more but straightens for a
+second between corners banks more often at a lower multiplier and scores less.
+The score measures how well one scripted driver keeps a chain alive in a car,
+which is the event's own verdict and a fair one -- it just is not the car.
+
+So the car's drift measure moved onto the card, where the other car properties
+are, next to `handbrakeSlip` (which is only the peak of one poke):
+
+- **Nine entries**, three steering angles by three handbrake flick lengths, at
+  25 m/s on the card's empty flat world.
+- **One hold law for every car**: keep steering into the corner, countersteer on
+  whatever slip exceeds 25 degrees, throttle to hold the entry speed. Slip runs
+  opposite in sign to the steer that made it, so adding sign(slip) x excess
+  bleeds the lock off and past it into opposite lock. No car identity in it.
+- **A slide** is body slip between 12 and 55 degrees, still moving forwards at
+  8 m/s or more. Under 12 it has straightened, over 55 it has spun, and a
+  quarter second outside ends the run.
+- `slideSeconds` is the total held over the nine entries, `slideAngle` the mean
+  angle over those seconds.
+
+| | NS-01 | Wager | Hammer | Cinder | Vesper | Kestrel | Meridian | Breakwater | Latch | Skim | Reign | Bulwark |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Slide s | **15.02** | 10.55 | 10.45 | 9.73 | 9.70 | 4.68 | 4.58 | 4.23 | 3.77 | 3.55 | 3.53 | 2.10 |
+| Slide deg | **29.6** | 20.0 | 21.6 | 21.3 | 18.7 | 19.9 | 19.4 | 18.1 | 16.6 | 16.4 | 16.2 | 17.8 |
+
+The drift car leads both columns, every car that holds a slide for nine seconds
+drives its rear wheels, and the planted Bulwark is last. `tests/car-handling.test.ts`
+gates all three.
+
+**The two columns say different things, and the sweeps show it.** In actual
+looseness order the angle is strictly decreasing and the seconds are not:
+
+| NS-01 `balance` | 0.8 | 0.85 (stock) | 0.9 | 1.0 | 1.1 | 1.2 |
+|---|---|---|---|---|---|---|
+| Slide deg | 30.6 | 29.6 | 28.2 | 28.0 | 26.3 | 23.3 |
+| Slide s | 14.62 | 15.02 | 15.13 | 12.88 | 11.85 | 11.47 |
+
+| NS-01 `handbrake` | 0.6 | 0.9 | 1.25 (stock) | 1.6 |
+|---|---|---|---|---|
+| Slide deg | 18.1 | 21.9 | 29.6 | 31.5 |
+| Slide s | 9.50 | 12.60 | 15.02 | 9.47 |
+
+Angle is how far the car swings, and it rises with every loosening knob.
+Seconds is how long that swing can be held, and it peaks: at `handbrake` 1.6 the
+NS-01 sits furthest out of any tune measured and **spins five of the nine
+entries**, where at 0.6 every entry straightens without ever breaking traction.
+That peak is the measure working. A drift car has to be catchable, and a car
+that snaps past 55 degrees is not a drift car, it is a car that spins.
+Less tyre pushes the other way, as it should: `grip` 0.9 holds 16.67 s, `grip`
+1.2 only 12.43 s, at the same angle either way.
+
+**What it does not measure.** It is a straight-line flick on an empty plane, so
+it says nothing about linking, about clipping a zone, or about a corner. Most
+runs end by scrubbing under the 8 m/s floor rather than by the hold law losing
+them, so the floor is load-bearing: the sim's tyres take 25 m/s down to 6-10 m/s
+in about two seconds of slide, and no car holds one for the full six. Pad
+driving remains the check on expert potential, and Sable's event remains the
+check on whether a car can pass it -- the Bulwark and Breakwater still cannot.
+
 ### The Bulwark, revision 2 (2026-09-19)
 
 The brief, Claude's proposal that Shawn took on 2026-09-19: keep the launch and
@@ -750,9 +824,12 @@ as a car the player wins.
   bit-identical.
 - **What the measure cannot see.** The driver links now, so a car that flicks
   willingly shows, but it still cannot rank cars against each other: Rivet's
-  Hammer scores **7,231** here, above the drift car, because it suits the driver's
-  fixed timing. Read it as one car's tunes against each other, which is what it
-  was used for.
+  Hammer scores **7,231** here, above the drift car. Not because of the driver's
+  fixed timing, as this first read it -- the two earn identical clips and links
+  and the NS-01 builds more raw chain. The event is a chain game and the Hammer
+  banks fewer, longer chains ("The slide, and why the yard score is not a
+  ranking"). Read the score as one car's tunes against each other, and the card's
+  slide columns to rank cars, where the NS-01 leads at 15.02 s and 29.6 degrees.
 
 ### The Meridian, revision 2 (2026-09-19)
 

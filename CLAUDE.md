@@ -128,7 +128,8 @@ fixtures outside the playable bundle, and old world links redirect.
   to about even, Rivet's Hammer (r2) to a quarter mile a clean Cinder just wins,
   Bollard's Breakwater (r2) to a heavy brick that wins every shove, Deuce's
   Wager (r2) to a revvy rotary 2.5% quicker on streets, and Sable's NS-01 (r2) to
-  the drift car (`pnpm cars --drift`), and Plumb's Meridian (r2) to a fast wagon
+  the drift car (the card's slide columns: 15.02 s held at 29.6 degrees, both the
+  fleet's highest), and Plumb's Meridian (r2) to a fast wagon
   4% quicker on her street circuits, and Crest's Skim (r2) to the lightest car on
   the best tyres, Wake's Reign (r2) to the all-rounder at #2, and Tally's Vesper
   (r2) to the one car past the cap at 165 mph. Every Blacklist car is tuned, and
@@ -359,6 +360,14 @@ fixtures outside the playable bundle, and old world links redirect.
   build that rejects Kestrel likewise makes every slot unreadable if one names it.
 - `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
   the phone. Do not add to it casually.
+- Sable's yard score cannot rank cars against each other: it is a chain game, so
+  a car that banks fewer, longer chains beats one that drifts more in shorter ones
+  (the Hammer 7,231 to the NS-01's 6,558 on identical clips, links and less raw
+  chain). Rank drift on the card's `slideSeconds` / `slideAngle`; the event says
+  whether a car can pass it.
+- `carHandling` memoises per `car/drivetrain` key, so a probe tune registered under
+  an id that has already been measured silently returns the first one's numbers. A
+  sweep gives every candidate its own id, as `--try` does with `<car>*`.
 - Being caught is every car's floor; how far it swings is the car's own. The
   recovery gates take their peak-slip ceilings from `CAR_PEAKS`
   (`tests/helpers/handling.ts`), which the NS-01 raises because a drift car that

@@ -193,3 +193,44 @@ test("a recording driven at another car revision is refused, not compared", () =
   assert.equal(refused.ok, false);
   assert.match(refused.ok ? "" : refused.reason, /handling revision/);
 });
+
+// The card's slide is the drift measure (design/HANDLING.md, "Cars"): seconds
+// held between 12 and 55 degrees of body slip over nine flick entries, one hold
+// law for every car. It exists because Sable's yard event cannot rank cars --
+// it is a chain game, and on 2026-09-19 the Hammer scored 7,231 to the NS-01's
+// 6,558 off identical clips and links and LESS raw chain, purely by banking
+// fewer, longer chains under one scripted driver.
+test("the NS-01 is the drift car by the card, and only rear drive slides like one", () => {
+  const measured = Object.keys(CAR_TUNES).filter(car => car !== "blender")
+    .map(car => ({ car, ...measureCar(carHandling(car)) }))
+    .sort((a, b) => b.slideSeconds - a.slideSeconds);
+  const names = measured.map(row => row.car);
+  const shown = measured.map(row => `${row.car} ${row.slideSeconds}s/${row.slideAngle}°`).join(", ");
+  assert.equal(names[0], "ns01", `the drift car does not hold the longest slide: ${shown}`);
+  assert.ok(measured[0]!.slideAngle === Math.max(...measured.map(row => row.slideAngle)),
+    `the drift car does not sit furthest out: ${shown}`);
+  // Sliding is a rear-drive thing here: every car that holds one for nine
+  // seconds drives its rear wheels, and the planted brick is last of all.
+  for (const row of measured.filter(row => row.slideSeconds >= 9)) {
+    assert.equal(row.drivetrain, "rwd", `${row.car} slides like a drift car on ${row.drivetrain}: ${shown}`);
+  }
+  assert.equal(names.at(-1), "bulwark", `the heaviest planted car is not the hardest to slide: ${shown}`);
+});
+
+test("the slide measure follows the knob that loosens a car, and is peaked in the handbrake", () => {
+  const probe = (id: string, knobs: Partial<CarTune>) => {
+    (CAR_TUNES as Record<string, CarTune>)[id] = { ...CAR_TUNES.ns01!, ...knobs };
+    return measureCar(carHandling(id));   // carHandling caches per id, so each probe needs its own
+  };
+  const loose = probe("slide-balance-0.85", {});
+  const mid = probe("slide-balance-1.0", { balance: 1 });
+  const tight = probe("slide-balance-1.2", { balance: 1.2 });
+  assert.ok(loose.slideAngle > mid.slideAngle && mid.slideAngle > tight.slideAngle,
+    `balance did not order the slide angle: ${loose.slideAngle} / ${mid.slideAngle} / ${tight.slideAngle}`);
+  // Deliberately not monotone: too little handbrake never breaks traction, too
+  // much spins the car past the window. A drift car has to be catchable.
+  const weak = probe("slide-handbrake-0.6", { handbrake: 0.6 });
+  const strong = probe("slide-handbrake-1.6", { handbrake: 1.6 });
+  assert.ok(loose.slideSeconds > weak.slideSeconds && loose.slideSeconds > strong.slideSeconds,
+    `the shipped handbrake is not the peak: ${weak.slideSeconds} / ${loose.slideSeconds} / ${strong.slideSeconds}`);
+});

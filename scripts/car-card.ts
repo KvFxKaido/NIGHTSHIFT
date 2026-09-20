@@ -145,11 +145,13 @@ if (json) {
     ["0-60 s", row => row.zeroToSixty.toFixed(2)], ["60-100 s", row => row.sixtyToHundred.toFixed(2)],
     ["top mph", row => row.topSpeed.toFixed(1)], ["100-0 m", row => row.stoppingDistance.toFixed(1)],
     ["lat m/s2", row => row.peakLateral.toFixed(2)], ["turn-in s", row => row.turnIn.toFixed(2)], ["hb slip", row => `${row.handbrakeSlip.toFixed(1)}°`],
+    ["slide s", row => row.slideSeconds.toFixed(2)], ["slide deg", row => `${row.slideAngle.toFixed(1)}°`],
     ...(laps ? circuits.map((raceId): [string, (row: Row) => string] => [raceId.replace("street-", ""), row => row.laps![raceId]!.best.toFixed(2)]) : []),
   ];
   const table = [columns.map(([title]) => title), ...rows.map(row => columns.map(([, cell]) => cell(row)))];
   const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
   for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
+  console.log("Slide: seconds held between 12° and 55° of body slip over nine flick entries at 25 m/s, one hold law for every car, and the mean angle over them. This is how sideways the CAR goes; the drift event below is a score.");
   if (laps) console.log("\nAI laps: best flying lap of three, in seconds, the rival's planner driving (not a pad lap).");
   if (drift) {
     console.log("\nAI drift: Sable's 90-second yard event; angles only on scoring drift ticks.");
@@ -167,6 +169,9 @@ if (json) {
     const widths = columns.map((_, i) => Math.max(...table.map(line => line[i]!.length)));
     for (const line of table) console.log(line.map((cell, i) => i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)).join("  "));
     console.log("Spins and contacts count episodes (consecutive ticks count once); countdown excluded. Same driver, no launch or resets.");
+    console.log("The score is the EVENT's verdict under one scripted driver, not a ranking of cars: it is a chain game, so a car that");
+    console.log("banks fewer, longer chains outscores one that drifts more in shorter ones (measured 2026-09-19: the Hammer takes 7,231");
+    console.log("to the NS-01's 6,558 on identical clips and links and LESS raw chain). Rank drift on the card's slide columns.");
   }
   if (streets) {
     console.log(`\nAI street pace (traffic off): seconds; DNF at ${streetLimit} s after the flag.`);
