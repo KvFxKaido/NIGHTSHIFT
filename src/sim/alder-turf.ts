@@ -18,7 +18,7 @@
  */
 import landmarks from "./alder-landmarks.json" with { type: "json" };
 import { ALDER_DATA, ALDER_STREETS } from "./alder.ts";
-import { RIVET } from "./drag-event.ts";
+import { RIVET_TURF } from "./drag-event.ts";
 import { DRIFT_YARD } from "./drift-yard.ts";
 import { ALDER_CRUISE } from "./encounter.ts";
 import type { Turf } from "./race-generator.ts";
@@ -48,7 +48,7 @@ const turf = (id: string, name: string, place: string, anchor: string, centre: P
 export const ALDER_TURFS: readonly RivalTurf[] = [
   turf("moth", "Moth", "SoDo freight block", "her cruise loop", centroid(ALDER_CRUISE.points, "Moth's cruise")),
   turf("stray", "Stray", "Alder Center alleys", "Pike St, Union St, 2nd Ave and 4th Ave", streets("Pike St", "Union St", "2Nd Ave", "4Th Ave")),
-  turf("rivet", "Rivet", "Harbor Quarter", "her quarter-mile", RIVET.start),
+  turf("rivet", "Rivet", "Harbor Quarter", "her quarter-mile", RIVET_TURF),
   turf("bollard", "Bollard", "Elliott Avenue waterfront", "Elliott Ave", streets("Elliott Ave")),
   turf("deuce", "Deuce", "Belltown, Broadcast Tower loop", "the Broadcast Tower", landmarks.broadcastTower),
   turf("sable", "Sable", "South Wharf drift yard", "the drift yard", DRIFT_YARD.start),

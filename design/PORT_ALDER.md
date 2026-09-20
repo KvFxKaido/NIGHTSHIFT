@@ -1890,9 +1890,21 @@ build after about twenty minutes of traffic left to itself, this one and the one
 before it: over thirty minutes `traffic-v5` had 43 standstills of over a minute,
 the longest 187 s, and `traffic-v6` had 64, the longest 300 s. Those figures are
 chaotic, and run to run they say "both degrade", not which is worse. It is a
-capacity problem in a grid of 100 m lanes, not one of the holes above. A parked
-rival standing in a live lane is a second source of queues, and an older one:
-traffic yields to it as to any racer, and it never moves.
+capacity problem in a grid of 100 m lanes, not one of the holes above.
+
+**Parked rivals (fixed the same day).** A parked rival is a racer traffic yields
+to, and one that never moves. Rivet stood in the road, 0.41 m off the line of
+Harbor Way's outer northbound lane and facing up it: two taxis, an SUV and a box
+truck stopped behind her inside the first minute and stayed for good, in the
+headless soak and in the running game alike. No spot inside that carriageway
+clears, since the lane's line is 3.41 m from its kerb, a metre of that is her own
+car and traffic counts anything within 2.6 m of its line as in its lane
+(`RACER_IN_LANE`). She now stands on the pavement strip beside the kerb, 4.7 m
+off the line, and nothing queues. Sable was never in a lane. Rivet's turf keeps
+the centre it had (`RIVET_TURF`), so no seed redrew: the golden master's
+generated races are bit-identical and only the free-roam run, which has her in
+it, moved. `tests/traffic-intent.test.ts` holds every parked rival out of every
+lane.
 
 No recording that replayed is lost to `traffic-v6`. Of thirteen sessions two
 replay in this build at all, both clear of traffic, and both still replay

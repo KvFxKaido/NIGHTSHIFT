@@ -7,10 +7,25 @@ const harbor = ALDER_STREETS.find(s => s.id === "sea-0")!;
 const south = harbor.points[1]!;
 /** 90 m north of Harbor Way's southern bend, with 200 m of braking road. */
 const start = { x: south.x, z: south.z - 90 };
+/**
+ * Beside her strip, up on the pavement. Until 2026-09-20 she stood in the road,
+ * 0.41 m off the line of Harbor Way's outer northbound lane and facing up it, and
+ * traffic follows a racer in its lane: four vehicles stopped behind her inside
+ * the first minute and stayed for good. No spot inside the carriageway clears.
+ * That lane's line is 3.41 m from its kerb, a metre of that is her own car, and
+ * traffic counts anything within 2.6 m of its line as in its lane
+ * (`RACER_IN_LANE`). So she is 4.7 m off it, on the strip beside the kerb.
+ */
+const parked = { x: start.x + 13.3, z: start.z + 20 };
+/**
+ * Where her turf is centred: where she used to stand. Apart from her car, so that
+ * moving the car redrew nobody's seeds. A turf's centre is part of what a seed draws.
+ */
+export const RIVET_TURF = { x: start.x + 9, z: start.z + 20 } as const;
 export const RIVET = {
   id: "rivet", name: "Rivet", carName: "Hammer", car: "hammer",
   eventId: "rivet-quarter-mile",
-  start: { x: start.x + 9, z: start.z + 20, y: alderHeight(start.x + 9, start.z + 20), heading: 0, pitch: 0 },
+  start: { ...parked, y: alderHeight(parked.x, parked.z), heading: 0, pitch: 0 },
 } as const;
 
 export const HARBOR_DRAG: RaceDefinition = {

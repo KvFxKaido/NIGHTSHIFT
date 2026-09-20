@@ -59,7 +59,7 @@ export interface TrafficRacer { readonly x: number; readonly z: number; readonly
 /** A racer's length, for gaps: the longest car a racer drives, with some to spare. */
 const RACER_LENGTH = 4.8;
 /** Metres either side of a lane a racer counts as in it: half a lane, and half a car. */
-const RACER_IN_LANE = 2.6;
+export const RACER_IN_LANE = 2.6;
 /** Metres from a movement's path a racer counts as in its way: half of each car and room. */
 const RACER_IN_JUNCTION = 5;
 /**

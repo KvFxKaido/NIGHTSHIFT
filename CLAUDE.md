@@ -332,6 +332,11 @@ fixtures outside the playable bundle, and old world links redirect.
   on a corner it had finished. Every tick is guarded, in `tests/alder.test.ts` and
   `tests/traffic-intent.test.ts`; the other traffic invariants sample every tenth
   tick and cannot see a one-tick discontinuity.
+- A parked rival is a racer traffic yields to, and it never moves: parked within
+  `RACER_IN_LANE` (2.6 m) of a lane's line and facing along it, it stops that lane
+  for good. Rivet did, from the middle of Harbor Way's outer lane. Park them off
+  the carriageway, and keep a turf's centre apart from its rival's car
+  (`RIVET_TURF`): the centre is part of what a seed draws.
 - Anything that makes traffic wait at its lines more finds holes in the
   reservation rules that fast traffic hid. Two were locks (2026-09-20): a car
   refused because of the car queued behind it on its own lane (a queue, not a

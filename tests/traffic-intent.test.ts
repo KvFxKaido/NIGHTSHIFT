@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { DT } from "../src/sim/sim.ts";
-import { createTraffic, forecastTraffic, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { createTraffic, forecastTraffic, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { RIVET } from "../src/sim/drag-event.ts";
+import { SABLE } from "../src/sim/drift-yard.ts";
 
 // Traffic's plan (2026-09-13): which way each car turns is decided when it enters
 // a lane, so where it is going is a fact the sim holds. The rival reads it as a
@@ -222,4 +224,48 @@ test("traffic rounds its corners: it points where it is going, covers the ground
   sideways.sort((a, b) => a - b);
   const p99 = sideways[Math.floor(sideways.length * 0.99)]!;
   assert.ok(p99 < 7.5, `a corner was taken at ${p99.toFixed(1)} m/s² sideways, 99th percentile (at cruise it was over 50)`);
+});
+
+// A parked rival is a racer traffic yields to, and one that never moves
+// (2026-09-20). Rivet stood 0.41 m off the line of Harbor Way's outer lane,
+// facing up it: four vehicles stopped behind her inside a minute and stayed.
+test("no parked rival stands in a lane, so traffic never queues behind one", () => {
+  const widest = Math.max(...Object.values(TRAFFIC_KINDS).map(kind => kind.width));
+  for (const parked of [RIVET, SABLE]) {
+    for (const lane of network.lanes) {
+      // The nearest point of the lane, coarsely and then to 10 cm.
+      let at = 0, nearest = Infinity;
+      const look = (from: number, to: number, step: number) => {
+        for (let d = from; d <= to; d += step) {
+          const pose = network.pose(lane.id, d), away = Math.hypot(pose.x - parked.start.x, pose.z - parked.start.z);
+          if (away < nearest) { nearest = away; at = d; }
+        }
+      };
+      look(0, lane.length, 4);
+      if (nearest > 20) continue;
+      look(Math.max(0, at - 4), Math.min(lane.length, at + 4), 0.1);
+      // Beside the lane rather than off one of its ends, where distance to a point is not distance to the line.
+      if (at <= 0.1 || at >= lane.length - 0.1) continue;
+      const pose = network.pose(lane.id, at);
+      const beside = Math.abs((parked.start.x - pose.x) * -Math.cos(pose.heading) + (parked.start.z - pose.z) * Math.sin(pose.heading));
+      // Out of what traffic calls its lane whichever way she faces, which is also clear of the widest body that drives it.
+      assert.ok(beside >= RACER_IN_LANE, `${parked.name} stands ${beside.toFixed(2)} m from the line of lane ${lane.id}; traffic follows anything within ${RACER_IN_LANE} m`);
+      assert.ok(beside > (widest + 2) / 2);
+    }
+  }
+  // And driven: two minutes beside both of them, and nothing waits in the road behind Rivet. It took 45 s to form.
+  const traffic = createTraffic(network);
+  const racers = [RIVET, SABLE].map(parked => ({ x: parked.start.x, z: parked.start.z, heading: parked.start.heading, speed: 0 }));
+  const stopped = new Map<number, number>();
+  let longest = 0;
+  for (let tick = 0; tick < 60 * 120; tick++) {
+    stepTraffic(network, traffic, DT, racers);
+    for (const v of traffic.vehicles) {
+      const behind = Math.abs(v.x - RIVET.start.x) < 12 && v.z > RIVET.start.z && v.z < RIVET.start.z + 120;
+      const run = behind && v.speed < 0.5 ? (stopped.get(v.id) ?? 0) + 1 : 0;
+      stopped.set(v.id, run);
+      longest = Math.max(longest, run);
+    }
+  }
+  assert.ok(longest < 60 * 20, `a vehicle stood ${(longest / 60).toFixed(0)} s in the road behind Rivet`);
 });
