@@ -1144,6 +1144,13 @@ this section reads; this is where it ended.
 - **Why.** "Flooring it should be a choice," and the computer could not beat him:
   taking the player's traction control and ABS away was, in his words, the most
   effective thing to close that gap. No rival is touched.
+- **On the pad (Shawn, 2026-09-20).** "Just raced Moth and yea that closed the gap
+  tremendously." One race, against the bottom name on the list, with the trigger's
+  knee already moved; the result and where the time went were not recorded. It is
+  the first evidence that this does what it was for, and the only kind that can
+  be: nothing in the suite races a human. Not yet driven: anyone further up the
+  list, whose cars are quicker than the Cinder and whose pace was set against a
+  player on the clamp.
 - **The rivals are not advantaged by it.** A rival keeps the clamp, and with no
   assist a tyre asked for exactly what it has left delivers exactly that, with
   nothing lost. So a rival on the clamp drives, force for force, as a rival on the
