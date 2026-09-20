@@ -966,6 +966,26 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
  */
 export function forecastTraffic(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, seconds: number, step = 0.1, fine = 1 / 60): { x: number; z: number; heading: number } {
   const ghost: TrafficVehicleState = { ...vehicle, holds: [...vehicle.holds] };
+  driveGhost(network, ghost, seconds, step, fine);
+  return { x: ghost.x, z: ghost.z, heading: ghost.heading };
+}
+
+/**
+ * The same forecast at every `every` seconds out to `seconds`, from one drive of the
+ * ghost rather than one per moment: what a rival reading a whole corner asks for.
+ * Index k is k * every seconds from now, 0 being where the car is.
+ */
+export function forecastTrafficPath(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, seconds: number, every = 0.25): { x: number; z: number; heading: number; speed: number }[] {
+  const ghost: TrafficVehicleState = { ...vehicle, holds: [...vehicle.holds] };
+  const path = [{ x: ghost.x, z: ghost.z, heading: ghost.heading, speed: ghost.speed }];
+  for (let t = every; t <= seconds + 1e-9; t += every) {
+    driveGhost(network, ghost, every, 0.1, 1 / 60);
+    path.push({ x: ghost.x, z: ghost.z, heading: ghost.heading, speed: ghost.speed });
+  }
+  return path;
+}
+
+function driveGhost(network: TrafficNetwork, ghost: TrafficVehicleState, seconds: number, step: number, fine: number): void {
   let left = seconds;
   while (left > 1e-9) {
     // Coarse steps where the speed holds, the tick's own step where a corner is
@@ -993,7 +1013,6 @@ export function forecastTraffic(network: TrafficNetwork, vehicle: Readonly<Traff
     if (ghost.distance >= current.length) ghost.distance = current.length;
     place(network, ghost);
   }
-  return { x: ghost.x, z: ghost.z, heading: ghost.heading };
 }
 
 /** Metres before its junction's entry line a vehicle starts showing the turn it has already decided. */

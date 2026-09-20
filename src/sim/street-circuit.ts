@@ -25,6 +25,7 @@ import { laneOffset } from "./lanes.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
 import { STREET_RACING_LINE, withRacingLine } from "./racing-line.ts";
 import { RIVAL_STREET_LINE, withExits, type RivalDefinition } from "./rival.ts";
+import { withStreetLine } from "./street-line.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import type { LapTrack } from "./lap-recorder.ts";
@@ -130,6 +131,12 @@ export function uptownLap(): StreetCircuitLap {
   return lapCache;
 }
 
+const trafficLines = new Map<number, RivalDefinition>();
+function trafficLine(route: RivalDefinition, laps: number): RivalDefinition {
+  let line = trafficLines.get(laps);
+  if (!line) trafficLines.set(laps, line = withStreetLine(route, STREET_CIRCUIT_LINE, RIVAL_STREET_LINE.speedFactor));
+  return line;
+}
 function clearLine(route: RivalDefinition, laps: number): RivalDefinition {
   let line = clearLines.get(laps);
   if (!line) clearLines.set(laps, line = { ...withRacingLine(route, STREET_CIRCUIT_LINE), cornering: RIVAL_STREET_LINE.speedFactor });
@@ -204,6 +211,7 @@ export function streetCircuitEvent(laps = STREET_CIRCUIT_LAPS, traffic = true, s
     // From the centreline in all four races, so they are the same race whoever is in it.
     race: withExits(race, route),
     // With no traffic there are no lanes to keep to, and the rival drives the whole road (RIVAL_STREET_LINE).
-    rival: solo ? null : traffic ? route : clearLine(route, laps),
+    // In traffic it keeps its lane, and takes the same line a corner at a time when the forecast shows it clear.
+    rival: solo ? null : traffic ? trafficLine(route, laps) : clearLine(route, laps),
   };
 }

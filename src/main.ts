@@ -48,7 +48,7 @@ import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
-import { alderCourseDraws, drawAlderCourse } from "./sim/alder-course.ts";
+import { alderCourseDraws, drawAlderCourse, fieldAlderRival } from "./sim/alder-course.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
@@ -164,7 +164,7 @@ try {
     // and say why, rather than an error screen that refreshing only repeats.
     try {
       const drawn = drawAlderCourse(raceId!, startParam);
-      race = drawn.race; rival = drawn.rival; raceStart = drawn.start;
+      race = drawn.race; rival = fieldAlderRival(drawn.rival); raceStart = drawn.start;
     } catch (error) {
       for (const key of ["race", "start", "generator", "raceWorld", "solo"]) params.delete(key);
       params.set("scene", "garage");

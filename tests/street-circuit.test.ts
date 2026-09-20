@@ -65,9 +65,11 @@ test("four races: traffic or clear, rival or solo, the same gates and grid, and 
     assert.deepEqual(event.race.checkpoints.map(g => [g.x, g.z, g.exit]), events[0]!.race.checkpoints.map(g => [g.x, g.z, g.exit]));
     assert.ok(event.race.checkpoints.slice(0, -1).every(g => g.exit), `${event.race.id}: a gate has no arrow`);
   }
-  // The rival differs, and only the rival: in traffic the centreline and its lane arcs, on clear streets the whole road.
+  // The rival differs: in traffic a conditional corner line on the unchanged route; on clear streets the whole road.
   const [inTraffic, , clear] = events;
   assert.equal(inTraffic!.rival!.lateral, undefined); assert.equal(inTraffic!.rival!.cornering, undefined);
+  assert.ok(inTraffic!.rival!.line, "Uptown in traffic has no conditional corner line");
+  assert.equal(streetCircuitEvent(3, true, false).rival, inTraffic!.rival);
   assert.ok(clear!.rival!.lateral, "Uptown / Clear's rival has no racing line");
   assert.equal(clear!.rival!.cornering, RIVAL_STREET_LINE.speedFactor);
   assert.deepEqual([clear!.rival!.id, clear!.rival!.car, clear!.rival!.start, clear!.rival!.gates.length],

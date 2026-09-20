@@ -15,7 +15,10 @@ import { cruiserFor } from "./alder-cruisers.ts";
 import { BLACKLIST_LAUNCH, RIVAL_LAUNCH_SKILL } from "./launch.ts";
 import { parseGeneratedRaceId } from "./race-id.ts";
 import { decodeStart, snapToLane } from "./race-start.ts";
+import { RIVAL_STREET_LINE, type RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
+import { STREET_CIRCUIT_LINE } from "./street-circuit.ts";
+import { withStreetLine } from "./street-line.ts";
 
 export type AlderCourse = ReturnType<typeof alderGeneratedRace> & { start: RoadWorld["start"] | null };
 
@@ -45,6 +48,15 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
     // Higher up the list, a cleaner start (`launch.ts`).
     launch: (id.rival ? BLACKLIST_LAUNCH[id.rival] : undefined) ?? RIVAL_LAUNCH_SKILL };
   return { race, generated, rival, start: pose };
+}
+
+/**
+ * A course's rival as a race fields it: carrying the street line it may take one corner at a time when traffic allows
+ * (street-line.ts). Not part of `drawAlderCourse`, which is asked whether a course draws far more often than one is
+ * raced, and a line takes a fifth of a second to draw.
+ */
+export function fieldAlderRival(rival: RivalDefinition): RivalDefinition {
+  return rival.line || rival.lateral ? rival : withStreetLine(rival, STREET_CIRCUIT_LINE, RIVAL_STREET_LINE.speedFactor);
 }
 
 export function alderCourseDraws(raceId: string, start: string | null): boolean {

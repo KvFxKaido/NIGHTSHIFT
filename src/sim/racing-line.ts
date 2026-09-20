@@ -140,6 +140,14 @@ export interface RacingLineOptions {
   readonly paved?: (x: number, z: number) => boolean;
   /** Metres of `paved` ground kept all round the line where it cuts a corner. Absent is `edgeMargin`. */
   readonly cutMargin?: number;
+  /** A line for traffic (street-line.ts): outside `cornerReach` metres of a rounded corner the line is HELD at this
+   *  offset for the road's width there, the lane a rival rests in, so it is drawn leaving its lane for a corner and
+   *  coming back to it, rather than wandering the road between corners. Both or neither. */
+  readonly rest?: (width: number) => number;
+  readonly cornerReach?: number;
+  /** With `rest`: on the way INTO a corner the line may not go outside its lane, only inside it. A line that swings
+   *  out for a corner has to do it in the braking zone, and that swing is itself a bend to slow for. */
+  readonly entryInLane?: boolean;
 }
 
 /** Metres of road either way that a sample's other leg is looked for in: the legs of Uptown's hairpin share asphalt 38 m out. */
@@ -239,7 +247,8 @@ function curvature(ax: number, az: number, bx: number, bz: number, cx: number, c
 }
 
 /** Offsets from the centre, positive to the right of travel, for every sample. */
-export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "width">[], options: RacingLineOptions = RACING_LINE, pavement: readonly Pavement[] = []): { offsets: number[]; normals: { x: number; z: number }[] } {
+export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "width">[], options: RacingLineOptions = RACING_LINE, pavement: readonly Pavement[] = [], held: readonly (number | null)[] = [],
+  entries: readonly ({ inside: number; rest: number } | null)[] = []): { offsets: number[]; normals: { x: number; z: number }[] } {
   const n = samples.length, sharp = options.sharpCorners ?? false;
   const reach = Math.max(1, Math.round(options.tangentReach / options.spacing));
   const normals = samples.map((_, i) => {
@@ -310,7 +319,15 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
       }
     }
   }
-  const w = new Array<number>(n).fill(0);
+  // Into a corner the outside of the bend is the lane: a right-hand corner's inside is the right, so nothing left of rest.
+  for (let i = 0; i < n; i++) {
+    const entry = entries[i];
+    if (!entry) continue;
+    if (entry.inside > 0) left[i] = Math.min(left[i]!, -entry.rest); else right[i] = Math.min(right[i]!, entry.rest);
+  }
+  // Held samples take no part: both limits are the value they are held at, after every other bound has had its say.
+  for (let i = 0; i < n; i++) { const at = held[i]; if (at !== null && at !== undefined) { right[i] = at; left[i] = -at; } }
+  const w = Array.from({ length: n }, (_, i) => held[i] ?? 0);
   for (const stride of options.levels) {
     if (n < stride * 5) continue;
     // Samples on this level: every `stride`-th, the ends always fixed at the centre.
@@ -350,6 +367,11 @@ export function racingLineOffsets(samples: readonly Pick<Sample, "x" | "z" | "wi
 
 /** The same route driven on its racing line. */
 export function withRacingLine(route: RivalDefinition, options: RacingLineOptions = RACING_LINE): RivalDefinition {
+  return drawRacingLine(route, options).route;
+}
+
+/** The line, and which of its points were free to leave `rest` (all of them, with no `rest`). */
+export function drawRacingLine(route: RivalDefinition, options: RacingLineOptions = RACING_LINE): { route: RivalDefinition; free: boolean[] } {
   // A line drawn through a line doubles the offsets, which was once measured as "K1999 leaves the road" (above).
   if (route.lateral) throw new RangeError(`${route.id} already carries a racing line`);
   const { rounded, origin, arcs } = options.sharpCorners ? roundCorners(route.points, options)
@@ -359,7 +381,27 @@ export function withRacingLine(route: RivalDefinition, options: RacingLineOption
     legs: [-3, -2, -1, 0, 1, 2].map(k => [route.points[arc.vertex + k], route.points[arc.vertex + k + 1]] as const)
       .filter((leg): leg is readonly [CoursePoint, CoursePoint] => !!leg[0] && !!leg[1])
       .map(([a, b]) => ({ ax: a.x, az: a.z, bx: b.x, bz: b.z, limit: Math.max(0, Math.min(a.width, b.width) / 2 - options.edgeMargin) })) }));
-  const { offsets, normals } = racingLineOffsets(samples, options, pavement);
+  // Free within reach of a corner's arc, held to the lane everywhere else.
+  const free = samples.map(() => !options.rest);
+  if (options.rest) {
+    const run = [0];
+    for (let i = 1; i < samples.length; i++) run.push(run[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
+    for (const stretch of pavement) for (let i = 0; i < samples.length; i++) {
+      if (run[i]! >= run[stretch.from]! - (options.cornerReach ?? 0) && run[i]! <= run[stretch.to]! + (options.cornerReach ?? 0)) free[i] = true;
+    }
+  }
+  const held = samples.map((sample, i) => free[i] ? null : options.rest!(sample.width));
+  // Into a corner, up to the middle of its arc, the outside of the bend is the lane itself.
+  const outside: (number | null)[] = samples.map(() => null);
+  if (options.rest && options.entryInLane) {
+    const run = [0];
+    for (let i = 1; i < samples.length; i++) run.push(run[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
+    for (const stretch of pavement) {
+      const middle = Math.floor((stretch.from + stretch.to) / 2);
+      for (let i = 0; i <= middle; i++) if (run[i]! >= run[stretch.from]! - (options.cornerReach ?? 0)) outside[i] = stretch.inside;
+    }
+  }
+  const { offsets, normals } = racingLineOffsets(samples, options, pavement, held, outside.map((inside, i) => inside === null ? null : { inside, rest: options.rest!(samples[i]!.width) }));
   const points: CoursePoint[] = samples.map((s, i) => ({ x: s.x + normals[i]!.x * offsets[i]!, z: s.z + normals[i]!.z * offsets[i]!,
     y: s.y, width: s.width, zone: s.zone }));
   // `lateral` is where a point is across the ROAD. On an arc that is across the nearer leg, not from the arc.
@@ -375,5 +417,5 @@ export function withRacingLine(route: RivalDefinition, options: RacingLineOption
     if (original < 0) throw new RangeError(`${route.id}: gate at ${gate} m is not a point of the route`);
     return along[index[origin[original]!]!]!;
   });
-  return { ...route, points, along, gates, lateral, ...(options.paved ? { clearance: options.cutMargin ?? options.edgeMargin } : {}) };
+  return { route: { ...route, points, along, gates, lateral, ...(options.paved ? { clearance: options.cutMargin ?? options.edgeMargin } : {}) }, free };
 }

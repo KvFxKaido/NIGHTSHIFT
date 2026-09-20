@@ -2,6 +2,7 @@ import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionSt
 import { createLaunch, LAUNCH, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
 import { dragLaneInput } from "./drag-rules.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
+import { readStreetLine } from "./street-line.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
    Rapier integrates motion and contacts. Three.js only draws the result. */
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -1147,6 +1148,8 @@ export function step(sim: Sim, rawInput: Input): void {
   if (rival && sim.rivalDefinition && !sim.race?.drag) {
     // The player is the rival's opponent, not one more obstacle: it races them
     // (RIVAL_RACING in rival.ts) and slows only for traffic, or a stopped player.
+    // A street line is taken a corner at a time, by what traffic's own forecast shows (street-line.ts).
+    if (sim.rivalDefinition.line && rival.race.countdown <= 0) readStreetLine(sim.rivalDefinition, rival.driver, rival.vehicle, rival.race.ticks, sim.roadWorld.traffic, sim.state.traffic?.vehicles ?? []);
     rival.input = rivalInput(sim.rivalDefinition, rival,
       (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
       sim.state.vehicle);

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { DT } from "../src/sim/sim.ts";
-import { createTraffic, forecastTraffic, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { createTraffic, forecastTraffic, forecastTrafficPath, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { RIVET } from "../src/sim/drag-event.ts";
 import { SABLE } from "../src/sim/drift-yard.ts";
 
@@ -10,6 +10,28 @@ import { SABLE } from "../src/sim/drift-yard.ts";
 // a lane, so where it is going is a fact the sim holds. The rival reads it as a
 // forecast and the player reads it as indicators; both have to be true.
 const network = createAlderWorld(true).traffic!;
+
+test("a batched forecast follows single forecasts through turns without changing live traffic", () => {
+  const traffic = createTraffic(network);
+  for (let tick = 0; tick < 30 * 60; tick++) stepTraffic(network, traffic, DT);
+  const before = structuredClone(traffic);
+  let worst = 0, turning = 0;
+  for (const vehicle of traffic.vehicles) {
+    const path = forecastTrafficPath(network, vehicle, 3.1);
+    assert.equal(path.length, 13, "samples run from zero to the last complete quarter second");
+    assert.deepEqual(path[0], { x: vehicle.x, z: vehicle.z, heading: vehicle.heading, speed: vehicle.speed });
+    for (let k = 1; k < path.length; k++) {
+      const one = forecastTraffic(network, vehicle, k * .25), batched = path[k]!;
+      worst = Math.max(worst, Math.hypot(one.x - batched.x, one.z - batched.z));
+      assert.ok(Number.isFinite(batched.heading) && batched.speed >= 0);
+    }
+    if (Math.abs(Math.sin(path.at(-1)!.heading - vehicle.heading)) > .2) turning++;
+  }
+  assert.ok(turning > 0, "the comparison must include turning cars");
+  // Chunk boundaries split coarse integration steps; permit sub-wheelbase numerical error, not another path.
+  assert.ok(worst < .3, `batched forecast differs by ${worst.toFixed(3)} m`);
+  assert.deepEqual(traffic, before, "forecast mutated the live vehicles or junction claims");
+});
 
 test("a forecast is where a car that keeps its speed actually goes, turns and junction lines included", () => {
   const traffic = createTraffic(network);

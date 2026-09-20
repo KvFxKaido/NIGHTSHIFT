@@ -24,7 +24,7 @@ import { RIVET, HARBOR_DRAG, DRAG_START, RIVET_DRAG_DRIVER } from "../src/sim/dr
 import { SABLE, DRIFT_YARD } from "../src/sim/drift-yard.ts";
 import { SABLE_DRIFT } from "../src/sim/drift-event.ts";
 import { arenaEvent } from "../src/sim/arena-events.ts";
-import { drawAlderCourse } from "../src/sim/alder-course.ts";
+import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
 
 await RAPIER.init();
 const args = new Set(process.argv.slice(2));
@@ -88,7 +88,7 @@ for (const layout of ["fwd", "awd", "rwd"] as const) {
 }
 for (const id of ["gen-stray-5", "gen-deuce-3", "gen-crest-8-unordered"]) {
   const course = drawAlderCourse(id, null);
-  const sim = createSim("rwd", createAlderWorld(true, course.start ?? undefined), { race: course.race, rival: course.rival });
+  const sim = createSim("rwd", createAlderWorld(true, course.start ?? undefined), { race: course.race, rival: fieldAlderRival(course.rival) });
   run(id, `player: shared rwd; rival: ${course.rival.car}`, sim, 1800);
   sim.world.free();
 }

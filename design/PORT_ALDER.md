@@ -1470,6 +1470,89 @@ refused by name, and their numbers are here.
   every race with traffic still fields the lane-arc rival, ten seconds a lap off
   him, because a racing line ignores lanes.
 
+**Corner lines in traffic, enabled by default (2026-09-20, `full-line-v29`).**
+Generated street races and Uptown with traffic now carry a conditional racing line.
+The centreline route, gates, distance and reset path stay intact. Outside corner
+windows the rival drives its existing lane path; inside them it can take the cut
+line at 0.88 of the grip-limited speed. Free-roam drivers, Sound to Sky, drag,
+drift, arena circuits and Uptown / Clear retain their existing behavior.
+
+The solver holds the line in its lane outside windows extending 60 m either side
+of corner arcs. It stays in or inside its lane on entry, cuts the apex, and may
+run wide on exit. The overlay stores **positions matched by arc length**, not
+normal offsets from a tight lane arc: those normals can fold, as they did in
+`gen-82`. Any window with a shift beyond 18 m or an unpaved shifted station is
+rejected in full. Route progress follows the overlay while it is being driven,
+so crossing an apex does not jump between the centreline's legs.
+
+`readStreetLine` starts planning up to 150 m before the window, rereads traffic
+every six ticks, and checks arrival times with 0.75 s of slack either side. A
+stopped car within 9 m of the shifted line also refuses the corner. A refusal
+lasts 90 ticks; steering blends back toward the lane over 48 ticks. The forecast
+uses one ghost integration per car across all requested times. It remains a
+forecast of the current plan, not a guarantee about later junction grants or
+acceleration. A route whose line is never authorized drives identically to the
+same route without the overlay.
+
+Claude's completed handoff batch is preserved in
+[`measurements/street-line-v29.json`](measurements/street-line-v29.json). It ran
+Uptown's three laps and `gen-1` through `gen-82`, both ways, with the rival in its
+real simulation slot and the player parked at Wharf Garage:
+
+| Measure | Lane baseline | Conditional line |
+| --- | ---: | ---: |
+| Finished | 83/83 | 83/83 |
+| Total time | 8,281.6 s | 7,884.9 s (-4.8%) |
+| Uptown, three laps | 296.80 s | 269.42 s |
+| Approximate traffic-overlap ticks | 141 | 266 |
+| Overlap while blend > 0.05 | n/a | 0 |
+| Wheels-off-pavement ticks | 105 | 24 |
+| Unseen resets | 11 | 4 |
+| 12-second resets | 0 | 0 |
+| Recovery reversals | 0 | 1 |
+| Route-progress jumps over 6 m | 5 | 5 |
+| Races over 16 m from centreline | 0 | 9 |
+
+The last measure includes intentional paved corner cuts and is not itself an
+off-road count. The harness's contact metric is an approximate box-overlap probe,
+not physics contact events. Its largest added incident is `gen-20`: 113 ticks,
+starting at 97.5 s, with blend zero. That locates the incident in lane driving;
+it does **not** prove that earlier line use had no causal effect on arrival time,
+speed or traffic interaction. Total contact increased, so the prior gate of
+"no contact the lane-arc rival does not have" was not met. Shawn explicitly chose
+to enable the feature by default with this regression documented. Zero measured
+on-line overlap is evidence from this batch, not a general no-contact guarantee.
+A moving player contesting the corner and broader traffic/start variations remain
+outside this batch's coverage.
+
+Reproduce individual races or the full comparison:
+
+```powershell
+node --experimental-strip-types scripts/street-line-batch.ts --all --trace > artifacts/street-line-base.jsonl
+node --experimental-strip-types scripts/street-line-batch.ts --all --line --trace > artifacts/street-line-line.jsonl
+node --experimental-strip-types scripts/street-line-batch.ts gen-20 gen-82 --line --trace
+```
+
+Regression coverage includes blocked-corner withdrawal and cooldown, `gen-82`
+geometry rejection, unchanged driving when permission is never given, deterministic
+Uptown laps, forecast immutability and batched/single forecast agreement. The
+clear-street and arena racing-line geometry hashes match the pre-overlay baseline.
+`RIVAL_REVISION` changes so recordings distinguish these rivals; traffic's driven
+behavior, physics and course generation are not revised by the forecast refactor.
+
+Continuation validation reproduced the saved `gen-20` and `gen-82` results.
+The 14-run golden comparison leaves 11 runs bit-identical (handling and resets,
+Sound to Sky, arena, drag, drift, and free roam); only the three generated-rival
+runs move. Browser smoke checks load and exercise `gen-7` and Uptown with their
+conditional lines and confirm Uptown / Clear keeps its existing line, with no
+page errors. `scripts/test-street-line-browser.mjs` reproduces those captures.
+The production build passes. The full suite passed 631 of 632 tests; its remaining
+failure was an unfinished test's assumption that lane offset always increases
+with road width. After correcting that assertion for the one-/two-lane class
+boundary, the complete five-test street-line file passed on rerun. No runtime
+change was needed for that correction.
+
+
 **Could the line be taken corner by corner in traffic? Measured, nothing built
 (2026-09-20).** The idea from 2026-09-13 again ("the whole road when a corner is
 clear", below), now that there are two whole paths to choose between, the lane
