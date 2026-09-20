@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, step } from "../src/sim/sim.ts";
-import { createAlderWorld, alderGeneratedRace, alderRouting, projectOntoAlder, ALDER_STREETS,
+import { createSim, step, TICK_HZ } from "../src/sim/sim.ts";
+import { watchStray } from "./helpers/stray.ts";
+import { createAlderWorld, alderGeneratedRace, alderRouting, ALDER_STREETS,
   ALDER_RACE, ALDER_GARAGE, ALDER_VERSION, alderHeight } from "../src/sim/alder.ts";
 import { GENERATOR, GENERATOR_REVISIONS, generateRace, startApproach, shortStreetName, degreesBetween, nodePosition, turfShare, withRaceKind } from "../src/sim/race-generator.ts";
 import type { GeneratedKind } from "../src/sim/race-id.ts";
@@ -292,11 +293,11 @@ test("the rival drives a generated race to the finish in normal traffic", () => 
   const sim = createSim("fwd", world, { race, rival, traffic: true });
   try {
     const parked = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-    let furthest = 0;
+    const stray = watchStray(sim);
     for (let tick = 0; tick < 18000 && !sim.state.rival!.race.finished; tick++) {
       step(sim, parked);
+      stray.sample();
       const car = sim.state.rival!.vehicle;
-      furthest = Math.max(furthest, projectOntoAlder(car.x, car.z).distance);
       assert.ok(Number.isFinite(car.x + car.z + car.speed));
     }
     const state = sim.state.rival!;
@@ -304,7 +305,8 @@ test("the rival drives a generated race to the finish in normal traffic", () => 
     assert.equal(state.race.splits.length, race.checkpoints.length);
     assert.ok(state.race.ticks > 3600, "the AI must actually drive the route");
     assert.equal(state.driver.resets, 0, "a generated line should never need the fallback reset");
-    assert.ok(furthest < 16, `rival strayed ${furthest.toFixed(1)} m from a centreline`);
+    assert.ok(stray.clearPeak < 16, `rival strayed from a centreline: ${stray.report()}`);
+    assert.ok(stray.worstRecovery < 4 * TICK_HZ, `rival stayed past 16 m after a shunt: ${stray.report()}`);
   } finally { sim.world.free(); }
 });
 

@@ -387,6 +387,10 @@ fixtures outside the playable bundle, and old world links redirect.
   corner is still the street being left. Mixing them pinned the rival on a truck's
   bumper for 42 s, then drove it into a truck round a corner. The player-racing
   block above the traffic loop still mixes them.
+- A rival's peak distance from a centreline in traffic is a lottery, not a
+  measure: one car met head on throws it past 20 m for a second or two, which
+  failed one tune and passed the next for a difference neither caused. Measure it
+  clear of contact and bound the recovery separately (`tests/helpers/stray.ts`).
 - Yielding between traffic and racers runs one way per situation. The rival
   waits for traffic in its path, so traffic follows only racers going its way and
   holds junctions only for racers moving over 3 m/s; every other way traffic also

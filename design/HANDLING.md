@@ -1005,6 +1005,10 @@ is, which none of this changes.
   skills). Moth's `power` is 0.65 partly because it hits the target dead on
   (−0.50%) and partly because it draws a clean run; the test's threshold, and the
   rival's weakness in traffic behind it, is worth a decision of its own.
+  **Decided 2026-09-19**: the peak could not tell driving from being hit, so it
+  is now measured clear of contact, with a separate bound on how long a shunt may
+  leave the rival wide (`design/PORT_ALDER.md`, "What a stray past 16 m actually
+  measures").
 - **The arena's lap limits followed Moth's car.** Every Ridge Circuit race fields
   her Kestrel, so `tests/arena.test.ts` pins her pace: 74.5 / 57.4 / 48.2 s became
   75.3 / 58.0 / 48.8, and East failed a limit of 58. The limits are now 77 / 59 /

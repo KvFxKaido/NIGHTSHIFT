@@ -825,6 +825,43 @@ player blocking, repeated pileups and unusual off-route recoveries need driving
 feedback. Moving encounters and rival personalities remain future work.
 
 
+### What a stray past 16 m actually measures (2026-09-19)
+
+Three tests ask a racing rival to stay within 16 m of a centreline in traffic:
+the Queen Anne Climb start (`race-start.test.ts`), Freight Cut (`alleys.test.ts`)
+and a generated race in normal traffic (`race-generator.test.ts`). The peak they
+took could not tell driving from being hit, so in traffic it was a lottery: over
+Moth's `power`, where nothing about the rival's line changes, it read
+
+| `power` | 0.64 | 0.65 | 0.66 | 0.67 | 0.68 | 0.70 |
+|---|---|---|---|---|---|---|
+| Peak stray | 7.2 m | 7.2 m | **23.1 m** | 7.7 m | **24.3 m** | 8.1 m |
+| Peak clear of contact | 7.2 m | 7.2 m | 7.3 m | 7.7 m | 7.8 m | 7.9 m |
+
+Both failures are one traffic car met head on, at the same place: at 0.66 the
+contact is at 15.1 s, the rival is past 16 m from 16.3 s to 17.6 s peaking at
+23.1 m while doing 20 mph, and it finishes the race with no resets. At 0.68 the
+contact is at 15.0 s and it is wide for 1.7 s. Clear of contact the rival's own
+driving never leaves 7.2-7.9 m, a spread of 0.7 m where the raw peak spreads by
+3.4 times.
+
+So the peak is split in two, in `tests/helpers/stray.ts`:
+
+- **`clearPeak` < 16 m** is the rival's driving: the furthest it gets while no
+  traffic car has touched it for three seconds. Only traffic excuses a stray; a
+  building or a kerb is the rival's own doing and still counts.
+- **`worstRecovery` < 4 s** is what a shunt may not do: being knocked wide is
+  allowed, being left out there is not. Measured at 1.3 s and 1.7 s in the two
+  cases above, and 0 s whenever nothing hits the rival -- so on a clean run this
+  one asserts nothing, by design. It is the tripwire for the day a shunt stops
+  being recoverable, which is what the raw peak was accidentally catching.
+
+This does not fix the rival's weakness in traffic, and is not meant to: it stops
+the suite reporting that weakness as a tune's fault. A rival that meets a car
+head on at 120 mph still loses 20 seconds of race. What was wrong was the
+measurement, which failed one tune and passed the next for a difference neither
+tune caused.
+
 ## Ridge Circuit (2026-09-13)
 
 An official circuit on the open ground east of Ridge Scenic Way, reached by

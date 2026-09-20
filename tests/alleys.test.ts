@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, step } from "../src/sim/sim.ts";
-import { ALDER_STREETS, ALDER_BLOCKS, alderRouting, alderGeneratedRace, createAlderWorld, projectOntoAlder,
+import { createSim, step, TICK_HZ } from "../src/sim/sim.ts";
+import { watchStray } from "./helpers/stray.ts";
+import { ALDER_STREETS, ALDER_BLOCKS, alderRouting, alderGeneratedRace, createAlderWorld,
   alderHeight } from "../src/sim/alder.ts";
 import { GENERATOR, generateRace, startApproach, nodePosition, degreesBetween } from "../src/sim/race-generator.ts";
 import { buildRoutingGraph, route, measureLeg, type RoutingGraph, type LegClass } from "../src/sim/route-choice.ts";
@@ -106,17 +107,19 @@ test("the rival drives a generated race through Freight Cut to the finish in tra
   const sim = createSim("fwd", world, { race: chosen!.race, rival: chosen!.rival, traffic: true });
   try {
     const parked = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
-    let furthest = 0, nearestToAlley = Infinity;
+    const stray = watchStray(sim);
+    let nearestToAlley = Infinity;
     for (let tick = 0; tick < 18000 && !sim.state.rival!.race.finished; tick++) {
       step(sim, parked);
+      stray.sample();
       const car = sim.state.rival!.vehicle;
-      furthest = Math.max(furthest, projectOntoAlder(car.x, car.z).distance);
       nearestToAlley = Math.min(nearestToAlley, Math.hypot(car.x - mid.x, car.z - mid.z));
     }
     const state = sim.state.rival!;
     assert.equal(state.race.finished, true, `seed ${seed - 1}: ${JSON.stringify({ checkpoint: state.race.checkpoint, driver: state.driver })}`);
     assert.equal(state.driver.resets, 0, "an 8 m alley must not need the fallback reset");
     assert.ok(nearestToAlley < 6, `the rival passed ${nearestToAlley.toFixed(1)} m from the middle of the alley`);
-    assert.ok(furthest < 16, `rival strayed ${furthest.toFixed(1)} m from a centreline`);
+    assert.ok(stray.clearPeak < 16, `rival strayed from a centreline: ${stray.report()}`);
+    assert.ok(stray.worstRecovery < 4 * TICK_HZ, `rival stayed past 16 m after a shunt: ${stray.report()}`);
   } finally { sim.world.free(); }
 });
