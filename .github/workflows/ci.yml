@@ -55,8 +55,11 @@ jobs:
   # files, so they anchor a shard each. The other 89 are 563 s with no hot spot to
   # split: the median file is 1.4 s, 55 of them are under 2 s, and the longest is
   # night at 46 s (timed one file at a time, 2026-09-19). The top ten are 55% of
-  # that shard, so the balance comes from naming a few of them beside the anchors
-  # -- 325 / 337 / 291 s by these timings, where `rest` alone was 563.
+  # that shard, so the balance comes from naming a few of them beside the anchors.
+  # On the runner that took the wall time from 623 s to 355: generator 313 s,
+  # critique 282, rest 336, and 43 + 49 + 505 = 597 tests, the whole suite.
+  # Those timings are not the local ones scaled -- `rest` runs 81 files with real
+  # parallelism between them, `critique` only six -- so balance by measuring here.
   #
   # `rest` stays defined by EXCLUSION so a new test file joins it without being
   # listed anywhere. The pattern anchors on `.test.ts$` because the names are
