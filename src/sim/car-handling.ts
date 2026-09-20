@@ -107,7 +107,12 @@ export const CAR_TUNES: Readonly<Record<string, CarTune>> = {
   // otherwise gives away on her streets. A looser tail, so a gentler handbrake.
   skim: { drivetrain: "fwd", revision: 2, mass: 1_050, topSpeed: 0.986, grip: 1.1,
     traction: 1.2, balance: 0.95, steering: 1.15, handbrake: 0.85 },
-  reign: { drivetrain: "awd", revision: 1 },  // Wake: upright legend coupe
+  // Wake's legend coupe (2026-09-19): good at everything, which is what second
+  // place should feel like -- the grip, the brakes and 152 mph, with the power cut
+  // that keeps a #2 below #1. Its grip scrubs speed in a long slide, so a gentler
+  // handbrake keeps it above the gate's floor.
+  reign: { drivetrain: "awd", revision: 2, mass: 1_430, power: 0.8, topEnd: 1.15, topSpeed: 1.0857,
+    grip: 1.05, brakes: 1.05, steering: 1.05, handbrake: 0.9 },
   // Rivet's muscle notchback (2026-09-19): heavy, fat rear tyres, a strong top end to
   // 150 mph, poor in a bend. Her race is the drag strip, so her traction is capped
   // where a clean run in the Cinder still wins the quarter by a hair.

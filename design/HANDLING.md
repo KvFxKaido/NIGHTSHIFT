@@ -815,6 +815,37 @@ on the list, and it turns in as fast as anything.
 - **`RIVAL_REVISION` is `full-line-v20`.** `pnpm golden`: exactly Crest's two runs
   moved (free roam, where she cruises, and `gen-crest-8-unordered`).
 
+### The Reign, revision 2 (2026-09-19)
+
+Wake's legend coupe: good at everything, which is what second place should feel
+like. His stages are sprints.
+
+```
+reign: { drivetrain: "awd", revision: 2, mass: 1_430, power: 0.8, topEnd: 1.15, topSpeed: 1.0857,
+  grip: 1.05, brakes: 1.05, steering: 1.05, handbrake: 0.9 }
+```
+
+| | kg | 0–60 s | 60–100 s | Top mph | 100–0 m | Lateral m/s² | Turn-in s | HB slip |
+|---|---|---|---|---|---|---|---|---|
+| Cinder r1 (anchor) | 1180 | 3.87 | 2.97 | 140.0 | 27.8 | 14.18 | 0.37 | 7.6° |
+| Reign r1 | 1180 | 2.07 | 2.33 | 140.0 | 27.8 | 13.30 | 0.37 | 7.6° |
+| **Reign r2** | 1430 | 2.48 | 2.92 | 152.0 | 26.5 | 14.12 | 0.37 | 7.1° |
+
+Street pace **5.97% quicker than the Cinder**, AI laps 3.8–5.7% quicker: second
+only to the Vesper's target, and clear of Crest's 4.95% below him. `power` 0.85
+with `grip` 1.08 reached 7.44%, within a whisker of the untuned AWD's 7.73%,
+which would leave #1 nowhere to go.
+
+- **Good at everything is a tune, not an absence of one.** Unlike the shared AWD
+  it keeps cornering (14.12 against 13.30), brakes shorter than the Cinder (26.5 m)
+  and runs to 152 mph; the power cut is what keeps a #2 below a #1.
+- **Grip costs speed in a long slide.** With the stock handbrake the one-second
+  pull was caught but ended at 9.1 m/s, under the gate's 10: more grip scrubs more
+  speed sideways. `handbrake` 0.9 ends it at 15.1 m/s with a 25.9 degree peak, and
+  the planner never uses the handbrake at pace, so nothing about its laps moved.
+- **`RIVAL_REVISION` is `full-line-v21`.** `pnpm golden`: only free roam, where he
+  cruises, moved.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part

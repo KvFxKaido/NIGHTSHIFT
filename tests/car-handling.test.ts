@@ -130,7 +130,7 @@ const PINNED: Record<string, { revision: number; fingerprint: string }> = {
   wager: { revision: 2, fingerprint: "a36a598e" },
   meridian: { revision: 2, fingerprint: "b85942fe" },
   skim: { revision: 2, fingerprint: "6c0a95ad" },
-  reign: { revision: 1, fingerprint: "fc966077" },
+  reign: { revision: 2, fingerprint: "b5ae208e" },
   hammer: { revision: 2, fingerprint: "e2de71d5" },
 };
 test("a car's numbers change only with its revision", () => {

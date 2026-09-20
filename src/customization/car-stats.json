@@ -150,18 +150,18 @@
     }
   },
   "reign": {
-    "revision": 1,
+    "revision": 2,
     "card": {
       "car": "reign",
       "drivetrain": "awd",
-      "mass": 1180,
-      "zeroToSixty": 2.07,
-      "sixtyToHundred": 2.33,
-      "topSpeed": 140,
-      "stoppingDistance": 27.8,
-      "peakLateral": 13.3,
+      "mass": 1430,
+      "zeroToSixty": 2.48,
+      "sixtyToHundred": 2.92,
+      "topSpeed": 152,
+      "stoppingDistance": 26.5,
+      "peakLateral": 14.12,
       "turnIn": 0.37,
-      "handbrakeSlip": 7.6
+      "handbrakeSlip": 7.1
     }
   },
   "vesper": {

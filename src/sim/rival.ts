@@ -276,8 +276,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * her yard as "blender", the same car.
  * "full-line-v19": Plumb's Meridian has its own tune (meridian r2).
  * "full-line-v20": Crest's Skim has its own tune (skim r2).
+ * "full-line-v21": Wake's Reign has its own tune (reign r2).
  */
-export const RIVAL_REVISION = "full-line-v20";
+export const RIVAL_REVISION = "full-line-v21";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */

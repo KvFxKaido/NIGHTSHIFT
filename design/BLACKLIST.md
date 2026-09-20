@@ -284,7 +284,7 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
 | 5 | Sable | NS-01 (r2, done) | RWD | 142 | governor | drift car: rotation, not speed; swings furthest and is caught from all of it | her yard: 6,340 against the Cinder's 4,929, 9 links to 6; pace −0.8 to −0.94% |
 | 4 | Plumb | Meridian (r2, done) | AWD | 146 | governor | fast wagon, built for the highway | −4.0% Uptown (her ground), −1.6 to −2.0% Ridge, −4.06% streets |
 | 3 | Crest | Skim (r2, done) | FWD | 138 | governor | light corner car: the best tyres, and the traction to use them | −4.95% streets, −5.0 to −5.5% circuits |
-| 2 | Wake | Reign | AWD | 152 | governor (`topEnd` for a stronger 60–100) | the old champion: good at everything | −4% |
+| 2 | Wake | Reign (r2, done) | AWD | 152 | governor, `topEnd` 1.15 | the old champion: good at everything | −5.97% streets, −3.8 to −5.7% circuits |
 | 1 | Tally | Vesper | RWD | 165 | governor 1.18, `topEnd` 1.4, `drag` 0.9 | the outlier: slippery, pulls hardest past 100 | −6% |
 
 - **Every top speed here is reachable**, checked with `pnpm cars <car> --try`:
