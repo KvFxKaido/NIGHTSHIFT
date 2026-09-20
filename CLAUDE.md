@@ -479,6 +479,12 @@ of the pedals' excess the PLAYER'S tyres forgive, 1 being the game
 (`design/HANDLING.md`, "The pedals, as a choice"). It lives on the sim, never in a
 car's tune, so the Cinder stays the anchor and no rival is touched; a lap driven
 under it is not recorded.
+A preview link needs `scene=track` (or a `race=`) to be driven at all. A bare
+`?assist=0.5` or `?drivetrain=awd` lands on the title, and Continue loads a slot,
+which is authoritative over preview links by design (`loadSaveUrl` rebuilds the
+whole query): the preview is gone, silently, and the default game is what gets
+driven. Shawn drove four assist settings that way and every one was the default.
+Check the HUD's mode line, which names a live preview, before trusting a verdict.
 `?car=<id>` drives one of your own cars, and SILENTLY falls back to the Cinder
 for a Blacklist car the career has not won; `&unlock=1` drives it anyway, for
 pad testing a tune against another (`?race=sable-yard-drift&car=ns01&unlock=1`).
