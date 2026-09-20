@@ -121,7 +121,7 @@ try {
   const params = url.searchParams;
   if (requestedSave !== null) {
     // A slot is authoritative over preview links and always resumes free roam.
-    for (const key of ["race", "car", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit"]) params.delete(key);
+    for (const key of ["race", "car", "unlock", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit"]) params.delete(key);
     if (!loadedSave) { params.delete("save"); params.delete("scene"); }
   }
   // Old bookmarks now enter the Port Alder demo; incompatible routes are retired.
@@ -191,9 +191,17 @@ try {
   smooth = params.get("smooth") !== "0";
   await RAPIER.init();
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
+  // ?car=<id>&unlock=1 drives a car the career has not won, for pad testing a
+  // tune against another (design/HANDLING.md, "Cars"). A developer preview beside
+  // ?drivetrain= and ?paint=: read from the URL on every load and never written
+  // anywhere. It cannot become ownership -- `selectCar` and the save both ask
+  // `ownsCar` themselves -- so the garage still reads Locked and a slot saved
+  // while driving one records the Cinder.
+  const unlocked = new URLSearchParams(location.search).get("unlock") === "1";
   // The NS-01 became the car Sable drives. Old links still resolve, the way
   // ?world=seattle does, rather than failing to an asset-error screen.
-  const model = requestedCar === "blender" || (isBlenderCarId(requestedCar) && !ownsCar(progress.get(), requestedCar)) ? "cinder" : requestedCar;
+  const model = requestedCar === "blender" || (isBlenderCarId(requestedCar) && !unlocked && !ownsCar(progress.get(), requestedCar))
+    ? "cinder" : requestedCar;
   if (model !== "classic" && !isBlenderCarId(model)) throw new Error(`Unknown car model '${model}'`);
   selectedCar = model;
   carParts = model === "classic" ? createCar()

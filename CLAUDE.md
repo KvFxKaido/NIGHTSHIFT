@@ -448,7 +448,13 @@ diagnostics), `drive("W600,WD90")`, `freeze()`, `shot()`,
 `drivetrain('awd'|'fwd'|'rwd')`. Reach states by URL, never by scripting
 menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
-`?scene=track&visit=rivet`, `?race=sable-yard-drift`. Browser harnesses:
+`?scene=track&visit=rivet`, `?race=sable-yard-drift`.
+`?car=<id>` drives one of your own cars, and SILENTLY falls back to the Cinder
+for a Blacklist car the career has not won; `&unlock=1` drives it anyway, for
+pad testing a tune against another (`?race=sable-yard-drift&car=ns01&unlock=1`).
+It is a preview like the rest: nothing is written, the garage still reads Locked,
+and a slot saved while driving one records the Cinder. `pnpm test:cinder` pins
+both the fallback and that the unlock grants nothing. Browser harnesses:
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
 The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
 `src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`

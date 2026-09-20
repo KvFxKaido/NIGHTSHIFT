@@ -112,8 +112,22 @@ try {
   await page.locator('[data-car-cycle="1"]').click();
   await page.waitForFunction(() => __ns.view.car.userData.model !== 'ns-cinder');
   assert.equal(await page.locator('[data-cinder-parts]').isVisible(), false);
+  // ?unlock=1 drives a car the career has not won, for pad testing a tune. It is
+  // a preview and must stay one: the car loads and drives, and the garage still
+  // reads Locked because ownership is `ownsCar` and nothing wrote it.
+  const sable = () => page.evaluate(() => (JSON.parse(localStorage.getItem('nightshift.progress') || '{}').names?.sable?.wins ?? []).length);
+  const winsBefore = await sable();
+  await page.goto(`${base}?scene=garage&car=ns01`);
+  await ready();
+  assert.equal(await page.evaluate(() => __ns.view.car.userData.model), 'ns-cinder', 'an unowned car without ?unlock must fall back to the Cinder');
+  await page.goto(`${base}?scene=garage&car=ns01&unlock=1`);
+  await ready();
+  assert.equal(await page.evaluate(() => __ns.view.car.userData.model), 'ns-01', '?unlock=1 did not load the unowned car');
+  assert.equal(await page.evaluate(() => __ns.sim.state.handling.car), 'ns01', '?unlock=1 drew the car without its tune');
+  assert.match(await page.locator('[data-car-ownership]').textContent(), /Win the pink slip/, 'the garage claimed an unlocked car was owned');
+  assert.equal(await sable(), winsBefore, '?unlock=1 wrote career progress');
   assert.deepEqual(errors, []);
-  console.log('Cinder catalog: kits, mixed parts, spoilers, wheels, tint, persistence, driving, mobile, stock restore and car isolation passed.');
+  console.log('Cinder catalog: kits, mixed parts, spoilers, wheels, tint, persistence, driving, mobile, stock restore, car isolation and the ?unlock preview passed.');
 } finally {
   await browser?.close();
   await server?.close();
