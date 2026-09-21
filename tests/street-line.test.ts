@@ -7,8 +7,8 @@ import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
 import { BLACKLIST_CORNERING, createRivalDriver, RIVAL_CORNERING, RIVAL_STREET_LINE, rivalInput, sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
 import { BLACKLIST } from "../src/settings/blacklist.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
-import { streetCircuitEvent } from "../src/sim/street-circuit.ts";
-import { laneRest, readStreetLine, STREET_LINE } from "../src/sim/street-line.ts";
+import { STREET_CIRCUIT_LINE, streetCircuitEvent } from "../src/sim/street-circuit.ts";
+import { laneRest, readStreetLine, STREET_LINE, withStreetLine } from "../src/sim/street-line.ts";
 import { createTraffic, TRAFFIC_KINDS } from "../src/sim/traffic.ts";
 await RAPIER.init();
 
@@ -189,4 +189,41 @@ test("the three highest names' own cars hold their share on a driven lap of a cl
         `${name.name}'s ${name.carName} at ${BLACKLIST_CORNERING[name.id]}`);
     } finally { sim.world.free(); }
   }
+});
+
+// Bends (2026-09-20). Only a corner sharp enough to be rounded had a line, so a 26 degree bend was driven round the
+// lane's arc, inside its own half of the road: Wake braked to 77 mph for one that Shawn took at 116 (gen-wake-42).
+// A bend of `bendFrom` degrees is a corner too. But at 150 mph a line a touch less straight than the lane is PLANNED
+// slower than the lane, and between bends the lane is perfectly straight: a line through every bend cost Tally 2.7 s
+// of a clear gen-tally-7. So a window is kept only where its line is quicker than the lane through it (`worth`).
+test("a gentle bend gets a line where the line is quicker than the lane, and only there", () => {
+  const drawn = (id: string, tune: Parameters<typeof withStreetLine>[3]) => { const rival = drawAlderCourse(id, null).rival; return withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!, tune); };
+  const clear = (id: string, rival: RivalDefinition) => {
+    const course = drawAlderCourse(id, null), sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival, traffic: false });
+    try {
+      let offPavement = 0;
+      while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 150 * TICK_HZ) { step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 }); if (sim.state.rival!.vehicle.groundContact > 0) offPavement++; }
+      assert.ok(sim.state.rival!.race.finished && offPavement === 0, `${id}: finished ${sim.state.rival!.race.finished}, ${offPavement} ticks off the pavement`);
+      return sim.state.rival!.race.ticks / TICK_HZ;
+    } finally { sim.world.free(); }
+  };
+  const turned = (route: RivalDefinition, window: { from: number; to: number }) => {
+    const a = sampleDrivingPath(route, window.from), b = sampleDrivingPath(route, window.to);
+    return Math.acos(Math.max(-1, Math.min(1, a.ux * b.ux + a.uz * b.uz))) * 180 / Math.PI;
+  };
+  const none = drawn("gen-tally-7", { bendFrom: Infinity }), every = drawn("gen-tally-7", { worth: -Infinity }), shipped = drawn("gen-tally-7", {});
+  assert.deepEqual(fieldAlderRival(drawAlderCourse("gen-tally-7", null).rival).line!.corners, shipped.line!.corners, "the game draws its lines on STREET_LINE's own numbers");
+  const overlaps = (a: { from: number; to: number }, b: { from: number; to: number }) => a.from < b.to && b.from < a.to;
+  // Every corner it had is still a corner; some bends are, and some are not.
+  for (const corner of none.line!.corners) assert.ok(shipped.line!.corners.some(window => overlaps(window, corner)), `the corner at ${corner.from} m lost its line`);
+  const bends = (route: RivalDefinition) => route.line!.corners.filter(window => !none.line!.corners.some(corner => overlaps(window, corner)));
+  assert.ok(bends(shipped).length >= 3 && bends(shipped).length < bends(every).length, `${bends(shipped).length} of ${bends(every).length} bends kept`);
+  for (const window of bends(shipped)) assert.ok(turned(shipped, window) >= STREET_LINE.bendFrom - 1 && turned(shipped, window) < 46, `the window at ${window.from} m turns ${turned(shipped, window).toFixed(0)} degrees`);
+  // Driven, on clear streets: a line through every bend is slower than none, and the ones kept are not.
+  const lane = clear("gen-tally-7", none), all = clear("gen-tally-7", every), kept = clear("gen-tally-7", shipped);
+  assert.ok(all > lane + 1, `a line through every bend took ${all.toFixed(2)} s against ${lane.toFixed(2)}; the test proves nothing`);
+  assert.ok(kept < lane + 0.1, `with the bends it kept, ${kept.toFixed(2)} s against ${lane.toFixed(2)} with none`);
+  // And where bends are worth having they are worth a lot: Crest's race is mostly bends.
+  const without = clear("gen-crest-23", drawn("gen-crest-23", { bendFrom: Infinity })), crest = clear("gen-crest-23", drawn("gen-crest-23", {}));
+  assert.ok(crest < without - 3, `gen-crest-23 in ${crest.toFixed(2)} s with its bends, ${without.toFixed(2)} without`);
 });

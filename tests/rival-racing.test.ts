@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, step, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
+import { carHandling, createSim, step, steadyWheelAngleFor, HANDLING, type Input, type Sim } from "../src/sim/sim.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
-import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_STREET_CORNERS, type RivalDefinition } from "../src/sim/rival.ts";
+import { passingOffset } from "../src/sim/traffic-pass.ts";
+import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_STEERING, RIVAL_STREET_CORNERS, RIVAL_TRAFFIC_FRAME, type RivalDefinition } from "../src/sim/rival.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
 await RAPIER.init();
 
@@ -351,9 +352,9 @@ test("a rival wide of its racing line but on the road is not treated as lost", (
   assert.ok(onStreet(line + width / 2 + OFF_ROAD_MARGIN + 0.5) <= 10, "off a street it kept its speed");
 });
 
-/** A street route through `raw`, resampled as given, 16 m wide. */
-const streetRoute = (id: string, raw: [number, number][]): RivalDefinition => {
-  const points: CoursePoint[] = raw.map(([x, z]) => ({ x, z, y: 0, width: 16, zone: "boulevard" }));
+/** A street route through `raw`, resampled as given, 16 m wide unless told. */
+const streetRoute = (id: string, raw: [number, number][], width = 16): RivalDefinition => {
+  const points: CoursePoint[] = raw.map(([x, z]) => ({ x, z, y: 0, width, zone: "boulevard" }));
   const along = [0];
   for (let i = 1; i < points.length; i++) along.push(along[i - 1]! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.z - points[i - 1]!.z));
   return { id, start: { x: 1, y: 0, z: 0, heading: 0, pitch: 0 }, points, along, gates: [along.at(-1)!] };
@@ -398,4 +399,116 @@ test("on a fast street bend it holds its arc", () => {
     assert.ok(fastest > 40, `it took the bend at only ${fastest.toFixed(1)} m/s; the test proves nothing`);
     assert.ok(worst < 2, `through the bend it ran ${worst.toFixed(2)} m off its line`);
   } finally { sim.world.free(); }
+});
+
+// The wheel a fast bend takes (2026-09-20). A rival rear-ended an oncoming van at 120 mph in gen-78: a 21 degree bend,
+// drawn as a 414 m arc, 56% of the grip at 130 mph and so planned flat, ran it 5 m wide into the other lane. The
+// feedforward steered for the turn's geometry, 0.41 degrees, where the tyres need 1.5 for it at that speed: the fronts
+// are softer than the rears, and lighter under power. At 30 mph the difference is 3% of the lock and at 130 a third.
+/** Two 21.3 degree bends the same way, 173 m apart, after a run long enough to be flat out, on a 20 m street. */
+const fastBends = () => {
+  const raw: [number, number][] = [], runUp = 1500, between = 173, bend = 21.3 * Math.PI / 180;
+  for (let z = 0; z > -runUp; z -= 29) raw.push([0, z]);
+  raw.push([0, -runUp]);
+  for (let k = 29; k < between; k += 29) raw.push([Math.sin(bend) * k, -runUp - Math.cos(bend) * k]);
+  raw.push([Math.sin(bend) * between, -runUp - Math.cos(bend) * between]);
+  for (let k = 29; k <= 400; k += 29) raw.push([Math.sin(bend) * between + Math.sin(2 * bend) * k, -runUp - Math.cos(bend) * between - Math.cos(2 * bend) * k]);
+  return { route: streetRoute("fast-bends", raw, 20), runUp, between, end: raw.at(-1)! };
+};
+
+test("the steady-turn wheel angle is the car's own: what it says a turn takes is what the car takes to make it", () => {
+  const road: CoursePoint[] = [{ x: 0, z: 6000, y: 0, width: 9000, zone: "boulevard" }, { x: 0, z: -6000, y: 0, width: 9000, zone: "boulevard" }];
+  // Flat out, where it is furthest out: measured 0 to 3% on rear drive (the Cinder), 1 to 9% high on all four (Moth's
+  // Kestrel) and 5 to 17% high on front drive (the shared fixture), and closer on part throttle. What is left goes with
+  // the throttle on a driven front axle and is not in the model; an account of it that fitted one drivetrain moved the
+  // other two twice as far. High means turning in early, which the heading error takes back out.
+  for (const [car, within] of [["fwd", 0.2], [carHandling("kestrel"), 0.12], [carHandling("cinder", "rwd"), 0.06]] as const) for (const steer of [0.3, 0.6, 0.9]) {
+    const sim = createSim(car, { id: "pad", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, walls: [], project: (x, z) => projectOntoPath(road, x, z) }, { traffic: false });
+    try {
+      for (let t = 0; t < 60 * 40; t++) step(sim, { throttle: 1, brake: 0, steer: 0, handbrake: 0 });
+      for (let t = 0; t < 60 * 6; t++) step(sim, { throttle: 1, brake: 0, steer, handbrake: 0 });
+      const state = sim.state.vehicle, name = `${sim.state.handling.drivetrain} at ${state.speed.toFixed(1)} m/s`;
+      const said = Math.abs(steadyWheelAngleFor(state.speed, state.yawRate / state.speed, state.frontLoadFraction, sim.state.handling, Math.max(0, state.longitudinalAcceleration)));
+      const wheel = Math.abs(state.steeringAngle), geometry = Math.atan((HANDLING.frontAxleDistance + HANDLING.rearAxleDistance) * Math.abs(state.yawRate) / state.speed);
+      assert.ok(state.speed > 50, `${name}; the test proves nothing`);
+      assert.ok(Math.abs(said / wheel - 1) < within, `${name} the car holds this turn on ${(wheel * 57.3).toFixed(2)} degrees of wheel; the model says ${(said * 57.3).toFixed(2)}`);
+      // The geometry alone, which is what the rival steered for, is a third of it.
+      assert.ok(geometry < wheel * 0.45, `${name} the turn's geometry is ${(geometry * 57.3).toFixed(2)} of the ${(wheel * 57.3).toFixed(2)} degrees`);
+    } finally { sim.world.free(); }
+  }
+});
+
+test("flat out through a gentle bend it holds its lane", () => {
+  const { route, runUp, between, end } = fastBends();
+  const drive = (steering: Partial<typeof RIVAL_STEERING>) => {
+    const shipped = { ...RIVAL_STEERING };
+    Object.assign(RIVAL_STEERING, steering);
+    const sim = createSim("fwd", { id: "fast-bends", start: { ...route.start, x: -60, z: 300 }, walls: [], project: (x, z) => projectOntoPath(route.points, x, z) }, {
+      traffic: false, rival: route, race: { id: "fast-bends", name: "Fast bends", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], y: 0, radius: 12 }] } });
+    try {
+      let widest = 0, fastest = 0;
+      for (let t = 0; t < 60 * 60 && !sim.state.rival!.race.finished; t++) {
+        step(sim, PARKED);
+        const rival = sim.state.rival!, d = rival.driver.along;
+        if (d < runUp - 100 || d > runUp + between + 100) continue;
+        const on = sampleDrivingPath(route, d), side = ownSide(20);
+        widest = Math.max(widest, Math.hypot(rival.vehicle.x - (on.x - on.uz * side), rival.vehicle.z - (on.z + on.ux * side)));
+        fastest = Math.max(fastest, rival.vehicle.speed);
+      }
+      return { widest, fastest, finished: sim.state.rival!.race.finished };
+    } finally { sim.world.free(); Object.assign(RIVAL_STEERING, shipped); }
+  };
+  const before = drive({ slip: 0 }), now = drive({});
+  assert.ok(before.fastest > 60, `it reached the bends at only ${before.fastest.toFixed(1)} m/s; the test proves nothing`);
+  assert.ok(before.widest > 5, `steering for the geometry alone it ran only ${before.widest.toFixed(2)} m wide; the test proves nothing`);
+  // A 20 m street's lane rests 1.3 m from its centre, and the oncoming lane's near edge is 1.7 m the other side.
+  assert.ok(now.finished && now.widest < 2, `through the bends it ran ${now.widest.toFixed(2)} m off its lane`);
+});
+
+// The brake that started that crash. The van kept to the oncoming lane, 2.7 m the other side of the centreline, and the
+// rival meant to pass it 4 m away. Read from the aim point, whose frame is turned from the road under a car 100 m on by
+// the bend between them, a car following its lane is a car crossing into this one's path.
+test("an oncoming car keeping to its lane round a bend is not braked for, and one in this car's lane is", () => {
+  const { route, runUp } = fastBends(), side = ownSide(20);
+  const ask = (across: number, frame: boolean) => {
+    const shipped = RIVAL_TRAFFIC_FRAME.on;
+    (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = frame;
+    try {
+      const driver = createRivalDriver();
+      driver.along = driver.progressMark = runUp - 20; driver.avoidance = side;
+      const here = sampleDrivingPath(route, driver.along), there = sampleDrivingPath(route, driver.along + 100);
+      const car = { ...createSim("fwd").state.vehicle, y: 0, lateralSpeed: 0, x: here.x - here.uz * side, z: here.z + here.ux * side, heading: Math.atan2(-here.ux, -here.uz), speed: 55, forwardSpeed: 55 };
+      // Oncoming: facing back down the road where it is, `across` metres right of the centreline there.
+      const van = { x: there.x - there.uz * across, z: there.z + there.ux * across, y: 0, heading: Math.atan2(there.ux, there.uz), speed: 16, length: 5.2 };
+      const input = rivalInput(route, { vehicle: car, driver, race: null }, [van]);
+      return { brake: input.brake, target: driver.targetSpeed };
+    } finally { (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = shipped; }
+  };
+  const clear = ask(-2.7, true), was = ask(-2.7, false), headOn = ask(side, true), alone = ask(-400, true);
+  assert.ok(was.target < 60, `read from the aim point the van did not slow it (${was.target.toFixed(1)} m/s); the test proves nothing`);
+  // Exactly what the bend alone allows, with nobody on the road.
+  assert.ok(clear.target === alone.target && clear.brake === 0, `it slowed to ${clear.target.toFixed(1)} m/s for a van in the other lane, from ${alone.target.toFixed(1)}`);
+  // 100 m off is as far as anything slows it: what matters is that the one in its way still does.
+  assert.ok(headOn.target < 60, `a van coming up its own lane left it at ${headOn.target.toFixed(1)} m/s`);
+});
+
+// A committed pass owns the forecast, so while one is on the car looks only 26 m ahead at 105 mph: the path is clear.
+// It is clear of a car that is ON it (gen-46: drifting the other way as the pull-out began, 2.2 m short of its path
+// where it should have been clear of a sedan that had all but stopped, and into it at 91 mph).
+test("off the path of its pass, it looks as far ahead as it would with no pass", () => {
+  const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 16, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "pass-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000], trafficPassing: true };
+  const ask = (carX: number) => {
+    const vehicle = { ...createSim("fwd").state.vehicle, x: carX, y: 0, z: -100, heading: 0, speed: 45, forwardSpeed: 45, lateralSpeed: 0 };
+    // Twenty metres into a 60 m pull-out to 4 m right of the centreline, round a sedan stopped 70 m on.
+    const pass = { target: 7, from: 80, out: 140, back: 260, to: 320, initial: 1.1, offset: 4, nextRead: Infinity, speed: 45, started: 0 };
+    const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: 1.1, trafficPass: pass };
+    const sedan = { id: 7, kind: "sedan" as const, x: 1.1, y: 0, z: -170, heading: 0, speed: 0, length: 4.6 };
+    rivalInput(route, { vehicle, driver, race: null }, [sedan], null, { tick: 1, network: null as never, vehicles: [] });
+    return { target: driver.targetSpeed, planned: passingOffset(route, pass, 100) };
+  };
+  const on = ask(ask(0).planned), short = ask(ask(0).planned - 1.5);
+  assert.ok(on.planned > 1.1 && on.planned < 2.5, `the pass puts it ${on.planned.toFixed(2)} m across here`);
+  assert.equal(on.target, 45, "on its path it braked for the car its pass clears");
+  assert.ok(short.target < 40, `1.5 m short of its path, 70 m from a stopped car at 45 m/s, it kept ${short.target.toFixed(1)} m/s`);
 });

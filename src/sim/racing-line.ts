@@ -148,6 +148,13 @@ export interface RacingLineOptions {
   /** With `rest`: on the way INTO a corner the line may not go outside its lane, only inside it. A line that swings
    *  out for a corner has to do it in the braking zone, and that swing is itself a bend to slow for. */
   readonly entryInLane?: boolean;
+  /** With `rest`: degrees a vertex must turn to be a corner the line may leave its lane for, when it is not sharp
+   *  enough to be rounded (`roundFrom`). Absent, only rounded corners are. A street rival's lane arc keeps to its own
+   *  half of the road, so a 26 degree bend on a 20 m street was planned at 77 mph that a player takes flat at 116. */
+  readonly bendFrom?: number;
+  /** Metres either side of such a bend that the line may be out of its lane, where `cornerReach` is a corner's. A bend
+   *  is taken three times as fast as a corner, so the same seconds to leave the lane and come back are more metres. */
+  readonly bendReach?: number;
 }
 
 /** Metres of road either way that a sample's other leg is looked for in: the legs of Uptown's hairpin share asphalt 38 m out. */
@@ -381,13 +388,25 @@ export function drawRacingLine(route: RivalDefinition, options: RacingLineOption
     legs: [-3, -2, -1, 0, 1, 2].map(k => [route.points[arc.vertex + k], route.points[arc.vertex + k + 1]] as const)
       .filter((leg): leg is readonly [CoursePoint, CoursePoint] => !!leg[0] && !!leg[1])
       .map(([a, b]) => ({ ax: a.x, az: a.z, bx: b.x, bz: b.z, limit: Math.max(0, Math.min(a.width, b.width) / 2 - options.edgeMargin) })) }));
-  // Free within reach of a corner's arc, held to the lane everywhere else.
+  // Free within reach of a corner, held to the lane everywhere else. A corner is a rounded arc, or a gentler bend
+  // that is still a bend (`bendFrom`): one sample, its vertex, and which way it turns.
+  const corners: { from: number; to: number; inside: number; reach: number }[] = pavement.map(stretch => ({ from: stretch.from, to: stretch.to, inside: stretch.inside, reach: options.cornerReach ?? 0 }));
+  if (options.rest && options.bendFrom !== undefined) {
+    const rounded = new Set(arcs.map(arc => arc.vertex));
+    for (let v = 1; v < route.points.length - 1; v++) {
+      if (rounded.has(v)) continue;
+      const p = route.points[v - 1]!, q = route.points[v]!, r = route.points[v + 1]!;
+      const turn = Math.atan2((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x), (q.x - p.x) * (r.x - q.x) + (q.z - p.z) * (r.z - q.z));
+      if (Math.abs(turn) * 180 / Math.PI < options.bendFrom) continue;
+      corners.push({ from: index[origin[v]!]!, to: index[origin[v]!]!, inside: Math.sign(turn), reach: options.bendReach ?? options.cornerReach ?? 0 });
+    }
+  }
   const free = samples.map(() => !options.rest);
   if (options.rest) {
     const run = [0];
     for (let i = 1; i < samples.length; i++) run.push(run[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
-    for (const stretch of pavement) for (let i = 0; i < samples.length; i++) {
-      if (run[i]! >= run[stretch.from]! - (options.cornerReach ?? 0) && run[i]! <= run[stretch.to]! + (options.cornerReach ?? 0)) free[i] = true;
+    for (const corner of corners) for (let i = 0; i < samples.length; i++) {
+      if (run[i]! >= run[corner.from]! - corner.reach && run[i]! <= run[corner.to]! + corner.reach) free[i] = true;
     }
   }
   const held = samples.map((sample, i) => free[i] ? null : options.rest!(sample.width));
@@ -396,9 +415,12 @@ export function drawRacingLine(route: RivalDefinition, options: RacingLineOption
   if (options.rest && options.entryInLane) {
     const run = [0];
     for (let i = 1; i < samples.length; i++) run.push(run[i - 1]! + Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.z - samples[i - 1]!.z));
-    for (const stretch of pavement) {
-      const middle = Math.floor((stretch.from + stretch.to) / 2);
-      for (let i = 0; i <= middle; i++) if (run[i]! >= run[stretch.from]! - (options.cornerReach ?? 0)) outside[i] = stretch.inside;
+    // A sharp corner's way in is written last, over any bend's: two 13 degree right-handers just before a 102 degree
+    // left (gen-39, 2030 m) otherwise make the right-hand side "inside" on the way into the left, and the line swings
+    // 4 m out for it, which is the swing this rule exists to stop.
+    for (const corner of [...corners.slice(pavement.length), ...corners.slice(0, pavement.length)]) {
+      const middle = Math.floor((corner.from + corner.to) / 2);
+      for (let i = 0; i <= middle; i++) if (run[i]! >= run[corner.from]! - corner.reach) outside[i] = corner.inside;
     }
   }
   const { offsets, normals } = racingLineOffsets(samples, options, pavement, held, outside.map((inside, i) => inside === null ? null : { inside, rest: options.rest!(samples[i]!.width) }));

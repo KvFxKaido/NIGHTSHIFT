@@ -363,6 +363,21 @@ best without it.
   she is flat out for 48% of it, on the brakes for 32% and on part throttle for
   20%, and sees 154, 121 and 109 mph on its three legs of a possible 165. Where he
   gains on her cannot be said: there is no trace of him off a circuit.
+- **Raced again (Shawn, 2026-09-20, `gen-wake-42`, Bulwark, no pedal assist): he won,
+  1:19.12 to Wake's 1:24.33, and again was not worried.** The first sprint with a
+  recording, so this time where is known: 0.6 s at the gates and 4.6 s elsewhere,
+  and 5.4 of it in one place, beside a sedan at 44 mph for five seconds in a pass
+  the planner would neither finish nor give up. They were level until then. None of
+  it was her share of the grip. What the race found, and the rival it produced
+  (`full-line-v32`), is `design/PORT_ALDER.md`, "What one recorded race found"; on
+  his inputs from that race the gap is now under a second from flag to flag, which
+  is a replay and not a race. Each name's own race at v32, alone in traffic (and
+  on clear streets): Moth's 123.3 s (115.6), Crest's 59.7 (58.4), Wake's 81.3
+  (78.9), Tally's 84.4 (81.3), none touching anything. Against v31 in traffic that
+  is Crest 5.4 s quicker, his race being mostly bends, and Wake and Tally 0.5 to
+  0.7 s slower, which is which cars they met. Wake's own race still holds the bend
+  that started this: 121 mph of it is in a longer window the line drawing is not
+  ready for (`design/PORT_ALDER.md`).
 - **Not settled.** The values are an even climb between two measured ends, not ten
   tuned numbers, and one has been raced by a person, once. What is still open from the
   same evening: the faster cars lose one lap in three to traffic on Uptown.

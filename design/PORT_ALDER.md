@@ -1509,6 +1509,102 @@ What is left, measured the same evening with the rival alone on the same race:
   before judging the ladder by its bottom rung; slipstream, the same for both
   cars; and then what the faster cars' bad laps in traffic are made of.
 
+**What one recorded race found (2026-09-20, `full-line-v32`).** Shawn raced Wake
+(`gen-wake-42`, Bulwark, no pedal assist) and won, 1:19.12 to her 1:24.33, "wasn't
+worried". It was the first sprint with a recording, and `pnpm laps:compare` put
+4.6 of her 5.2 s somewhere other than the gates. What came out of it, the
+first two from the race and the rest from the batch run to check them
+(`design/measurements/rival-v32.json`):
+
+- **A pass held to its lead's speed.** The two were level to 2400 m, where she lost
+  5.4 s in 300 m beside a sedan doing 44 mph. The planner read her pass as unclear
+  at the point it came back in, where the only thing in the way was the sedan
+  itself, and an unclear pass is capped at a braking speed, which works out at
+  about the lead's own: never ahead because held to its speed, held to its speed
+  because not ahead. It now stays out further instead, as far as clears
+  (`TRAFFIC_PASS.holdOut`); anything else in the corridor still slows it. On his
+  inputs the 5.4 s became 2.7. The 83-race batch came out identical to the tick
+  with and without it: the batch parks the player, and this needs a race.
+- **Gentle bends had no line.** She braked to 77 mph for a 26 degree bend he took
+  at 116: only a corner sharp enough to be rounded (45 degrees) got a window, so a
+  bend was driven round the lane's arc in its own half of the road. A bend of
+  `STREET_LINE.bendFrom` (12) degrees is a corner now. A line through EVERY bend
+  was slower, 2.7 s on a clear `gen-tally-7`: at 150 mph a line a touch less
+  straight than the lane is planned slower than the lane, and between bends the
+  lane is perfectly straight. So a window is kept only where its line is quicker
+  than the lane through it, both timed the same way (`STREET_LINE.worth`). On clear
+  streets the kept set is never slower than none and is worth 5.9 s on
+  `gen-crest-23`. **It does not yet fix the bend it came from:** a window reaches
+  60 m either side of a corner, sized for 40 mph, and at 115 mph that is half a
+  second to leave the lane and come back, so her 26 degree bend's line comes out
+  tighter than the lane and is dropped. At 120 m (`bendReach`, in place, unused)
+  A bend just before a sharp corner the other way must not make its own inside the
+  way in: two 13 degree right-handers ahead of a 102 degree left (`gen-39`, 2030 m)
+  had the line swinging 4 m out for the left, the swing `entryInLane` exists to
+  stop, until a sharp corner's entry was written over a bend's. At 120 m
+  that bend draws at 121 mph and her race in traffic goes 81.9 to 76.4 s, Tally's
+  87.4 to 82.5, and Crest's gets 2 s slower: his last window becomes a run of five
+  corners and the solver leaves a 40 m kink in it that still beats the lane. That
+  is the next lever, and it is a line-drawing problem, not a driving one.
+- **It steered for a turn's geometry, and at speed that is a third of the wheel.**
+  The one regression in the bends batch, `gen-78` off the pavement for 114 ticks,
+  was an old crash ending differently: at 130 mph through a 21 degree bend it ran
+  5 m wide into an oncoming van, in v30 too. The bend was 56% of the grip and
+  planned flat, correctly. The fronts are softer than the rears (12 against 15) and
+  lighter under power, so the car understeers and a steady turn takes more wheel
+  than its geometry: 1.5 degrees against 0.41 there, of a lock of 1.7. At 30 mph the
+  difference is 3% of the lock; the lock shrinks with the square of the speed. The
+  feedforward now asks for what the tyres take (`steadyWheelAngleFor`, held to the
+  car on every drivetrain by a test; `RIVAL_STEERING.slip`). Flat out through a
+  synthetic 21 degree bend: 8.0 m wide before, 1.7 m now. Planning a lane's bends
+  no faster than the lock could hold with a fifth in hand was tried on top: 0.06%
+  slower over the batch and no cleaner, so it was taken out again.
+- **Round a bend, a car keeping to its lane read as crossing.** What began that
+  crash was a full-brake stab at 123 mph mid-bend. The van was 2.7 m the other side
+  of the centreline and stayed there, but it was measured from the aim point,
+  whose frame is turned from the road under a car 100 m on by the bend between
+  them. A car that follows this road is now read in the road's frame where it is
+  (`RIVAL_TRAFFIC_FRAME`); anything else is read as before. This is what removed
+  the contact: with the steering alone the batch had 72 ticks, with both 13.
+- **A pass's path is clear of a car that is on it.** One crash was left, inside a
+  pass, where the gate is zero (`gen-46`): pulling out at 105 mph round a sedan that
+  had all but stopped, still drifting the other way from the bend before, 2.2 m
+  short of its path where it should have been clear, and looking 26 m ahead because
+  a committed pass owns the forecast. More than `PASS_ASTRAY` (1 m) off its pass's
+  path it now looks as far as it would with none. A pass it tracks is unchanged to
+  the tick.
+- **What a planned pass is worth now.** The pass test's fixture, `gen-20` and its
+  merging car, met nothing at v32: the rival is eight seconds up the road by then.
+  Over the 17 batch races that commit a pass, planned against reactive passing is
+  4.3 s in total and 6 ticks of contact to none, and `gen-37` is 3 s slower for it.
+  Much of what it bought at v30 was cover for steering that ran wide and a frame
+  that misread bends. It stays: it is what keeps a pass to one side, and the player
+  is not in those 17 races.
+
+| 83 races, player parked | v30 | v32 |
+|---|---|---|
+| total | 7,883 s | 7,804 s (-1.0%) |
+| contact, ticks (races) | 149 (11) | 12 (2, both under 20 mph) |
+| on a line / in a pass | 0 / 0 | 0 / 0 |
+| ticks off the pavement | 24 | 0 |
+| resets, reversals | 4, 1 | 3, 0 |
+
+On his own inputs from that race, against the rival as she now drives, she leads
+from 1000 m to 2400 m by up to 1.3 s, he leads from 2500 m, and he is 0.75 s ahead
+at 3400 m of 3516: a race decided by under a second where it had been 5.2. What she
+still gives away is the 26 degree bend (1.3 s across 2400 and 2500 m) and the last
+corner, whose line she does not take in traffic (0.8 s). That is a replay, not a
+race: he would not have driven the same against a car beside him. His recording
+names `full-line-v31` and is refused by name from here.
+
+**Generated races are recorded (2026-09-20).** Shawn raced Tally's `gen-tally-7` and
+the only trace of it was a finished race in a browser tab: laps were recorded on
+the circuits, and the career is sprints. A generated race now records as one lap,
+replays exactly and compares gate by gate (`src/sim/recorded-event.ts`,
+`recordings/README.md`); the game, the replay check and `pnpm laps:compare` draw the
+race from the same place. `laps:compare --line` is gone: it was the experiment that
+became the rival in traffic.
+
 **A share per name (2026-09-20, `full-line-v31`).** Built from the argument above:
 each Blacklist name takes a street line's corners at its own share of the
 grip-limited speed, 0.84 for Moth to 0.975 for Tally (`BLACKLIST_CORNERING`;

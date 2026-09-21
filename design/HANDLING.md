@@ -34,6 +34,22 @@ calculation; steering away supplies forces instead of requesting a new slide.
 Fresh tire forces replace the previous tick's forces, since Rapier retains
 user forces until cleared. See the [Rapier force guide](https://rapier.rs/docs/user_guides/javascript/rigid_body_forces_and_impulses/).
 
+**What those tyres take to hold a turn (2026-09-20).** `steadyWheelAngleFor` in
+`src/sim/sim.ts` is the closed form of the above for a steady turn: the turn's
+geometry, plus the difference between the two axles' slip angles, each axle
+carrying its share of the cornering force against the grip its load gives it
+(`tyreLoadExponent`), with `tanh(slip × stiffness)` of that grip as its force, and
+on rear drive less the share of the rears' grip the engine is given first. The
+fronts are softer than the rears (12 against 15) and lighter under power, so the
+car understeers, and at speed the difference is most of the wheel: flat out, a
+6.6 m/s² turn takes 0.95 to 1.0 degrees where its geometry is 0.3. It changes
+nothing about the car. It exists because the rivals steer by it
+(`RIVAL_STEERING.slip`, `design/PORT_ALDER.md`), so it has to be kept to the
+tyres: `tests/rival-racing.test.ts` holds it to the car flat out on all three
+drivetrains, within 3% on rear drive, 9% on all four and 17% on front drive,
+where it reads high. What is left goes with throttle on a driven front axle and
+is not modelled.
+
 ## The launch (2026-09-16)
 
 Shawn asked for MC3's start boost. Hold the handbrake **and** the gas through a

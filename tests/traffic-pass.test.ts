@@ -134,9 +134,14 @@ function raceTraffic(id: string, trafficPassing: boolean) {
   } finally { sim.world.free(); }
 }
 
-test("gen-20 passes the accelerating merger cleanly and faster than the reactive driver", () => {
-  const before = raceTraffic("gen-20", false), after = raceTraffic("gen-20", true);
-  assert.ok(before.contact > 100, "fixture must reproduce the prolonged merge contact");
+// The fixture was gen-20 and its accelerating merger, over 100 ticks of contact for the reactive driver at full-line-v30.
+// At v32 the rival is eight seconds up the road when that car merges and neither driver meets it, so the race proved
+// nothing either way. Of the 17 batch races that commit a pass, gen-72 is where the two still differ most: the reactive
+// driver touches the car it goes round and is 2 s slower. (Most of what a planned pass bought at v30 was cover for
+// steering that ran wide and a frame that misread bends: over those 17 it is now worth 4 s in total and 6 ticks.)
+test("gen-72 passes cleanly and faster than the reactive driver", () => {
+  const before = raceTraffic("gen-72", false), after = raceTraffic("gen-72", true);
+  assert.ok(before.finished && before.contact > 0, "fixture must reproduce the reactive driver's contact");
   assert.ok(after.finished && after.passing > 0);
   assert.equal(after.contact, 0);
   assert.equal(after.off, 0);
@@ -153,4 +158,31 @@ test("clear passes and sharp bends retain the existing driver without new recove
     assert.equal(result.off, 0, id);
     assert.equal(result.resets, 0, id);
   }
+});
+
+// Wake lost 5.4 s of gen-wake-42 to this (Shawn's recorded race, 2026-09-20): alongside a sedan at its own speed, the
+// only thing in her plan's way was that sedan, where the path came back in. An unclear plan capped her speed at a
+// braking speed, about the lead's own, so she was never ahead because she was held to its speed, and held to its speed
+// because she was not ahead: 44 mph beside a 40 mph sedan for five seconds on an open street.
+test("alongside the lead at its speed, a committed pass stays out and keeps going rather than braking to the lead's pace", () => {
+  const driver = createRivalDriver(); driver.avoidance = laneRest(20);
+  const started = planTrafficPass(route, driver, car, { network, vehicles: [vehicle(25)], tick: 0 });
+  assert.ok(started?.pass, "open street should admit a pass");
+  const pass = started.pass, leadSpeed = 18;
+  // Pulled out and level with the lead, doing what the lead does, a few metres short of where the plan comes back in.
+  driver.along = pass.back - 6;
+  const level = { ...car, x: pass.offset, z: -driver.along, speed: leadSpeed, forwardSpeed: leadSpeed };
+  const decision = planTrafficPass(route, driver, level, { network, vehicles: [vehicle(driver.along + 1, leadSpeed)], tick: pass.nextRead });
+  assert.ok(decision?.pass, "the pass was dropped");
+  assert.equal(decision.pass.offset, pass.offset, "the side must hold");
+  assert.ok(decision.pass.back > driver.along + 15, `it means to come back in ${(decision.pass.back - driver.along).toFixed(0)} m on, still beside the lead`);
+  assert.ok(decision.pass.speed > leadSpeed * 1.5, `held to ${(decision.pass.speed * 2.237).toFixed(0)} mph beside a lead doing ${(leadSpeed * 2.237).toFixed(0)}`);
+  // Something else in the corridor is still braked for: staying out is not a licence. A second lane, where the pass runs.
+  // (The plan is one object, changed in place: read its speed before asking again.)
+  const free = decision.pass.speed;
+  const beside: TrafficNetwork = { ...network, lanes: [network.lanes[0]!, { id: 1, length: 2000, entry: 0, movements: [0] }],
+    pose: (lane, distance) => ({ x: lane === 1 ? pass.offset : laneRest(20), y: 0, z: -distance, heading: 0 }) };
+  const stopped: TrafficVehicleState = { ...vehicle(driver.along + 60, 0), id: 2, lane: 1, x: pass.offset };
+  const blocked = planTrafficPass(route, driver, level, { network: beside, vehicles: [vehicle(driver.along + 1, leadSpeed), stopped], tick: decision.pass.nextRead });
+  assert.ok(blocked!.pass.speed < free * 0.8, `a stopped car in the corridor left it at ${(blocked!.pass.speed * 2.237).toFixed(0)} mph of ${(free * 2.237).toFixed(0)}`);
 });

@@ -1,5 +1,5 @@
 import { planTrafficPass, passingOffset, passingPoint, type PassingContext, type TrafficPass } from "./traffic-pass.ts";
-import { HANDLING, handlingFor, maxCorneringSpeed, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
+import { HANDLING, handlingFor, maxCorneringSpeed, steadyWheelAngleFor, steeringAngleFor, type Input, type RivalState } from "./sim.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CoursePoint } from "./track.ts";
 import { laneOffset } from "./lanes.ts";
@@ -360,8 +360,13 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "full-line-v31": each Blacklist name takes a street line's corners at its own share
  * of the grip-limited speed (BLACKLIST_CORNERING), 0.84 for Moth to 0.975 for Tally.
  * A race with no name on it, the circuits included, keeps 0.88.
+ * "full-line-v32": four things from one race (Shawn against Wake, gen-wake-42) and the batch run to check them. It
+ * steers for the wheel a turn takes, not its geometry alone (RIVAL_STEERING.slip, every rival, Ridge included); reads a
+ * car that follows this road in the road's frame where it is (RIVAL_TRAFFIC_FRAME); a pass whose return is blocked
+ * only by the car being passed stays out rather than braking to its speed, and a car off its pass's path looks ahead
+ * as if it had none (traffic-pass.ts, PASS_ASTRAY); and a gentle bend gets a line where that is quicker (street-line.ts).
  */
-export const RIVAL_REVISION = "full-line-v31";
+export const RIVAL_REVISION = "full-line-v32";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -527,8 +532,32 @@ export const RIVAL_STREET_LINE = { speedFactor: 0.88,
  * are arcs now (RIVAL_STREET_CORNERS), so their curvature is real, and on streets
  * too (2026-09-13) it holds the larger arcs at speed that heading error alone let
  * run wide.
+ *
+ * `slip` (2026-09-20): the geometry is not the wheel a turn takes. The fronts are
+ * softer than the rears (12 against 15) and lighter under power, so the car
+ * understeers, and a steady turn takes the geometry plus the difference between
+ * the axles' slip angles (`steadyWheelAngleFor`, from the car's own tyres and its
+ * load at that moment). At 30 mph that difference is 3% of the lock and nobody
+ * noticed; the lock shrinks with the square of the speed, and at 130 mph a 414 m
+ * arc took 0.41 degrees by its geometry and 1.5 on the road, of a lock of 1.7.
+ * The rest came from the heading error, which means from being wide: 5 m, into an
+ * oncoming van at 120 mph (gen-78). A synthetic 21 degree bend flat out: 8.0 m
+ * wide without it, 1.7 m with. A lane's bends planned no faster than the lock
+ * could hold with a fifth in hand was tried on top and measured on the 83-race
+ * batch: 0.06% slower and no cleaner, so it is not here.
  */
-export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3 } as const;
+export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3, slip: 1 } as const;
+
+
+/**
+ * Reading a car that follows this road in the road's own frame (2026-09-20). `station`: metres its place along the
+ * route may be out, as projected along the aim, for that place to be trusted; `verge`: metres past the carriageway it
+ * may be and still be on this road; `aligned`: the cosine its heading keeps to the road's, either way (about 25 degrees).
+ */
+export const RIVAL_TRAFFIC_FRAME = { on: true, station: 10, verge: 2, aligned: 0.9 } as const;
+
+/** Metres off the path of a committed pass at which the car stops trusting that path to be clear (traffic-pass.ts). */
+export const PASS_ASTRAY = 1;
 
 /** Metres past the carriageway's edge a rival may be before it counts as lost: a paved shoulder's worth. */
 export const OFF_ROAD_MARGIN = 1.5;
@@ -764,30 +793,47 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // shift as it has taken up.
   const aimShift = line && blend > 0 ? shiftAt(line, Math.min(gate, driver.along + lookAhead)) : null;
   const intent = (pass ? offset : driver.avoidance) + (aimShift ? blend * (aimShift.x * normalX + aimShift.z * normalZ) : 0);
+  // Pulling out or coming back in, is the car where its pass says it is?
+  const astray = !!pass && Math.abs(carOffset - passingOffset(route, pass, driver.along)) > PASS_ASTRAY;
   for (const obstacle of hazards) {
     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
     const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
     if (Math.abs(obstacle.y - routeHeightAt(route, driver.along + ahead) - aboveRoute) > 3) continue;
-    const offRoute=side+carOffset;
     const length=(obstacle.length??4.2)/2+2.1;
+    const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
+    // A car following this road is read in the road's frame where IT is, not the aim point's (`RIVAL_TRAFFIC_FRAME`):
+    // its place across the route there, and its speed along and across the road there. Round a bend the aim point's
+    // frame is turned from the road under a car 100 m on by the bend itself, so a van keeping to the oncoming lane
+    // read as crossing into this car's path, and the rival stabbed the brake at 123 mph in the middle of a 21 degree
+    // bend (gen-78). Anything else (a side street's car, one the projection has misplaced round a sharp corner) is
+    // read from the aim point as before.
+    const road = RIVAL_TRAFFIC_FRAME.on && !pass ? sampleDrivingPath(route, driver.along + ahead) : null;
+    const follows = !!road && Math.abs((obstacle.x - road.x) * road.ux + (obstacle.z - road.z) * road.uz) < RIVAL_TRAFFIC_FRAME.station
+      && Math.abs((obstacle.x - road.x) * -road.uz + (obstacle.z - road.z) * road.ux) < road.width / 2 + RIVAL_TRAFFIC_FRAME.verge
+      && Math.abs(headingX * road.ux + headingZ * road.uz) > RIVAL_TRAFFIC_FRAME.aligned;
+    const offRoute = follows ? (obstacle.x - road!.x) * -road!.uz + (obstacle.z - road!.z) * road!.ux : side + carOffset;
     if (pass) {
       // The committed path already owns the full forecast. Keep a short,
       // body-relative emergency check; the old straight-line arrival guess
       // otherwise brakes for cars the curved passing path safely clears.
       const fx = -Math.sin(car.heading), fz = -Math.cos(car.heading);
       const immediate = dx * fx + dz * fz, lateral = dx * -fz + dz * fx;
-      if (immediate > 0 && immediate < length + car.speed * .45 && Math.abs(lateral) < 2.6) {
+      // That check is short because the path is clear, and the path is clear only of a car that is ON it. Pulling out
+      // at 105 mph round a sedan that had all but stopped (gen-46), this car was still drifting the other way from the
+      // bend before, was 1.2 m short of its path a fifth of a second in and 2.2 m short where it should have been
+      // clear, saw the sedan at 26 m and hit it at 91 mph. Off its path by `PASS_ASTRAY`, it looks as far as it
+      // would with no pass at all.
+      if (immediate > 0 && immediate < (astray ? 15 + car.speed * 1.6 : length + car.speed * .45) && Math.abs(lateral) < 2.6) {
         const speed = obstacle.speed * (-Math.sin(obstacle.heading) * fx - Math.cos(obstacle.heading) * fz);
         slowFor(speed, immediate, length);
       }
       continue;
     }
     if (ahead < -length || ahead > 15+car.speed*1.6) continue;
-    const headingX=-Math.sin(obstacle.heading), headingZ=-Math.cos(obstacle.heading);
-    const along=obstacle.speed*(headingX*target.ux+headingZ*target.uz);
-    const across=obstacle.speed*(headingX*normalX+headingZ*normalZ);
+    const along=obstacle.speed*(follows ? headingX*road!.ux+headingZ*road!.uz : headingX*target.ux+headingZ*target.uz);
+    const across=obstacle.speed*(follows ? headingX*-road!.uz+headingZ*road!.ux : headingX*normalX+headingZ*normalZ);
     const crossing=Math.abs(across)>2;
-    if (!crossing && Math.abs(side)>5) continue;
+    if (!crossing && Math.abs(follows ? offRoute-carOffset : side)>5) continue;
     // Its offset from the route when this car reaches it, and how wide a
     // corridor that has to miss: a crossing car sweeps its own length.
     const arrival=Math.max(0,ahead-length)/Math.max(1,car.speed-along);
@@ -897,7 +943,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // Signed, positive for a right-hand bend, which positive steer turns into.
   const lineCurvature = pq * qr * pr > 1e-6 ? 2 * ((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x)) / (pq * qr * pr) : 0;
   const wheelbase = HANDLING.frontAxleDistance + HANDLING.rearAxleDistance;
-  const feedforward = RIVAL_STEERING.feedforward * Math.atan(wheelbase * lineCurvature) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed, 1, handling));
+  // And the slip the tyres need to make that turn (`slip`): the fronts are softer than the rears and lighter under
+  // power, so a steady turn takes more wheel than its geometry, by the difference between the two axles' slip angles.
+  const geometry = Math.atan(wheelbase * lineCurvature);
+  const tyreSlip = steadyWheelAngleFor(car.forwardSpeed, lineCurvature, car.frontLoadFraction, handling, Math.max(0, car.longitudinalAcceleration)) - geometry;
+  const feedforward = (RIVAL_STEERING.feedforward * geometry + RIVAL_STEERING.slip * tyreSlip) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed, 1, handling));
   const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.

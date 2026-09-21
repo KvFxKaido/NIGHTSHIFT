@@ -444,6 +444,33 @@ export function steeringAngleFor(speed: number, steering = 1, handling: CarHandl
   return clamp(steering, -1, 1) * Math.min(HANDLING.maxSteeringAngle, gripAngle + slipAllowance);
 }
 
+/**
+ * The wheel angle a steady turn takes (2026-09-20): the turn's geometry, plus the difference between the two axles'
+ * slip angles. Each axle carries its share of the cornering force (the front `STATIC_FRONT_LOAD` of it, by the yaw
+ * balance) against the grip its load gives it, and a tyre's force is `tanh(slip × stiffness)` of that grip. The
+ * fronts are softer than the rears and, under power, lighter, so the car understeers: at 60 m/s a 5.5 m/s² turn takes
+ * 0.82 degrees of wheel where its geometry is 0.25. `driveAcceleration` is what the tyres are pushing: an RWD car's
+ * rears give the engine its share of their grip first (`sampleWheelForces`), slip more for it, and understeer less.
+ * It describes the tyres below and has to be kept to them; it moves nothing. A test holds it to every drivetrain.
+ */
+export function steadyWheelAngleFor(speed: number, curvature: number, frontLoad: number, handling: CarHandling = SHARED_HANDLING, driveAcceleration = 0): number {
+  const cornering = speed * speed * Math.abs(curvature);
+  const grip = (load: number) => handling.maxLateralAcceleration * .5 * (2 * Math.max(.01, load)) ** HANDLING.tyreLoadExponent;
+  let rearGrip = grip(1 - frontLoad);
+  if (handling.drivetrain === "rwd" && driveAcceleration > 0) {
+    const stable = clamp((speed - HANDLING.rwdStabilityStartSpeed) / (HANDLING.rwdStabilityFullSpeed - HANDLING.rwdStabilityStartSpeed), 0, 1);
+    const share = HANDLING.rwdDriveTractionShare + (HANDLING.rwdHighSpeedDriveTractionShare - HANDLING.rwdDriveTractionShare) * stable * stable * (3 - 2 * stable);
+    const assisted = clamp((speed - HANDLING.twoWheelDriveGripStartSpeed) / (HANDLING.twoWheelDriveGripFullSpeed - HANDLING.twoWheelDriveGripStartSpeed), 0, 1);
+    const driveGripScale = (1 + (HANDLING.twoWheelDriveGripScale - 1) * assisted * assisted * (3 - 2 * assisted)) * handling.traction;
+    const driven = Math.min(driveAcceleration / driveGripScale, rearGrip * share);
+    rearGrip = Math.sqrt(Math.max(1e-6, rearGrip * rearGrip - driven * driven));
+  }
+  const slip = (force: number, axleGrip: number, stiffness: number) => Math.atanh(Math.min(.98, force / axleGrip)) / stiffness;
+  return Math.sign(curvature) * (Math.atan(WHEELBASE * Math.abs(curvature))
+    + slip(cornering * STATIC_FRONT_LOAD, grip(frontLoad), handling.frontCorneringStiffness)
+    - slip(cornering * (1 - STATIC_FRONT_LOAD), rearGrip, handling.rearCorneringStiffness));
+}
+
 /** Driver-operated steering, with extra response/range only for a requested catch.
  * No slip-derived angle is added: centred input always targets centred wheels. */
 export function steeringControlFor(current: number, requested: number, forwardSpeed: number,

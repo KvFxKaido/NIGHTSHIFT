@@ -34,7 +34,7 @@
  */
 import { laneOffset } from "./lanes.ts";
 import { drawRacingLine, type RacingLineOptions } from "./racing-line.ts";
-import { RIVAL_LANE, sampleDrivingPath, sampleRivalPath, type RivalDefinition, type RivalDriver, type StreetLine } from "./rival.ts";
+import { RIVAL_CORNERING, RIVAL_LANE, sampleDrivingPath, sampleRivalPath, type RivalDefinition, type RivalDriver, type StreetLine } from "./rival.ts";
 import { handlingFor, maxCorneringSpeed, type VehicleState } from "./sim.ts";
 import { forecastTrafficPath, TRAFFIC_KINDS, type TrafficNetwork, type TrafficVehicleState } from "./traffic.ts";
 
@@ -43,6 +43,12 @@ export const STREET_LINE = {
   spacing: 2,
   /** Metres either side of a corner's arc that the line may be out of its lane. */
   cornerReach: 60,
+  /** Seconds a corner's line must save over the lane through it to be worth leaving the lane for. */
+  worth: 0.1,
+  /** Degrees a bend must turn to be a corner at all. Below `roundFrom` (45) it is not rounded, only given room. */
+  bendFrom: 12,
+  /** Metres either side of such a bend that the line may be out of its lane. */
+  bendReach: 60,
   /** A shift smaller than this is the lane, and the ordinary traffic loop's business. */
   shift: 0.75,
   /** A shift wider than this is not a line through a street corner, whatever drew it: the corner stays in its lane. */
@@ -66,9 +72,12 @@ export const STREET_LINE = {
 export const laneRest = (width: number) => RIVAL_LANE.share * laneOffset(width, { direction: 1, index: 0 }, width > 14 ? "collector" : "local");
 
 /** The route, carrying the line as a shift from its lane. `options` is the line to draw, with nothing held. */
-export function withStreetLine(route: RivalDefinition, options: RacingLineOptions, cornering: number, reach: number = STREET_LINE.cornerReach): RivalDefinition {
+export function withStreetLine(route: RivalDefinition, options: RacingLineOptions, cornering: number,
+  tune: { readonly reach?: number; readonly bendFrom?: number; readonly bendReach?: number; readonly worth?: number } = {}): RivalDefinition {
+  // `tune` is for measuring (scripts/street-line-batch.ts): the game draws every line on STREET_LINE's own numbers.
+  const reach = tune.reach ?? STREET_LINE.cornerReach, bendFrom = tune.bendFrom ?? STREET_LINE.bendFrom, worth = tune.worth ?? STREET_LINE.worth;
   if (route.lateral) throw new RangeError(`${route.id} is a racing line already; a street line rides on a centreline`);
-  const { route: drawn, free } = drawRacingLine(route, { ...options, rest: laneRest, cornerReach: reach, entryInLane: true });
+  const { route: drawn, free } = drawRacingLine(route, { ...options, rest: laneRest, cornerReach: reach, entryInLane: true, bendFrom: Number.isFinite(bendFrom) ? bendFrom : undefined, bendReach: tune.bendReach ?? STREET_LINE.bendReach });
   const length = route.along.at(-1)!, count = Math.floor(length / STREET_LINE.spacing) + 1;
   const lane = Array.from({ length: count }, (_, k) => {
     const at = sampleDrivingPath(route, k * STREET_LINE.spacing), rest = laneRest(at.width);
@@ -114,19 +123,42 @@ export function withStreetLine(route: RivalDefinition, options: RacingLineOption
     }
     return true;
   };
-  const kept = corners.filter(corner => {
-    if (sound(corner)) return true;
-    for (let k = corner.from / STREET_LINE.spacing; k <= corner.to / STREET_LINE.spacing; k++) dx[k] = dz[k] = 0;
-    return false;
-  });
-  // How tightly the shifted path bends at each station, for when the rival will be where: 8 m either way.
-  const x = lane.map((p, k) => p.x + dx[k]!), z = lane.map((p, k) => p.z + dz[k]!), radius: number[] = [];
-  for (let k = 0; k < count; k++) {
+  const drop = (corner: { from: number; to: number }) => { for (let k = corner.from / STREET_LINE.spacing; k <= corner.to / STREET_LINE.spacing; k++) dx[k] = dz[k] = 0; };
+  // How tightly a path bends at each station: 8 m either way, as the driver reads it.
+  const bendOf = (px: readonly number[], pz: readonly number[]) => px.map((_, k) => {
     const a = Math.max(0, k - 4), c = Math.min(count - 1, k + 4);
-    const ab = Math.hypot(x[k]! - x[a]!, z[k]! - z[a]!), bc = Math.hypot(x[c]! - x[k]!, z[c]! - z[k]!), ac = Math.hypot(x[c]! - x[a]!, z[c]! - z[a]!);
-    const cross = Math.abs((x[k]! - x[a]!) * (z[c]! - z[a]!) - (z[k]! - z[a]!) * (x[c]! - x[a]!));
-    radius.push(cross < 1e-3 ? Infinity : ab * bc * ac / (2 * cross));
-  }
+    const ab = Math.hypot(px[k]! - px[a]!, pz[k]! - pz[a]!), bc = Math.hypot(px[c]! - px[k]!, pz[c]! - pz[k]!), ac = Math.hypot(px[c]! - px[a]!, pz[c]! - pz[a]!);
+    const cross = Math.abs((px[k]! - px[a]!) * (pz[c]! - pz[a]!) - (pz[k]! - pz[a]!) * (px[c]! - px[a]!));
+    return cross < 1e-3 ? Infinity : ab * bc * ac / (2 * cross);
+  });
+  const sounded = corners.filter(corner => sound(corner) || (drop(corner), false));
+  // And a corner's line is kept only where it is QUICKER than the lane through it. At 150 mph a line that is a touch
+  // less straight than the lane is planned slower than the lane, and the lane on a straight is perfectly straight:
+  // given room at every gentle bend, Tally lost 2.4 s of a clear gen-tally-7 to lines through bends she had been
+  // taking flat. Both paths are timed the same way: in at full speed, held to each one's own corner speeds, the
+  // line's at the driver's share and the lane's at every rival's, gathering and slowing as `readStreetLine` assumes.
+  const handling = handlingFor(route);
+  const laneBend = bendOf(lane.map(p => p.x), lane.map(p => p.z));
+  const lineBend = bendOf(lane.map((p, k) => p.x + dx[k]!), lane.map((p, k) => p.z + dz[k]!));
+  const seconds = (corner: { from: number; to: number }, bend: readonly number[], px: (k: number) => number, pz: (k: number) => number, share: number) => {
+    const first = corner.from / STREET_LINE.spacing, last = corner.to / STREET_LINE.spacing, speed: number[] = [], step: number[] = [0];
+    for (let k = first + 1; k <= last; k++) step.push(Math.hypot(px(k) - px(k - 1), pz(k) - pz(k - 1)));
+    for (let k = first; k <= last; k++) {
+      const limit = Math.min(handling.topSpeed, Math.max(7, maxCorneringSpeed(bend[k]!, handling) * share));
+      speed.push(k === first ? limit : Math.min(limit, Math.sqrt(speed.at(-1)! ** 2 + 2 * STREET_LINE.gather * step[k - first]!)));
+    }
+    for (let k = speed.length - 2; k >= 0; k--) speed[k] = Math.min(speed[k]!, Math.sqrt(speed[k + 1]! ** 2 + 2 * STREET_LINE.slow * step[k + 1]!));
+    let time = 0;
+    for (let k = 1; k < speed.length; k++) time += step[k]! / Math.max(1, (speed[k]! + speed[k - 1]!) / 2);
+    return time;
+  };
+  const kept = sounded.filter(corner => {
+    const onLine = seconds(corner, lineBend, k => lane[k]!.x + dx[k]!, k => lane[k]!.z + dz[k]!, cornering);
+    const inLane = seconds(corner, laneBend, k => lane[k]!.x, k => lane[k]!.z, RIVAL_CORNERING.speedFactor);
+    return onLine < inLane - worth || (drop(corner), false);
+  });
+  // How tightly the shifted path bends at each station, for when the rival will be where.
+  const x = lane.map((p, k) => p.x + dx[k]!), z = lane.map((p, k) => p.z + dz[k]!), radius = bendOf(x, z);
   const line: StreetLine = { spacing: STREET_LINE.spacing, dx, dz, x, z, radius, corners: kept, cornering, clearance: options.cutMargin ?? options.edgeMargin };
   return { ...route, line, trafficPassing: true };
 }

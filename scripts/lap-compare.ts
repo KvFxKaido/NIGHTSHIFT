@@ -1,4 +1,4 @@
-// You against the rival, corner by corner, from one recorded race.
+// You against the rival, corner by corner, from one recorded race: a circuit, or a generated sprint.
 //
 // A session holds the player's input log, and (start state + input log)
 // reproduces the run, rival included. So this replays the session and records
@@ -10,8 +10,6 @@
 //   pnpm laps:compare <substring>          the newest whose name contains it
 //   pnpm laps:compare <path to a .json>    that file, wherever it is
 //   pnpm laps:compare --json               the same facts, for tools
-//   pnpm laps:compare --line               a race in traffic, against the same rival on a racing line through the
-//                                          streets (STREET_CIRCUIT_LINE): an experiment. Uptown / Clear's already is.
 //
 // It refuses a session that does not replay exactly on this build, and says why:
 // a comparison against a run that diverged would be a comparison against nothing.
@@ -20,11 +18,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createAlderWorld } from "../src/sim/alder.ts";
-import { circuitEvent } from "../src/sim/circuits.ts";
+import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
-import { withRacingLine } from "../src/sim/racing-line.ts";
-import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
 import type { RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
 
@@ -37,7 +33,8 @@ export interface Corner { lap: number; gate: number; you: CornerSide; rival: Cor
 export interface Comparison {
   race: string; car: string; pedalAssist: number;
   /** `rivalReasons` is why the rival's lap would not count as evidence (lap-recorder.ts, TRACK_LIMITS): empty for a clean one. */
-  laps: { lap: number; you: number | null; rival: number | null; rivalReasons: string[] }[];
+  /** `rivalAfterTheLog`: the rival finished this lap after the player's input log ended, with the player's car stopped. */
+  laps: { lap: number; you: number | null; rival: number | null; rivalReasons: string[]; rivalAfterTheLog: boolean }[];
   corners: Corner[];
   /** Seconds you gained on the rival inside corner windows, and everywhere else, over the laps both finished. */
   gainedInCorners: number; gainedElsewhere: number;
@@ -66,8 +63,10 @@ function side(lap: RecordedLap, gate: number): CornerSide | null {
 
 /** `rival` swaps in another driver for the same race and the same input log: an experiment, judged against the player's fixed run. */
 export function compareSession(session: LapSession, rival?: RivalDefinition): Comparison {
-  const raced = circuitEvent(session.race, session.laps);
-  if (!raced?.rival) throw new Error(`${session.race} has no rival to compare with: race one without -solo`);
+  // A circuit or a generated race, drawn as the session was driven (src/sim/recorded-event.ts).
+  const raced = recordedEvent(session.race, session.laps, { start: session.startCode ?? null, solo: session.solo });
+  if (!raced?.rival) throw new Error(`${session.race} has no rival to compare with: race one that is not solo`);
+  if (!raced.comparable) throw new Error(`${session.race} cannot be compared gate by gate: a generated circuit's laps lie over each other and an unordered race is driven in the driver's own order. Its input log still replays (pnpm laps --verify).`);
   const event = { ...raced, rival: rival ?? raced.rival };
   const handling = carHandling(session.car, session.drivetrain as Drivetrain);
   const sim = createSim(handling, createAlderWorld(true, event.start),
@@ -82,8 +81,17 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
       const driver = sim.state.rival!;
       recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
     }
+    // A session ends when the player's last lap does. Where that is the whole race (a generated one) and the player
+    // won, the rival has no lap yet: let it finish, the player's car stopped where the log left it. What it does
+    // after the log is the rival's race with nobody to race, and is said so.
+    const loggedLaps = theirs.laps.length;
+    for (let extra = 0; extra < 120 * TICK_HZ && !sim.state.rival!.race.finished; extra++) {
+      step(sim, { throttle: 0, brake: 1, steer: 0, handbrake: 1 });
+      const driver = sim.state.rival!;
+      recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
+    }
     const laps = Array.from({ length: Math.max(you.laps.length, theirs.laps.length) }, (_, i) =>
-      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: theirs.laps[i]?.seconds ?? null, rivalReasons: theirs.laps[i]?.reasons ?? [] }));
+      ({ lap: i + 1, you: you.laps[i]?.seconds ?? null, rival: theirs.laps[i]?.seconds ?? null, rivalReasons: theirs.laps[i]?.reasons ?? [], rivalAfterTheLog: i >= loggedLaps }));
     const corners: Corner[] = [];
     let gainedInCorners = 0, total = 0;
     for (let i = 0; i < Math.min(you.laps.length, theirs.laps.length); i++) {
@@ -105,7 +113,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const dir = fileURLToPath(new URL("../recordings/laps/", import.meta.url));
-  const args = process.argv.slice(2), json = args.includes("--json"), line = args.includes("--line"), wanted = args.find(arg => !arg.startsWith("--"));
+  const args = process.argv.slice(2), json = args.includes("--json"), wanted = args.find(arg => !arg.startsWith("--"));
   const files = (await readdir(dir).catch(() => [] as string[])).filter(name => name.endsWith(".json")).sort();
   await RAPIER.init();
   // Newest first, and the first that was raced against somebody.
@@ -122,15 +130,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (!chosen) { console.log(wanted ? `No recording matches '${wanted}'.` : "No raced recording yet. Drive ?race=street-uptown-clear or ?race=arena-full under pnpm dev."); process.exit(1); }
   const replayed = replayLapSession(chosen.session);
   if (!replayed.ok) { console.log(`${chosen.name} does not replay on this build, so there is no rival to compare with: ${replayed.reason}`); process.exit(1); }
-  // A line is drawn through a route once, and the clear race's rival already carries its own.
-  const raced = circuitEvent(chosen.session.race, chosen.session.laps)!.rival!;
-  if (line && raced.lateral) { console.log(`${chosen.session.race}'s rival already drives a racing line: --line is for a race whose rival does not.`); process.exit(1); }
-  const result = compareSession(chosen.session, line ? withRacingLine(raced, STREET_CIRCUIT_LINE) : undefined);
+  let result: Comparison;
+  try { result = compareSession(chosen.session); } catch (error) { console.log(error instanceof Error ? error.message : String(error)); process.exit(1); }
   if (json) console.log(JSON.stringify({ file: chosen.name, ...result }, null, 2));
   else {
     const time = (seconds: number | null) => seconds === null ? "  --   " : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;
     console.log(`${chosen.name}  ${result.race} · ${result.car} · pedal assist ${result.pedalAssist} · replays exactly\n`);
-    if (line) console.log(`  Against a rival on a street racing line, not the one raced. ${result.playerReproduced ? "Your laps came out as recorded, so the two never touched." : "YOUR LAPS DID NOT COME OUT AS RECORDED: the two touched, and nothing below is your race."}\n`);
     for (const lap of result.laps) console.log(`  lap ${lap.lap}   you ${time(lap.you)}   rival ${time(lap.rival)}${lap.you !== null && lap.rival !== null ? `   you by ${(lap.rival - lap.you).toFixed(2)} s` : ""}${lap.rivalReasons.length ? `   rival's lap INVALID (${lap.rivalReasons.join(", ")})` : ""}`);
     console.log(`\n  The rival was put back on its line ${result.rivalResets} times and was never more than ${result.rivalWidest.toFixed(1)} m from the centreline.`);
     console.log(`\n  Over the laps you both finished: ${result.gainedInCorners.toFixed(2)} s gained within ${WINDOW} m of a gate, ${result.gainedElsewhere.toFixed(2)} s everywhere else.\n`);

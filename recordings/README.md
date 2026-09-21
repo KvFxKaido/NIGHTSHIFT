@@ -1,6 +1,7 @@
 # Lap recordings
 
-Laps driven in circuit races, Ridge Circuit's and the street circuit's, land
+Laps driven in circuit races, Ridge Circuit's and the street circuit's, and since
+2026-09-20 every generated race (the career's stages, a flash, a kept race), land
 here, in `laps/`, one JSON file per session. They are the player's own driving and stay on this machine: the folder
 is ignored by git except for this file.
 
@@ -13,20 +14,34 @@ completes; the whole session is rewritten after every lap, so quitting mid-run
 keeps every finished lap. Restarting, resetting the car or changing car starts
 a new session file. A production build has no endpoint and says `NOT SAVED`.
 
+**A generated race** (`?scene=track&race=gen-tally-7`, or flash a name in free
+roam) is ONE lap to the recorder: the whole race, from the flag to its last gate,
+saved when you finish it. It is measured along its rival's centreline route. That
+is exact for a sprint. A generated circuit's laps lie over each other and an
+unordered race is driven in your own order, so for those two `distance` and
+`offset` are not to be trusted and `pnpm laps:compare` declines them; their input
+logs replay all the same. The drag strip, the drift yard and Sound to Sky are not
+recorded. What a race id means to a recording is `src/sim/recorded-event.ts`, which
+the game, the replay check and the compare tool all ask.
+
 **Reading.** `pnpm laps` lists every session and lap; `pnpm laps --verify` also
 replays each session against the current build; `pnpm laps --json` is for tools.
 
 **The file** (`nightshift-laps-v1`, `src/sim/lap-recorder.ts`):
 
 - Identity: `world`, `arena` (the circuit's revision: `ridge-circuit-v2`,
-  `uptown-v1`), `rival` (the rival driver's revision; only sessions with a rival
+  `uptown-v1`; for a generated race the generator's revision for its kind,
+  `generator-v1`), `startCode` (a generated race's flash, as `?start=` carried it:
+  part of what its id draws, absent from the grid and on a circuit), `rival` (the rival driver's revision; only sessions with a rival
   depend on it), `physics`, `tickHz`, `race`, `layout`, `solo`, `traffic` (absent
   before street circuits, which means none), `laps`,
   `car`, `drivetrain`, `start`, and `recordedAt` (wall clock, metadata only).
   Nothing about the rival is stored, and nothing needs to be: the input log
   reproduces the whole race, so `pnpm laps:compare` replays a raced session and
   records the rival through the same recorder, for the same channels from both
-  cars, corner by corner.
+  cars, corner by corner. In a race that is one lap, whoever finished second had
+  no lap when the log ended: the rival is then let finish with your car stopped,
+  and the tool marks that time as after the log.
   `pedalAssist` is how much of the pedals' excess the tyres forgave: absent means
   all of it (the clamp), which is every session from before 2026-09-20 and every
   drag since; the game records 0 otherwise. Replay drives the lap on it.

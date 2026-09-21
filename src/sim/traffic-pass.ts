@@ -33,6 +33,8 @@ export const TRAFFIC_PASS = {
   acceleration: 4, braking: 8, clearance: 2.5,
   /** The footprint forecast assumes close tracking; leave larger bends to the corner driver. */
   bendLimit: .15,
+  /** Metres further a pass is held out, tried in turn, when all that blocks its return is the car it is passing. */
+  holdOut: [20, 40, 60, 80, 110, 140],
 } as const;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const ease = (n: number) => { const t = clamp(n, 0, 1); return t * t * (3 - 2 * t); };
@@ -177,7 +179,32 @@ export function planTrafficPass(route: RivalDefinition, driver: RivalDriver, car
         pass = returning; driver.trafficPass = pass;
       }
     }
-    const evaluated = evaluatePass(route, pass, car, driver.along, forecasts, context.ground);
+    let evaluated = evaluatePass(route, pass, car, driver.along, forecasts, context.ground);
+    // Not past the lead yet is not a reason to brake (2026-09-20). Where the only thing in the way is the car being
+    // passed, at the point the path comes back in, an unclear plan used to cap the speed at a braking speed, which
+    // works out at about the lead's own: Wake sat beside a sedan at 44 mph for five seconds of gen-wake-42, never
+    // getting ahead because she was held to its speed, held to its speed because she was not ahead. Stay out
+    // further instead, as far as clears it, and drive the corridor at the speed the corridor allows. Anything else
+    // in the way (an oncoming car in the corridor, the player) still slows it, and a pass that cannot be held out
+    // falls through to the brake as before.
+    if (!evaluated.clear && !pass.returning && evaluated.reason !== "geometry" && driver.along + evaluated.collision >= pass.back - TRAFFIC_PASS.spacing) {
+      const others = forecasts.filter(forecast => forecast.vehicle.id !== pass!.target);
+      if (evaluatePass(route, pass, car, driver.along, others, context.ground).clear) {
+        const length = pass.to - pass.back;
+        for (const further of TRAFFIC_PASS.holdOut) {
+          const held = { ...pass, back: Math.max(pass.back, driver.along) + further, to: Math.max(pass.back, driver.along) + further + length };
+          if (held.to > route.along.at(-1)!) break;
+          // Still only straights and gentle bends: the forecast's footprint assumes close tracking.
+          let bends = false;
+          for (let at = driver.along; at <= held.to && !bends; at += TRAFFIC_PASS.spacing) { const road = sampleDrivingPath(route, at); bends = road.ux * here.ux + road.uz * here.uz < Math.cos(TRAFFIC_PASS.bendLimit); }
+          if (bends) break;
+          const again = evaluatePass(route, held, car, driver.along, forecasts, context.ground);
+          if (!again.clear) continue;
+          pass.back = held.back; pass.to = held.to; evaluated = again;
+          break;
+        }
+      }
+    }
     pass.nextRead = context.tick + TRAFFIC_PASS.every;
     pass.speed = evaluated.clear ? evaluated.speed : Math.min(evaluated.speed, Math.sqrt(2 * TRAFFIC_PASS.braking * Math.max(0, evaluated.collision - 8)));
     return { pass };

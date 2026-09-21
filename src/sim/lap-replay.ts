@@ -6,7 +6,7 @@
  * must be initialised first, as for any `createSim`.
  */
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
-import { circuitEvent } from "./circuits.ts";
+import { GENERATED_LAYOUT, recordedEvent, type RecordedEvent } from "./recorded-event.ts";
 import { RIVAL_REVISION } from "./rival.ts";
 import { TRAFFIC_REVISION } from "./traffic.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
@@ -20,9 +20,12 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.format !== LAP_RECORDING_FORMAT) return { ok: false, reason: `format ${session.format}, expected ${LAP_RECORDING_FORMAT}` };
   // A recording from another world or physics revision cannot be expected to match, so it is refused, not compared.
   if (session.world !== ALDER_VERSION) return { ok: false, reason: `recorded on world ${session.world}, this build is ${ALDER_VERSION}` };
-  const event = circuitEvent(session.race, session.laps);
+  // A circuit, or a generated race drawn again from its id and its flash (recorded-event.ts).
+  let event: RecordedEvent | null;
+  try { event = recordedEvent(session.race, session.laps, { start: session.startCode ?? null, solo: session.solo }); }
+  catch (error) { return { ok: false, reason: `${session.race} cannot be drawn: ${error instanceof Error ? error.message : String(error)}` }; }
   if (!event) return { ok: false, reason: `unknown race ${session.race}` };
-  if (session.arena !== event.identity) return { ok: false, reason: `recorded on circuit ${session.arena ?? "ridge-circuit-v1"}, this build is ${event.identity}` };
+  if (session.arena !== event.identity) return { ok: false, reason: `recorded on ${event.layout === GENERATED_LAYOUT ? "generator" : "circuit"} ${session.arena ?? "ridge-circuit-v1"}, this build is ${event.identity}` };
   if (session.physics !== PHYSICS_VERSION) return { ok: false, reason: `recorded on physics ${session.physics}, this build is ${PHYSICS_VERSION}` };
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
   if (!event.solo && session.rival !== RIVAL_REVISION) return { ok: false, reason: `raced rival ${session.rival ?? "from before rival revisions"}, this build's is ${RIVAL_REVISION}` };

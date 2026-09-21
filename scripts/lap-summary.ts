@@ -14,7 +14,7 @@ const dir = fileURLToPath(new URL("../recordings/laps/", import.meta.url));
 const args = new Set(process.argv.slice(2));
 const files = (await readdir(dir).catch(() => [] as string[])).filter(name => name.endsWith(".json")).sort();
 if (!files.length) {
-  console.log("No lap recordings yet. Drive a circuit race under pnpm dev (?race=arena-full-solo, ?race=street-uptown-clear-solo) and each lap saves to recordings/laps.");
+  console.log("No lap recordings yet. Drive a circuit race (?race=arena-full-solo, ?race=street-uptown-clear-solo) or finish a generated one (?race=gen-tally-7) under pnpm dev and it saves to recordings/laps.");
   process.exit(0);
 }
 // Replaying needs the physics engine; a plain summary does not load it, or the map.

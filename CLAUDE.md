@@ -192,7 +192,13 @@ fixtures outside the playable bundle, and old world links redirect.
   is 9 s a lap quicker. Each Blacklist name takes a line's corners at its own share
   of the grip (`BLACKLIST_CORNERING`, 0.84 for Moth to 0.975 for Tally, `full-line-v31`;
   `design/BLACKLIST.md`); a race with no name on it, the circuits included, keeps
-  0.88. Shawn raced Uptown in traffic at v30 and won both laps it finished, by 1.5 and 2.9 s. On
+  0.88. Shawn raced Uptown in traffic at v30 and won both laps it finished, by 1.5 and 2.9 s, and
+  Wake at v31 by 5.2 s, which produced `full-line-v32`: every rival steers for the wheel a turn
+  takes and not its geometry alone (`steadyWheelAngleFor`, `RIVAL_STEERING.slip`), reads a car that
+  follows its road in the road's frame where that car is (`RIVAL_TRAFFIC_FRAME`), stays out in a
+  pass blocked only by the car being passed, and gets a line through a gentle bend where that is
+  quicker than the lane (`design/PORT_ALDER.md`, "What one recorded race found"). Over 83 races
+  alone against v30: 1.0% quicker, 149 ticks of contact to 12, nothing off the pavement. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -253,6 +259,11 @@ fixtures outside the playable bundle, and old world links redirect.
   or without the rival (`street-circuit.ts`, `?race=street-uptown[-clear][-solo]`).
   Authored, not generated, so recordings survive generator changes; its lap
   length is pinned (`design/PORT_ALDER.md`, "Uptown Circuit").
+- **Generated races are recorded too** (2026-09-20): the career's stages, a flash,
+  a kept race, each as ONE lap from the flag to its last gate, saved when finished,
+  replayed and compared like a circuit lap (`src/sim/recorded-event.ts`,
+  `recordings/README.md`). The career is sprints, and until this only the rival's
+  side of one could be measured.
 - **Traffic.** About 260 kinematic vehicles with reserved junction
   movements (`traffic.ts`); a solid hazard nothing can push, never a second
   handling model. It yields to the player and rival (`TrafficRacer`): follows
@@ -288,7 +299,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
 | The rival in traffic: corner lines, committed passes, the 83-race batch | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
-| Lap recording, replay check, save endpoint | `lap-recorder.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
+| Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
 | Drag, drift, gearbox | `drag-*.ts`, `drift-*.ts`, `transmission.ts` | `README.md` |
@@ -451,10 +462,34 @@ fixtures outside the playable bundle, and old world links redirect.
   must change nothing (both tested); the driver's line and pass fields are absent on every other route so their state
   is what it was. Gate the whole thing on the 83-race batch (`scripts/street-line-batch.ts`), contact on a line or in
   a pass being zero, and read total contact as incidents per race, never ticks: which races touch traffic is a lottery.
+- That batch parks the player, so it gates the rival ALONE and cannot see what only happens in a race: Wake sat beside
+  a sedan at its speed for 5 s against Shawn, and the batch is identical to the tick with and without the fix. A
+  recorded race and `pnpm laps:compare` are the other half. Several seeds share a course's first kilometres, so one
+  incident can be four rows, and a regression in it may be an OLD crash ending somewhere new: check the baseline's
+  events at the same place before blaming the change (`gen-78`).
+- The rival's steering feedforward is the wheel a steady turn takes (`steadyWheelAngleFor` in `sim.ts`), which restates
+  the tyres in `sampleWheelForces`: stiffness, load, the load exponent, RWD's driven rears. Change those and it must
+  follow; a test holds it to the car on every drivetrain (17% high on front drive flat out, stated there, not fixed).
+  Geometry alone is a quarter of the wheel at 130 mph and ran a rival 5 m wide into oncoming traffic through a bend
+  that was correctly planned flat. Any change to it moves every rival, Ridge's included: a `RIVAL_REVISION` bump.
+- A car that follows the rival's road is read in the road's frame WHERE THAT CAR IS (`RIVAL_TRAFFIC_FRAME`), never the
+  aim point's: round a bend that frame is turned by the bend between them, and a van keeping to the oncoming lane
+  reads as crossing into this one (a full-brake stab at 123 mph). Anything not on this road is read as before.
+- A street line's window is kept only where its line is QUICKER than the lane through it (`STREET_LINE.worth`): at
+  150 mph a line a touch less straight than the lane is planned slower, and a window at every gentle bend cost Tally
+  2.7 s. A bend's window is still a corner's size (60 m) and too short at speed; `bendReach` 120 is worth 5.5 s to
+  Wake and costs Crest 2, because the solver kinks in a window five corners long. Fix the drawing before the number.
+- A committed pass is clear of a car that is ON its path, and looks only 26 m ahead at 105 mph because of it. More
+  than `PASS_ASTRAY` off that path the car looks as far as it would with no pass; a tracked pass must not change.
 - A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,
   `BLACKLIST_LAUNCH`), never its position in the race. The share is `RivalDefinition.skill` and reaches a LINE's
   corners only: `cornering` would move the lane's corners too, where the limit is tracking (past about 0.82 a lane
   arc runs wide). Judge the ladder by a name near its top in its own car, not by the circuits, which field Moth's.
+- A recording replays against what `recordedEvent` draws from the session (race id, laps, `startCode`, solo), so the
+  game builds a generated race from that same call, never beside it: a race the game assembles differently from the
+  replay is a recording that diverges with nothing to name why. A generated race is one lap to the recorder, so it is
+  saved only when finished, and a player who wins leaves the rival with no lap: `laps:compare` lets it finish after
+  the log and says so. A generated race's flash (`startCode`) is part of what its id draws.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
@@ -574,8 +609,7 @@ pnpm build            # typecheck + build (what CI runs)
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
-pnpm laps:compare     # you against the rival, corner by corner, from the newest raced session: replays it and records the rival too
-pnpm laps:compare --line # a race in traffic, against a rival on a street racing line instead (an experiment; Uptown / Clear's already is)
+pnpm laps:compare     # you against the rival, gate by gate, from the newest raced session (a circuit or a generated sprint): replays it and records the rival too
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
 pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json

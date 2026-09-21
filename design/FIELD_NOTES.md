@@ -10,6 +10,49 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## One recorded race, and the crash under the batch's one regression (2026-09-20)
+
+Asked for: "I raced wake just now." The first generated race with a recording.
+What was found and built is in `PORT_ALDER.md`, "What one recorded race found", and
+`measurements/rival-v32.json`. What was assumed and wrong, in order:
+
+- That the 83-race batch gates the rival. It gates the rival ALONE. Wake lost 5.4 s
+  of that race held beside a sedan at its own speed by her own pass planner, and the
+  batch is identical to the tick with and without the fix: the player is parked in
+  it, and it took him being there. A recorded race and `pnpm laps:compare` found in
+  one evening what 83 races could not see. Several seeds also share a course's
+  first kilometres, so the batch is fewer independent races than 83 and one
+  incident can be four rows.
+- That a bend needed a line and that was all. With a window at every gentle bend
+  Crest's race got 5.5 s quicker and Tally's got slower: at 150 mph any line that is
+  not perfectly straight is planned below the lane, which between bends is. The
+  filter that fixed that (keep a window only where its line beats the lane) then
+  dropped the very bend the idea came from, correctly: a 60 m window at 115 mph is
+  half a second to leave the lane and return, and the line drawn in it is tighter
+  than the lane. The idea is right and the window is the wrong size for it.
+- That the batch's one regression (`gen-78`, wheels off the pavement) was the bend
+  work. It was a 120 mph crash into an oncoming van that v30 has too, ending on the
+  grass this time instead of on the road. Seven of the eight races that still
+  touched traffic did it the same way, at 103 to 119 mph, off any line, in no pass.
+- That the rival had not seen the van. It had: the van was in its own lane and the
+  rival meant to pass it 4 m away. It ran 5 m wide through a bend planned flat, and
+  the plan was right, 56% of the grip. The steering was wrong: it asked for the
+  turn's geometry, and at 130 mph the tyres need nearly four times that. Nobody had seen
+  it because at corner speeds the difference is 3% of the lock.
+- That the closed form was then just stiffness. It matched the car only once the
+  load was in it (the front carries about 46% flat out) and, for rear drive, the grip
+  the driven rears give the engine. A further term, the driven fronts' own push
+  doing some of their cornering, fitted all-wheel drive exactly and moved the other
+  two drivetrains twice as far as it should, so it is not in: 17% high on front
+  drive flat out is stated in the test rather than explained away.
+- That holding a bend needs lock in hand, so a lane's bends should be planned to
+  the lock. True of the arithmetic (that bend is 93% of the lock at 130 mph) and
+  not of the batch: 0.06% slower, no cleaner. Taken out again rather than shipped
+  as a knob nobody had evidence for.
+- A pass is planned for a car that is on its path. `gen-46` was 1.2 m off it a
+  fifth of a second in, with 1 m/s of drift the other way from the bend before,
+  and a committed pass looks 26 m ahead at 105 mph because the path is clear.
+
 ## Committing to a traffic pass (2026-09-20)
 
 Asked for: rivals that retain their competitiveness in traffic. The first slice

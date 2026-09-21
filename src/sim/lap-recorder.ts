@@ -52,7 +52,8 @@ export interface RecordedLap {
 }
 
 export interface LapTrack {
-  /** The lap's centreline as a closed polyline: the last point repeats the first. */
+  /** A circuit's centreline as a closed polyline, the last point repeating the first; or a generated race's route from
+   *  its start to its last gate, which the recorder takes as one lap (recorded-event.ts). */
   readonly points: readonly CoursePoint[];
   readonly gatesPerLap: number;
 }
@@ -174,6 +175,9 @@ export interface LapSession {
    *  which is every session from before 2026-09-20 and every drag since. */
   pedalAssist?: number;
   start: { x: number; y: number; z: number; heading: number; pitch: number };
+  /** A generated race's flash, as `?start=` carries it: part of what its id draws. Absent on a circuit, and for a
+   *  generated race from the grid. (`start` above is where the world put the player: metadata.) */
+  startCode?: string;
   trackLimits: typeof TRACK_LIMITS;
   channels: readonly LapChannel[];
   inputs: LapRecorder["inputs"];

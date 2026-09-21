@@ -48,7 +48,8 @@ import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
-import { alderCourseDraws, drawAlderCourse, fieldAlderRival } from "./sim/alder-course.ts";
+import { alderCourseDraws } from "./sim/alder-course.ts";
+import { recordedEvent, type RecordedEvent } from "./sim/recorded-event.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
 import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
@@ -110,6 +111,11 @@ let rival: RivalDefinition | null = null;
 let raceStart: RoadWorld["start"] | null = null;
 /** A lapped circuit race, Ridge Circuit or a street circuit, solo or not. Its laps are recorded. */
 let circuit: CircuitEvent | null = null;
+/** What this race is recorded as, if it is: a circuit, or a generated race, which is one lap to the recorder
+ *  (sim/recorded-event.ts). The replay check draws the same event from the session, so it is built there, not here. */
+let recorded: RecordedEvent | null = null;
+/** The flash a generated race was started from, as ?start= carried it: part of what a recording of it must name. */
+let raceStartCode: string | null = null;
 /** A generated race or Sound to Sky raced with nobody: `?solo=1`. Circuits carry solo in their race id. */
 let solo = false;
 let lighting: DistrictLighting = "night";
@@ -163,8 +169,9 @@ try {
     // A course that cannot be drawn is not a broken asset: return to the garage
     // and say why, rather than an error screen that refreshing only repeats.
     try {
-      const drawn = drawAlderCourse(raceId!, startParam);
-      race = drawn.race; rival = fieldAlderRival(drawn.rival); raceStart = drawn.start;
+      // Solo is part of the event here: it keeps the race's arrows, which come from the rival's route, and fields nobody.
+      recorded = recordedEvent(raceId!, undefined, { start: startParam, solo: params.get("solo") === "1" })!;
+      race = recorded.race; rival = recorded.rival; raceStart = recorded.start ?? null; solo = recorded.solo; raceStartCode = startParam;
     } catch (error) {
       for (const key of ["race", "start", "generator", "raceWorld", "solo"]) params.delete(key);
       params.set("scene", "garage");
@@ -173,14 +180,15 @@ try {
     }
   } else if (circuitRace) {
     circuit = circuitRace;
+    recorded = { ...circuit, comparable: true };
     race = circuit.race; rival = circuit.rival; raceStart = circuit.start;
   } else if (raceId === HARBOR_DRAG.id) {
     race = HARBOR_DRAG; rival = RIVET_DRAG_DRIVER; raceStart = DRAG_START;
   } else if (sableDriftFor(raceId)) { race = sableDriftFor(raceId); raceStart = DRIFT_YARD.start;
   } else if (raceId) { race = ALDER_RACE; rival = ALDER_RIVAL; }
   // Solo keeps the race and its gate arrows, which come from the rival's line, and fields nobody.
-  if (params.has("solo")) {
-    solo = params.get("solo") === "1" && race !== null && rival !== null && !circuit && (!!generated || race === ALDER_RACE);
+  if (params.has("solo") && !solo) {
+    solo = params.get("solo") === "1" && race !== null && rival !== null && race === ALDER_RACE;
     if (solo) { race = withExits(race!, rival!); rival = null; }
     else { params.delete("solo"); history.replaceState(history.state, "", url); }
   }
@@ -381,23 +389,25 @@ function reset(setup: Drivetrain | CarHandling = sim.state.handling): void {
   newRecording();
 }
 
-// Lap recording, on circuit races only: Ridge Circuit and the street circuit (design/PORT_ALDER.md). Each
-// completed lap saves the whole session to recordings/laps through pnpm dev.
+// Lap recording: the circuits, lap by lap, and since 2026-09-20 every generated race, as one lap from the flag to its
+// last gate (sim/recorded-event.ts). Each completed lap saves the whole session to recordings/laps through pnpm dev.
 let recorder: LapRecorder | null = null;
 const recording = { id: "", recordedAt: "", status: "" };
 const saveLaps = createLapSaver();
 function newRecording(): void {
-  if (!circuit || !race) return;
-  recorder = createLapRecorder(circuit.track);
+  if (!recorded || !race) return;
+  recorder = createLapRecorder(recorded.track);
   const now = new Date();
   Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
 }
 function recordStep(tickInput: Input): void {
-  if (!recorder || !circuit || !race) return;
+  if (!recorder || !recorded || !race) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
-  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: circuit.identity, rival: RIVAL_REVISION,
-    physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: circuit.layout, solo: circuit.solo, traffic: circuit.traffic,
-    ...(circuit.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
+  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: RIVAL_REVISION,
+    physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: recorded.layout, solo: recorded.solo, traffic: recorded.traffic,
+    ...(recorded.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
+    // A generated race's flash is part of what its id draws: without it the replay draws another race.
+    ...(raceStartCode ? { startCode: raceStartCode } : {}),
     car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
     // What the tyres forgave is part of how the lap was driven; replay drives it the same. Left out when it is the clamp, as every older session was.
     ...(sim.pedalAssist !== 1 ? { pedalAssist: sim.pedalAssist } : {}), start: roadWorld.start });
