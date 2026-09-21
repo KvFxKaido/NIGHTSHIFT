@@ -45,6 +45,11 @@ const TILE_COLUMNS = 4;
 const WINDOW_PITCH_X = 3.4;
 const WINDOW_PITCH_Y = 3.6;
 
+/** Shared with near architecture: floor edges must never cut through lit glass. */
+export function facadeGrid(width: number, height: number) {
+  return { columns: Math.max(1, Math.round(width / WINDOW_PITCH_X)), floors: Math.max(1, Math.round(height / WINDOW_PITCH_Y)) };
+}
+
 const WARM_ROOM = "#ffcb87";
 const COLD_ROOM = "#a8ccff";
 /** Strip lights left on for a cleaning crew. */
@@ -179,8 +184,9 @@ function mergedMesh(name: string, parts: THREE.BufferGeometry[], material: THREE
  */
 function facadePanel(width: number, height: number, phase: number, rowsPerTile: number, floor = 0): THREE.PlaneGeometry {
   const geometry = new THREE.PlaneGeometry(width, height);
-  const columns = Math.max(1, Math.round(width / WINDOW_PITCH_X)) / TILE_COLUMNS;
-  const rows = Math.max(1, Math.round(height / WINDOW_PITCH_Y)) / rowsPerTile;
+  const grid = facadeGrid(width, height);
+  const columns = grid.columns / TILE_COLUMNS;
+  const rows = grid.floors / rowsPerTile;
   const uv = geometry.getAttribute("uv");
   const offset = Math.round(phase * TILE_COLUMNS) / TILE_COLUMNS;
   const lift = Math.round(floor * rowsPerTile) / rowsPerTile;

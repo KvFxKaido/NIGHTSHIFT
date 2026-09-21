@@ -6,6 +6,7 @@ import { ALDER_LAMPS } from "../src/sim/kerb-props.ts";
 import { ALDER_TURFS } from "../src/sim/alder-turf.ts";
 import { ALDER_NEIGHBOURHOODS, alderNeighbourhoodAt, alderNeighbourhoodsAt } from "../src/sim/alder-neighbourhoods.ts";
 import { addAlder, NEIGHBOURHOOD_DRESSING, START_YARD_MASTS } from "../src/render/alder.ts";
+import { isBrickCorner } from "../src/render/brick-corner.ts";
 
 // Every district rule reads a building's neighbourhood. A building in none
 // silently gets the fallback, and one in two gets whichever polygon is listed
@@ -76,7 +77,7 @@ test("neon is dense on Capitol Hill and absent where the city is asleep", () => 
 // design/LOOK.md, "Lit means occupied": offices light the cleaners' floors,
 // the asleep hills a few rooms, SoDo's warehouses almost nothing, and the busy
 // neighbourhoods keep the scattered windows. A tower of 40 m or more is offices
-// wherever it stands but among SoDo's warehouses. Each building draws four wall
+// wherever it stands but among SoDo's warehouses. Each ordinary building draws four wall
 // panels, six vertices apiece once chunked, into the mesh of its kind.
 test("each building's windows say who is in it", () => {
   const scene = new THREE.Scene();
@@ -89,6 +90,12 @@ test("each building's windows say who is in it", () => {
   });
   const expected = new Map<string, number>();
   for (const block of ALDER_BLOCKS.filter(b => b !== ALDER_GARAGE.building)) {
+    if (isBrickCorner(block)) {
+      const custom = scene.children.find(object => object.name === "alder-brick-corner" && object.position.x === block.x && object.position.z === block.z);
+      assert.ok(custom, "each custom plot gets its own facade");
+      assert.ok(custom?.getObjectByName("corner-lit-rooms"), "custom apartments retain their occupied-room lighting");
+      continue;
+    }
     const place = alderNeighbourhoodAt(block.x, block.z)!;
     const kind = block.height >= 40 && place.id !== "sodo" ? "office" : NEIGHBOURHOOD_DRESSING[place.id].windows ?? "scattered";
     const name = kind === "scattered" ? "district-facades" : `district-facades-${kind}`;

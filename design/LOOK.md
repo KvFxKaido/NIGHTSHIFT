@@ -361,3 +361,82 @@ access and the reserved park passages. It is not a guarantee that every possible
 cross-country route is blocked. `tests/corner-dressing.test.ts` drives deep cuts
 before/after and shallow clips in AWD, then fields the rival through every
 corner in both directions, with and without traffic.
+
+## First architectural block: Alder Market (2026-09-21)
+
+The first detailed building is the three-storey corner at (799, -945),
+on the west side of Olive Way just north of Pine East. It replaces the existing
+18 x 18 x 10 m plot's presentation, retaining its footprint, base and collision.
+Pine Rooms at (799, -977), 25 m tall, and Paper and Ink at (765, -913), 20 m tall,
+use the same kit with different bay widths, concrete/shopfront tones and a raised central
+parapet on Pine Rooms. Existing building footprints and heights stay intact.
+The other buildings retain their existing decoration seeds. Exact plot shapes
+select the kit; a resized/relocated/retired plot falls back to the normal building
+renderer rather than leaving a detached custom model behind.
+
+`render/brick-corner.ts` builds the original subtle concrete grain, recessed glazing,
+grey jambs and sills, a charcoal-teal wraparound shopfront, small ALDER MARKET
+lettering, shelf silhouettes, service doors and downpipes. Stepped cornices and
+a parapet surround the flat roof; a low ventilation unit and chimney stay inside
+the original height. Upper windows are selectively lit. Broad cel light bands
+and dark concrete-grey walls keep it in the same city as the firs. Lighter grey molding uses
+the light bands without receiving the district shadow map, avoiding crawling
+self-shadow stripes on thin steps; it still casts shadows.
+
+Repeated details merge into nine material batches per building, totalling 50,208
+triangles across the three. All three share two tiny textures (concrete grain and cel ramp).
+There are no added dynamic lights or distance spawning. This is a small authored
+block, not a budget for duplicating full detail over every plot; a district rollout
+needs distance simplification and batching across buildings.
+
+`sim/market-block.ts` owns the connected frontage polygons, eight-metre rear lane,
+cross-alley and two service bins. The pale apron meets the Pine and Olive pavement;
+the service lane is darker, with flush drains and clear door landings. Green
+pockets remain inside the block. Shared paving drives tyre grip and grass exclusion,
+with a cheap bounds rejection before polygon checks. The bins join ALDER_SOLIDS
+and the layout editor rejects buildings that overlap them. Rendering uses five
+additional batches. Roads, routes and building collision footprints remain fixed;
+the added surface and utility solids advance world identity with `-market-v1`.
+
+`node scripts/test-brick-corner.mjs` captures the study, night, rear and driving
+views in `artifacts/brick-corner/`, using D3D11 on Windows. `BRICK_MEASURE=1` also
+compares isolated render timings with the whole block shown/hidden. The geometry
+test checks bounds against the existing solids and caps the material/mesh cost.
+`tests/market-block.test.ts` verifies paving/grass agreement, physical utility
+clearance and actual player drives through both passages in both directions.
+
+## Tower detail and the existing skyline (2026-09-21)
+
+The released tower silhouettes and their lit-window patterns are the distant
+LOD. `render/tower-detail.ts` adds architectural relief to office towers at least
+40 m tall: shallow mullions aligned to the existing window grid, floor edges,
+occasional stronger structural bands, corner piers, street-facing entrance
+surrounds and low rooftop equipment. Dark concrete-grey and charcoal metal fit
+the Market kit. The original batched walls, roof planes and seeded lit rooms
+remain untouched; the near layer contains no duplicate facade or window lights.
+
+Detail is solid through 110 m from the camera to the building base and fades
+with opaque screen-door coverage through 210 m. At 240 m Three.js LOD stops
+submitting it entirely. An 8% hysteresis band restores geometry before the fade
+becomes visible on approach. No transparent sorting or new lights are needed.
+The original shell owns shadows; thin relief does not sample or cast into the
+coarse district shadow map. Building footprints and simulation identity do not
+change for this presentation layer. The daytime editor blockout stays simple.
+
+Each nearby tower adds two merged meshes sharing two materials across the city.
+All geometry is built at scene creation, not on the driving path. The current
+163 tower envelopes total about 209,000 additional triangles in storage, with
+only nearby, visible towers submitted. Tests cap an individual tower at 2,200
+triangles and the full set at 230,000. This is the office-tower kit, not a rollout
+to every residential building or warehouse.
+
+`node scripts/test-tower-detail.mjs` captures near, street-height, rooftop and
+distant views. Its browser comparison verifies visible detail nearby, identical
+pixels after the fade, and zero detail draw calls beyond the cull distance.
+`tests/tower-detail.test.ts` also checks original geometry/UV preservation,
+rotated placement, hysteresis and the geometry/material budgets.
+`TOWER_MEASURE=1` also alternates isolated render timings with detail enabled
+and disabled after warmup. The first D3D11 near-tower view measured 6.6 ms versus
+6.9 ms median (7.5 versus 7.8 ms p95), with six extra draw calls and 4,992 extra
+submitted triangles. That is one view's render cost, not a whole-city driving
+frame-time guarantee.

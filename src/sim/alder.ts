@@ -19,8 +19,9 @@ import { kerbPoses, ALDER_LAMPS, ALDER_BINS, type KerbPose } from "./kerb-props.
 import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
 import type { CoursePoint } from "./track.ts";
 import { createCornerProps } from "./corner-dressing.ts";
+import { marketUtilities, onMarketPaving } from "./market-block.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -46,6 +47,7 @@ export function alderHeight(x: number, z: number): number {
 }
 export const ALDER_CORNER_PROPS = createCornerProps(alderHeight);
 export const ALDER_CORNER_SOLIDS = ALDER_CORNER_PROPS.map(prop => prop.solid);
+export const ALDER_MARKET_UTILITIES = marketUtilities(alderHeight);
 export const ALDER_STREETS: readonly Street[] = data.roads.map(road => ({
   id: road.id, name: road.name, from: road.from, to: road.to,
   // An 8 m alley is the lane model's alley class: one lane each way, no divider.
@@ -153,6 +155,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
     if(ALDER_CORNER_SOLIDS.some(prop=>blockPenetration(block,prop)>0))issues.push(`${id}: overlaps corner landscaping`);
+    if(ALDER_MARKET_UTILITIES.some(prop=>blockPenetration(block,prop)>0))issues.push(`${id}: overlaps Market service utilities`);
     if(blockCorners(block).some(p=>p.x<data.shore+2||p.x>data.bounds[2]!||p.z<data.bounds[1]!||p.z>data.bounds[3]!))issues.push(`${id}: outside the map's building area`);
     if(authored.some((other,j)=>j!==index&&blockPenetration(block,other)>.01))issues.push(`${id}: overlaps another authored building`);
     if(Math.max(...blockCorners(block).map(p=>alderHeight(p.x,p.z)))-block.base>4.1)issues.push(`${id}: ground changes by more than four metres across the footprint`);
@@ -168,7 +171,7 @@ export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROA
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
 /** One collision list for the player, rivals, grass exclusions and line clearance. */
 export const ALDER_SOLIDS = [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
-  ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS];
+  ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS, ...ALDER_MARKET_UTILITIES];
 /** Props that belong to the street rather than to a parcel. The lamps are the
  *  rule the renderer used to apply inline; the bins are the second consumer,
  *  which is how the anchor earns its keep. Neither collides: they are dressing
@@ -226,6 +229,7 @@ const arenaGroundNear = spatialIndex(ARENA_ROADS.flatMap(road => road.points.sli
  * selection would call that ground.
  */
 export function alderGround(x: number, z: number): boolean {
+  if (onMarketPaving(x, z)) return false;
   for (const area of PAVED_AREAS) {
     if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
   }

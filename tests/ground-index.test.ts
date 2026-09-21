@@ -4,9 +4,11 @@ import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, ALDER_FORECOUR
 import { ARENA, nearArena } from "../src/sim/arena.ts";
 import { DRIFT_YARD } from "../src/sim/drift-yard.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
+import { onMarketPaving } from "../src/sim/market-block.ts";
 
 // Independent, complete-path oracle: this is the paving rule before indexing.
 function originalGround(x: number, z: number): boolean {
+  if (onMarketPaving(x, z)) return false;
   const f = ALDER_FORECOURT;
   for (const area of [DRIFT_YARD.bounds, DRIFT_YARD.driveway,
     { minX:f.x-f.width/2, maxX:f.x+f.width/2, minZ:f.z-f.depth/2, maxZ:f.z+f.depth/2 }]) {

@@ -5,6 +5,10 @@ import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TR
   ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, ALDER_CORNER_PROPS, alderHeight } from "../sim/alder.ts";
 import { addCornerDressing } from "./corner-dressing.ts";
 import { addEvergreens } from "./evergreens.ts";
+import { addBrickCorner, isBrickCorner } from "./brick-corner.ts";
+import { addMarketBlock } from "./market-block.ts";
+import { addTowerDetails } from "./tower-detail.ts";
+import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
@@ -148,23 +152,28 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   }
   surface("alder-outskirts",outskirts,night?0x354733:0x526149);
   const buildings=ALDER_BLOCKS.filter(block=>block!==ALDER_GARAGE.building);
+  for(const block of buildings) if(isBrickCorner(block)) addBrickCorner(scene,block);
+  addMarketBlock(scene, alderHeight, ALDER_MARKET_UTILITIES);
   addGarageExterior(scene,ALDER_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(ALDER_FORECOURT.x,ALDER_FORECOURT.base+.012,ALDER_FORECOURT.z);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
   if(night){
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
-    addNightBuildings(scene,buildings.map((b,index)=>{
+    const sites=buildings.map((b,index)=>{
       const place=alderNeighbourhoodAt(b.x,b.z);
       const dressing=place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP;
       // A tower is offices wherever it stands, except among SoDo's warehouses.
       const tower=b.height>=TOWER&&place?.id!=="sodo";
       return {...b,decorationIndex:index,faceDistances:frontage[index]!,dressing:tower?{...dressing,windows:"office" as const}:dressing};
-    }),alderHeight,ALDER_REACH);
+    }).filter((_, index)=>!isBrickCorner(buildings[index]!));
+    addNightBuildings(scene,sites,alderHeight,ALDER_REACH);
+    addTowerDetails(scene,sites);
   }
   else {
-    const blocks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x778991}),buildings.length);
+    const simpleBuildings=buildings.filter(block=>!isBrickCorner(block));
+    const blocks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x778991}),simpleBuildings.length);
     const pose=new THREE.Object3D();
-    buildings.forEach((b,i)=>{pose.position.set(b.x,b.base+b.height/2,b.z);pose.rotation.y=-b.rotation;pose.scale.set(b.width,b.height,b.depth);pose.updateMatrix();blocks.setMatrixAt(i,pose.matrix);});
+    simpleBuildings.forEach((b,i)=>{pose.position.set(b.x,b.base+b.height/2,b.z);pose.rotation.y=-b.rotation;pose.scale.set(b.width,b.height,b.depth);pose.updateMatrix();blocks.setMatrixAt(i,pose.matrix);});
     blocks.name="alder-buildings";blocks.castShadow=true;scene.add(blocks);
   }
   const paint: Record<"yellow" | "white", THREE.BufferGeometry[]>={yellow:[],white:[]};
