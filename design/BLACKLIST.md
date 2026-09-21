@@ -307,6 +307,66 @@ same driver. Relative only, never a lap time (`design/HANDLING.md`, "AI laps").
   last, with `pnpm alder:critique` before and after, since route choice prices
   shortcuts at one assumed pace.
 
+## How hard each name drives (2026-09-20, `full-line-v31`)
+
+The cars carry the ladder's pace (above). Until this, every name DROVE the same:
+one share of the grip-limited corner speed for everybody, 0.88 on a street line
+(`RIVAL_STREET_LINE`). Shawn raced Uptown in traffic against that rival, won both
+laps the rival finished, by 1.5 and 2.9 s, "wasn't worried about losing", and weighed catch-up against
+taking traffic out of races. Claude argued for neither and for this first, and he
+asked for it: a number per name, `BLACKLIST_CORNERING` in `src/sim/rival.ts`,
+climbing the list beside `BLACKLIST_LAUNCH`. A better driver uses more of the
+grip the car always had. No car is touched and nothing reads race position.
+
+| # | name | car | share | clear line, best lap | the step above |
+|---|---|---|---|---|---|
+| 10 | Moth | Kestrel | 0.84 | 1:23.32 | clean at 0.975 |
+| 9 | Stray | Latch | 0.855 | 1:21.87 | |
+| 8 | Rivet | Hammer | 0.87 | 1:23.53 | (her race is the strip) |
+| 7 | Bollard | Breakwater | 0.885 | 1:21.82 | |
+| 6 | Deuce | Wager | 0.90 | 1:20.40 | |
+| 5 | Sable | NS-01 | 0.915 | 1:20.07 | (hers is the yard) |
+| 4 | Plumb | Meridian | 0.93 | 1:19.20 | |
+| 3 | Crest | Skim | 0.945 | 1:17.40 | clean at 0.975 |
+| 2 | Wake | Reign | 0.96 | 1:17.33 | a wheel off for 26 ticks at 0.99 |
+| 1 | Tally | Vesper | 0.975 | 1:16.58 | clean at 1.00, and loose |
+
+Each car alone on Uptown's clear street line, three laps: every row valid, no
+wheel off the pavement, no reset. Wake's is a step under her car's limit. Tally's
+Vesper is past 15 degrees of slip for 74 ticks of its three laps and stays on the
+road. Shawn's best there is 1:20.57 in the Cinder with the pedal assist on and
+1:22.07 without, so from Deuce up a name's car and hands are quicker on an empty
+street than his best with the assist, and every name but Moth and Rivet than his
+best without it.
+
+- **It is a line's corners only** (`RivalDefinition.skill`). In its lane a rival's
+  limit is its tracking, not its nerve: `RIVAL_CORNERING`'s 0.80, whoever drives.
+- **Where it applies.** A generated race with a name on it: the career's stages
+  and a flash. A race with no name, and the circuits, which field Moth's Kestrel
+  with nobody's name on it, keep 0.88; Uptown / Clear's pace is pinned by a test.
+- **In traffic it is modest, and it does not add incidents.** Each name's own race,
+  alone, at its share against 0.88: Moth's `gen-moth-12` 123.5 s against 121.8
+  (she is the one made easier), Crest's `gen-crest-23` 65.1 against 68.7, Wake's
+  `gen-wake-42` 80.6 against 80.6, Tally's `gen-tally-7` 83.9 against 85.4. No
+  contact, no wheel off, no reset in any of the eight. On Uptown in traffic the
+  share moved a lap 0.3 to 1.5 s, and how often a car met traffic went with the
+  CAR, not the share: the Meridian 65 ticks at 0.88 and 71 at 0.93, the Skim 40
+  and 30, the Kestrel none at either.
+- **Raced once (Shawn, 2026-09-20, `gen-tally-7`, Bulwark, no pedal assist): "tougher
+  but still wasn't worried. It was only a 3 point race though."** A sprint is not
+  recorded, so this is read off the finished race in the browser: gates at 35.30,
+  58.47 and the flag at 82.00 s, against Tally's 33.93 and 60.35, about 1.9 s from
+  the flag when he crossed it. She led by 1.4 s at the first gate and lost 3.3 s to
+  him on the second leg. Alone she runs it in 83.87 s in traffic and 81.53 s on
+  clear streets, the whole 2.3 s on that leg: with no traffic she wins by half a
+  second. And on a course of 3.8 km with five corners, in the one car past the cap,
+  she is flat out for 48% of it, on the brakes for 32% and on part throttle for
+  20%, and sees 154, 121 and 109 mph on its three legs of a possible 165. Where he
+  gains on her cannot be said: there is no trace of him off a circuit.
+- **Not settled.** The values are an even climb between two measured ends, not ten
+  tuned numbers, and one has been raced by a person, once. What is still open from the
+  same evening: the faster cars lose one lap in three to traffic on Uptown.
+
 ## An ending worth keeping
 
 If #1 keeps the list, beating Tally means the player keeps it. The last thing

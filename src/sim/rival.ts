@@ -34,6 +34,10 @@ export interface RivalDefinition {
   readonly line?: StreetLine;
   /** Forecasted, committed overtakes for street races. */
   readonly trafficPassing?: boolean;
+  /** How hard this DRIVER takes a street line's corners, as a share of the grip-limited speed (`BLACKLIST_CORNERING`).
+   *  Absent is `RIVAL_STREET_LINE`'s. It is the line's corners only: in its lane a rival's limit is its tracking, not
+   *  its nerve (`RIVAL_CORNERING`), whoever is driving. */
+  readonly skill?: number;
 }
 /** A line carried by a centreline route as a shift from its lane, at stations `spacing` metres apart along the route's
  *  own distance (street-line.ts). */
@@ -353,8 +357,11 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * one corner at a time when the traffic forecast allows, returning to their lane.
  * "full-line-v30": those rivals can commit to a forecasted traffic pass, planning
  * its pull-out, speed, clearance and return together.
+ * "full-line-v31": each Blacklist name takes a street line's corners at its own share
+ * of the grip-limited speed (BLACKLIST_CORNERING), 0.84 for Moth to 0.975 for Tally.
+ * A race with no name on it, the circuits included, keeps 0.88.
  */
-export const RIVAL_REVISION = "full-line-v30";
+export const RIVAL_REVISION = "full-line-v31";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -481,6 +488,26 @@ export const RIVAL_CORNERING = {
  * forecast. It is the same car on the same tyres under the same clamp: no grip,
  * power or mass is changed, and nothing reads race position.
  */
+/**
+ * How hard each Blacklist name takes a street line's corners (2026-09-20, Shawn: "build the per-driver numbers"). He
+ * had raced Uptown in traffic and "wasn't worried about losing", and the levers on the table were catch-up or taking
+ * traffic out of races. This is the one that touches no car and reads no race position: a better driver uses more of
+ * the grip the car always had. One number had driven every name, `RIVAL_STREET_LINE`'s 0.88; it climbs the list now, as
+ * `BLACKLIST_LAUNCH` does, and a test holds both to the ladder's order (`settings/blacklist.ts`, above the sim).
+ *
+ * Each is what that name's own car holds. Alone on Uptown's clear line, three laps, every one is clean (valid laps, no
+ * wheel off the pavement, no reset). The step above was tried for four: clean for Moth's Kestrel and Crest's Skim at
+ * 0.975, and not for Wake, whose Reign puts a wheel off at 0.99, so her 0.96 is a step under her car's limit. Tally's Vesper is clean to 1.00 and loose: past 15 degrees of slip for 74 ticks.
+ * In traffic the number is worth 0.3 to 1.5 s a lap and does not change how often a car meets traffic, which goes with
+ * the car: the Meridian 65 ticks of contact at 0.88 and 71 at 0.93, the Skim 40 and 30 (design/BLACKLIST.md).
+ *
+ * Rivet and Sable are here for the ladder's sake; her race is the strip and hers the yard. The circuits field Moth's
+ * Kestrel with nobody's name on it, and keep 0.88: Uptown / Clear's pace is Shawn's decision and a test pins it.
+ */
+export const BLACKLIST_CORNERING: Readonly<Record<string, number>> = {
+  moth: .84, stray: .855, rivet: .87, bollard: .885, deuce: .9, sable: .915, plumb: .93, crest: .945, wake: .96, tally: .975,
+};
+
 export const RIVAL_STREET_LINE = { speedFactor: 0.88,
   /** Share of a line's shift taken up or given back each tick, in traffic (street-line.ts): about 0.8 s from lane to line. */
   blendRate: 1 / 48 } as const;

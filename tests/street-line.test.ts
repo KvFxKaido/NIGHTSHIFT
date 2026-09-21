@@ -3,7 +3,9 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { alderDrivable, createAlderWorld } from "../src/sim/alder.ts";
 import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
-import { createRivalDriver, rivalInput, sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
+import { createLapRecorder, recordTick } from "../src/sim/lap-recorder.ts";
+import { BLACKLIST_CORNERING, createRivalDriver, RIVAL_CORNERING, RIVAL_STREET_LINE, rivalInput, sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
+import { BLACKLIST } from "../src/settings/blacklist.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { streetCircuitEvent } from "../src/sim/street-circuit.ts";
 import { laneRest, readStreetLine, STREET_LINE } from "../src/sim/street-line.ts";
@@ -141,4 +143,50 @@ test("in traffic it takes the corners the forecast gives it: quicker, never touc
   assert.deepEqual([lined.touchingOnLine, lined.offPavement, lined.resets], [0, 0, 0]);
   // 8 to 9 s a lap over the three-lap race; a first lap from the grid a little less.
   assert.ok(lined.ticks < lane.ticks - 5 * TICK_HZ, `${(lined.ticks / TICK_HZ).toFixed(2)} s with the line against ${(lane.ticks / TICK_HZ).toFixed(2)} s in its lane`);
+});
+
+// One number drove every name's corners until 2026-09-20. Shawn raced Uptown in traffic, "wasn't worried about losing",
+// and asked for the per-driver numbers rather than catch-up: a better driver uses more of the grip the car always had.
+test("each Blacklist name takes a line's corners at its own share of the grip, climbing the list, and only a line's corners", () => {
+  assert.deepEqual(Object.keys(BLACKLIST_CORNERING).sort(), BLACKLIST.map(name => name.id).sort());
+  const byRank = [...BLACKLIST].sort((a, b) => b.rank - a.rank);
+  for (let i = 1; i < byRank.length; i++) {
+    assert.ok(BLACKLIST_CORNERING[byRank[i]!.id]! > BLACKLIST_CORNERING[byRank[i - 1]!.id]!, `${byRank[i]!.name} corners no harder than ${byRank[i - 1]!.name}`);
+  }
+  // Never below what any rival does in its lane, never more grip than the tyres have.
+  for (const share of Object.values(BLACKLIST_CORNERING)) assert.ok(share > RIVAL_CORNERING.speedFactor && share <= 1);
+  const wake = drawAlderCourse("gen-wake-42", null).rival, fielded = fieldAlderRival(wake);
+  assert.equal(wake.skill, BLACKLIST_CORNERING.wake);
+  assert.equal(fielded.line!.cornering, BLACKLIST_CORNERING.wake);
+  // It is the driver's, not the route's: the lane's corners stay every rival's (`cornering` would move them too).
+  assert.equal(fielded.cornering, undefined);
+  // A race with nobody's name on it, and the circuits, keep the one number. Uptown / Clear's pace is pinned elsewhere.
+  const plain = drawAlderCourse("gen-7", null).rival;
+  assert.equal("skill" in plain, false);
+  assert.equal(fieldAlderRival(plain).line!.cornering, RIVAL_STREET_LINE.speedFactor);
+  assert.equal(streetCircuitEvent(3, true, false).rival!.line!.cornering, RIVAL_STREET_LINE.speedFactor);
+  assert.equal(streetCircuitEvent(3, false, false).rival!.cornering, RIVAL_STREET_LINE.speedFactor);
+});
+
+test("the three highest names' own cars hold their share on a driven lap of a clear street line", () => {
+  // The ones nearest their limit: Wake's Reign puts a wheel off at 0.99 and is given 0.96.
+  const event = streetCircuitEvent(1, false, false);
+  for (const name of [...BLACKLIST].sort((a, b) => a.rank - b.rank).slice(0, 3)) {
+    const rival: RivalDefinition = { ...event.rival!, car: name.car, cornering: BLACKLIST_CORNERING[name.id]! };
+    const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: event.race, rival, traffic: false });
+    try {
+      const recorder = createLapRecorder(event.track);
+      let offPavement = 0;
+      while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 150 * TICK_HZ) {
+        step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+        const r = sim.state.rival!;
+        recordTick(recorder, r.input, r.vehicle, r.race, TICK_HZ);
+        if (r.vehicle.groundContact > 0) offPavement++;
+      }
+      const driver = sim.state.rival!.driver;
+      assert.equal(recorder.laps.length, 1, `${name.name} did not finish the lap`);
+      assert.deepEqual([recorder.laps[0]!.reasons, offPavement, driver.resets + driver.unseenResets, driver.recoveries], [[], 0, 0, 0],
+        `${name.name}'s ${name.carName} at ${BLACKLIST_CORNERING[name.id]}`);
+    } finally { sim.world.free(); }
+  }
 });

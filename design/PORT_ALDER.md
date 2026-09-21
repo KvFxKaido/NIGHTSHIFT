@@ -1509,6 +1509,13 @@ What is left, measured the same evening with the rival alone on the same race:
   before judging the ladder by its bottom rung; slipstream, the same for both
   cars; and then what the faster cars' bad laps in traffic are made of.
 
+**A share per name (2026-09-20, `full-line-v31`).** Built from the argument above:
+each Blacklist name takes a street line's corners at its own share of the
+grip-limited speed, 0.84 for Moth to 0.975 for Tally (`BLACKLIST_CORNERING`;
+the table, what each car holds and what it is worth in traffic are in
+`design/BLACKLIST.md`, "How hard each name drives"). Races with no name on them,
+the circuits included, keep 0.88.
+
 **Committed traffic passes (2026-09-20, `full-line-v30`).**
 Generated street rivals and Uptown with traffic can now plan a complete pass in
 `src/sim/traffic-pass.ts`: pull out, clear the lead, return to the lane, and check

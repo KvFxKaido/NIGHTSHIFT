@@ -189,7 +189,10 @@ fixtures outside the playable bundle, and old world links redirect.
   apex, wide on the way out. A pass of slower traffic on a straight is planned whole and
   held to one side (`traffic-pass.ts`, `full-line-v30`, Codex). Over 83 races alone in
   traffic that is 4.8% quicker with no contact on a line or in a committed pass; Uptown
-  is 9 s a lap quicker. Not yet raced by a person. On
+  is 9 s a lap quicker. Each Blacklist name takes a line's corners at its own share
+  of the grip (`BLACKLIST_CORNERING`, 0.84 for Moth to 0.975 for Tally, `full-line-v31`;
+  `design/BLACKLIST.md`); a race with no name on it, the circuits included, keeps
+  0.88. Shawn raced Uptown in traffic at v30 and won both laps it finished, by 1.5 and 2.9 s. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -448,6 +451,10 @@ fixtures outside the playable bundle, and old world links redirect.
   must change nothing (both tested); the driver's line and pass fields are absent on every other route so their state
   is what it was. Gate the whole thing on the 83-race batch (`scripts/street-line-batch.ts`), contact on a line or in
   a pass being zero, and read total contact as incidents per race, never ticks: which races touch traffic is a lottery.
+- A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,
+  `BLACKLIST_LAUNCH`), never its position in the race. The share is `RivalDefinition.skill` and reaches a LINE's
+  corners only: `cornering` would move the lane's corners too, where the limit is tracking (past about 0.82 a lane
+  arc runs wide). Judge the ladder by a name near its top in its own car, not by the circuits, which field Moth's.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.

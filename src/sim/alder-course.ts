@@ -15,7 +15,7 @@ import { cruiserFor } from "./alder-cruisers.ts";
 import { BLACKLIST_LAUNCH, RIVAL_LAUNCH_SKILL } from "./launch.ts";
 import { parseGeneratedRaceId } from "./race-id.ts";
 import { decodeStart, snapToLane } from "./race-start.ts";
-import { RIVAL_STREET_LINE, type RivalDefinition } from "./rival.ts";
+import { BLACKLIST_CORNERING, RIVAL_STREET_LINE, type RivalDefinition } from "./rival.ts";
 import type { RoadWorld } from "./road-world.ts";
 import { STREET_CIRCUIT_LINE } from "./street-circuit.ts";
 import { withStreetLine } from "./street-line.ts";
@@ -46,7 +46,9 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
   // Raced in the rival's own car and its handling, not the Kestrel every generated race used to field.
   const rival = { ...drawn.rival, id: `${raceId}-driver`, car: cruiser?.car ?? drawn.rival.car,
     // Higher up the list, a cleaner start (`launch.ts`).
-    launch: (id.rival ? BLACKLIST_LAUNCH[id.rival] : undefined) ?? RIVAL_LAUNCH_SKILL };
+    launch: (id.rival ? BLACKLIST_LAUNCH[id.rival] : undefined) ?? RIVAL_LAUNCH_SKILL,
+    // And a harder line through a corner (`BLACKLIST_CORNERING`). A race with no name on it has no field at all.
+    ...(id.rival && BLACKLIST_CORNERING[id.rival] !== undefined ? { skill: BLACKLIST_CORNERING[id.rival]! } : {}) };
   return { race, generated, rival, start: pose };
 }
 
@@ -56,7 +58,7 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
  * raced, and a line takes a fifth of a second to draw.
  */
 export function fieldAlderRival(rival: RivalDefinition): RivalDefinition {
-  return rival.line || rival.lateral ? rival : withStreetLine(rival, STREET_CIRCUIT_LINE, RIVAL_STREET_LINE.speedFactor);
+  return rival.line || rival.lateral ? rival : withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill ?? RIVAL_STREET_LINE.speedFactor);
 }
 
 export function alderCourseDraws(raceId: string, start: string | null): boolean {
