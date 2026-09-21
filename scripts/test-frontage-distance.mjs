@@ -14,6 +14,7 @@ try {
     const THREE=await import('/node_modules/three/build/three.module.js');
     const {addBuildingFronts}=await import('/src/render/building-fronts.ts');
     const {addNightBuildings}=await import('/src/render/night.ts');
+    const {buildingPalette}=await import('/src/render/building-palette.ts');
     const {buildingWallFrames,frontPoint}=await import('/src/sim/building-fronts.ts');
     const {ALDER_BUILDING_FRONTS}=await import('/src/sim/alder.ts');
     const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(1280,800);document.body.append(renderer.domElement);
@@ -25,7 +26,7 @@ try {
       const plan={...original,block:{...original.block,base:0}};
       const fronts=addBuildingFronts(scene,[plan],()=>0);
       const shell=new THREE.Group();scene.add(shell);
-      addNightBuildings(shell,[{...plan.block,structuredFrontage:true,frontageHeight:plan.bandHeight,faceDistances:[5,5,5,5]}]);
+      addNightBuildings(shell,[{...plan.block,structuredFrontage:true,frontageHeight:plan.bandHeight,buildingPalette:buildingPalette(plan.recipe.id),faceDistances:[5,5,5,5]}]);
       // Deliberately high-contrast hidden shell detects even single-pixel leaks.
       shell.traverse(o=>{if(o.isMesh&&o.name.startsWith('district-facades'))o.material=new THREE.MeshBasicMaterial({color:0xff00ff});});
       const wall=buildingWallFrames(plan.block).find(w=>w.side===(plan.recipe.side^1));

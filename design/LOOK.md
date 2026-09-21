@@ -587,7 +587,7 @@ keep the extra geometry bounded, and the same concrete material owns all walls
 so subsequent palette changes remain coherent.
 
 Across all 194 frontages the checked budget is 435 meshes (including each site's
-fine-detail LOD), 425,210 triangles, eight 1024-square atlases and 15 shared
+fine-detail LOD), 420,554 triangles, eight 1024-square atlases and 15 shared
 materials. Geographic core batching and fine-detail fading remain active. These
 are asset budgets, not a claim of measured whole-city frame rate. In-game captures
 cover all three industrial variants at night, with study lighting, from driver
@@ -602,3 +602,23 @@ caused distance-dependent depth flicker, so the underlying geometry is removed
 rather than relying on draw order. `node scripts/test-frontage-distance.mjs`
 moves a camera through 100–480 m with a high-contrast hidden shell and checks
 that none of it leaks into any of the four ground-floor kits.
+
+### Coordinated building materials
+
+The 194 fitted buildings now choose a stable charcoal, weathered-grey or warm
+cement palette from their saved building identity. Art-direction values live in
+`src/render/building-palette.ts`. Upper wall albedo compensates for the original
+texture's blue-grey concrete, matching the modular base's concrete colour; trim,
+metal, fine detail and roofs use darker or lighter related values from the same
+palette. Upper window UVs, room-light patterns, emissive intensity, tenant accents
+and all saved frontage/module choices remain unchanged. Palette choice does not
+depend on building iteration order or alter the race/world fingerprint.
+
+Vertex colours carry variation through the existing shared materials and spatial
+batches. SODO's upper wall texture includes mipmapped panel joints; its ground
+floor seams use the same facade-grid boundaries. Restrained metal caps end at the
+existing roof height, preserving the silhouette. No second upper wall layer or
+dynamic light is added. The frontage set now uses 420,554 triangles, 435 meshes,
+15 materials and the same eight sign atlas pages. All four kits retain the
+100–480 m hidden-wall regression check. Browser studies compare Belltown, offices
+and SODO from the front, street height, corners and rear.

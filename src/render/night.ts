@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { RoadSolid } from "../sim/road-world.ts";
+import { FACADE_BASE, type BuildingPalette } from "./building-palette.ts";
 
 /**
  * Night dressing: the emissive layer that turns a grey blockout into a district
@@ -113,6 +114,13 @@ function facadeTextures(kind: WindowKind): FacadeTextures {
   if (base && glow) {
     base.fillStyle = "#2b333d";
     base.fillRect(0, 0, size.width, size.height);
+    if(kind==="freight") {
+      // Panel joints are part of the wall texture, with mipmaps at distance.
+      // Their cell boundaries also locate the modular base's vertical seams.
+      base.fillStyle="#222930";
+      for(let column=0;column<TILE_COLUMNS;column++)base.fillRect(column*cellWidth,0,1,size.height);
+      for(let row=0;row<pattern.rows;row++)base.fillRect(0,row*cellHeight,size.width,1);
+    }
     glow.fillStyle = "#000000";
     glow.fillRect(0, 0, size.width, size.height);
     for (let row = 0; row < pattern.rows; row++) {
@@ -218,6 +226,7 @@ export interface BuildingSite extends RoadSolid {
   readonly structuredFrontage?: boolean;
   /** Exact height owned by the four-sided modular shell. */
   readonly frontageHeight?: number;
+  readonly buildingPalette?: BuildingPalette;
   /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
   readonly decorationIndex?: number;
   /** How far a street is from each face centre, outward order +Z, -Z, +X, -X.
@@ -276,11 +285,11 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
   const facadeMaterial = (kind: WindowKind) => {
     const { map, emissiveMap } = facadeTextures(kind);
     return new THREE.MeshStandardMaterial({
-      color: map ? 0xffffff : 0x39434d, map, emissiveMap,
+      color: map ? 0xffffff : FACADE_BASE, map, emissiveMap, vertexColors:true,
       emissive: emissiveMap ? 0xffffff : 0x000000, emissiveIntensity: 1.35, roughness: 0.82,
     });
   };
-  const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x232b33, roughness: 1 });
+  const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors:true, roughness: 1 });
   // One mesh per kind of window, so each is one material and one draw a chunk.
   const facades = new Map<WindowKind, THREE.BufferGeometry[]>();
   const roofs: THREE.BufferGeometry[] = [];
@@ -295,6 +304,13 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // Everything on this building is measured from its base, which is on the
     // ground it stands on — not from datum, which on the hill is underground.
     const base = site.base ?? 0;
+    // Shared tint compensates for the texture's original concrete colour.
+    // Emissive room maps remain untouched; this does not turn whole walls on.
+    const wallTint=new THREE.Color(0xffffff);
+    if(site.buildingPalette) {
+      const old=new THREE.Color(FACADE_BASE),next=new THREE.Color(site.buildingPalette.wall);
+      wallTint.setRGB(next.r/old.r,next.g/old.g,next.b/old.b);
+    }
     // And built in the building's OWN frame, then turned to face its street.
     // Every piece used to be placed axis-aligned at site.x +/- width/2, with
     // site.rotation never applied — while the footprint, the collider, the
@@ -331,7 +347,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
       panel.rotateY(face.rotation);
       panel.translate(face.x, base + site.height / 2, face.z);
       const walls = facades.get(windows) ?? [];
-      walls.push(finish(panel));
+      walls.push(tint(finish(panel),wallTint));
       facades.set(windows, walls);
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
@@ -461,7 +477,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     const roof = new THREE.PlaneGeometry(site.width, site.depth);
     roof.rotateX(-Math.PI / 2);
     roof.translate(0, base + site.height, 0);
-    roofs.push(finish(roof));
+    roofs.push(tint(finish(roof),new THREE.Color(site.buildingPalette?.roof??0x232b33)));
   });
 
   for (const [kind, walls] of facades) {

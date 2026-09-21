@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildingWallFrames, frontPoint, type FrontPlan, type FrontModule } from "../sim/building-fronts.ts";
-import { tint } from "./night.ts";
+import { facadeGrid, tint } from "./night.ts";
+import { buildingPalette } from "./building-palette.ts";
 
 /** Bounded atlases for tenant identities; mipmaps naturally retain the
  * sign's colour/composition when its lettering becomes subpixel at distance. */
@@ -35,8 +36,9 @@ function signAtlas(signs: readonly FrontModule[]): THREE.Texture | null {
 export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[],
   heightAt: (x:number,z:number)=>number): THREE.Group {
   const root=new THREE.Group();root.name="alder-modular-fronts";
-  const concrete=new THREE.MeshStandardMaterial({color:0x555c60,roughness:.93});
-  const metal=new THREE.MeshStandardMaterial({color:0x313c42,roughness:.8});
+  const concrete=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.88});
+  const metal=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8});
+  concrete.name="front-concrete";metal.name="front-metal";
   const glass=new THREE.MeshStandardMaterial({color:0x243741,emissive:0x152129,emissiveIntensity:.35,roughness:.38});
   const luminous=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false});
   const yardPaint=new THREE.MeshStandardMaterial({color:0x9a8d5e,roughness:1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
@@ -61,7 +63,8 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
   }
   root.userData.signAtlases=lettering.length;
   const pavingMaterial=new THREE.MeshStandardMaterial({color:0x4f575b,roughness:1,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-  const fineMaterial=new THREE.MeshStandardMaterial({color:0x737e82,roughness:.8});
+  const fineMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8});
+  fineMaterial.name="front-fine";
   fineMaterial.onBeforeCompile=shader=>{
     shader.vertexShader=`varying float vFrontDistance;\n${shader.vertexShader}`.replace("#include <begin_vertex>",
       "#include <begin_vertex>\nvFrontDistance = distance(cameraPosition, modelMatrix[3].xyz);");
@@ -73,11 +76,15 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
   };
   fineMaterial.customProgramCacheKey=()=>"frontage-fine-v1";
   for (const plan of plans) {
+    const palette=buildingPalette(plan.recipe.id);
+    const wallColor=new THREE.Color(palette.wall),metalColor=new THREE.Color(palette.metal),detailColor=new THREE.Color(palette.detail);
     const site=new THREE.Group();site.name=`front-${plan.recipe.id}`;site.userData.recipe=plan.recipe.id;
     site.position.set(plan.block.x,plan.block.base,plan.block.z);site.rotation.y=-plan.block.rotation;
     const batches=new Map<THREE.Material,THREE.BufferGeometry[]>(),fine:THREE.BufferGeometry[]=[];
     let wallFrame:Pick<FrontPlan,"turn"|"wallX"|"wallZ">=plan;
     const record=(geometry:THREE.BufferGeometry,material:THREE.Material)=>{
+      if(material===concrete)tint(geometry,wallColor);
+      else if(material===metal)tint(geometry,metalColor);
       const parts=batches.get(material)??[];parts.push(geometry);batches.set(material,parts);
     };
     const place=(geometry:THREE.BufferGeometry,x:number,y:number,z:number)=>{
@@ -86,7 +93,7 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
     function box(material:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number,detail=false,color?:string) {
       const geometry=place(new THREE.BoxGeometry(w,h,d),x,y,z);
       if(color)tint(geometry,new THREE.Color(color));
-      if(detail)fine.push(geometry);else record(geometry,material);
+      if(detail){tint(geometry,detailColor);fine.push(geometry);}else record(geometry,material);
     }
     const frame=(x:number,y:number,w:number,h:number)=>{
       for(const edge of [-1,1])box(concrete,x+edge*(w/2+.07),y,.17,.14,h+.16,.2);
@@ -104,8 +111,11 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
       box(metal,0,plan.bandHeight-.06,.07,wall.width,.12,.1);
       for(const edge of [-1,1])box(concrete,edge*(wall.width/2-.08),plan.bandHeight/2,.06,.16,plan.bandHeight,.12);
       if(plan.recipe.industrialStyle) {
-        for(let x=-wall.width/2+2.8;x<wall.width/2-.2;x+=2.8)box(metal,x,plan.bandHeight/2,.057,.035,plan.bandHeight-.2,.015);
+        const {columns}=facadeGrid(wall.width,plan.block.height);
+        for(let column=1;column<columns;column++)box(metal,-wall.width/2+column*wall.width/columns,plan.bandHeight/2,.057,.035,plan.bandHeight-.2,.015);
         box(metal,0,5.95,.065,wall.width,.09,.04);
+        // Cap stays below the existing roof height: the skyline is unchanged.
+        box(metal,0,plan.block.height-.12,.045,wall.width,.24,.09);
       }
       if(wall.side===plan.recipe.side)continue;
       const industrial=plan.recipe.kind==="warehouse",office=plan.recipe.kind==="office";

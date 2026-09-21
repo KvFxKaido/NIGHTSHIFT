@@ -9,6 +9,7 @@ import { addBrickCorner, isBrickCorner } from "./brick-corner.ts";
 import { addMarketBlock } from "./market-block.ts";
 import { addTowerDetails } from "./tower-detail.ts";
 import { addBuildingFronts } from "./building-fronts.ts";
+import { buildingPalette } from "./building-palette.ts";
 import { ALDER_BUILDING_FRONTS } from "../sim/alder.ts";
 import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
 import { addArena } from "./arena.ts";
@@ -169,6 +170,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       const tower=b.height>=TOWER&&place?.id!=="sodo";
       const fittedFront=ALDER_BUILDING_FRONTS.find(p=>p.block===b);
       return {...b,decorationIndex:index,faceDistances:frontage[index]!,structuredFrontage:!!fittedFront,frontageHeight:fittedFront?.bandHeight,
+        buildingPalette:fittedFront?buildingPalette(fittedFront.recipe.id):undefined,
         dressing:tower?{...dressing,windows:"office" as const}:dressing};
     }).filter((_, index)=>!isBrickCorner(buildings[index]!));
     addNightBuildings(scene,sites,alderHeight,ALDER_REACH);

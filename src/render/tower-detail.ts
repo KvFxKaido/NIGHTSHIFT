@@ -5,7 +5,7 @@ import { facadeGrid, hash01, type BuildingSite } from "./night.ts";
 export const TOWER_DETAIL = { full: 110, faded: 210, cull: 240, hysteresis: .08 } as const;
 
 function detailMaterial(color: number): THREE.MeshStandardMaterial {
-  const material = new THREE.MeshStandardMaterial({ color, roughness: .88 });
+  const material = new THREE.MeshStandardMaterial({ color, vertexColors:true, roughness: .88 });
   material.name = "tower-distance-detail";
   material.onBeforeCompile = shader => {
     shader.vertexShader = `varying float vTowerDistance;\n${shader.vertexShader}`.replace("#include <begin_vertex>",
@@ -25,7 +25,7 @@ function detailMaterial(color: number): THREE.MeshStandardMaterial {
  * Built once at scene creation, so approaching a block never generates meshes. */
 export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite[]): THREE.Group {
   const root = new THREE.Group(); root.name = "alder-tower-details";
-  const materials = [detailMaterial(0x46515b), detailMaterial(0x252d35)];
+  const materials = [detailMaterial(0xffffff), detailMaterial(0xffffff)];
   const unit = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
   const unitPosition = unit.getAttribute("position"), unitNormal = unit.getAttribute("normal");
   sites.forEach((site, ordinal) => {
@@ -34,7 +34,8 @@ export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite
     lod.position.set(site.x, site.base ?? 0, site.z); lod.rotation.y = -(site.rotation ?? 0);
     lod.userData.site = { x: site.x, z: site.z, height: site.height };
     const near = new THREE.Group(); near.name = "tower-near-architecture";
-    const batches = materials.map(() => ({ positions: [] as number[], normals: [] as number[] }));
+    const colours=[new THREE.Color(site.buildingPalette?.metal??0x46515b),new THREE.Color(site.buildingPalette?.roof??0x252d35)];
+    const batches = materials.map(() => ({ positions: [] as number[], normals: [] as number[], colours:[] as number[] }));
     function box(batch: number, x: number, y: number, z: number, w: number, h: number, d: number,
       turn = 0, faceX = 0, faceZ = 0) {
       const out = batches[batch]!, c = Math.cos(turn), s = Math.sin(turn);
@@ -43,6 +44,7 @@ export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite
         out.positions.push(px*c+pz*s+faceX, unitPosition.getY(i)*h+y, -px*s+pz*c+faceZ);
         const nx = unitNormal.getX(i), nz = unitNormal.getZ(i);
         out.normals.push(nx*c+nz*s, unitNormal.getY(i), -nx*s+nz*c);
+        const colour=colours[batch]!;out.colours.push(colour.r,colour.g,colour.b);
       }
     }
     const faces = [
@@ -93,6 +95,7 @@ export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position",new THREE.Float32BufferAttribute(batch.positions,3));
       geometry.setAttribute("normal",new THREE.Float32BufferAttribute(batch.normals,3));
+      geometry.setAttribute("color",new THREE.Float32BufferAttribute(batch.colours,3));
       geometry.computeBoundingBox(); geometry.computeBoundingSphere();
       const mesh = new THREE.Mesh(geometry,materials[index]); mesh.name = index===0?"tower-frame-relief":"tower-metal-relief";
       // The base shell already casts the building's shadow. Tiny relief avoids
