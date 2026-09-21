@@ -1256,8 +1256,10 @@ the rival 71.7 s), it is the one clean passing place found so far with no
 slipstream, and a rival that is weaker in medium braking zones is a difficulty
 knob the Blacklist will need, not a bug. Fixing it means lowering the zone or
 tuning medium zones separately, re-sweeping the layouts and the street batch.
-Lap recordings with a rival name the driver raced (`RIVAL_REVISION`) and replay
-refuses another. Not built: extracting features from recordings automatically,
+Lap recordings with a rival name the rival raced and replay refuses another: one
+string for every race to 2026-09-21 (`RIVAL_REVISION`), and since then what that
+race's own rival is made of (`src/sim/rival-revision.ts`, "A rival named by what it
+is made of" below). Not built: extracting features from recordings automatically,
 and the rival learning from them per street.
 
 `tests/arena.test.ts` pins each lap's length (a moved corner makes recorded laps
@@ -1556,6 +1558,46 @@ What is left, measured the same evening with the rival alone on the same race:
   against a name near the top in its own car (`gen-wake-42`, `gen-tally-7`)
   before judging the ladder by its bottom rung; slipstream, the same for both
   cars; and then what the faster cars' bad laps in traffic are made of.
+
+**A rival named by what it is made of (2026-09-21).** A raced recording replays only
+against the rival it raced, and "the rival" was one hand-bumped string,
+`RIVAL_REVISION`: 32 values in eight days, eleven of them one name's car being
+tuned and four of them one race's line, and every bump refused every raced
+recording in the library, Ridge Circuit's for a street line in traffic included.
+The next piece of work (a bend's window) is a street line's drawing and nothing
+else, which is what made it worth fixing first. A session's `rival` is now composed
+by `rivalRevision(route)` (`src/sim/rival-revision.ts`) from what that race uses:
+
+- **What the route is told to be names itself**: its car and that car's tune
+  revision, its launch and share of the grip, and a fingerprint of the line it
+  drives, the drawn numbers. Redrawing a line refuses the races whose lines moved,
+  by exactly that, and no one has to remember anything.
+- **How it drives is code**, which cannot describe itself, so three layers keep a
+  token bumped by hand: `driver` (every raced session), `streetLine` and `pass`
+  (only a route that has them). Each layer's tables are fingerprinted beside its
+  token, so a number changed without the bump is still another rival.
+- **The line is named to the millimetre, not the bit**, and that was found the hard
+  way. Hashed exactly, Ridge Circuit's line was `44e03770` in Node and `7d0eedc2` in
+  the game: Chrome 152 and Node 24 differ in the last bit of `Math.atan2(0.3, 1.7)`
+  and `Math.tanh(0.7)`, so the two draw lines that part company in the sixteenth
+  digit, and every recording made in the game would have been refused by `pnpm laps
+  --verify`. Every test passed, because every test runs in Node. Replay compares
+  positions at a centimetre, so a millimetre is finer than anything it can see. The
+  tyres use `tanh` too: a lap from the game replays in Node to the recorder's
+  rounding and not to the bit, which law 2 already says of other browsers and is
+  now measured between the game and its own test runner. All five races checked
+  name the same rival in both.
+- Wake's race reads `driver-v1.<tables> reign-r2 launch-… street-line-v1.<tables>.<line>
+  skill-0.96 pass-v1.<tables>`, Ridge Circuit's `driver-v1.<tables> kestrel-r3
+  line-<line>`, and a refusal says which part differs (`raced another rival:
+  skill-0.96 -> skill-0.9`). A solo session names none.
+
+Nothing replayable was lost to it: the three raced sessions that named
+`full-line-v32` were on worlds from before the night's city work and were refused
+by world already. The history of the single string stays above `RIVAL_TABLES` in
+`rival.ts`. The world's own id is the same kind of chain and has the same gap this
+closes (a system is versioned as often as its author remembers, `design/CHAOS.md`);
+that one is not touched here.
 
 **What one recorded race found (2026-09-20, `full-line-v32`).** Shawn raced Wake
 (`gen-wake-42`, Bulwark, no pedal assist) and won, 1:19.12 to her 1:24.33, "wasn't

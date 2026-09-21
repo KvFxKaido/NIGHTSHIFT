@@ -7,7 +7,7 @@
  */
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
 import { GENERATED_LAYOUT, recordedEvent, type RecordedEvent } from "./recorded-event.ts";
-import { RIVAL_REVISION } from "./rival.ts";
+import { rivalDifference } from "./rival-revision.ts";
 import { TRAFFIC_REVISION } from "./traffic.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
 import { carHandling, createSim, isDrivetrain, step, PHYSICS_VERSION, TICK_HZ } from "./sim.ts";
@@ -28,7 +28,9 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if (session.arena !== event.identity) return { ok: false, reason: `recorded on ${event.layout === GENERATED_LAYOUT ? "generator" : "circuit"} ${session.arena ?? "ridge-circuit-v1"}, this build is ${event.identity}` };
   if (session.physics !== PHYSICS_VERSION) return { ok: false, reason: `recorded on physics ${session.physics}, this build is ${PHYSICS_VERSION}` };
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
-  if (!event.solo && session.rival !== RIVAL_REVISION) return { ok: false, reason: `raced rival ${session.rival ?? "from before rival revisions"}, this build's is ${RIVAL_REVISION}` };
+  // The rival it raced, by what that rival is made of (rival-revision.ts): only what this race uses can refuse it.
+  const another = event.rival ? rivalDifference(session.rival, event.rival) : null;
+  if (another) return { ok: false, reason: another };
   if (event.traffic && session.trafficRevision !== TRAFFIC_REVISION) return { ok: false, reason: `recorded in traffic ${session.trafficRevision ?? "from before traffic revisions"}, this build's is ${TRAFFIC_REVISION}` };
   if (!isDrivetrain(session.drivetrain)) return { ok: false, reason: `unknown drivetrain ${session.drivetrain}` };
   // The car it was driven in, on the layout it was driven on (a developer comparison may differ from the car's own).

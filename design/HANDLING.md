@@ -212,7 +212,10 @@ where review sees them, and they are ceilings, so an unintended change still fai
   other cars against it, never it.
 - **Revisions.** A car's numbers change only with its `CarTune.revision`, pinned by
   fingerprint in `tests/car-handling.test.ts`, which prints the repin; a car a
-  rival drives is also a `RIVAL_REVISION` bump. Lap sessions record `carRevision`,
+  rival drives needs nothing more since 2026-09-21, because a raced session names
+  its rival's car and that revision too (`src/sim/rival-revision.ts`), where it
+  used to be a `RIVAL_REVISION` bump that refused every raced recording for one
+  name's tune. Lap sessions record `carRevision`,
   and replay rebuilds the car from `car` and `drivetrain` and refuses another
   revision. Sessions from before carry none and read as 1, which every car was.
   `PHYSICS_VERSION` stays the model's.

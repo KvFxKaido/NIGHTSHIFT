@@ -24,7 +24,7 @@ import type { Drivetrain } from "./sim.ts";
 export interface CarTune {
   readonly drivetrain: Drivetrain;
   /** Bump on any change to this car's numbers: lap recordings carry it, and
-   *  replay refuses another. A rival's car changing is also a `RIVAL_REVISION` bump. */
+   *  replay refuses another. A raced session names its rival's car by it too (rival-revision.ts). */
   readonly revision: number;
   /** Kilograms. Absent is `HANDLING.mass`. Contact only (above). */
   readonly mass?: number;

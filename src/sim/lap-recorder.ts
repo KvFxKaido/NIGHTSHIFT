@@ -154,7 +154,8 @@ export interface LapSession {
   world: string;
   /** The circuit's revision: `ARENA_IDENTITY` on Ridge Circuit, `STREET_CIRCUIT_IDENTITY` on a street circuit. The world id does not change when only the circuit does. */
   arena: string;
-  /** `RIVAL_REVISION`: the rival driver raced. Only a session with a rival depends on it. */
+  /** `rivalRevision(route)` (rival-revision.ts): the rival raced, by what it is made of. Only a session with a rival
+   *  depends on it, and a solo session names none (NO_RIVAL). To 2026-09-21 it was one string, "full-line-vN". */
   rival: string;
   physics: string;
   tickHz: number;

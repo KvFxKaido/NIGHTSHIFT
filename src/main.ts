@@ -53,7 +53,8 @@ import { alderCourseDraws } from "./sim/alder-course.ts";
 import { recordedEvent, type RecordedEvent } from "./sim/recorded-event.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
 import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
-import { RIVAL_REVISION, withExits } from "./sim/rival.ts";
+import { withExits } from "./sim/rival.ts";
+import { NO_RIVAL, rivalRevision } from "./sim/rival-revision.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
 import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
@@ -405,7 +406,7 @@ function newRecording(): void {
 function recordStep(tickInput: Input): void {
   if (!recorder || !recorded || !race) return;
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
-  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: RIVAL_REVISION,
+  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: recorded.rival ? rivalRevision(recorded.rival) : NO_RIVAL,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: recorded.layout, solo: recorded.solo, traffic: recorded.traffic,
     ...(recorded.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
     // A generated race's flash is part of what its id draws: without it the replay draws another race.

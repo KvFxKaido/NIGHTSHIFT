@@ -8,7 +8,8 @@ import { createLapRecorder, lapSession, recordTick, type LapSession } from "../s
 import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { generatorRevision } from "../src/sim/race-generator.ts";
 import { GENERATED_LAYOUT, recordedEvent } from "../src/sim/recorded-event.ts";
-import { createRivalDriver, rivalInput, RIVAL_REVISION, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, type RivalDefinition } from "../src/sim/rival.ts";
+import { rivalRevision } from "../src/sim/rival-revision.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
 await RAPIER.init();
@@ -57,7 +58,7 @@ test("a generated sprint raced against its rival records as one lap, replays exa
       step(sim, input);
       if (!recordTick(recorder, input, sim.state.vehicle, sim.state.race, TICK_HZ)) continue;
       session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-20-120000-gen-crest-23", recordedAt: "2026-09-20T12:00:00.000Z", world: sim.roadWorld.id,
-        arena: event.identity, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: false, traffic: true,
+        arena: event.identity, rival: rivalRevision(event.rival!), physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: false, traffic: true,
         trafficRevision: TRAFFIC_REVISION, laps: event.race.laps ?? 1, car: route.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, pedalAssist: 0,
         start: sim.roadWorld.start }))) as LapSession;
     }
@@ -69,7 +70,9 @@ test("a generated sprint raced against its rival records as one lap, replays exa
   assert.deepEqual(replayLapSession(session), { ok: true, laps: 1 });
   // Another draw of the same seed is another race, and is refused by name rather than compared.
   assert.match((replayLapSession({ ...session, arena: "generator-v0" }) as { reason: string }).reason, /generator generator-v0/);
-  assert.match((replayLapSession({ ...session, rival: "full-line-v1" }) as { reason: string }).reason, /raced rival full-line-v1/);
+  assert.match((replayLapSession({ ...session, rival: "full-line-v32" }) as { reason: string }).reason, /raced rival full-line-v32, from before/);
+  // Another rival is named by what differs: here a driver a revision on, and nothing else.
+  assert.match((replayLapSession({ ...session, rival: session.rival.replace("driver-v1", "driver-v0") }) as { reason: string }).reason, /^raced another rival: driver-v0\.\w+ -> driver-v1\.\w+$/);
   // The player against the rival, from the one input log. Whoever finished second is let finish.
   const compared = compareSession(session);
   assert.equal(compared.playerReproduced, true);

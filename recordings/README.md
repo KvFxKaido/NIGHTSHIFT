@@ -32,7 +32,7 @@ replays each session against the current build; `pnpm laps --json` is for tools.
 - Identity: `world`, `arena` (the circuit's revision: `ridge-circuit-v2`,
   `uptown-v1`; for a generated race the generator's revision for its kind,
   `generator-v1`), `startCode` (a generated race's flash, as `?start=` carried it:
-  part of what its id draws, absent from the grid and on a circuit), `rival` (the rival driver's revision; only sessions with a rival
+  part of what its id draws, absent from the grid and on a circuit), `rival` (the rival raced, named by what that race's rival is made of: `src/sim/rival-revision.ts`; "none" when solo, and one string for every race, `full-line-vN`, to 2026-09-21; only sessions with a rival
   depend on it), `physics`, `tickHz`, `race`, `layout`, `solo`, `traffic` (absent
   before street circuits, which means none), `laps`,
   `car`, `drivetrain`, `start`, and `recordedAt` (wall clock, metadata only).

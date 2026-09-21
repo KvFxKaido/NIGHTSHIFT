@@ -441,11 +441,11 @@ fixtures outside the playable bundle, and old world links redirect.
 - A number a car can change is read from that vehicle's `CarHandling`
   (`sim.state.handling`, `rival.handling`, `handlingFor(route)`), never from
   `HANDLING`, or a rival plans corners with a grip its tyres do not have. A tune
-  changes only with its `CarTune.revision`, and a rival's car with `RIVAL_REVISION`
-  too; the fingerprint test prints the repin.
+  changes only with its `CarTune.revision`, which is also part of the name of any rival that drives it
+  (`rival-revision.ts`); the fingerprint test prints the repin.
 - A racing line through streets is drawn with `STREET_RACING_LINE`, never `RACING_LINE`, which is Ridge Circuit's and
   leaves 4 m spikes at street corners on some laps and not others (`racing-line.ts`). Ridge does not take the street
-  fixes: they move its lines, which is a `RIVAL_REVISION` bump. Judge a line on every lap, never the one in the middle,
+  fixes: they move its lines, and with them the rival every raced Ridge recording names. Judge a line on every lap, never the one in the middle,
   and a rival quicker than the one raced cannot be measured by replaying the player's inputs at it: they collide.
   A route that IS a line (`lateral`) is for a race with no traffic, since it ignores lanes: Uptown Circuit / Clear
   alone. Its gate arrows still come from the centreline, and `pnpm cars --laps` drives the in-traffic route so its
@@ -472,7 +472,21 @@ fixtures outside the playable bundle, and old world links redirect.
   the tyres in `sampleWheelForces`: stiffness, load, the load exponent, RWD's driven rears. Change those and it must
   follow; a test holds it to the car on every drivetrain (17% high on front drive flat out, stated there, not fixed).
   Geometry alone is a quarter of the wheel at 130 mph and ran a rival 5 m wide into oncoming traffic through a bend
-  that was correctly planned flat. Any change to it moves every rival, Ridge's included: a `RIVAL_REVISION` bump.
+  that was correctly planned flat. Any change to it moves every rival, Ridge's included: a `RIVAL_REVISIONS.driver` bump.
+- A recording names the rival it raced by what THAT race's rival is made of (`rivalRevision(route)`,
+  `src/sim/rival-revision.ts`), not one string for all: to 2026-09-21 `RIVAL_REVISION` went through 32 values in eight
+  days and each refused every raced recording there was. What a route is told to be names itself (its car and tune
+  revision, launch, share of the grip, a fingerprint of the drawn line), so redrawing a line or retuning one name's car
+  needs no bump and refuses only the races it moved. How it drives is code and cannot: bump `RIVAL_REVISIONS.driver`,
+  `.streetLine` or `.pass` for a change to that layer's CODE, never for another's. Each layer's tables are
+  fingerprinted beside its token, so a changed number is caught without the bump; a new table of the driver's belongs
+  in `RIVAL_TABLES` (`rival.ts`) or it is not.
+- A browser and Node are not the same arithmetic: Chrome 152 and Node 24 differ in the LAST BIT of `Math.atan2(0.3, 1.7)`
+  and `Math.tanh(0.7)`, and the tyres use both. A lap recorded in the game replays in Node to the recorder's rounding
+  (a centimetre), never to the bit, so anything that has to agree between the two is compared at a rounding: a drawn
+  line is fingerprinted to the millimetre (`rival-revision.ts`), because hashed exactly Ridge Circuit's was one rival in
+  the game and another in `pnpm laps --verify`. Check a new identity in BOTH runtimes before trusting it; a test in Node
+  cannot see this.
 - A car that follows the rival's road is read in the road's frame WHERE THAT CAR IS (`RIVAL_TRAFFIC_FRAME`), never the
   aim point's: round a bend that frame is turned by the bend between them, and a van keeping to the oncoming lane
   reads as crossing into this one (a full-brake stab at 123 mph). Anything not on this road is read as before.
@@ -538,7 +552,7 @@ fixtures outside the playable bundle, and old world links redirect.
   line and extra drive alone changes nothing, but a tune with less power is limited
   by its engine, and grip alone gave it nothing at all (the Bulwark, unnoticed, and
   the Kestrel, 2026-09-19). The launch rides `driveGripScale` and scales the drive. Anything that moves a rival, the countdown included, is a
-  `RIVAL_REVISION` bump, or raced recordings diverge instead of being refused:
+  bump of its layer in `RIVAL_REVISIONS`, or raced recordings diverge instead of being refused:
   check with `pnpm laps --verify` before and after, never only after.
 - The test suite takes about 5 minutes. Since 2026-09-19 CI runs it too, beside
   the build and the facade browser check, on master pushes and pull requests; it

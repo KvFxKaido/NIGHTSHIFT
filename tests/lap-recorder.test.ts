@@ -10,7 +10,8 @@ import { ALDER_VERSION, createAlderWorld } from "../src/sim/alder.ts";
 import { ARENA_IDENTITY } from "../src/sim/arena.ts";
 import { createLapRecorder, lapSession, recordTick, TRACK_LIMITS, LAP_CHANNELS, type LapSession, type LapTrack } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
-import { createRivalDriver, rivalInput, RIVAL_REVISION } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput } from "../src/sim/rival.ts";
+import { NO_RIVAL } from "../src/sim/rival-revision.ts";
 import { carHandling, createSim, step, PHYSICS_VERSION, TICK_HZ, type VehicleState } from "../src/sim/sim.ts";
 import type { RaceState } from "../src/sim/race.ts";
 import { createLapSaver, lapSessionId } from "../src/recording/save-laps.ts";
@@ -48,7 +49,7 @@ function drive(laps = 2, pedalAssist = 1) {
     if (lap) completed.push(tick);
   }
   const session = lapSession(recorder, { id: "2026-09-13-120000-arena-ridge-solo", recordedAt: "2026-09-13T12:00:00.000Z",
-    world: sim.roadWorld.id, arena: ARENA_IDENTITY, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
+    world: sim.roadWorld.id, arena: ARENA_IDENTITY, rival: NO_RIVAL, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: true,
     laps, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
     ...(pedalAssist !== 1 ? { pedalAssist } : {}), start: event.start });
   const result = { event, sim, recorder, completed, session: JSON.parse(JSON.stringify(session)) as LapSession };

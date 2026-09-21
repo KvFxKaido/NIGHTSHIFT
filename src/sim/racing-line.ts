@@ -112,9 +112,9 @@ export const RACING_LINE = {
  * All of it is off for Ridge Circuit, whose lines are bit for bit what they were.
  * Its turns pass a right angle only between coarse nodes, the finer levels already
  * put that right, and nothing on it folds; but the first fix moves Full's and
- * East's lines, and a moved line is a moved rival (RIVAL_REVISION), which would
- * refuse every raced recording for the sake of a line that was not broken. When
- * that revision is next bumped for its own reasons, Ridge can take this.
+ * East's lines, and a moved line is a moved rival (its fingerprint is part of the rival's name, rival-revision.ts),
+ * which would refuse every raced recording on those two layouts for the sake of a line that was not broken. When
+ * Ridge's lines next move for their own reasons, it can take this.
  *
  * Uptown Circuit / Clear drives one (street-circuit.ts; RIVAL_STREET_LINE in rival.ts
  * for how hard). It ignores lanes, so it is for clear streets only (above, "Not in

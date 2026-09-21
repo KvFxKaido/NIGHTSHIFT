@@ -10,7 +10,7 @@ import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { LAP_RECORDING_FORMAT, TRACK_LIMITS, LAP_CHANNELS, type LapSession } from "../src/sim/lap-recorder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
 import { ALDER_VERSION } from "../src/sim/alder.ts";
-import { RIVAL_REVISION } from "../src/sim/rival.ts";
+import { NO_RIVAL } from "../src/sim/rival-revision.ts";
 
 await RAPIER.init();
 
@@ -107,7 +107,8 @@ test("in contact a heavier car shoves harder and keeps more of its own speed", (
 // A car's tune, pinned under its revision, the way generator draws are pinned
 // (race-generator.test.ts). Changing a tune without bumping its revision would let
 // an old recording replay against new numbers and diverge instead of being refused.
-// A car a rival drives also needs a RIVAL_REVISION bump. The tune, not its resolved
+// A car a rival drives needs nothing more: a recording names its rival's car and that car's revision
+// (rival-revision.ts), so the bump refuses the races that car was in and no others. The tune, not its resolved
 // numbers: a new knob leaves every existing pin alone, and a change to the shared
 // HANDLING is PHYSICS_VERSION's to name.
 const fingerprint = (tune: CarTune) => {
@@ -140,7 +141,7 @@ test("a car's numbers change only with its revision", () => {
     const repin = `repin PINNED.${car} to { revision: ${tune.revision}, fingerprint: "${printed}" }`;
     if (pin.revision !== tune.revision) assert.fail(`the ${car} has a new revision since it was pinned: ${repin}`);
     assert.equal(printed, pin.fingerprint, `the ${car}'s numbers changed on revision ${tune.revision}. If that was meant, ` +
-      `bump CAR_TUNES.${car}.revision${car === "cinder" || car === "bulwark" ? "" : ` and RIVAL_REVISION (${RIVAL_REVISION})`}, then ${repin}`);
+      `bump CAR_TUNES.${car}.revision, then ${repin}`);
   }
   // Sable's NS-01 is one car under two ids.
   assert.equal(CAR_TUNES.blender, CAR_TUNES.ns01);
@@ -182,7 +183,7 @@ test("a reset keeps the car; a layout keeps the car on another drivetrain; a car
 test("a recording driven at another car revision is refused, not compared", () => {
   const event = circuitEvent("arena-full-solo", 1)!;
   const session = (carRevision?: number): LapSession => ({ format: LAP_RECORDING_FORMAT, id: "car-revision-check", recordedAt: "",
-    world: ALDER_VERSION, arena: event.identity, rival: RIVAL_REVISION, physics: PHYSICS_VERSION, tickHz: TICK_HZ,
+    world: ALDER_VERSION, arena: event.identity, rival: NO_RIVAL, physics: PHYSICS_VERSION, tickHz: TICK_HZ,
     race: "arena-full-solo", layout: "full", solo: true, laps: 1, car: "cinder", drivetrain: "rwd",
     ...(carRevision === undefined ? {} : { carRevision }), start: event.start, trackLimits: TRACK_LIMITS, channels: LAP_CHANNELS,
     inputs: { throttle: [], brake: [], steer: [], handbrake: [] }, recorded: [] });

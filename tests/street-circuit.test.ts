@@ -6,7 +6,8 @@ import { circuitEvent, isCircuitRace } from "../src/sim/circuits.ts";
 import { createLapRecorder, lapSession, recordTick, type LapSession } from "../src/sim/lap-recorder.ts";
 import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
-import { createRivalDriver, rivalInput, RIVAL_REVISION, RIVAL_STREET_LINE, sampleRivalPath } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, RIVAL_STREET_LINE, sampleRivalPath } from "../src/sim/rival.ts";
+import { NO_RIVAL } from "../src/sim/rival-revision.ts";
 import { STREET_CIRCUIT_IDENTITY, STREET_GATE_RADIUS, streetCircuitEvent, streetCircuitRaceFor, streetCircuitRaceId, UPTOWN, uptownLap } from "../src/sim/street-circuit.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
@@ -104,7 +105,7 @@ test("a lap driven through traffic replays exactly, and a changed input is caugh
     }
     assert.ok(sim.state.race!.finished, "the lap was not finished");
     session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-13-120000-street-uptown-solo", recordedAt: "2026-09-13T12:00:00.000Z",
-      world: sim.roadWorld.id, arena: event.identity, rival: RIVAL_REVISION, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id,
+      world: sim.roadWorld.id, arena: event.identity, rival: NO_RIVAL, physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id,
       layout: event.layout, solo: true, traffic: true, trafficRevision: TRAFFIC_REVISION, laps: 1, car: line.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, start: event.start }))) as LapSession;
   } finally { sim.world.free(); }
   assert.deepEqual(replayLapSession(session), { ok: true, laps: 1 });

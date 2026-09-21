@@ -301,9 +301,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * grip, mass or top speed: the same car, driven like it means it.
  */
 /**
- * Which rival driver a recording was raced against. A recording with a rival
- * replays only against the same driver, so any change to how the rival drives
- * bumps this. "racing-line-v1" (2026-09-13): cornering tuned to recorded laps and a
+ * The rival's one revision string, as it was to 2026-09-21: a recording with a rival replays only against the same
+ * rival, and any change to how any rival drove bumped this for every race. It is retired for an identity composed
+ * from what a race's own rival is made of (rival-revision.ts), and kept as the record of what changed and when.
+ * "racing-line-v1" (2026-09-13): cornering tuned to recorded laps and a
  * smoothed line on Ridge Circuit. "full-line-v1": braking while turning, steering
  * feedforward and the full racing line. "full-line-v2": on a racing line the
  * lost-car speed cap means off the road, not off the line. "full-line-v3": it
@@ -365,8 +366,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * car that follows this road in the road's frame where it is (RIVAL_TRAFFIC_FRAME); a pass whose return is blocked
  * only by the car being passed stays out rather than braking to its speed, and a car off its pass's path looks ahead
  * as if it had none (traffic-pass.ts, PASS_ASTRAY); and a gentle bend gets a line where that is quicker (street-line.ts).
+ * "driver-v1", "street-line-v1", "pass-v1" (rival-revision.ts) are full-line-v32, named by layer.
  */
-export const RIVAL_REVISION = "full-line-v32";
+export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
 export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
@@ -967,3 +969,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     brake,
     steer,handbrake:desiredSpeed<.5&&car.speed<.7?1:0};
 }
+
+/** Every table the driver above reads, for its fingerprint (rival-revision.ts): a number changed here renames the
+ *  rival of every raced recording, whether or not anybody remembered to. A new table belongs in this list. */
+export const RIVAL_TABLES = { RIVAL_STREET_CORNERS, RIVAL_RACING, RIVAL_CORNERING, RIVAL_STEERING, RIVAL_TRAFFIC_FRAME, PASS_ASTRAY,
+  OFF_ROAD_MARGIN, PASS, RIVAL_LANE, RIVAL_BRAKING } as const;
