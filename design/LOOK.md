@@ -195,11 +195,12 @@ but for the floors the cleaners are on, the hills show a few warm rooms, and
 Capitol Hill is the busiest thing in sight. SoDo, where the game starts, went
 dark with its freight windows and is lit again by its docks: rows of roller
 doors under white floodlights, and cranes on the horizon with red beacons and
-white work lights. The start view out of the garage runs up Harbor Way, not 1st
-Ave S, and its open yards are lit by their own masts since 2026-09-19. After the
-sky (2026-09-18), rooflines, Madrona's evergreens and the cranes stand dark
-against a faint haze instead of vanishing into black. After the edge, looking west
-from any road ends in a line of lamps along the water instead of in nothing.
+white work lights. The start leaves Wharf Garage on a cutscene and hands the car
+over facing Harbor Way, not 1st Ave S, whose open yards are lit by their own
+masts since 2026-09-19. After the sky (2026-09-18), rooflines, Madrona's
+evergreens and the cranes stand dark against a faint haze instead of vanishing
+into black. After the edge, looking west from any road ends in a line of lamps
+along the water instead of in nothing.
 
 ## Remaining work
 
@@ -207,19 +208,28 @@ What the rules above still ask for, measured against the render on 2026-09-18,
 roughly in the order it would show. Each item names the rule it serves; none is
 scheduled.
 
-1. **The start: build the lots** (Districts, SoDo). Harbor Way leaves Wharf
+1. **The start** (Districts, SoDo). Harbor Way leaves Wharf
    Garage past 200 m of open ground, the nearest building 196 m off. Six yard
    masts light it now (`START_YARD_MASTS` in `alder.ts`, 2026-09-19): the dock's
    own flood on a mast instead of a wall, near the kerb and alternating sides,
    clear of the junction where the road widens. Measured first: the corridor is
    19 m wide, centred at x -9, and its six street lamps were all the light there
-   was. Reframing the start was tried and rejected on the evidence — facing south
-   or west from the garage is as dark or darker. What remains is the layout: real
-   buildings on those lots. That is what LOOK asks for and it is deferred on
-   purpose, because `alder-layout.json` holds no authored plots yet, so the first
-   one appends a layout fingerprint to `ALDER_VERSION` — refusing all 13 lap
-   recordings and invalidating pending career courses. Worth doing when the car
-   tuning that reads those recordings is finished and they can be re-recorded.
+   was. Reframing it with a still camera was measured and rejected — facing south
+   or west from the garage is as dark or darker — and the answer that landed was
+   not a pose at all: the garage cutscene (2026-09-19) carries the handover, and
+   the pose it ends on faces across Harbor Way into what the masts light. Judge
+   this item on a drive, not on a frozen frame; a still of the exit pose is a
+   moment no player sits on. What LOOK asked for next was the layout — real
+   buildings on those lots — and that was deferred on purpose, because
+   `alder-layout.json` holds no authored plots yet, so the first one appends a
+   layout fingerprint to `ALDER_VERSION`, refusing all 13 lap recordings and
+   invalidating pending career courses. The tuning that reads those recordings
+   has since finished, so the bump is affordable now — but not here (Shawn,
+   2026-09-21). This ground is spoken for: the open lots by the start go to the
+   drift yard as an offroad and stunt venue, Takeover-style events and a race-day
+   meet, so the emptiness is a venue waiting for its event, not a hole in the
+   city. Light it as an event when the time comes, portable floods and
+   generators, and leave the buildings to lots that are not promised elsewhere.
 2. **Silhouettes** (Form). Every building is a box with a flat roof. Rooflines,
    setbacks, water tanks and loading-dock canopies are where Port Alder's
    identity above the street would come from next, and a script can build all
