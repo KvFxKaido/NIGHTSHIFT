@@ -90,6 +90,44 @@ content rather than the whole of it.
    subject that touches no street at all. Learn the break model on four posts in
    a yard, then decide whether the city wants it.
 
+## The grid
+
+*Built 2026-09-21* (`src/sim/yard-grid.ts`). The venue needed a coordinate
+system before anything else could address a place in it. Port Alder's races are
+drawn from the street graph — legs between junctions, gates on lanes, distance
+along a lane's own path — and the venue has none of that, so the generator
+cannot name a spot on 11 hectares of open ground. The grid is the substitute.
+
+Twenty-metre cells, anchored to the world rather than to the site, so editing
+the site's bounds does not move every cell under whatever has been placed in
+them. Twenty because that is a race gate's radius (`GENERATOR.gateRadius`) and
+close to a drift zone's 17: the size at which "a place in the yard" means
+something to a car. The site runs x -620..-20 and z 800..1120 in whole cells
+with exclusive maxima, which stops at Harbor Way's kerb rather than swallowing
+the street. Measured: 480 cells, 401 of them usable — 16 hectares — of which
+198 are apron and 203 are dirt, with 79 blocked by the walls, warehouse,
+containers and the east gate.
+
+A cell's facts are derived, never authored. Its surface is read from
+`alderGround`, so move 2's three grounds describe themselves instead of being
+listed a second time and drifting. Nothing here is seeded; when props, ramps and
+debris are laid out per cell, that is where the integer hash applies and the
+renderer's `hash01` does not.
+
+What it unlocks: a course becomes a list of cell ids, which is compact and
+hashable the way a stored race needs; Takeover scoring gets its data structure,
+because "which cells did you work, and how well" is what area scoring means;
+layout becomes per-cell and reproducible; and the AI gets something to plan on
+where there are no lanes, with per-cell cost — dirt against tarmac — which is
+the only way "was the cut worth taking?" is computable off the street.
+
+The prompt was TRON's grid floor (Shawn, 2026-09-21), but the grid is structure,
+not a drawn surface. Cyan belongs to the race, so a glowing lattice is the one
+thing it must not become; if it surfaces visually it does so as what a freight
+apron actually carries, painted container bays with row and bay numbers. The
+arena above it gets drawn the way the firs were: a reference model kept in the
+ignored `inspiration/` tree, and our own geometry written by script.
+
 ## What the yard is for
 
 It is research as much as content. Four things get tried in a contained yard
