@@ -25,6 +25,67 @@ Ridge Circuit is the precedent for how a venue lives inside Port Alder without
 becoming a second map: one facility, its own layouts, its own recordings
 (`arena.ts`, `design/PORT_ALDER.md`).
 
+## The shape of the venue
+
+Measured 2026-09-21, before designing anything. The drift yard is a walled apron
+of 320 by 300 m at x -620..-300, z 810..1110 (`DRIFT_YARD` in
+`src/sim/drift-yard.ts`), reached by a driveway off the south-western leg of
+Harbor Way. Its east wall stands 313 m from the garage exit, and the ground
+between the two is empty: sampling `createAlderWorld().project` on a 20 m grid
+from x -340 to 40 and z 760 to 1120 finds 11 hectares with no road in them at
+all, bounded by Harbor Way to the east and the cross street at z 780 to the
+south.
+
+```
+        west                                    east
+z1100   YYY..........................  Harbor Way ##
+z1000   YYY..........................             ##
+z 900   YYY.......  11 ha free  ......    garage  ##   <- the start
+z 800   YYY..........................             ##
+z 780   ...........###############################
+        existing apron       the land between
+```
+
+So the expansion is not a new site. It is the land bridge between Sable's yard
+and the game's front door, and the moves below follow from that.
+
+**Sable stays on the west apron** (Shawn, 2026-09-21). Her event is tuned, it is
+recorded, and the apron is her turf (`alder-turf.ts`); the new ground carries
+the chaos disciplines instead, with her drift at the far end of it as the deep
+content rather than the whole of it.
+
+1. **A site with a gate, not a yard.** The apron is reached today by the long
+   way round, off the far south-western leg of Harbor Way. If the venue covers
+   the land between, its front door belongs on Harbor Way where the player
+   already starts. That gives the start view a subject without authoring a
+   single building, and makes the venue the first thing the game offers.
+2. **Three grounds, by surface, west to east.** The tarmac apron stays as it is.
+   The middle 11 hectares stay dirt on purpose: since physics revision v6, grass
+   and bare ground cost a 2WD car grip and pace with AWD exempt, and this is the
+   only place in the game where that penalty is the point rather than punishment
+   for a mistake — and the only place the Bulwark's layout means something. The
+   eastern strip on Harbor Way is the paddock: lighting, assembly, the gate.
+3. **Two scorers, because contact means opposite things.** `stepDrift` clears
+   the chain on contact (`drift-rules.ts:43`, "CONTACT / CHAIN LOST"), and a
+   Takeover pays for hitting things. Do not reconcile them: run them as separate
+   rules kinds, the way `drift-rules.ts` is already separate from `race.ts`.
+   That conflict is the argument for the race-day wrapper rather than a problem
+   with it — one venue, several disciplines with incompatible rules, one session
+   score, and the wrapper is progression and UI rather than sim. Drift zones
+   also pay only in sequence (`nextZone`), which is an authored line; area and
+   prop scoring is a different shape again.
+4. **The walls come down going east.** The apron is boxed by four 1.2 m walls
+   that are real colliders, with soft bounds that tell the player to "RETURN TO
+   THE YARD". Right for a scored box, wrong for open ground, and against the
+   open-racing rule about unnecessary barriers. Let the event's bounds be the
+   boundary and leave the fence to the old apron.
+5. **Break the yard's own floodlights first.** `YARD_STRUCTURES` are in
+   `ALDER_SOLIDS`, so the apron's four 14 m floodlight masts already have
+   colliders: they are the only solid light poles in the game while all 1,335
+   street lamps are drawn only. Breakable-pole research therefore has a first
+   subject that touches no street at all. Learn the break model on four posts in
+   a yard, then decide whether the city wants it.
+
 ## What the yard is for
 
 It is research as much as content. Four things get tried in a contained yard
@@ -147,7 +208,7 @@ route: routes are centreline, resampled about every 29 m, and CLAUDE.md's corner
 trap ("measure anything about a corner against the straight run to the next
 corner") is written for a car that stays on them.
 
-## Two boundaries this touches
+## Three boundaries this touches
 
 - **GDD §21 puts vehicle damage simulation outside the current slice.** Breaking
   lamp posts and leaving debris is not the same as modelling damage to the car,
@@ -159,3 +220,11 @@ corner") is written for a car that stays on them.
   courses. Every Blacklist car is tuned as of 2026-09-19, so the re-record is
   affordable — but it wants to happen once, with the colliders, rather than be
   dribbled across a dozen commits that each refuse the recordings again.
+- **Paving is not versioned** (measured 2026-09-21). `PAVED_AREAS`
+  (`alder.ts:258`) decides what ground drives as asphalt, and `ALDER_VERSION`
+  (`alder.ts:251`) is the data version plus the layout fingerprint — nothing
+  else. So re-surfacing the yard changes grip under existing recordings without
+  refusing them: a silent divergence rather than a refusal. No recording crosses
+  that ground today, which is the only reason it is safe; the first yard event
+  that gets recorded makes a surface edit an identity change, and it should
+  carry one before then rather than after.
