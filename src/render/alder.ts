@@ -1,4 +1,6 @@
 import { addBroadcastTower } from "./broadcast-tower.ts";
+import { addParkingLots } from "./parking-lot.ts";
+import { ALDER_PARKING } from "../sim/alder.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
@@ -109,6 +111,7 @@ const SODIUM_POOL_INSET = 4;
 export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const night = lighting === "night";
   addBroadcastTower(scene, night);
+  addParkingLots(scene, ALDER_PARKING, alderHeight, night);
   if (night) addNightSky(scene, ALDER_SKY);
   if (night) scene.add(new THREE.HemisphereLight(0x9abbd0, 0x39444c, 1.0));
   function surface(name: string, points: number[], color: number, lift = 0): void {

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "signal-house",
+    "label": "KALD 88.5",
+    "x": -776,
+    "z": -1200,
+    "rotation": 0,
+    "columns": 18,
+    "stallWidth": 3,
+    "stallDepth": 5.6,
+    "aisleWidth": 8,
+    "endMargin": 8,
+    "entranceLength": 32.2,
+    "occupancy": 0.24,
+    "seed": 885,
+    "walkTo": { "x": -684, "z": -1233 }
+  }
+]

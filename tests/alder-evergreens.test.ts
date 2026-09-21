@@ -9,6 +9,19 @@ import { addEvergreens } from "../src/render/evergreens.ts";
 import { firGeometry } from "../src/render/fir-tree.ts";
 import { createSim, step } from "../src/sim/sim.ts";
 import { hasContact, NEUTRAL } from "./helpers/handling.ts";
+import landmarks from "../src/sim/alder-landmarks.json" with { type: "json" };
+
+test("broadcast campus planting frames the tower without covering the plaza or entrance views", () => {
+  const trees = ALDER_EVERGREENS.filter(t => t.grove === "broadcast-campus");
+  assert.ok(trees.length >= 40 && trees.length <= 120, "landscaped campus, not a solid forest");
+  assert.ok(trees.some(t => t.oldGrowth), "include a few landmark-scale evergreens");
+  for (const tree of trees) {
+    const dx = tree.trunk.x - landmarks.broadcastTower.x, dz = tree.trunk.z - landmarks.broadcastTower.z;
+    assert.ok(Math.hypot(dx, dz) >= 32 + tree.radius, `${tree.id}: crown covers the plaza`);
+    if (Math.hypot(dx, dz) < 85) assert.ok(Math.min(Math.abs(dx), Math.abs(dz)) >= 6 + tree.radius,
+      `${tree.id}: crown blocks an entrance corridor`);
+  }
+});
 
 test("detailed fir stays inside the established planting envelope with a bounded mesh budget", () => {
   const { trunk, crown } = firGeometry();
@@ -31,7 +44,8 @@ test("groves occupy open parcels while every road, alley and building keeps cano
   assert.ok(ALDER_EVERGREENS.length > 3000 && ALDER_EVERGREENS.length < 6000);
   assert.equal(new Set(ALDER_EVERGREENS.map(t => t.id)).size, ALDER_EVERGREENS.length);
   const solids = new Set(createAlderWorld().solids);
-  for (const grove of EVERGREEN_GROVES) assert.ok(ALDER_EVERGREENS.filter(t => t.grove === grove.id).length > 100);
+  for (const grove of EVERGREEN_GROVES) assert.ok(ALDER_EVERGREENS.filter(t => t.grove === grove.id).length >
+    (grove.id === "broadcast-campus" ? 20 : 100), `${grove.id}: missing planting`);
   const segments = [...ALDER_STREETS,...ARENA_ROADS].flatMap(s => s.points.slice(1).map((b, i) => ({ a: s.points[i]!, b })));
   for (const tree of ALDER_EVERGREENS) {
     const p = tree.trunk;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import data from "../src/sim/alder-data.json" with { type: "json" };
 import { ALDER_BLOCKS, GENERATED_ALDER_BLOCKS, ALDER_EVERGREENS, ALDER_STREETS, ARENA_ROADS, ALDER_TREES,
-  ALDER_CORNER_SOLIDS, alderHeight, createAlderWorld } from "../src/sim/alder.ts";
+  ALDER_CORNER_SOLIDS, ALDER_PARKING_RESERVES, alderHeight, createAlderWorld } from "../src/sim/alder.ts";
 import landmarks from "../src/sim/alder-landmarks.json" with { type: "json" };
 import { YARD_STRUCTURES, YARD_RESERVE } from "../src/sim/drift-yard.ts";
 import { SKYLINE_PEAKS, scaleAlderSkyline } from "../src/sim/alder-skyline.ts";
@@ -34,9 +34,11 @@ test("sixteen skyline peaks add floors while preserving every building footprint
 
 test("old growth enlarges a small repeatable subset without moving, adding or deleting any tree", () => {
   const baseline=createEvergreens([...ALDER_STREETS,...ARENA_ROADS],
-    [...ALDER_BLOCKS,...YARD_STRUCTURES,YARD_RESERVE,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,
+    [...ALDER_BLOCKS,...YARD_STRUCTURES,YARD_RESERVE,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,...ALDER_PARKING_RESERVES,
       {x:6.5,z:910,width:35,depth:44,height:1,base:2,rotation:0}],alderHeight,{oldGrowth:false});
-  assert.equal(ALDER_EVERGREENS.length,4439);assert.equal(baseline.length,ALDER_EVERGREENS.length);
+  assert.equal(ALDER_EVERGREENS.filter(t=>t.grove!=="broadcast-campus").length,4439);
+  assert.equal(ALDER_EVERGREENS.filter(t=>t.grove==="broadcast-campus").length,90);
+  assert.equal(baseline.length,ALDER_EVERGREENS.length);
   let changed=0;
   ALDER_EVERGREENS.forEach((tree,i)=>{
     const before=baseline[i]!;assert.equal(tree.id,before.id);

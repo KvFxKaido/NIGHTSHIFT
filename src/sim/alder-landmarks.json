@@ -1,4 +1,4 @@
 {
-  "broadcastTower": { "x": -665, "z": -1252, "width": 20, "depth": 20, "height": 18, "rotation": 0, "base": 2, "mastHeight": 120 },
+  "broadcastTower": { "x": -665, "z": -1252, "width": 28, "depth": 28, "height": 182, "rotation": 0, "base": 2, "mastHeight": 280 },
   "campus": { "minX": -970, "minZ": -1460, "maxX": -620, "maxZ": -1165 }
 }

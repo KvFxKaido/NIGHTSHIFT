@@ -26,9 +26,11 @@ import savedFrontages from "./alder-frontages.json" with { type: "json" };
 import { parseFrontageDocument, frontageSurfaceFingerprint } from "./frontage-document.ts";
 import { checkedFrontages, type FrontageContext } from "./frontage-generator.ts";
 import { marketBuilding } from "./market-block.ts";
+import parkingRecipes from "./alder-parking.json" with { type: "json" };
+import { createParkingLot, parkingPavingQuery } from "./parking-lot.ts";
 
 export const ALDER_FRONTAGE_DOCUMENT = parseFrontageDocument(savedFrontages);
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v2-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}-parking-v1-${layoutFingerprint(parkingRecipes)}` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -55,6 +57,10 @@ export function alderHeight(x: number, z: number): number {
 export const ALDER_CORNER_PROPS = createCornerProps(alderHeight);
 export const ALDER_CORNER_SOLIDS = ALDER_CORNER_PROPS.map(prop => prop.solid);
 export const ALDER_MARKET_UTILITIES = marketUtilities(alderHeight);
+export const ALDER_PARKING = parkingRecipes.map(recipe => createParkingLot(recipe, alderHeight));
+export const ALDER_PARKING_RESERVES = ALDER_PARKING.flatMap(lot => lot.surfaces);
+export const ALDER_PARKING_SOLIDS = ALDER_PARKING.flatMap(lot => lot.solids);
+const onParkingPaving = parkingPavingQuery(ALDER_PARKING);
 export const ALDER_STREETS: readonly Street[] = data.roads.map(road => ({
   id: road.id, name: road.name, from: road.from, to: road.to,
   // An 8 m alley is the lane model's alley class: one lane each way, no divider.
@@ -158,6 +164,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
       segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
     if (blockPenetration(block, YARD_RESERVE) > 0) issues.push(`${id}: overlaps South Wharf Yard`);
     if(blockPenetration(block,landmarks.broadcastTower)>0)issues.push(`${id}: overlaps the Broadcast Tower`);
+    if([...ALDER_PARKING_RESERVES,...ALDER_PARKING_SOLIDS].some(area=>blockPenetration(block,area)>0))issues.push(`${id}: overlaps a parking lot or its access`);
     if(ALDER_TREES.some(tree=>blockPenetration(block,tree)>0))issues.push(`${id}: overlaps a park tree`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
@@ -174,22 +181,22 @@ const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
 const evergreensForBlocks = (blocks:readonly BuildingBlock[]) => createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
-  [...blocks, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS,
+  [...blocks, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS, ...ALDER_PARKING_RESERVES,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
 export const ALDER_EVERGREENS = evergreensForBlocks(ALDER_BLOCKS);
 /** One collision list for the player, rivals, grass exclusions and line clearance. */
 export const ALDER_SOLIDS = [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
-  ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS, ...ALDER_MARKET_UTILITIES];
+  ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS, ...ALDER_MARKET_UTILITIES, ...ALDER_PARKING_SOLIDS];
 export const ALDER_FRONTAGE_CONTEXT: FrontageContext = {
   sites: resolvedLayout.entries, streets: ALDER_STREETS, heightAt: alderHeight,
-  obstacles: ALDER_SOLIDS.filter(b=>!ALDER_BLOCKS.includes(b)),
+  obstacles: [...ALDER_SOLIDS.filter(b=>!ALDER_BLOCKS.includes(b)), ...ALDER_PARKING_RESERVES],
   protectedIds: new Set(resolvedLayout.entries.filter(s=>s.id===GARAGE_PLOT_ID||marketBuilding(s.block)).map(s=>s.id)),
 };
 /** Authoring validates against the same trees and solids that a reload will use. */
 export function frontageContextForLayout(value:unknown): FrontageContext {
   const layout=resolveAlderLayout(value);
   return {...ALDER_FRONTAGE_CONTEXT,sites:layout.entries,
-    obstacles:[...YARD_STRUCTURES,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,...ALDER_MARKET_UTILITIES,
+    obstacles:[...YARD_STRUCTURES,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,...ALDER_MARKET_UTILITIES,...ALDER_PARKING_RESERVES,...ALDER_PARKING_SOLIDS,
       ...evergreensForBlocks(layout.blocks).map(t=>t.trunk)],
     protectedIds:new Set(layout.entries.filter(s=>s.id===GARAGE_PLOT_ID||marketBuilding(s.block)).map(s=>s.id)),
   };
@@ -255,7 +262,8 @@ const arenaGroundNear = spatialIndex(ARENA_ROADS.flatMap(road => road.points.sli
  * selection would call that ground.
  */
 export function alderGround(x: number, z: number): boolean {
-  if (onMarketPaving(x, z) || onFrontagePaving(x,z)) return false;
+  if (onMarketPaving(x, z) || onFrontagePaving(x,z) || onParkingPaving(x,z)) return false;
+  if (Math.hypot(x-landmarks.broadcastTower.x,z-landmarks.broadcastTower.z)<=28) return false;
   for (const area of PAVED_AREAS) {
     if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
   }

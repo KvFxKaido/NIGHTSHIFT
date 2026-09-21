@@ -1,5 +1,6 @@
 import { blockCorners, spatialIndex, type BuildingBlock } from "./building-footprint.ts";
 import type { Street } from "./street-path.ts";
+import landmarks from "./alder-landmarks.json" with { type: "json" };
 
 export interface Evergreen {
   id: string;
@@ -19,6 +20,7 @@ export const EVERGREEN_GROVES = [
   { id: "madrona-woods", x: 2110, z: -1450, rx: 530, rz: 1350 },
   { id: "central-greenway", x: 1410, z: -80, rx: 650, rz: 770 },
   { id: "freight-edge", x: 710, z: 770, rx: 480, rz: 260 },
+  { id: "broadcast-campus", x: -780, z: -1300, rx: 200, rz: 145 },
 ] as const;
 
 export function evergreenPassage(x: number, z: number, clearance = 0): boolean {
@@ -66,19 +68,30 @@ export function createEvergreens(streets: readonly Pick<Street, "points">[], bui
         const z = iz * 12 + (hash(ix, iz, 19) - .5) * 6;
         const r2 = ((x - grove.x) / grove.rx) ** 2 + ((z - grove.z) / grove.rz) ** 2;
         const patch = patchDensity(ix / 8, iz / 8);
-        if (r2 > 1 || patch < (grove.id === "union-commons" ? .43 : .7)
-          || hash(ix, iz, 31) > .72 * Math.min(1, (1 - r2) * 5)) continue;
+        const density = grove.id === "union-commons" ? .43 : grove.id === "broadcast-campus" ? .57 : .7;
+        const spacing = grove.id === "broadcast-campus" ? .38 : .72;
+        if (r2 > 1 || patch < density
+          || hash(ix, iz, 31) > spacing * Math.min(1, (1 - r2) * 5)) continue;
         if (evergreenPassage(x, z)) continue;
         let radius = 3.4 + hash(ix, iz, 89) * 1.8;
-        const clear = (radius: number) => !nearbyRoads(x, z).some(({ a, b }) => {
-          const dx = b.x - a.x, dz = b.z - a.z;
-          const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / Math.max(1e-9, dx * dx + dz * dz)));
-          return Math.hypot(x - a.x - t * dx, z - a.z - t * dz) < Math.max(a.width, b.width) / 2 + radius + 5;
-        }) && !nearbyBuildings(x, z).some(b => {
-          const dx = x - b.x, dz = z - b.z, c = Math.cos(b.rotation), s = Math.sin(b.rotation);
-          return Math.hypot(Math.max(0, Math.abs(dx * c + dz * s) - b.width / 2),
-            Math.max(0, Math.abs(-dx * s + dz * c) - b.depth / 2)) < radius + 2;
-        });
+        const clear = (radius: number) => {
+          if (grove.id === "broadcast-campus") {
+            const dx = x - landmarks.broadcastTower.x, dz = z - landmarks.broadcastTower.z;
+            // Open circular plaza plus four entrance/view corridors. Test the
+            // grown crown too, so landmark trees never swallow the marquee.
+            if (Math.hypot(dx, dz) < 32 + radius
+              || (Math.hypot(dx, dz) < 85 && Math.min(Math.abs(dx), Math.abs(dz)) < 6 + radius)) return false;
+          }
+          return !nearbyRoads(x, z).some(({ a, b }) => {
+            const dx = b.x - a.x, dz = b.z - a.z;
+            const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / Math.max(1e-9, dx * dx + dz * dz)));
+            return Math.hypot(x - a.x - t * dx, z - a.z - t * dz) < Math.max(a.width, b.width) / 2 + radius + 5;
+          }) && !nearbyBuildings(x, z).some(b => {
+            const dx = x - b.x, dz = z - b.z, c = Math.cos(b.rotation), s = Math.sin(b.rotation);
+            return Math.hypot(Math.max(0, Math.abs(dx * c + dz * s) - b.width / 2),
+              Math.max(0, Math.abs(-dx * s + dz * c) - b.depth / 2)) < radius + 2;
+          });
+        };
         if (!clear(radius)) continue;
         // Enlarge existing trees only where the full new crown fits. A failed
         // candidate stays ordinary: no trees disappear or move to make room.
