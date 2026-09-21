@@ -302,3 +302,35 @@ cards. The simulation and recordings are untouched.
 bounded tile lifetime and simulation isolation. `node scripts/test-grass.mjs`
 checks the actual WebGL shader and captures a driven strip on the local dev server;
 `GRASS_LIGHTING=night` selects the normal presentation instead of work lighting.
+
+## Coastal fir (2026-09-21)
+
+The grove evergreen uses a tapered nine-sided trunk with broad bark stripes,
+visible lower branch forks, and outward limbs that droop at their tips
+(`render/fir-tree.ts`). Eleven staggered tiers carry forked needle sprays down
+the trunk. Each limb has three smaller sprays, built from crossed cutout cards
+with a seeded, script-drawn needle texture (`render/fir-needles.ts`). A narrow
+faceted core keeps the crown solid at distance. Broad needle strokes and muted
+green clusters keep the detail readable; three toon-lighting bands keep them compatible with
+the drawn cars without borrowing their cyan rim, paint highlight or heavy ink.
+The same materials respond to work lighting, moonlight and headlights.
+
+This replaces the evergreen's three stacked cones, not its planting or physics.
+Park trees retain their separate model. The fir fits inside the existing crown
+radius and height, with its trunk inside the existing collision footprint. Both
+geometries remain shared, instanced in the existing 256 m batches: two draws per
+visible batch. The model is 1,480 triangles per tree. Foliage uses alpha testing
+and writes depth, avoiding transparent sorting across the grove. Wood samples
+a padded opaque area of the same texture so distant mip levels retain branches.
+
+The downloaded pine packs are reference only, kept locally in gitignored
+`inspiration/fluffy-pine-trees-free-standard/` and
+`inspiration/pine-tree-low-poly-stylized-tree/`, outside `public/`. The latter
+informed the outward branching and lower foliage. Neither pack's geometry or
+textures are used by this tree or included in the build.
+
+`node scripts/test-fir.mjs` captures the actual model with a car for scale, then
+in a Port Alder grove at night. `tests/alder-evergreens.test.ts` checks the mesh
+envelope and budget alongside the existing placement, rendering and collision
+checks. Captures are in `artifacts/fir-study.png`, `artifacts/fir-grove.png`,
+`artifacts/fir-distance.png` and `artifacts/fir-city-night.png`.

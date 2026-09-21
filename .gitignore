@@ -6,6 +6,7 @@ dist/
 # Local inspiration/reference downloads; not project assets for redistribution.
 /car inspiration/
 /track inspiration/
+/inspiration/
 
 # Generated captures and test reports. Runtime asset textures stay tracked.
 /screenshots/

@@ -6,8 +6,26 @@ import { createEvergreens, EVERGREEN_GROVES, evergreenPassage } from "../src/sim
 import { ALDER_EVERGREENS, ALDER_STREETS, ALDER_BLOCKS, createAlderWorld, alderHeight } from "../src/sim/alder.ts";
 import { blockCorners, segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { addEvergreens } from "../src/render/evergreens.ts";
+import { firGeometry } from "../src/render/fir-tree.ts";
 import { createSim, step } from "../src/sim/sim.ts";
 import { hasContact, NEUTRAL } from "./helpers/handling.ts";
+
+test("detailed fir stays inside the established planting envelope with a bounded mesh budget", () => {
+  const { trunk, crown } = firGeometry();
+  try {
+    const stem = trunk.getAttribute("position"), canopy = crown.getAttribute("position");
+    for (let i = 0; i < stem.count; i++) {
+      assert.ok(Math.abs(stem.getX(i)) <= .51 && Math.abs(stem.getZ(i)) <= .51);
+      assert.ok(Math.abs(stem.getY(i)) <= .5);
+    }
+    for (let i = 0; i < canopy.count; i++) {
+      assert.ok(Math.hypot(canopy.getX(i), canopy.getZ(i)) <= 1, "foliage crossed the reserved road/building clearance");
+      assert.ok(canopy.getY(i) >= .06 && canopy.getY(i) <= 1, "keep foliage above ground and inside the existing tree height");
+    }
+    const triangles = (trunk.index!.count + canopy.count) / 3;
+    assert.ok(triangles <= 1500, "thousands of city trees share this asset");
+  } finally { trunk.dispose(); crown.dispose(); }
+});
 
 test("groves occupy open parcels while every road, alley and building keeps canopy clearance", () => {
   assert.ok(ALDER_EVERGREENS.length > 3000 && ALDER_EVERGREENS.length < 6000);
