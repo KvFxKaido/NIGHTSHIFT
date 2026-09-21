@@ -2670,3 +2670,94 @@ Final repeat on the same Ridge probe: grass updates fell to 6.6 ms p95 and
 12.4 ms maximum, with zero updates over 16 ms (previously 53 of 180). All 660
 tests and the production build passed. Captures retain the same tree geometry,
 density and shadows; the runtime change is entirely in the ground query.
+
+
+## Building grounds pilots (2026-09-21)
+
+The original three saved recipes in `src/sim/alder-site-grounds.json` establish the templates:
+
+- **North Star / Low Tide**, plot `-511,-1108`: a continuous shop landing, street
+  path, three short-stay spaces, a planted bed and a bench.
+- **Pine Court**, plot `-397,-1234`: an entrance court, two planted beds and
+  benches, retained garden grass and two visitor spaces.
+- **Alder Industrial Parts**, plot `-146,713`: two clear 18 m loading approaches,
+  a separate personnel path and two staff spaces.
+
+Each recipe uses coordinates across/outward from its saved frontage, so doors,
+parking and service access share a frame. `site-grounds.ts` surveys the actual
+sidewalk edge, including oblique streets. It rejects obstructed/steep approaches,
+overlapping props, blocked pedestrian/loading routes, insufficient maneuvering
+space and changed/missing owners. It never picks another building or rerolls.
+The district expansion below is baked authoring data. Tune the JSON and inspect
+the result before choosing more buildings; loading the game never rerolls it.
+
+The same plans feed paving/grip, grass exclusion, tree reservations, collision
+and rendering. Only furniture, wheel stops and parked vehicles are solid;
+reserved approaches are not invisible walls. Original frontage paving is
+replaced at these three sites, preserving grass inside Pine Court's garden.
+Other frontages cannot claim the reserved approaches. The frontage editor
+rebuilds the grounds preview and reports incompatible edits before saving;
+site recipe editing itself remains in JSON. Moving/removing an owner requires
+reviewing its grounds recipe as well.
+
+The original pilot budget was 29 mesh batches and 7,744 triangles before
+short paint strips were retessellated. No dynamic lights are added. Parked bodies reuse the parking-lot renderer. These are asset
+counts, not a whole-game FPS measurement. `tests/site-grounds.test.ts` checks
+access, occupancy, withholding, rotations, surface containment, editor ownership
+and render/collision agreement. `node scripts/test-site-grounds.mjs` captures
+overview, driver-height and night views under `artifacts/site-grounds/`.
+World identity adds a `grounds-v1` recipe fingerprint because paving and solids
+change; the road graph and race-generator revision are unchanged.
+
+Validation: the 698-test suite passed 697 tests; the remaining ground-index
+oracle still included the replaced apron. Its independent polygon reference now
+includes grounds patches and passes on rerun. The final focused checks, production
+build, nine game captures and `node scripts/test-frontage-editor.mjs --grounds`
+cover the finished slice. The editor check exercises non-destructive preview,
+undo/redo, real save/reload and moving/restoring the shop owner, then restores the
+frontage file.
+
+
+### Baked grounds expansion
+
+`pnpm grounds:generate` previews a deterministic missing-only pass;
+`pnpm grounds:generate --write` saves accepted recipes. Existing recipes, including
+manual changes and the three pilots, are preserved exactly. Generation sorts by
+stable frontage identity, uses a stable seed for parking side/occupancy, and
+fits templates to the real setback and loading-door positions. It is an offline
+authoring step, not something that runs during gameplay. The editable JSON is
+the source of truth. Preview counts and skipped-site reasons go to ignored
+`artifacts/site-grounds/generation.json`.
+
+The first expansion adds 63 sites for **66 total**: 35 shops, 19 apartments and
+12 industrial yards across the fitted Belltown and SODO frontages. There are
+86 parking spaces, 22 stationary vehicles and 32 compact planted courts. Courts
+have a door landing and street path but keep garden ground between them; their
+recipes explicitly use `surface: "court"`. They do not invent parking on shallow
+plots. Industrial loading approaches keep the existing personnel entrance clear
+and only acquire staff spaces where room remains beside the loading corridors.
+
+Another 106 candidate shop/apartment/industrial frontages remain unchanged:
+insufficient setback, inadequate loading/maneuvering space, or no useful furniture
+fit. Offices are outside these three templates. Proposals cannot overlap accepted
+grounds or obstruct any other saved frontage's access. All 194 saved frontages
+still validate; all 4,529 evergreens remain. Sidewalk bins and posts yield the
+new approaches, while hard props use the same collision definitions as rendering.
+
+District rendering batches nearby sites by material in 256 m cells and instances
+parked bodies per vehicle kind/cell. The complete grounds layer is **145 meshes,
+65,566 triangles and zero lights**. Standalone views retain per-site grouping for
+inspection. Paint is subdivided by its actual extent rather than its distance
+from the building. These asset counts do not claim a measured frame rate.
+
+`node scripts/test-site-grounds.mjs --expanded` captures six added sites from
+overview, street height and night, including shallow courts, oblique streets and
+both industrial clusters. Generator tests check stable order, repeat runs,
+manual-edit preservation, obstruction rejection, unchanged triangles after
+batching, bounded spatial batches, and all cars surviving instancing.
+
+
+Expansion validation: all **703 tests pass**, production build passes, and all
+18 expanded browser captures are free of console/page errors. The expanded
+editor preview and undo were checked on Alder Rooms without writing saved data.
+`git diff --check` is clean. The build retains its existing large-chunk warning.

@@ -1,6 +1,7 @@
 import { addBroadcastTower } from "./broadcast-tower.ts";
 import { addParkingLots } from "./parking-lot.ts";
-import { ALDER_PARKING } from "../sim/alder.ts";
+import { addSiteGrounds } from "./site-grounds.ts";
+import { ALDER_SITE_GROUNDS, ALDER_GROUNDS_FRONT_IDS, ALDER_PARKING } from "../sim/alder.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
@@ -160,7 +161,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const buildings=ALDER_BLOCKS.filter(block=>block!==ALDER_GARAGE.building);
   for(const block of buildings) if(isBrickCorner(block)) addBrickCorner(scene,block);
   addMarketBlock(scene, alderHeight, ALDER_MARKET_UTILITIES);
-  addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight);
+  addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight, ALDER_GROUNDS_FRONT_IDS);
+  addSiteGrounds(scene, ALDER_SITE_GROUNDS, alderHeight);
   addGarageExterior(scene,ALDER_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(ALDER_FORECOURT.x,ALDER_FORECOURT.base+.012,ALDER_FORECOURT.z);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);

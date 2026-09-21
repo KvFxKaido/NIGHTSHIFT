@@ -623,3 +623,27 @@ dynamic light is added. The frontage set now uses 420,554 triangles, 435 meshes,
 15 materials and the same eight sign atlas pages. All four kits retain the
 100–480 m hidden-wall regression check. Browser studies compare Belltown, offices
 and SODO from the front, street height, corners and rear.
+
+
+### Building grounds studies
+
+The three grounds pilots turn the gap between facade and sidewalk into usable
+places: shop parking, a planted apartment court, and a warehouse service apron.
+Charcoal asphalt, grey concrete, muted yellow loading guides and low faceted
+shrubs fit the existing palette. Continuous door landings and marked pedestrian
+routes organize the props. One parked vehicle per site leaves the layout easy
+to read from the street. The original building silhouettes remain intact.
+
+Run `node scripts/test-site-grounds.mjs` with Vite running for three views per
+site. Overview and driver studies add a temporary fill light; the night capture
+uses game lighting. Recipes and access rules are documented in PORT_ALDER.md.
+
+
+The grounds kit now has 66 baked sites. Deep lots use restrained parking or
+loading aprons; shallow shop and apartment lots use compact planted courts.
+The 32 courts retain grass, and occupancy is sparse (22 cars across 86 spaces).
+Street-facing paths, original doors and facade colours remain the organizing
+features. Use `pnpm grounds:generate` to preview missing layouts, edit
+`src/sim/alder-site-grounds.json` to tune a saved site, and run the grounds capture
+script with `--expanded` for representative district views. The 256 m material
+batches keep sites cullable without adding abrupt distance switches or lights.

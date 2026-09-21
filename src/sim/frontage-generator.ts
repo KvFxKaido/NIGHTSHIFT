@@ -10,6 +10,8 @@ export interface FrontageContext {
   sites: readonly FrontageSite[];
   streets: readonly Street[];
   obstacles: readonly BuildingBlock[];
+  /** Site furniture is validated by its grounds planner, not the legacy full apron. */
+  obstacleOwners?: ReadonlyMap<BuildingBlock,string>;
   heightAt: (x:number,z:number)=>number;
   protectedIds: ReadonlySet<string>;
 }
@@ -82,7 +84,7 @@ export function frontageAccessTools(context:FrontageContext) {
   const clear=(plan:FrontPlan,u:number,v:number):string|null=>{
     const p=frontPoint(plan,u,v);
     if(Math.abs(context.heightAt(p.x,p.z)-plan.block.base)>.15)return "Needs a level entrance landing or ramp";
-    if(solids(p.x,p.z).some(b=>b!==plan.block&&pointFootprintDistance(b,p.x,p.z)<.12))return "Approach blocked by a building, tree or street prop";
+    if(solids(p.x,p.z).some(b=>b!==plan.block&&context.obstacleOwners?.get(b)!==plan.recipe.id&&pointFootprintDistance(b,p.x,p.z)<.12))return "Approach blocked by a building, tree or street prop";
     return null;
   };
   return {roadDistance,clear};

@@ -38,7 +38,7 @@ const reference = new THREE.Scene();
 addAlder(reference, "blockout");
 // The editor draws one unit box per shared solid; environment meshes are reference only.
 for (const child of [...reference.children]) {
-  if (child.name === "alder-buildings" || child.name === "district-garage" || child.name === "alder-modular-fronts") {
+  if (child.name === "alder-buildings" || child.name === "district-garage" || child.name === "alder-modular-fronts" || child.name === "alder-site-grounds") {
     child.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
     reference.remove(child);
   }

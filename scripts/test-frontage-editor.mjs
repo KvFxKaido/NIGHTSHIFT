@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 await mkdir('artifacts/frontage-editor',{recursive:true});
 const file='src/sim/alder-frontages.json',original=await readFile(file,'utf8');
-const document=JSON.parse(original),entry=document.entries.find(e=>!e.locked&&(process.argv.includes('--industrial')?e.plan.recipe.industrialStyle==='workshop':e.plan.recipe.kind==='shops'));
+const document=JSON.parse(original),entry=document.entries.find(e=>!e.locked&&(process.argv.includes('--grounds')?e.buildingId==='plot--511.000--1108.000':process.argv.includes('--industrial')?e.plan.recipe.industrialStyle==='workshop':e.plan.recipe.kind==='shops'));
 const browser=await chromium.launch({args:['--use-angle=d3d11']});
 let savedTestFile=null;
 try {

@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { addBuildingFronts } from "../render/building-fronts.ts";
 import { ALDER_NEIGHBOURHOODS } from "../sim/alder-neighbourhoods.ts";
-import { ALDER_FRONTAGE_DOCUMENT } from "../sim/alder.ts";
+import { addSiteGrounds } from "../render/site-grounds.ts";
+import { ALDER_FRONTAGE_DOCUMENT, groundsForBlocks } from "../sim/alder.ts";
 import { frontageForSite, parseFrontageDocument, placeFrontagePlan, resolveFrontages, type FrontageDocument, type SavedFrontage } from "../sim/frontage-document.ts";
 import { generateFrontages, frontageAccessTools, refitFrontage, validateFrontageAccess, type FrontageContext } from "../sim/frontage-generator.ts";
 import type { FrontKind, FrontModule, FrontPlan } from "../sim/building-fronts.ts";
@@ -25,6 +26,7 @@ function dispose(root:THREE.Group):void {
 
 export function createFrontagePanel(options:FrontagePanelOptions) {
   let draft:FrontageDocument=structuredClone(ALDER_FRONTAGE_DOCUMENT),saved=JSON.stringify(draft),revision:string|null=null;
+  let groundsPreview:THREE.Group|null=null;
   let preview:THREE.Group|null=null,busy=false,errors:string[]=[],moduleIndex=0;
   const undo:string[]=[],redo:string[]=[];
   const status=element("front-status"),selection=element("front-selection"),modulePicker=element<HTMLSelectElement>("front-module");
@@ -69,14 +71,21 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
   function refresh():void {
     const context=options.context(),resolved=resolveFrontages(draft,context.sites);
     errors=resolved.issues.map(i=>`${i.buildingId}: ${i.message}`);
-    const tools=frontageAccessTools(context);
+    const grounds=groundsForBlocks(context.sites.map(s=>s.block),resolved.plans);
+    const owned=grounds.plans.flatMap(p=>[...p.solids,...p.reserves].map(b=>[b,p.recipe.frontageId] as const));
+    const tools=frontageAccessTools({...context,
+      obstacles:[...context.obstacles.filter(b=>!context.obstacleOwners?.has(b)),...owned.map(([b])=>b)],
+      obstacleOwners:new Map(owned)});
+    errors.push(...grounds.issues.map(i=>`${i.id}: ${i.message}`));
     for(const plan of resolved.plans)for(const error of validateFrontageAccess(plan,tools))errors.push(`${plan.recipe.id}: ${error}`);
     if(preview)dispose(preview);
     const moved=resolved.issues.flatMap(issue=>{
       const site=context.sites.find(s=>s.id===issue.buildingId),entry=frontageForSite(draft,issue.buildingId);
       return site&&entry?[placeFrontagePlan(entry.plan,site.block)]:[];
     });
-    preview=addBuildingFronts(options.scene,[...resolved.plans,...moved],context.heightAt);
+    preview=addBuildingFronts(options.scene,[...resolved.plans,...moved],context.heightAt,new Set(grounds.plans.map(p=>p.recipe.frontageId)));
+    if(groundsPreview)dispose(groundsPreview);
+    groundsPreview=addSiteGrounds(options.scene,grounds.plans,context.heightAt);
     const attention=[...draft.attention,...resolved.issues];
     element("front-summary").textContent=`Needs attention (${attention.length})`;
     element<HTMLSelectElement>("front-attention").replaceChildren(...attention.map(i=>new Option(`${i.buildingId}: ${i.message}`,i.buildingId)));

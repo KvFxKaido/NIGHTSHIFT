@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, ALDER_FORECOURT, ALDER_BUILDING_FRONTS } from "../src/sim/alder.ts";
+import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, ALDER_FORECOURT, ALDER_BUILDING_FRONTS, ALDER_GROUNDS_FRONT_IDS, ALDER_SITE_GROUNDS } from "../src/sim/alder.ts";
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { ARENA, nearArena } from "../src/sim/arena.ts";
 import { DRIFT_YARD } from "../src/sim/drift-yard.ts";
@@ -10,11 +10,15 @@ import { onMarketPaving } from "../src/sim/market-block.ts";
 // Independent, complete-path oracle: this is the paving rule before indexing.
 // Saved frontages extend that rule. Check their world polygons directly instead
 // of calling the indexed frontage query under test.
-const frontages=ALDER_BUILDING_FRONTS.flatMap(plan=>plan.paving.map(s=>{
-  const polygon=[frontPoint(plan,s.left,0),frontPoint(plan,s.right,0),frontPoint(plan,s.right,s.rightDepth),frontPoint(plan,s.left,s.leftDepth)];
+const paving=[
+  ...ALDER_BUILDING_FRONTS.filter(p=>!ALDER_GROUNDS_FRONT_IDS.has(p.recipe.id)).flatMap(plan=>plan.paving.map(s=>({plan,...s,start:0}))),
+  ...ALDER_SITE_GROUNDS.flatMap(site=>site.patches.map(p=>({plan:site.front,...p}))),
+];
+const frontages=paving.map(({plan,...s})=>{
+  const polygon=[frontPoint(plan,s.left,s.start),frontPoint(plan,s.right,s.start),frontPoint(plan,s.right,s.rightDepth),frontPoint(plan,s.left,s.leftDepth)];
   return {polygon,minX:Math.min(...polygon.map(p=>p.x)),maxX:Math.max(...polygon.map(p=>p.x)),
     minZ:Math.min(...polygon.map(p=>p.z)),maxZ:Math.max(...polygon.map(p=>p.z))};
-}));
+});
 function originalGround(x: number, z: number): boolean {
   if (onMarketPaving(x, z)) return false;
   if(frontages.some(area=>{

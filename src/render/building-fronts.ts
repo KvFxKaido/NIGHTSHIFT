@@ -34,7 +34,7 @@ function signAtlas(signs: readonly FrontModule[]): THREE.Texture | null {
 /** Frames, ribs, signs and access all read the same facade plan. No extra lights,
  * no full model replacement, and repeated parts merge by material per building. */
 export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[],
-  heightAt: (x:number,z:number)=>number): THREE.Group {
+  heightAt: (x:number,z:number)=>number, externalGrounds:ReadonlySet<string>=new Set()): THREE.Group {
   const root=new THREE.Group();root.name="alder-modular-fronts";
   const concrete=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.88});
   const metal=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8});
@@ -197,6 +197,7 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
     if(fine.length){const mesh=new THREE.Mesh(mergeGeometries(fine)!,fineMaterial);fine.forEach(p=>p.dispose());lod.addLevel(mesh,0);}
     lod.addLevel(new THREE.Group(),180,.08);site.add(lod);root.add(site);
 
+    if(externalGrounds.has(plan.recipe.id))continue;
     const vertices:number[]=[];
     for(const strip of plan.paving) {
       const steps=Math.ceil(Math.max(strip.leftDepth,strip.rightDepth));

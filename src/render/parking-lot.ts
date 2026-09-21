@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { parkingPoint, type ParkingLot } from "../sim/parking-lot.ts";
+import { parkingPoint, type ParkedCar, type ParkingLot } from "../sim/parking-lot.ts";
 import type { BuildingBlock } from "../sim/building-footprint.ts";
 import { asphaltMaterial } from "./asphalt.ts";
 import { trafficBodyGeometry } from "./traffic-body.ts";
@@ -124,9 +124,25 @@ export function addParkingLots(scene: THREE.Scene, lots: readonly ParkingLot[], 
     sign.name = `${group.name}-sign`; sign.rotation.y = -lot.recipe.rotation;
     const signFace = parkingPoint(lot.sign,0,.10);
     sign.position.set(signFace.x,lot.sign.base+2.4,signFace.z); group.add(sign);
+    addParkedCars(group,lot.cars);
+    if (night) {
+      const poolMaterial = new THREE.MeshBasicMaterial({ color:0xdba661, map:glowTexture(), transparent:true,
+        opacity:.32, blending:THREE.AdditiveBlending, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 });
+      for (const lamp of lot.lamps) {
+        const pool = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), poolMaterial);
+        const point = parkingPoint(lamp,0,6);
+        pool.rotation.x = -Math.PI/2; pool.position.set(point.x, heightAt(point.x,point.z)+.052, point.z);
+        pool.name = `${group.name}-lamp-pool`; group.add(pool);
+      }
+    }
+  }
+  scene.add(root);
+}
+
+export function addParkedCars(group:THREE.Group, parked:readonly ParkedCar[]):void {
     // Parked bodies reuse traffic geometry, but have no live lamps or AI.
     for (const kind of ["sedan", "suv"] as const) {
-      const cars = lot.cars.filter(c => c.kind === kind); if (!cars.length) continue;
+      const cars = parked.filter(c => c.kind === kind); if (!cars.length) continue;
       const geometry = trafficBodyGeometry(kind); geometry.silhouette.dispose();
       const pose = new THREE.Object3D();
       for (const layer of ["paint", "detail"] as const) {
@@ -141,16 +157,4 @@ export function addParkingLots(scene: THREE.Scene, lots: readonly ParkingLot[], 
         mesh.castShadow = mesh.receiveShadow = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); group.add(mesh);
       }
     }
-    if (night) {
-      const poolMaterial = new THREE.MeshBasicMaterial({ color:0xdba661, map:glowTexture(), transparent:true,
-        opacity:.32, blending:THREE.AdditiveBlending, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 });
-      for (const lamp of lot.lamps) {
-        const pool = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), poolMaterial);
-        const point = parkingPoint(lamp,0,6);
-        pool.rotation.x = -Math.PI/2; pool.position.set(point.x, heightAt(point.x,point.z)+.052, point.z);
-        pool.name = `${group.name}-lamp-pool`; group.add(pool);
-      }
-    }
-  }
-  scene.add(root);
 }
