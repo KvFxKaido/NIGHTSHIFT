@@ -1470,6 +1470,45 @@ refused by name, and their numbers are here.
   every race with traffic still fields the lane-arc rival, ten seconds a lap off
   him, because a racing line ignores lanes.
 
+**Raced in traffic by Shawn (2026-09-20, `full-line-v30`; the session replays exactly).**
+Uptown Circuit with traffic, in the Bulwark, no pedal assist: 1:27.42, 1:25.52,
+1:24.17 to the rival's 1:28.92 and 1:28.45. "Way better than it was but I wasn't
+worried about losing." Over the two laps both finished he gained 3.72 s within 70 m
+of a gate and 0.72 s elsewhere; 51 mph to 44 at the slowest point of a corner. That
+morning the same rival lapped this race in about 1:38.
+
+What is left, measured the same evening with the rival alone on the same race:
+
+| rival | lap 1 | lap 2 | lap 3 | contact |
+|---|---|---|---|---|
+| Moth's Kestrel, 0.88 (what he raced) | 1:29.10 | 1:28.48 | 1:31.95 | 0 ticks |
+| Kestrel, 0.95 | 1:27.33 | 1:26.28 | 1:25.05 | 0 |
+| Wake's Reign, 0.88 | 1:26.98 | 1:27.45 | 1:23.13 | 143 |
+| Reign, 0.95 | 1:25.98 | 1:23.60 | 1:28.05 | 55 |
+| Tally's Vesper, 0.88 | 1:26.62 | 1:33.98 (invalid) | 1:21.42 | 120 |
+| Vesper, 0.95 | 1:25.95 | 1:23.82 | 1:26.62 | 111 |
+
+- He raced the slowest car on the list. Every circuit fields Moth's Kestrel, #10,
+  and the Blacklist's pace is in its cars: the same driver in #1's and #2's laps
+  Uptown in traffic in 1:21 to 1:24 when a lap goes clean, which is his pace.
+- The rival's skill is one number for every name (`RIVAL_STREET_LINE`, 0.88). At
+  0.95 the Kestrel is 2 to 3 s a lap quicker and still touches nothing.
+- What the faster cars lack is a clean race, not pace: one lap in three is 4 to 12 s
+  slow, with contact, where the Kestrel had none. Arriving faster, they meet the
+  traffic the lane rival's speed kept them clear of. That, not corner speed, is
+  what traffic still costs.
+- Undecided, nothing built. Shawn raised two levers: catch-up, or races with no
+  traffic as NFSU has them. Claude's argument against the first: the rule here is
+  no rubber-banding, and the race he lost that afternoon "felt like my fault",
+  which is the thing catch-up spends. Against the second as a blanket: threading
+  traffic is what this game is after, and `traffic` is already a property of an
+  event, so it can be a choice per race rather than a structure. Levers that
+  change no car and read no race position, in the order Claude would try them:
+  a cornering fraction per Blacklist name instead of one for all; racing him
+  against a name near the top in its own car (`gen-wake-42`, `gen-tally-7`)
+  before judging the ladder by its bottom rung; slipstream, the same for both
+  cars; and then what the faster cars' bad laps in traffic are made of.
+
 **Committed traffic passes (2026-09-20, `full-line-v30`).**
 Generated street rivals and Uptown with traffic can now plan a complete pass in
 `src/sim/traffic-pass.ts`: pull out, clear the lead, return to the lane, and check

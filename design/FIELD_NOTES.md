@@ -37,6 +37,33 @@ The 83-race harness uses the actual rival slot with the player parked at Wharf.
 It measures repeatable traffic encounters, not performance against a human.
 Less contact is useful, but is not proof of pace parity with clear streets.
 
+## Taking the line in traffic, a corner at a time (2026-09-20)
+
+Asked for: the rival that had just beaten Shawn on clear streets, in traffic,
+where every race still fielded the lane-arc driver. Measured before it was built
+(80% of corners clear of forecast traffic, one false clear in eight races), then
+built by Claude as far as a passing 83-race batch and landed by Codex when the
+session ran out (`full-line-v29`). What was assumed and wrong, in order:
+
+- The line was first stored as an offset across the lane's corner arc, and it
+  folded, the same family of fault as the hairpin that morning: a narrow street's
+  lane arc has a radius of 8 to 10 m, the cut is deeper, and every normal of the
+  arc meets the line at once. It is a position now, matched by the line's length.
+- Turning the line into that overlay searched for "the point of the line abreast
+  of this station" with no bound, and where a route doubles back every point of
+  the far leg is abreast too: one race got a 128 m shift and six resets. The
+  search is bounded, and a corner whose shift cannot be trusted is left in lane.
+- A full out-in-out line made the corners much faster (14 to 32 mph at the slowest
+  point in lane, 29 to 47 on the line) and the race no faster: 5.9 s gained in
+  gen-39's corners, 0.3 s over the race. Swinging out for a corner happens in the
+  braking zone and is itself a bend, so the rival braked 50 m earlier on every
+  approach. Widening the windows did not fix it and at 200 m put contact ON the
+  line. Staying in lane into the corner did: 2.7% to 5.3% on eight races.
+- Total contact went UP with the final design, 141 ticks to 266, and it was not
+  the design: 14 races touched traffic in lane and 12 with the line, only two of
+  them the same races, and one 113-tick incident 800 m from any corner carried
+  the total. Counted as ticks it read as a regression; as incidents, a lottery.
+
 ## A racing line through a street corner (2026-09-20)
 
 Asked for: fix lap 1, because a rival given a racing line through Uptown Circuit

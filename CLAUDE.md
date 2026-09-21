@@ -181,7 +181,15 @@ fixtures outside the playable bundle, and old world links redirect.
   (`RIVAL_BRAKING`), which is all its own width leaves it. The one street race
   with no traffic, Uptown Circuit / Clear, drives a street racing line that cuts
   the corners that are not grass (`alderDrivable`), at 0.88 (`RIVAL_STREET_LINE`,
-  Shawn 2026-09-20: about a second a lap quicker than his best with no pedal assist). On
+  Shawn 2026-09-20: about a second a lap quicker than his best with no pedal assist). In
+  traffic (generated street races and Uptown; not Sound to Sky, cruisers or Moth) the
+  route stays the centreline with its lane arcs, and the same line rides on it as a shift
+  from the lane that is taken one corner at a time, while traffic's forecast shows that
+  corner clear (`street-line.ts`, `full-line-v29`): in its lane into a corner, across the
+  apex, wide on the way out. A pass of slower traffic on a straight is planned whole and
+  held to one side (`traffic-pass.ts`, `full-line-v30`, Codex). Over 83 races alone in
+  traffic that is 4.8% quicker with no contact on a line or in a committed pass; Uptown
+  is 9 s a lap quicker. Not yet raced by a person. On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -248,8 +256,10 @@ fixtures outside the playable bundle, and old world links redirect.
   one going its way and holds a junction for one crossing it. Brake lights and
   indicators show what it will do. Each car's turns are decided in advance and it shows the next one on
   amber indicators (`trafficSignal`). `forecastTraffic` drives that plan
-  forward exactly; the rival does not read it yet (`design/PORT_ALDER.md`), and
-  if it does, it reads no more than the indicators show the player. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
+  forward exactly, and since 2026-09-20 the race rival reads it (`forecastTrafficPath`)
+  for corner lines and passes: no more than the indicators show the player. It is a
+  forecast, not a promise: a car waiting at a line may be let go, and one that has
+  slowed is forecast still slow. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
   which is still sparse. The density-24 and ceiling-55 figures in
   `design/FIELD_NOTES.md` are the retired district's 192 lanes, not this map.
 - **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), the
@@ -274,6 +284,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Rival, encounter, cruisers, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `alder-cruisers.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
+| The rival in traffic: corner lines, committed passes, the 83-race batch | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
 | Lap recording, replay check, save endpoint | `lap-recorder.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
@@ -421,11 +432,22 @@ fixtures outside the playable bundle, and old world links redirect.
   leaves 4 m spikes at street corners on some laps and not others (`racing-line.ts`). Ridge does not take the street
   fixes: they move its lines, which is a `RIVAL_REVISION` bump. Judge a line on every lap, never the one in the middle,
   and a rival quicker than the one raced cannot be measured by replaying the player's inputs at it: they collide.
-  Only a race with no traffic may have one (it ignores lanes), which today is Uptown Circuit / Clear alone; its gate
-  arrows still come from the centreline, and `pnpm cars --laps` drives the in-traffic route so its column did not move.
+  A route that IS a line (`lateral`) is for a race with no traffic, since it ignores lanes: Uptown Circuit / Clear
+  alone. Its gate arrows still come from the centreline, and `pnpm cars --laps` drives the in-traffic route so its
+  column did not move.
   Where it cuts a corner it is further from the road's centre than the road is wide, so anything in `rivalInput` that
   bounds the aim by `lateral` must not push it past the line itself; and the cut keeps 4 m, not 2.6, because the rival
   runs up to 1.9 m inside its own line at a tight apex. The line's pace is pinned by a test: moving it is a decision.
+- In traffic a line rides on a centreline route as a SHIFT (`RivalDefinition.line`, `street-line.ts`), never as the
+  route. It is stored as positions matched to the route by the line's own length through each corner window, not
+  as an offset across the lane's corner arc: on a narrow street that arc's radius is 8 to 10 m and the cut is deeper,
+  so its normals all meet the line at once (the shift went from +0.4 m to -10.8 m in 10 m and the corner was lost).
+  A line that swings OUT for a corner does it in the braking zone, and that swing is itself a bend the rival brakes
+  for: it gave back on every straight what it gained in every corner, so into a corner the line stays in its lane.
+  With no corner given to it a line-carrying route must drive exactly as the route without one, and a rejected pass
+  must change nothing (both tested); the driver's line and pass fields are absent on every other route so their state
+  is what it was. Gate the whole thing on the 83-race batch (`scripts/street-line-batch.ts`), contact on a line or in
+  a pass being zero, and read total contact as incidents per race, never ticks: which races touch traffic is a lottery.
 - A lap recording replays only from an unbroken run: moving the car outside
   `step` (`__ns.sim.body`, placement helpers) breaks it from that tick on.
   `pnpm laps --verify` flags it; never edit a recording by hand to make it pass.
