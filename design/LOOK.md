@@ -647,3 +647,22 @@ features. Use `pnpm grounds:generate` to preview missing layouts, edit
 `src/sim/alder-site-grounds.json` to tune a saved site, and run the grounds capture
 script with `--expanded` for representative district views. The 256 m material
 batches keep sites cullable without adding abrupt distance switches or lights.
+
+### Wharf Garage workshop exterior
+
+Wharf Garage keeps its original footprint and three service bays, now framed in
+charcoal concrete and corrugated steel. Roof coping, side glazing, downpipes and
+rear service grilles carry the treatment around all four walls. A single sign
+atlas supplies the main wordmark and numbered service boards. Cyan marks the
+central entry; warm fixtures sit under the shallow canopy. The apron uses the
+road's asphalt scale, service-bay guides, a continuous landing and two planted
+concrete beds outside the bay approaches. Warm ground pools add no live lights.
+
+The main menu hides the permanent signs and projects its existing DOM controls
+ahead of the canopy onto a quieter dark backing. Its desktop and portrait camera
+rails leave the car in view. Arrival/departure camera paths and the garage
+interior are unchanged. The exterior and court use 20 meshes and 5,126 triangles;
+the two menu planes bring that to 22 meshes and 5,130 triangles. Only the original
+two menu lights remain. `node scripts/test-garage-exterior.mjs` captures desktop,
+portrait, front, rear and street-night views; front/rear studies use temporary
+fill lighting, while the night and menu views use game lighting.

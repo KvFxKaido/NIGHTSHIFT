@@ -4,6 +4,17 @@ Port Alder is the demo's only playable map, authorized September 10, 2026 after 
 
 Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at the cyan shutter and use **E / Enter** or **Cross / A** to enter. The garage uses the existing fixed camera and rotating car platform. Drive out returns to its forecourt. Races retain the clear northbound street grid and disable garage entry. The minimap and route board mark the garage.
 
+The upgraded workshop exterior uses the same warehouse and paved apron bounds.
+`src/sim/garage-site.ts` places two low concrete planters beside the end bays;
+their shared poses feed rendering, Rapier, grass exclusions and placement
+validation. All three bay approaches and the street-facing departure stay clear.
+The two new solids append `-garage-v2` to the world version, so older saved world
+positions and generated courses follow the normal stale-world handling. Menu
+controls remain the existing DOM buttons, projected in front of the canopy.
+Run `pnpm test:facade` and `pnpm test:garage-shots` for input, mobile and departure
+regressions; `GARAGE_TEST_URL` reuses a running Vite server and
+`GARAGE_TEST_ANGLE=d3d11` selects the local Windows GPU instead of SwiftShader.
+
 `editor.html` now edits Port Alder. Its validated placements live in `src/sim/alder-layout.json`; the garage and forecourt stay protected. Saved building footprints feed both rendering and Rapier.
 
 The in-game city map opens with **M / Select–View–Share** or the pause

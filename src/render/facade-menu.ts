@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GARAGE_MENU_DEPTH } from "../sim/garage-site.ts";
 
 interface MenuRow {
   button: HTMLButtonElement;
@@ -21,7 +22,8 @@ export function createFacadeMenu(building: THREE.Object3D) {
   const panel = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
   panel.name = "wharf-menu-projection";
   panel.rotation.y = Math.PI;
-  panel.position.set(-7, 5.5, -12.18);
+  const menuZ = (building.userData.facadeFront ?? -12) - GARAGE_MENU_DEPTH;
+  panel.position.set(-7, 5.5, menuZ);
   building.add(panel);
 
   const titleCanvas = document.createElement("canvas");
@@ -41,7 +43,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
     new THREE.MeshBasicMaterial({ map: titleTexture, transparent: true, depthWrite: false, toneMapped: false }));
   title.name = "wharf-nightshift-projection";
   title.rotation.y = Math.PI;
-  title.position.set(8, 5.4, -12.19);
+  title.position.set(8, 5.4, menuZ);
   building.add(title);
 
   // Presentation lights only. Their group is hidden when driving resumes.
@@ -75,7 +77,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
     if (signature === lastSignature) return;
     lastSignature = signature;
     context.clearRect(0, 0, 1024, 800);
-    context.fillStyle = "rgba(6, 16, 22, .64)";
+    context.fillStyle = "rgba(6, 16, 22, .84)";
     context.fillRect(0, 0, 1024, 800);
     context.fillStyle = "#75dfff";
     context.font = "700 24px monospace";
@@ -122,7 +124,7 @@ export function createFacadeMenu(building: THREE.Object3D) {
       const portrait = innerWidth / innerHeight < .9;
       const selectedIndex = Math.max(0, rows.findIndex(row => row.button === document.activeElement));
       const shift = reducedMotion.matches ? 0 : selectedIndex * .1;
-      position.set(portrait ? 0 : 3 + shift, portrait ? 6 : 6.5, portrait ? -32 : -38);
+      position.set(portrait ? 0 : 3 + shift, portrait ? 6 : 6.5, portrait ? -34 : -40);
       target.set(portrait ? 0 : 1 + shift, portrait ? 4.6 : 4.2, -12);
       building.localToWorld(position);
       building.localToWorld(target);

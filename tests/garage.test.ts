@@ -9,9 +9,50 @@ import { transitionMenu } from "../src/ui/menu-state.ts";
 import { addGarageExterior, createGarageScene } from "../src/render/garage.ts";
 import { createCar } from "../src/render/car.ts";
 import { createChaseFollowState } from "../src/render/camera.ts";
+import { ALDER_FORECOURT, ALDER_GARAGE_SOLIDS, ALDER_SOLIDS } from "../src/sim/alder.ts";
+import { blockCorners, blockPenetration, segmentFootprintDistance } from "../src/sim/building-footprint.ts";
+import { GARAGE_MENU_DEPTH } from "../src/sim/garage-site.ts";
+import { addGarageForecourt } from "../src/render/garage.ts";
 import { render, resetViewCamera, setViewMode, type View } from "../src/render/scene.ts";
 
 await RAPIER.init();
+
+test("garage planting stays inside the apron and clear of every service bay", () => {
+  for (const planter of ALDER_GARAGE_SOLIDS) {
+    assert.ok(ALDER_SOLIDS.includes(planter));
+    assert.ok(blockPenetration(planter, DISTRICT_GARAGE.building) < 0);
+    for (const p of blockCorners(planter)) {
+      assert.ok(Math.abs(p.x - ALDER_FORECOURT.x) <= ALDER_FORECOURT.width / 2);
+      assert.ok(Math.abs(p.z - ALDER_FORECOURT.z) <= ALDER_FORECOURT.depth / 2);
+    }
+    for (const z of [901, 910, 919]) {
+      assert.ok(segmentFootprintDistance(planter, { x: 1, z }, { x: 22, z }) > 3,
+        "a planter intrudes into the service-bay approach");
+    }
+    assert.ok(segmentFootprintDistance(planter, { x: 17, z: 885 }, { x: 17, z: 935 }) > 1.8,
+      "planting blocks a car driving along the facade from the garage entrance");
+  }
+});
+
+test("garage detail is batched, adds no lights and leaves menu depth clear", () => {
+  const scene = new THREE.Scene();
+  addGarageExterior(scene, DISTRICT_GARAGE.building);
+  addGarageForecourt(scene, DISTRICT_GARAGE.building, ALDER_FORECOURT);
+  let meshes = 0, triangles = 0, lights = 0;
+  scene.traverse(object => {
+    if (object instanceof THREE.Light) lights++;
+    if (!(object instanceof THREE.Mesh)) return;
+    meshes++;
+    triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3;
+    if (object.name === "district-garage-architecture") {
+      object.geometry.computeBoundingBox();
+      assert.ok(object.geometry.boundingBox!.min.z > -DISTRICT_GARAGE.building.depth / 2 - GARAGE_MENU_DEPTH);
+    }
+  });
+  assert.equal(lights, 0);
+  assert.ok(meshes <= 22, `${meshes} garage meshes`);
+  assert.ok(triangles < 6500, `${triangles} garage triangles`);
+});
 
 test("the garage exterior uses its real solid warehouse footprint", () => {
   assert.ok(DISTRICT_BLOCKS.includes(DISTRICT_GARAGE.building));

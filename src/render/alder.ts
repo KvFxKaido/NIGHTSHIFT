@@ -18,7 +18,7 @@ import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
-import { addGarageExterior } from "./garage.ts";
+import { addGarageExterior, addGarageForecourt } from "./garage.ts";
 import { roadMarkings } from "./road-markings.ts";
 import { asphaltMaterial } from "./asphalt.ts";
 import { grassGroundMaterial } from "./grass-ground.ts";
@@ -164,8 +164,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight, ALDER_GROUNDS_FRONT_IDS);
   addSiteGrounds(scene, ALDER_SITE_GROUNDS, alderHeight);
   addGarageExterior(scene,ALDER_GARAGE.building);
-  const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
-  forecourt.rotation.x=-Math.PI/2;forecourt.position.set(ALDER_FORECOURT.x,ALDER_FORECOURT.base+.012,ALDER_FORECOURT.z);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
+  addGarageForecourt(scene,ALDER_GARAGE.building,ALDER_FORECOURT);
   if(night){
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);
     const sites=buildings.map((b,index)=>{

@@ -1,56 +1,6 @@
 import * as THREE from "three";
-import type { BuildingBlock } from "../sim/building-footprint.ts";
 
-/** The exterior occupies the same footprint and height as its solid collider. */
-export function addGarageExterior(scene: THREE.Scene, building: BuildingBlock): void {
-  const group = new THREE.Group();
-  group.name = "district-garage";
-  group.position.set(building.x, building.base, building.z);
-  group.rotation.y = -building.rotation;
-  const concrete = new THREE.MeshStandardMaterial({ color: 0x29353b, roughness: 0.88 });
-  const steel = new THREE.MeshStandardMaterial({ color: 0x131d24, roughness: 0.55, metalness: 0.45 });
-  const cyan = new THREE.MeshBasicMaterial({ color: 0x75dfff, toneMapped: false });
-  const add = (name: string, width: number, height: number, depth: number, material: THREE.Material,
-    x: number, y: number, z: number) => {
-    const part = box(width, height, depth, material, x, y, z);
-    part.name = `district-garage-${name}`;
-    group.add(part);
-  };
-  add("building", building.width, building.height, building.depth, concrete, 0, building.height / 2, 0);
-  const front = -building.depth / 2 - 0.025;
-  for (const [index, x] of [-9, 0, 9].entries()) {
-    add(`shutter-${index}`, 6.8, 5.2, 0.04, steel, x, 2.7, front);
-    for (let row = 1; row < 9; row++) add(`slat-${index}-${row}`, 6.7, 0.035, 0.035,
-      concrete, x, row * 0.58, front - 0.035);
-  }
-  for (const x of [-3.6, 3.6]) add(`entry-${x < 0 ? "left" : "right"}`, 0.12, 5.5, 0.08, cyan, x, 2.8, front - 0.07);
-  add("entry-header", 7.3, 0.12, 0.08, cyan, 0, 5.55, front - 0.07);
-  // A small bitmap sign compiled into one mesh, including in headless tests.
-  const glyphs: Record<string, string[]> = {
-    W: ["10001","10001","10001","10101","10101","11011","10001"],
-    H: ["10001","10001","10001","11111","10001","10001","10001"],
-    A: ["01110","10001","10001","11111","10001","10001","10001"],
-    R: ["11110","10001","10001","11110","10100","10010","10001"],
-    F: ["11111","10000","10000","11110","10000","10000","10000"],
-    G: ["01111","10000","10000","10111","10001","10001","01111"],
-    E: ["11111","10000","10000","11110","10000","10000","11111"],
-  };
-  const positions: number[] = [], text = "WHARF GARAGE", pixel = 0.23;
-  [...text].forEach((letter, index) => glyphs[letter]?.forEach((row, y) => [...row].forEach((bit, x) => {
-    if (bit !== "1") return;
-    const left = (index * 6 + x - text.length * 3) * pixel, top = 7.7 - y * pixel, z = front - 0.08;
-    positions.push(left,top,z, left,top-pixel,z, left+pixel,top,z,
-      left+pixel,top,z, left,top-pixel,z, left+pixel,top-pixel,z);
-  })));
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  // The street sees the -Z face: its screen-right direction is local -X.
-  geometry.scale(-1, 1, 1);
-  const sign = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x75dfff, side: THREE.DoubleSide, toneMapped: false }));
-  sign.name = "district-garage-sign";
-  group.add(sign);
-  scene.add(group);
-}
+export { addGarageExterior, addGarageForecourt } from "./garage-exterior.ts";
 
 function box(
   width: number,

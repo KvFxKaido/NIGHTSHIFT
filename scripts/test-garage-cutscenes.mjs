@@ -11,7 +11,7 @@ try {
   const base = process.env.GARAGE_TEST_URL ?? `http://127.0.0.1:${server.httpServer.address().port}/`;
   // SwiftShader, as the facade and Cinder checks do: a runner has no GPU, and
   // the facade check stalled there until it was told to use one (PR #11).
-  browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  browser = await chromium.launch({ args: [`--use-angle=${process.env.GARAGE_TEST_ANGLE ?? 'swiftshader'}`, '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
