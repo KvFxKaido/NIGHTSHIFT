@@ -2565,3 +2565,71 @@ replay in this build at all, both clear of traffic, and both still replay
 exactly; the six recorded in traffic were already refused, one for predating
 traffic revisions and five for the rival's. The golden master agrees: nine runs
 with no traffic in them are bit-identical, the five with traffic moved.
+
+## Corner dressing trial (2026-09-21)
+
+Shawn asked for more physical scenery around corners to discourage free cuts.
+The first eight authored sites occupy the inside parcel of these turns:
+
+| Site | Treatment |
+|---|---|
+| Harbor Way / 1st Ave S | Concrete yard blocks and a timber storage crate |
+| Holgate / 4th Ave S | Concrete yard blocks and a timber storage crate |
+| Pike / 2nd | Concrete planting beds |
+| Union / 4th | Concrete planting beds |
+| Madison / 1st | Concrete planting beds |
+| Highland / Taylor Terrace | Stepped masonry planting beds |
+| Broadway / Highland | Stepped masonry planting beds |
+| Olive / Denny East | Stepped masonry planting beds |
+
+`sim/corner-dressing.ts` owns the authored locations and 42 grounded solids;
+`render/corner-dressing.ts` draws their matching masses, coping, planting and
+reflectors. `ALDER_SOLIDS` is now the shared list for collision and the rival's
+`alderDrivable` query. Grass excludes the same footprints. Tree and bin placement
+respect the new solids; building layout validation rejects overlapping edits.
+
+All footprints clear every road by at least 3.8 m, outside its 2.8 m pavement.
+The frontage leaves shallow apex clips open while occupying the deeper cut.
+No road, alley, garage entrance, drift-yard access or reserved park passage is
+closed. Solid props have no distance fade, so approaching drivers can read them
+before committing. The style and capture command are in `design/LOOK.md`.
+
+World identity gains `-corners-v1` because collision changed. Road graph and
+generator revisions stay the same; their existing fingerprints are checked
+against the new world identity. Older world recordings retain their old stamp.
+
+The focused regression drives all eight deep cuts with and without the new
+solids, plus their shallow alternatives, using AWD so the grass penalty cannot
+explain the difference. The rival then drives each turn in both directions with
+and without traffic: 32 completed runs, no dressing contacts and no resets.
+This validates the trial corners, not every possible shortcut across the city.
+
+## Ridge approach grass streaming (2026-09-21)
+
+The reported hitch on Ridge Scenic Way south of Pine East came with new grass
+tiles, despite the trees being the obvious visual suspect. The ground query
+projected every candidate grass root onto the complete circuit paths whenever
+it was inside the circuit/access bounds. In a 270 m northbound probe at 1.5 m
+per update, grass generation alone reached 163.7 ms p95 and 195.3 ms maximum.
+Removing trees from a parked render saved about 0.6–1.4 ms in separate runs.
+
+`alderGround` now indexes street bounds and the circuit's paved segment
+footprints. Each circuit path has constant width (the access road has its own),
+so the union of nearby segment capsules answers the same paving question as
+the full nearest-path scan. Yard and forecourt treatment and the original arena
+bounds guard remain. This changes lookup cost, not vegetation, road boundaries,
+grip, physics or recording identity.
+
+`tests/ground-index.test.ts` compares against complete-path queries at road and
+circuit shoulders, junctions, open ground and 64 m bucket boundaries. The browser
+probe is `node scripts/profile-forest.mjs <label>` with Vite running; it writes
+JSON and screenshots under `artifacts/forest/`. On Windows it explicitly selects
+D3D11 so headless Chromium uses the Radeon RX 6800 XT rather than silently timing
+SwiftShader. `FOREST_ANGLE` overrides that backend; `FOREST_SITE=ridge` limits the
+probe to the reported area. These are isolated render/grass/step measurements,
+not claims about whole-game FPS. Tree count remains 4,439.
+
+Final repeat on the same Ridge probe: grass updates fell to 6.6 ms p95 and
+12.4 ms maximum, with zero updates over 16 ms (previously 53 of 180). All 660
+tests and the production build passed. Captures retain the same tree geometry,
+density and shadows; the runtime change is entirely in the ground query.

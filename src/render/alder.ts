@@ -2,7 +2,8 @@ import { addBroadcastTower } from "./broadcast-tower.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
-  ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, alderHeight } from "../sim/alder.ts";
+  ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, ALDER_CORNER_PROPS, alderHeight } from "../sim/alder.ts";
+import { addCornerDressing } from "./corner-dressing.ts";
 import { addEvergreens } from "./evergreens.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
@@ -129,6 +130,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   });
   trunks.name="alder-park-trunks";crowns.name="alder-park-canopies";trunks.castShadow=crowns.castShadow=true;scene.add(trunks,crowns);
   addEvergreens(scene, ALDER_EVERGREENS, night);
+  addCornerDressing(scene, ALDER_CORNER_PROPS);
   addArena(scene, night);
   const water=new THREE.Mesh(new THREE.PlaneGeometry(2200,data.bounds[3]!-data.bounds[1]!+1000),new THREE.MeshStandardMaterial({color:0x123142,metalness:.55,roughness:.24}));
   water.rotation.x=-Math.PI/2;water.position.set(data.shore-1100,.1,(data.bounds[3]!+data.bounds[1]!)/2);water.name="elliott-bay";scene.add(water);

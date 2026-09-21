@@ -18,8 +18,9 @@ import { createEvergreens } from "./alder-evergreens.ts";
 import { kerbPoses, ALDER_LAMPS, ALDER_BINS, type KerbPose } from "./kerb-props.ts";
 import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearArena } from "./arena.ts";
 import type { CoursePoint } from "./track.ts";
+import { createCornerProps } from "./corner-dressing.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -43,6 +44,8 @@ export function alderHeight(x: number, z: number): number {
   }
   return height;
 }
+export const ALDER_CORNER_PROPS = createCornerProps(alderHeight);
+export const ALDER_CORNER_SOLIDS = ALDER_CORNER_PROPS.map(prop => prop.solid);
 export const ALDER_STREETS: readonly Street[] = data.roads.map(road => ({
   id: road.id, name: road.name, from: road.from, to: road.to,
   // An 8 m alley is the lane model's alley class: one lane each way, no divider.
@@ -149,6 +152,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
     if(ALDER_TREES.some(tree=>blockPenetration(block,tree)>0))issues.push(`${id}: overlaps a park tree`);
     if(blockPenetration(block,forecourt)>0)issues.push(`${id}: blocks the garage entrance`);
     if(blockPenetration(block,garageBuilding)>0)issues.push(`${id}: overlaps Wharf Garage`);
+    if(ALDER_CORNER_SOLIDS.some(prop=>blockPenetration(block,prop)>0))issues.push(`${id}: overlaps corner landscaping`);
     if(blockCorners(block).some(p=>p.x<data.shore+2||p.x>data.bounds[2]!||p.z<data.bounds[1]!||p.z>data.bounds[3]!))issues.push(`${id}: outside the map's building area`);
     if(authored.some((other,j)=>j!==index&&blockPenetration(block,other)>.01))issues.push(`${id}: overlaps another authored building`);
     if(Math.max(...blockCorners(block).map(p=>alderHeight(p.x,p.z)))-block.base>4.1)issues.push(`${id}: ground changes by more than four metres across the footprint`);
@@ -160,8 +164,11 @@ const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
 export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
-  [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
+  [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
+/** One collision list for the player, rivals, grass exclusions and line clearance. */
+export const ALDER_SOLIDS = [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
+  ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS];
 /** Props that belong to the street rather than to a parcel. The lamps are the
  *  rule the renderer used to apply inline; the bins are the second consumer,
  *  which is how the anchor earns its keep. Neither collides: they are dressing
@@ -180,8 +187,7 @@ export const ALDER_SEAWALL_LAMP_POSES: readonly KerbPose[] = Array.from(
   (_, i) => ({ street: "seawall", x: data.shore + SEAWALL_LAMP_SETBACK,
     z: data.bounds[1]! + ALDER_LAMPS.spacing / 2 + i * ALDER_LAMPS.spacing, outX: -1, outZ: 0, heading: Math.PI / 2 }));
 export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS, ALDER_BINS,
-  [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES,
-    ...ALDER_EVERGREENS.map(tree => tree.trunk)]);
+  [...ALDER_SOLIDS, YARD_RESERVE]);
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
@@ -197,9 +203,24 @@ const GROUND_REACH = Math.max(...ALDER_STREETS.flatMap(street => street.points.m
 const ARENA_REACH = ARENA.width / 2 + ARENA.shoulder;
 /** Streets only: the circuit's paths are paved to their shoulder, not to a city pavement. */
 const streetBounds = bounds.slice(0, ALDER_STREETS.length);
+const groundStreetsNear = spatialIndex(streetBounds, box => ({
+  minX: box.minX - GROUND_REACH, maxX: box.maxX + GROUND_REACH,
+  minZ: box.minZ - GROUND_REACH, maxZ: box.maxZ + GROUND_REACH,
+}));
+// Grass asks this thousands of times when a tile arrives. Each circuit path
+// has constant paved width, so membership is the union of its segment capsules;
+// finding the nearest point on all three complete laps does unnecessary work.
+const arenaGroundNear = spatialIndex(ARENA_ROADS.flatMap(road => road.points.slice(1).map((b, i) => {
+  const a = road.points[i]!, dx = b.x - a.x, dz = b.z - a.z;
+  const length = Math.hypot(dx, dz);
+  return { a, b, dx, dz, lengthSquared: length * length, reach: a.width / 2 + ARENA.shoulder };
+})), ({ a, b, reach }) => ({
+  minX: Math.min(a.x, b.x) - reach, maxX: Math.max(a.x, b.x) + reach,
+  minZ: Math.min(a.z, b.z) - reach, maxZ: Math.max(a.z, b.z) + reach,
+}));
 /**
  * True off the paved surface: past every street's carriageway and pavement,
- * and outside the drift yard and the garage forecourt. Every street is asked,
+ * and outside the drift yard and the garage forecourt. Nearby streets are asked,
  * not just the nearest centreline: at a junction a point can sit on a wide
  * arterial's asphalt while an alley's centreline is closer, and nearest-path
  * selection would call that ground.
@@ -209,11 +230,11 @@ export function alderGround(x: number, z: number): boolean {
     if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
   }
   // The circuit's shoulder is paved to the same width everywhere, the access road included.
-  if (nearArena(x, z, ARENA_REACH) && ARENA_ROADS.some(road => {
-    const on = projectOntoPath(road.points, x, z);
-    return on.distance <= on.width / 2 + ARENA.shoulder;
+  if (nearArena(x, z, ARENA_REACH) && arenaGroundNear(x, z).some(({ a, dx, dz, lengthSquared, reach }) => {
+    const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lengthSquared));
+    return Math.hypot(x - a.x - t * dx, z - a.z - t * dz) <= reach;
   })) return false;
-  for (const box of streetBounds) {
+  for (const box of groundStreetsNear(x, z)) {
     const dx = Math.max(box.minX - x, 0, x - box.maxX), dz = Math.max(box.minZ - z, 0, z - box.maxZ);
     if (dx * dx + dz * dz > GROUND_REACH * GROUND_REACH) continue;
     const on = projectOntoPath(box.street.points, x, z);
@@ -234,8 +255,7 @@ let solidsNear: ((x: number, z: number) => BuildingBlock[]) | undefined;
  */
 export function alderDrivable(x: number, z: number): boolean {
   if (alderGround(x, z)) return false;
-  solidsNear ??= spatialIndex<BuildingBlock>([...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
-    ...ALDER_EVERGREENS.map(tree => tree.trunk)], block => {
+  solidsNear ??= spatialIndex<BuildingBlock>(ALDER_SOLIDS, block => {
     const reach = Math.hypot(block.width, block.depth) / 2 + DRIVABLE_CLEARANCE;
     return { minX: block.x - reach, maxX: block.x + reach, minZ: block.z - reach, maxZ: block.z + reach };
   });
@@ -245,7 +265,7 @@ export function alderDrivable(x: number, z: number): boolean {
 /** `from` is where a race starts: the grid unless the flash said otherwise. */
 export function createAlderWorld(racing = false, from: RoadWorld["start"] = start): RoadWorld {
   return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE_EXIT,
-    solids: [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_EVERGREENS.map(tree => tree.trunk)],
+    solids: ALDER_SOLIDS,
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],

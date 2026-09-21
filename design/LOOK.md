@@ -334,3 +334,30 @@ in a Port Alder grove at night. `tests/alder-evergreens.test.ts` checks the mesh
 envelope and budget alongside the existing placement, rendering and collision
 checks. Captures are in `artifacts/fir-study.png`, `artifacts/fir-grove.png`,
 `artifacts/fir-distance.png` and `artifacts/fir-city-night.png`.
+
+## Occupied corners (2026-09-21)
+
+Eight trial corners now have solid parcel dressing (`sim/corner-dressing.ts`,
+`render/corner-dressing.ts`). Downtown uses concrete planting beds with pale
+coping and low shrubs; hillside corners use stepped masonry beds; freight
+corners use concrete yard blocks with amber reflectors and timber storage crates.
+Their short returns give the objects a reason to occupy the parcel. They do not
+form a continuous barrier along the streets.
+
+The paved apex remains open. Every solid footprint is at least 3.8 m beyond
+every carriageway, including alleys, so it clears the 2.8 m pavement too. The
+geometry, collision, rival line clearance, saved-location checks and grass
+exclusions share the same solid list. Low vegetation is soft decoration on the
+beds; all hard masses match their collision boxes. Bases sink to the lowest
+ground corner and coping stands above the highest, in short stepped sections.
+
+Sites use ordinary frustum culling, with no distance-based spawning or fading.
+Pale top edges and amber freight reflectors make their mass readable at night.
+`node scripts/test-corner-dressing.mjs` captures all sites under inspection
+lighting and three representative night/approach views in `artifacts/corners/`.
+
+The trial deliberately preserves alleys, the garage forecourt, the drift-yard
+access and the reserved park passages. It is not a guarantee that every possible
+cross-country route is blocked. `tests/corner-dressing.test.ts` drives deep cuts
+before/after and shallow clips in AWD, then fields the rival through every
+corner in both directions, with and without traffic.
