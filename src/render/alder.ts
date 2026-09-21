@@ -10,6 +10,7 @@ import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior } from "./garage.ts";
 import { roadMarkings } from "./road-markings.ts";
 import { asphaltMaterial } from "./asphalt.ts";
+import { grassGroundMaterial } from "./grass-ground.ts";
 import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing } from "./night.ts";
 import { buildingFrontage } from "../sim/frontage.ts";
 import { alderNeighbourhoodAt, type AlderNeighbourhoodId } from "../sim/alder-neighbourhoods.ts";
@@ -109,15 +110,16 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       positions.set([x,alderHeight(x,z)+lift,z],i/2*3);
     }
     const geometry=new THREE.BufferGeometry(); geometry.setAttribute("position",new THREE.BufferAttribute(positions,3)); geometry.computeVertexNormals();
-    if (name === "alder-asphalt") geometry.setAttribute("uv", new THREE.Float32BufferAttribute(points.map(v => v / 8), 2));
-    const mesh=new THREE.Mesh(geometry,name === "alder-asphalt" ? asphaltMaterial(color) : new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
+    const grass = name === "alder-ground" || name === "alder-outskirts" || data.parks.some(park => park.id === name);
+    if (name === "alder-asphalt" || grass) geometry.setAttribute("uv", new THREE.Float32BufferAttribute(points.map(v => v / 8), 2));
+    const mesh=new THREE.Mesh(geometry,name === "alder-asphalt" ? asphaltMaterial(color) : grass ? grassGroundMaterial(color) : new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
       polygonOffset:lift>0,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
     mesh.name=name; mesh.receiveShadow=true;scene.add(mesh);
   }
   surface("alder-asphalt",data.asphalt,night?0x46515b:0x62686b);
   surface("alder-pavement",data.pavement,night?0x4b515b:0x879090);
-  surface("alder-ground",data.ground,night?0x182322:0x425148);
-  for (const park of data.parks) surface(park.id,park.surface,night?0x263d31:0x54764c,.012);
+  surface("alder-ground",data.ground,night?0x354733:0x526149);
+  for (const park of data.parks) surface(park.id,park.surface,night?0x3d573a:0x608054,.012);
   const trunks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x554239}),ALDER_TREES.length);
   const crowns=new THREE.InstancedMesh(new THREE.ConeGeometry(4,10,7),new THREE.MeshStandardMaterial({color:night?0x20382b:0x3d6846,roughness:1}),ALDER_TREES.length);
   const treePose=new THREE.Object3D();
@@ -142,7 +144,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     if(ax>=data.bounds[0]!&&bx<=data.bounds[2]!&&az>=data.bounds[1]!&&bz<=data.bounds[3]!)continue;
     outskirts.push(ax,az,ax,bz,bx,az,bx,az,ax,bz,bx,bz);
   }
-  surface("alder-outskirts",outskirts,night?0x182322:0x425148);
+  surface("alder-outskirts",outskirts,night?0x354733:0x526149);
   const buildings=ALDER_BLOCKS.filter(block=>block!==ALDER_GARAGE.building);
   addGarageExterior(scene,ALDER_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));

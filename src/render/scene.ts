@@ -20,6 +20,7 @@ import {
 } from "./camera.ts";
 import type { CarView } from "./car.ts";
 import type { CelSmoke } from "./smoke.ts";
+import type { GrassView } from "./grass.ts";
 import { createGarageScene } from "./garage.ts";
 import { ALDER_SKY, NIGHT_HAZE, NIGHT_ZENITH } from "./sky.ts";
 import { updateWheelPresentation } from "./wheels.ts";
@@ -62,6 +63,7 @@ export interface View extends CarView {
   surface: (x: number, z: number) => number;
   /** The drawn tyre smoke; absent only under `?look=plain`. */
   celSmoke?: CelSmoke;
+  grass?: GrassView;
 }
 
 /** Place the selected body from simulation state. */
@@ -440,6 +442,7 @@ export function render(
   // After the camera: the beacon's sign faces it and points the exit its way.
   updateRaceBeacon(view.race, state.race, view.surface, view.camera);
   view.celSmoke?.update(state, frameDelta);
+  view.grass?.update(state, frameDelta);
 
   view.renderer.render(view.scene, view.camera);
 }

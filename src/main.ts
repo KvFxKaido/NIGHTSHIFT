@@ -35,6 +35,7 @@ import { BLENDER_CARS, isBlenderCarId, loadBlenderCar } from "./render/blender-c
 import { drawnEffects, LOOKS, setLook, type Look } from "./render/cel.ts";
 import { defaultPedalAssist } from "./sim/pedal-assist.ts";
 import { addCelSmoke } from "./render/smoke.ts";
+import { addGrass } from "./render/grass.ts";
 import { blendPoses, capturePoses, type Poses } from "./render/interpolate.ts";
 import { createDistrictBanner } from "./ui/district-banner.ts";
 import { ALDER_NEIGHBOURHOODS, alderNeighbourhoodAt } from "./sim/alder-neighbourhoods.ts";
@@ -262,6 +263,7 @@ const view = createView(document.getElementById("view") as HTMLCanvasElement, ca
 // A ?camera= link previews over this after boot (debug.ts) without saving.
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
 if (drawnEffects()) view.celSmoke = addCelSmoke(view.scene);
+view.grass = addGrass(view.scene, roadWorld);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
 for (const [id, parts] of cruiserParts) setParkedRivalCar(view, id, parts);

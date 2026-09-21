@@ -274,3 +274,31 @@ Decided by Shawn, 2026-09-18:
 
 GDD §15.1 points here, and CLAUDE.md names this page beside the renderer, so
 anything made for the city is checked against it first.
+
+## Grass volume and tyre response (2026-09-20)
+
+Open ground and parks have a mottled, rough grass mat (`render/grass-ground.ts`)
+under short, tapered blade clusters (`render/grass.ts`). Blades vary in height,
+orientation and colour, and lean gently in coherent wind. Their roots stay on
+the shared Alder landform. Paving, the garage forecourt, water and oriented
+building/tree footprints exclude them; there is no second surface rule in the sim.
+
+The player and named moving rivals press two paths through the grass. The renderer
+sweeps each wheel between its previous and current presentation pose so fast
+movement still leaves a continuous path. Blades bend in the direction of travel
+and recover over seven seconds. A reset stamps only the landing position. This
+is temporary vegetation movement, not persistent tyre decals or a handling change.
+
+Instances live in at most 121 nearby 16-metre tiles. New tiles are populated nearest
+first over several frames, released when distant, and repeat their original
+scatter when revisited. An outer ring is prefetched without drawing it. Each tuft
+has a repeatable fade endpoint between 40 and 62 m, with a 24 m transition;
+this breaks up the visible moving edge of the original uniform 38–47 m cutoff.
+New tiles also ease into view over 0.65 seconds, staggered across their tufts;
+wind and recovery run in the vertex shader. No grass shadow pass or transparent
+cards. The simulation and recordings are untouched.
+
+`tests/grass.test.ts` covers placement exclusions, separate tyre paths, resets,
+bounded tile lifetime and simulation isolation. `node scripts/test-grass.mjs`
+checks the actual WebGL shader and captures a driven strip on the local dev server;
+`GRASS_LIGHTING=night` selects the normal presentation instead of work lighting.
