@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DRIFT_YARD, DRIFT_ZONES, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
+import { DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
 export function addDriftYard(scene: THREE.Scene, night: boolean) {
@@ -46,6 +46,30 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
         box("yard-wall-reflector", s.x + (horizontal ? offset : 0), 2.9, s.z + (horizontal ? 0 : offset), horizontal ? 2 : 2.1, .18, horizontal ? 2.1 : 2, yellow);
     }
   }
+  // The east gate on Harbor Way. The garage exit faces it down z = 910, so this
+  // is what the game shows a player who has just pressed New Drive.
+  for (const s of GATE_STRUCTURES)
+    box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
+  label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
+    YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
+  for (const z of [YARD_GATE.z - YARD_GATE.opening / 2 - .35, YARD_GATE.z + YARD_GATE.opening / 2 + .35]) {
+    const top = DRIFT_YARD.base + YARD_GATE.postHeight;
+    // Sat on the post the way the apron's floods are, not hung beside it.
+    box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
+    box("gate-floodlight-mount", YARD_GATE.x, top - .35, z, .5, .7, .5, material(0x526775));
+    if (night) {
+      const light = new THREE.PointLight(0xc2def0, 70, 58, 1.4);
+      light.position.set(YARD_GATE.x - 2, top - 1.4, z); group.add(light);
+    }
+  }
+  // Lit means occupied: the gatehouse is how the player knows the meet is on.
+  const boothWindow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1),
+    new THREE.MeshStandardMaterial({ color: night ? 0xffd9a0 : 0x2a333b, emissive: night ? 0xffa94d : 0x000000, emissiveIntensity: night ? 1.1 : 0 }));
+  boothWindow.name = "gate-booth-window";
+  boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
+  boothWindow.rotation.y = Math.PI / 2;
+  group.add(boothWindow);
+
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.
   for (let i = 1; i < YARD_LINE.length; i++) {
     const a = YARD_LINE[i - 1]!, p = YARD_LINE[i]!;
@@ -66,14 +90,15 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     label(String(index + 1), zone.x, 2.08, zone.z, 5, 5, true);
     return ring;
   });
-  function label(text: string, x: number, y: number, z: number, width: number, height: number, flat = false) {
+  function label(text: string, x: number, y: number, z: number, width: number, height: number, flat = false, yaw = Math.PI) {
+    if (typeof document === "undefined") return; // Headless: the boxes still build.
     const canvas = document.createElement("canvas"); canvas.width = flat ? 256 : 1024; canvas.height = flat ? 256 : 128;
     const ctx = canvas.getContext("2d")!; ctx.fillStyle = "#101f2a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#9ff1dc"; ctx.font = flat ? "bold 160px monospace" : "bold 64px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
-    mesh.name = `yard-sign-${text}`; mesh.position.set(x, y, z); if (flat) mesh.rotation.set(-Math.PI / 2, 0, Math.PI); else mesh.rotation.y = Math.PI; group.add(mesh);
+    mesh.name = `yard-sign-${text}`; mesh.position.set(x, y, z); if (flat) mesh.rotation.set(-Math.PI / 2, 0, Math.PI); else mesh.rotation.y = yaw; group.add(mesh);
   }
   label("SOUTH WHARF / DRIFT YARD", -457, 7, 807.8, 58, 6);
   label("SABLE / CLIP. LINK. BANK.", -515, 11, 919.8, 48, 5);

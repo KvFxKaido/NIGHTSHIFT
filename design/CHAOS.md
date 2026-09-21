@@ -54,11 +54,15 @@ recorded, and the apron is her turf (`alder-turf.ts`); the new ground carries
 the chaos disciplines instead, with her drift at the far end of it as the deep
 content rather than the whole of it.
 
-1. **A site with a gate, not a yard.** The apron is reached today by the long
-   way round, off the far south-western leg of Harbor Way. If the venue covers
-   the land between, its front door belongs on Harbor Way where the player
-   already starts. That gives the start view a subject without authoring a
-   single building, and makes the venue the first thing the game offers.
+1. **A site with a gate, not a yard.** *Built 2026-09-21* (`YARD_GATE` and
+   `GATE_STRUCTURES` in `drift-yard.ts`). The apron was reached only by the long
+   way round, off the far south-western leg of Harbor Way; the venue's front
+   door now stands on Harbor Way at x -34, z 910, which is the heading the
+   garage exit faces, 47 m away. Two posts with a board, a gatehouse whose
+   window is lit because the meet is on, floods on the posts, and rails that
+   stop after 12 m — a gate, not a fence. The opening is 13.3 m and a test
+   walks it to prove nothing solid stands in the gateway. The start view has a
+   subject now, and no building was authored to get one.
 2. **Three grounds, by surface, west to east.** The tarmac apron stays as it is.
    The middle 11 hectares stay dirt on purpose: since physics revision v6, grass
    and bare ground cost a 2WD car grip and pace with AWD exempt, and this is the
@@ -220,11 +224,14 @@ corner") is written for a car that stays on them.
   courses. Every Blacklist car is tuned as of 2026-09-19, so the re-record is
   affordable — but it wants to happen once, with the colliders, rather than be
   dribbled across a dozen commits that each refuse the recordings again.
-- **Paving is not versioned** (measured 2026-09-21). `PAVED_AREAS`
-  (`alder.ts:258`) decides what ground drives as asphalt, and `ALDER_VERSION`
-  (`alder.ts:251`) is the data version plus the layout fingerprint — nothing
-  else. So re-surfacing the yard changes grip under existing recordings without
-  refusing them: a silent divergence rather than a refusal. No recording crosses
-  that ground today, which is the only reason it is safe; the first yard event
-  that gets recorded makes a surface edit an identity change, and it should
-  carry one before then rather than after.
+- **The world id is hand-maintained, and paving is not in it** (measured
+  2026-09-21). `ALDER_DATA.version` (`alder.ts:39`) is a chain of per-system
+  tokens someone types — `-evergreens-v1-broadcast-v2-drift-yard-v2-arena-v1-`
+  and so on — with computed fingerprints only for frontages, parking, grounds
+  and the authored layout. So a system with a token is versioned exactly as
+  often as its author remembers, and `PAVED_AREAS` (`alder.ts:258`), which
+  decides what ground drives as asphalt, has no token at all. Re-surfacing the
+  yard therefore changes grip under existing recordings without refusing them:
+  a silent divergence rather than a refusal. No recording crosses that ground
+  today, which is the only reason it is safe; anything that re-surfaces it
+  should bump the yard's token by hand in the same commit.

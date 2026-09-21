@@ -48,6 +48,28 @@ export const YARD_STRUCTURES = [
     block(`floodlight-${i}`, x!, z!, .6, .6, 14, 0x69717c)),
 ] satisfies readonly (BuildingBlock & { id: string; color: number })[];
 
+/** The venue's front door on Harbor Way. The apron is 300 m west of here; this
+ *  is the way in the player can see, because the garage exit faces it down
+ *  z = 910. Posts, a board and a gatehouse — deliberately not a fence, because
+ *  the ground past it stays open (design/CHAOS.md, "The shape of the venue").
+ *  Harbor Way runs at x -10 with 20 m of carriageway here, and the west kerb
+ *  lamps stand at z 890 and 945, so a 13 m opening centred on 910 clears both. */
+export const YARD_GATE = {
+  x: -34, z: 910, opening: 13.3, postHeight: 9,
+  sign: { y: 6.9, width: 13, height: 1.6, text: "SOUTH WHARF YARD / EAST GATE" },
+  booth: { x: -41, z: 922.5, width: 4, depth: 3.6, height: 3.2 },
+} as const;
+
+export const GATE_STRUCTURES = [
+  block("gate-post-north", YARD_GATE.x, 903, .7, .7, YARD_GATE.postHeight, 0x526775),
+  block("gate-post-south", YARD_GATE.x, 917, .7, .7, YARD_GATE.postHeight, 0x526775),
+  // Stubs that stop: enough to say the gate is a way through something.
+  block("gate-rail-north", YARD_GATE.x, 897, .4, 12.7, 1.2, 0x73818a),
+  block("gate-rail-south", YARD_GATE.x, 923, .4, 12.7, 1.2, 0x73818a),
+  block("gate-booth", YARD_GATE.booth.x, YARD_GATE.booth.z,
+    YARD_GATE.booth.width, YARD_GATE.booth.depth, YARD_GATE.booth.height, 0x46545e),
+] satisfies readonly (BuildingBlock & { id: string; color: number })[];
+
 export function inYard(x: number, z: number): boolean {
   const b = DRIFT_YARD.bounds;
   return x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ;

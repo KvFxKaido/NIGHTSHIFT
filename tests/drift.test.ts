@@ -3,9 +3,11 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createRace, stepRace } from "../src/sim/race.ts";
 import { createSim, step, resetSim, type VehicleState } from "../src/sim/sim.ts";
-import { createAlderWorld, alderHeight } from "../src/sim/alder.ts";
+import * as THREE from "three";
+import { ALDER_GARAGE_EXIT, createAlderWorld, alderHeight } from "../src/sim/alder.ts";
 import { SABLE_DRIFT } from "../src/sim/drift-event.ts";
-import { DRIFT_YARD, DRIFT_ZONES, SABLE, YARD_LINE, YARD_STRUCTURES } from "../src/sim/drift-yard.ts";
+import { DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, SABLE, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../src/sim/drift-yard.ts";
+import { addDriftYard } from "../src/render/drift-yard.ts";
 import { nearbyChallenge } from "../src/sim/encounter.ts";
 
 await RAPIER.init();
@@ -65,6 +67,58 @@ test("the driveway is continuous and clear, and all yard structures share simula
     assert.equal(alderHeight(-560, z), DRIFT_YARD.base);
     assert.ok(world.solids!.every(b => Math.abs(b.x + 560) > b.width / 2 + 3 || Math.abs(b.z - z) > b.depth / 2 + 3));
   }
+});
+
+// design/CHAOS.md, "The shape of the venue": the east gate is the venue's front
+// door on Harbor Way, and the garage exit faces it down z = 910. It has to be a
+// gate you can drive through, clear of the road, and lit enough to be seen from
+// the start — the thing it exists for is being the first thing the game offers.
+test("the east gate stands off Harbor Way, opens on the garage exit, and is a way through", () => {
+  const world = createAlderWorld();
+  for (const structure of GATE_STRUCTURES) assert.ok(world.solids!.includes(structure),
+    `${structure.id} is drawn but not solid`);
+
+  // Clear of the carriageway, every part of it.
+  for (const s of GATE_STRUCTURES) {
+    const road = world.project(s.x, s.z);
+    const reach = Math.max(s.width, s.depth) / 2;
+    assert.ok(road.distance - road.width / 2 - reach > 2,
+      `${s.id} stands ${(road.distance - road.width / 2 - reach).toFixed(1)} m from a ${road.width} m carriageway`);
+  }
+
+  // The player leaves the garage pointed at it: same z, and to the west.
+  assert.ok(Math.abs(YARD_GATE.z - ALDER_GARAGE_EXIT.z) < 2, "the gate is off the exit's heading");
+  assert.ok(YARD_GATE.x < ALDER_GARAGE_EXIT.x - 20, "the gate is not ahead of the exit");
+
+  // A car's width is 1.84 (the collider in sim.ts), so the opening must clear it
+  // with room to steer. Nothing solid may stand in the gateway.
+  assert.ok(YARD_GATE.opening > 6, `a ${YARD_GATE.opening} m opening is not a gate`);
+  for (let z = YARD_GATE.z - YARD_GATE.opening / 2 + 1; z <= YARD_GATE.z + YARD_GATE.opening / 2 - 1; z += .5)
+    for (let x = YARD_GATE.x - 3; x <= YARD_GATE.x + 3; x += .5)
+      assert.ok(world.solids!.every(b => Math.abs(b.x - x) > b.width / 2 || Math.abs(b.z - z) > b.depth / 2),
+        `the gateway is blocked at ${x.toFixed(1)}, ${z.toFixed(1)}`);
+});
+
+test("the gate is drawn, and its gatehouse is lit only after dark", () => {
+  const named = (scene: THREE.Scene, prefix: string) => {
+    const found: THREE.Object3D[] = [];
+    scene.traverse(object => { if (object.name.startsWith(prefix)) found.push(object); });
+    return found;
+  };
+  const night = new THREE.Scene(); addDriftYard(night, true);
+  for (const s of GATE_STRUCTURES) assert.equal(named(night, `yard-${s.id}`).length, 1, `${s.id} is not drawn`);
+  assert.equal(named(night, "gate-floodlight-head").length, 2, "the gate posts carry no floods");
+
+  // "Lit means occupied": the booth window is how a player knows the meet is on.
+  const lit = named(night, "gate-booth-window")[0] as THREE.Mesh;
+  assert.ok(lit, "no gatehouse window");
+  assert.ok(((lit.material as THREE.MeshStandardMaterial).emissiveIntensity ?? 0) > 0, "the gatehouse is dark at night");
+
+  const blockout = new THREE.Scene(); addDriftYard(blockout, false);
+  const unlit = named(blockout, "gate-booth-window")[0] as THREE.Mesh;
+  assert.equal((unlit.material as THREE.MeshStandardMaterial).emissiveIntensity, 0, "the blockout lit the gatehouse");
+  for (const scene of [night, blockout])
+    scene.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
 });
 
 test("real tyre forces support repeatable drift runs across all drivetrains with full steering", () => {
