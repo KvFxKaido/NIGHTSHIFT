@@ -152,7 +152,12 @@ test("real tyre forces support repeatable drift runs across all drivetrains with
 });
 
 test("a real wall contact breaks the drift chain and Sable owns the nearby challenge", () => {
-  const sim = createSim("rwd", createAlderWorld(true, { ...DRIFT_YARD.start, x: -618, z: 1000 }), { race: SABLE_DRIFT, traffic: false });
+  // A metre off the warehouse's east face, which is at x -487. This used to run
+  // at the apron's west wall, which came out when the site was fenced and paved
+  // (2026-09-21). The gap has to be about a metre: the car is sliding sideways,
+  // so at more than 2 m it spins before it touches anything and the chain is
+  // lost to the spin rather than to the contact this is about.
+  const sim = createSim("rwd", createAlderWorld(true, { ...DRIFT_YARD.start, x: -485, z: 955 }), { race: SABLE_DRIFT, traffic: false });
   try {
     sim.state.race!.countdown = 0;
     sim.state.race!.drift!.chain = 200; sim.state.race!.drift!.score = 100;

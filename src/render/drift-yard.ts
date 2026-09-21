@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
+import { SITE_FENCE_WALLS, SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
 export function addDriftYard(scene: THREE.Scene, night: boolean) {
@@ -10,9 +10,12 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     mesh.name = name; mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;
     group.add(mesh); return mesh;
   }
-  const b = DRIFT_YARD.bounds, entry = DRIFT_YARD.driveway;
+  const entry = DRIFT_YARD.driveway;
   const asphalt = material(night ? 0x303b43 : 0x46535a);
-  for (const [name, rect] of [["apron", b], ["access-road", entry]] as const) {
+  // The whole site is paved now, not just the old lot: the two rectangles the
+  // fence encloses, plus the driveway that reaches it.
+  for (const [name, rect] of [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const),
+    ["access-road", entry] as const]) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(rect.maxX - rect.minX, rect.maxZ - rect.minZ), asphalt);
     mesh.name = `drift-yard-${name}`; mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((rect.minX + rect.maxX) / 2, DRIFT_YARD.base + .035, (rect.minZ + rect.maxZ) / 2);
@@ -40,7 +43,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
         const light = new THREE.PointLight(0xc2def0, 160, 220, 1);
         light.position.set(s.x, 15, s.z); group.add(light);
       }
-    } else {
+    } else if (s.id.includes("wall")) {
       const horizontal = s.width > s.depth;
       for (let offset = -Math.max(s.width, s.depth) / 2 + 3; offset < Math.max(s.width, s.depth) / 2; offset += 8)
         box("yard-wall-reflector", s.x + (horizontal ? offset : 0), 2.9, s.z + (horizontal ? 0 : offset), horizontal ? 2 : 2.1, .18, horizontal ? 2.1 : 2, yellow);
@@ -69,6 +72,23 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
   boothWindow.rotation.y = Math.PI / 2;
   group.add(boothWindow);
+
+  // The barrier round the whole site: the yard, what is built in it, and the
+  // grass around it. Gaps are where the ways in are.
+  for (const wall of SITE_FENCE_WALLS) {
+    const mesh = box(`site-fence`, wall.x, wall.base + wall.height / 2, wall.z,
+      wall.width, wall.height, wall.depth, material(wall.color));
+    mesh.rotation.y = -wall.rotation;
+    // The same reflectors the apron's walls carry, so it reads as the same place.
+    const marks = Math.max(1, Math.round(wall.width / 9));
+    for (let i = 0; i < marks; i++) {
+      const along = (i + .5) / marks * wall.width - wall.width / 2;
+      const mark = box("site-fence-reflector",
+        wall.x + Math.cos(wall.rotation) * along, wall.base + wall.height - .5,
+        wall.z + Math.sin(wall.rotation) * along, 2, .18, wall.depth + .1, yellow);
+      mark.rotation.y = -wall.rotation;
+    }
+  }
 
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.
   for (let i = 1; i < YARD_LINE.length; i++) {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createAlderWorld, ALDER_SOLIDS, alderGround } from "../src/sim/alder.ts";
-import { DRIFT_YARD, YARD_GATE } from "../src/sim/drift-yard.ts";
+import { DRIFT_YARD, SITE_PAVING, YARD_GATE } from "../src/sim/drift-yard.ts";
 import type { BuildingBlock } from "../src/sim/building-footprint.ts";
 import { yardCells, yardCellAt, yardCellCentre, yardCol, yardRow, inYardSite,
   YARD_CELL, YARD_COLUMNS, YARD_SITE, type YardCell } from "../src/sim/yard-grid.ts";
@@ -71,16 +71,23 @@ test("a usable cell is clear of the solids and the carriageway; a blocked one is
   assert.ok(cells.some(cell => cell.blocked), "nothing in the venue is solid, which cannot be right");
 });
 
-test("the venue's grounds describe themselves: the apron reads paved, the land east of it dirt", () => {
-  const b = DRIFT_YARD.bounds;
-  const insideApron = (cell: YardCell) => cell.x > b.minX && cell.x < b.maxX && cell.z > b.minZ && cell.z < b.maxZ;
-  for (const cell of cells) {
-    if (insideApron(cell)) assert.equal(cell.surface, "apron", `${cell.x}, ${cell.z} is in the apron but reads ${cell.surface}`);
-    if (cell.x > b.maxX) assert.equal(cell.surface, "ground", `${cell.x}, ${cell.z} is east of the apron but reads ${cell.surface}`);
-  }
-  // Sable's start is on the apron; the gate stands on the dirt it opens onto.
+// A cell's surface is read from the world, never authored here, so that the
+// venue describes itself rather than keeping a second copy that drifts. The
+// site was fenced and paved wall to wall on 2026-09-21, and this followed it
+// without being told: what was open dirt east of the apron now reads paved.
+test("a cell's surface is whatever the world paved, not a copy of it", () => {
+  const paved = (cell: YardCell) => SITE_PAVING.some(area =>
+    cell.x >= area.minX && cell.x <= area.maxX && cell.z >= area.minZ && cell.z <= area.maxZ);
+  for (const cell of cells)
+    assert.equal(cell.surface, paved(cell) ? "apron" : "ground",
+      `${cell.x}, ${cell.z} reads ${cell.surface}`);
+
+  // Sable's ground and the gate's are the same surface now; the strip of the
+  // grid that falls outside the fence's south-east step is what is still dirt.
   assert.equal(yardCellAt(cells, DRIFT_YARD.start.x, DRIFT_YARD.start.z)?.surface, "apron");
-  assert.equal(yardCellAt(cells, YARD_GATE.x, YARD_GATE.z)?.surface, "ground");
+  assert.equal(yardCellAt(cells, -150, 1000)?.surface, "apron");
+  assert.equal(yardCellAt(cells, -150, 810)?.surface, "ground");
+  assert.ok(cells.some(cell => cell.surface === "ground"), "the grid sees no unpaved ground at all");
 });
 
 // The counts are the venue's shape in one line, so they move only on purpose.
@@ -92,10 +99,13 @@ test("the venue measures what it measured when this was pinned", () => {
   const measured = { cells: cells.length, usable: count(c => c.usable), blocked: count(c => c.blocked),
     roadside: count(c => c.roadside), apron: count(c => c.usable && c.surface === "apron"),
     ground: count(c => c.usable && c.surface === "ground") };
-  assert.deepEqual(measured, { cells: 480, usable: 401, blocked: 79, roadside: 0, apron: 198, ground: 203 },
+  // Repinned 2026-09-21, when the site was fenced and paved: four more cells
+  // blocked where the fence crosses this grid, and 203 dirt cells became
+  // paved. Both moved on purpose, which is what this pin is for.
+  assert.deepEqual(measured, { cells: 480, usable: 397, blocked: 83, roadside: 0, apron: 365, ground: 32 },
     `the venue changed shape: repin to ${JSON.stringify(measured)}`);
-  // 16 hectares of it, and the site stops at Harbor Way's kerb rather than
-  // swallowing the street, which is why nothing is roadside today.
-  assert.equal(measured.usable * YARD_CELL * YARD_CELL, 160400);
+  // Just under 16 hectares of it, and the site stops at Harbor Way's kerb
+  // rather than swallowing the street, which is why nothing is roadside.
+  assert.equal(measured.usable * YARD_CELL * YARD_CELL, 158800);
   assert.equal(YARD_SITE.maxX, -20);
 });

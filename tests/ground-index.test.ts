@@ -3,7 +3,7 @@ import test from "node:test";
 import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, ALDER_FORECOURT, ALDER_BUILDING_FRONTS, ALDER_GROUNDS_FRONT_IDS, ALDER_SITE_GROUNDS } from "../src/sim/alder.ts";
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { ARENA, nearArena } from "../src/sim/arena.ts";
-import { DRIFT_YARD } from "../src/sim/drift-yard.ts";
+import { DRIFT_YARD, SITE_PAVING } from "../src/sim/drift-yard.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import { onMarketPaving } from "../src/sim/market-block.ts";
 
@@ -27,7 +27,7 @@ function originalGround(x: number, z: number): boolean {
     return crosses.every(c=>c>=-1e-7)||crosses.every(c=>c<=1e-7);
   }))return false;
   const f = ALDER_FORECOURT;
-  for (const area of [DRIFT_YARD.bounds, DRIFT_YARD.driveway,
+  for (const area of [...SITE_PAVING, DRIFT_YARD.bounds, DRIFT_YARD.driveway,
     { minX:f.x-f.width/2, maxX:f.x+f.width/2, minZ:f.z-f.depth/2, maxZ:f.z+f.depth/2 }]) {
     if (x>=area.minX && x<=area.maxX && z>=area.minZ && z<=area.maxZ) return false;
   }
