@@ -20,8 +20,10 @@ import { ARENA, ARENA_ACCESS, ARENA_BOUNDS, ARENA_LAYOUT_IDS, arenaLap, nearAren
 import type { CoursePoint } from "./track.ts";
 import { createCornerProps } from "./corner-dressing.ts";
 import { marketUtilities, onMarketPaving } from "./market-block.ts";
+import { scaleAlderSkyline } from "./alder-skyline.ts";
+import { planBuildingFronts, frontagePavingQuery } from "./building-fronts.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v1` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -31,7 +33,7 @@ export const ALDER_GARAGE_EXIT = {x:13,y:2,z:910,heading:Math.PI/2,pitch:0};
 export const GARAGE_PLOT_ID = buildingId(garageBuilding);
 /** The paved apron in front of Wharf Garage (drawn as `garage-forecourt`). */
 export const ALDER_FORECOURT: BuildingBlock = {x:11.5,z:910,width:21,depth:40,height:1,base:2,rotation:0};
-export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...data.buildings,garageBuilding];
+export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...scaleAlderSkyline(data.buildings),garageBuilding];
 export const ALDER_LAYOUT_BASELINE = layoutFingerprint(GENERATED_ALDER_BLOCKS.map(block=>
   Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000]))));
 export function alderHeight(x: number, z: number): number {
@@ -166,6 +168,8 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
 const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
+export const ALDER_BUILDING_FRONTS = planBuildingFronts(ALDER_BLOCKS, ALDER_STREETS, alderHeight);
+const onFrontagePaving = frontagePavingQuery(ALDER_BUILDING_FRONTS);
 export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
   [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
@@ -229,7 +233,7 @@ const arenaGroundNear = spatialIndex(ARENA_ROADS.flatMap(road => road.points.sli
  * selection would call that ground.
  */
 export function alderGround(x: number, z: number): boolean {
-  if (onMarketPaving(x, z)) return false;
+  if (onMarketPaving(x, z) || onFrontagePaving(x,z)) return false;
   for (const area of PAVED_AREAS) {
     if (x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ) return false;
   }

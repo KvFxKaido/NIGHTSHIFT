@@ -59,7 +59,8 @@ test("the complete tower kit has bounded geometry and two shared materials witho
         assert.ok(points.getY(i)>=0 && points.getY(i)<=block.height+1);
       }
     });
-    assert.ok(triangles<2200,`per-tower geometry budget: ${triangles}`); total+=triangles;
+    const limit=lod.userData.site.height>74?2800:2200;
+    assert.ok(triangles<limit,`per-tower geometry budget: ${triangles}`); total+=triangles;
   }
   assert.equal(materials.size,2); assert.ok(total<230000,`city-wide detail budget: ${total}`);
 });

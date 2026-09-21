@@ -60,7 +60,7 @@ function readPlacement(entry: unknown, ids: Set<string>): BuildingPlacement {
     return number;
   };
   return { id: item.id, x: read("x", -1500, 1500), z: read("z", -1500, 1500),
-    width: read("width", 2, 100), depth: read("depth", 2, 100), height: read("height", 2, 100),
+    width: read("width", 2, 100), depth: read("depth", 2, 100), height: read("height", 2, 150),
     rotation: read("rotation", -Math.PI * 2, Math.PI * 2) };
 }
 
@@ -119,7 +119,7 @@ export function parseBuildingLayout(value: unknown): BuildingLayout {
       return number;
     };
     return { id: item.id, x: read("x", -1500, 1500), z: read("z", -1500, 1500),
-      width: read("width", 2, 100), depth: read("depth", 2, 100), height: read("height", 2, 100),
+      width: read("width", 2, 100), depth: read("depth", 2, 100), height: read("height", 2, 150),
       rotation: read("rotation", -Math.PI * 2, Math.PI * 2) };
   }).sort((a, b) => a.id.localeCompare(b.id, "en"));
   return { schema: 1, baseline: input.baseline, buildings };

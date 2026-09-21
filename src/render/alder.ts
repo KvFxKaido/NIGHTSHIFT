@@ -8,6 +8,8 @@ import { addEvergreens } from "./evergreens.ts";
 import { addBrickCorner, isBrickCorner } from "./brick-corner.ts";
 import { addMarketBlock } from "./market-block.ts";
 import { addTowerDetails } from "./tower-detail.ts";
+import { addBuildingFronts } from "./building-fronts.ts";
+import { ALDER_BUILDING_FRONTS } from "../sim/alder.ts";
 import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
@@ -154,6 +156,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   const buildings=ALDER_BLOCKS.filter(block=>block!==ALDER_GARAGE.building);
   for(const block of buildings) if(isBrickCorner(block)) addBrickCorner(scene,block);
   addMarketBlock(scene, alderHeight, ALDER_MARKET_UTILITIES);
+  addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight);
   addGarageExterior(scene,ALDER_GARAGE.building);
   const forecourt=new THREE.Mesh(new THREE.PlaneGeometry(ALDER_FORECOURT.width,ALDER_FORECOURT.depth),new THREE.MeshStandardMaterial({color:0x3c4851,roughness:.8}));
   forecourt.rotation.x=-Math.PI/2;forecourt.position.set(ALDER_FORECOURT.x,ALDER_FORECOURT.base+.012,ALDER_FORECOURT.z);forecourt.receiveShadow=true;forecourt.name="garage-forecourt";scene.add(forecourt);
@@ -164,7 +167,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       const dressing=place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP;
       // A tower is offices wherever it stands, except among SoDo's warehouses.
       const tower=b.height>=TOWER&&place?.id!=="sodo";
-      return {...b,decorationIndex:index,faceDistances:frontage[index]!,dressing:tower?{...dressing,windows:"office" as const}:dressing};
+      return {...b,decorationIndex:index,faceDistances:frontage[index]!,structuredFrontage:ALDER_BUILDING_FRONTS.some(p=>p.block===b),
+        dressing:tower?{...dressing,windows:"office" as const}:dressing};
     }).filter((_, index)=>!isBrickCorner(buildings[index]!));
     addNightBuildings(scene,sites,alderHeight,ALDER_REACH);
     addTowerDetails(scene,sites);

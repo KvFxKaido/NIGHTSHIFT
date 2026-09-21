@@ -208,6 +208,8 @@ const DOCK_INSIDE = new THREE.Color("#b9c9e6").multiplyScalar(0.45);
 const FLOOD = new THREE.Color("#eef3ff");
 
 export interface BuildingSite extends RoadSolid {
+  /** A fitted frontage owns this site's ground-floor panels, entrances and signs. */
+  readonly structuredFrontage?: boolean;
   /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
   readonly decorationIndex?: number;
   /** How far a street is from each face centre, outward order +Z, -Z, +X, -X.
@@ -325,7 +327,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
 
       // Signage goes on the faces a driver can actually read: a neon strip in a
       // courtyard nobody drives past is cost with no image behind it.
-      if (face.width < 8 || site.faceDistances[side]! > reach.signs) return;
+      if (site.structuredFrontage || face.width < 8 || site.faceDistances[side]! > reach.signs) return;
       if (hash01(index * 9.7 + side * 2.3) < 1 - dressing.signs) return;
       for (let slot = 0; slot < 2; slot++) {
         const seed = index * 9.7 + side * 2.3 + slot * 31.4;
@@ -356,7 +358,7 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // eye level, not by the lamps: without this row the street reads as a canyon
     // of dark slab with a few signs floating on it.
     faces.forEach((face, side) => {
-      if (site.faceDistances[side]! > reach.shopfronts || face.width < 8) return;
+      if (site.structuredFrontage || site.faceDistances[side]! > reach.shopfronts || face.width < 8) return;
       // Where the road climbs away from the block's base — the bridge crown is
       // 24 m up, and 27 of the district's 165 street-facing blocks sit under
       // some lift — there is no ground floor to light. Dressing one anyway put

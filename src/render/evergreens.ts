@@ -21,9 +21,11 @@ export function addEvergreens(scene: THREE.Scene, trees: readonly Evergreen[], _
       const t = tree.trunk;
       pose.rotation.set(0, 0, 0); pose.position.set(t.x, t.base + t.height / 2, t.z);
       pose.scale.set(t.width, t.height, t.depth); pose.updateMatrix(); trunks.setMatrixAt(i, pose.matrix);
-      pose.position.y = t.base; pose.rotation.y = tree.height; pose.scale.set(tree.radius, tree.height, tree.radius);
+      const growth = tree.oldGrowth ? 1.5 : 1;
+      pose.position.y = t.base; pose.rotation.y = tree.height/growth; pose.scale.set(tree.radius, tree.height, tree.radius);
       pose.updateMatrix(); crowns.setMatrixAt(i, pose.matrix);
-      color.setRGB(.78 + tree.radius * .04, .85 + tree.radius * .025, .8 + tree.radius * .03);
+      const originalRadius = tree.radius/growth;
+      color.setRGB(.78 + originalRadius * .04, .85 + originalRadius * .025, .8 + originalRadius * .03);
       crowns.setColorAt(i, color);
     });
     for (const mesh of [trunks, crowns]) {

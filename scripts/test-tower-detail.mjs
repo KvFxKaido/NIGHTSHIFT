@@ -28,7 +28,7 @@ try {
     view.sky.position.set(block.x,block.base,block.z);
     window.towerStudy={block,root,target,fill};
   });
-  for(const [name,x,y,z,lit] of [['near',-42,16,55,true],['night',-42,16,55,false],['roof',-42,90,55,true],['street',-32,3,44,false],['far',-220,35,240,false]]) {
+  for(const [name,x,y,z,lit] of [['near',-65,22,85,true],['night',-65,22,85,false],['roof',-50,130,65,true],['street',-62,3,84,false],['far',-220,35,240,false]]) {
     await page.evaluate(({x,y,z,lit})=>{const {block,fill}=towerStudy,{view}=__ns;fill.visible=lit;
       view.camera.position.set(block.x+x,block.base+y,block.z+z);view.camera.lookAt(block.x,block.base+block.height*.5,block.z);
       view.sky.position.copy(view.camera.position);

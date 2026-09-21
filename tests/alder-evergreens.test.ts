@@ -3,7 +3,7 @@ import test from "node:test";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createEvergreens, EVERGREEN_GROVES, evergreenPassage } from "../src/sim/alder-evergreens.ts";
-import { ALDER_EVERGREENS, ALDER_STREETS, ALDER_BLOCKS, createAlderWorld, alderHeight } from "../src/sim/alder.ts";
+import { ALDER_EVERGREENS, ALDER_STREETS, ARENA_ROADS, ALDER_BLOCKS, createAlderWorld, alderHeight } from "../src/sim/alder.ts";
 import { blockCorners, segmentFootprintDistance } from "../src/sim/building-footprint.ts";
 import { addEvergreens } from "../src/render/evergreens.ts";
 import { firGeometry } from "../src/render/fir-tree.ts";
@@ -32,7 +32,7 @@ test("groves occupy open parcels while every road, alley and building keeps cano
   assert.equal(new Set(ALDER_EVERGREENS.map(t => t.id)).size, ALDER_EVERGREENS.length);
   const solids = new Set(createAlderWorld().solids);
   for (const grove of EVERGREEN_GROVES) assert.ok(ALDER_EVERGREENS.filter(t => t.grove === grove.id).length > 100);
-  const segments = ALDER_STREETS.flatMap(s => s.points.slice(1).map((b, i) => ({ a: s.points[i]!, b })));
+  const segments = [...ALDER_STREETS,...ARENA_ROADS].flatMap(s => s.points.slice(1).map((b, i) => ({ a: s.points[i]!, b })));
   for (const tree of ALDER_EVERGREENS) {
     const p = tree.trunk;
     assert.ok(solids.has(p), `${tree.id}: no physical trunk`);
@@ -70,14 +70,19 @@ test("geographic render batches use exactly the shared trunk poses", () => {
   for (const child of group.children) {
     const mesh = child as THREE.InstancedMesh;
     assert.ok(mesh.boundingSphere && mesh.boundingBox);
-    if (mesh.name.startsWith("evergreen-crowns:")) { crowns += mesh.count; continue; }
-    trunks += mesh.count;
+    const crown=mesh.name.startsWith("evergreen-crowns:");
+    if(crown) crowns+=mesh.count; else trunks+=mesh.count;
     const key = mesh.name.split(":")[1];
     const batch = ALDER_EVERGREENS.filter(t => `${Math.floor(t.trunk.x / 256)},${Math.floor(t.trunk.z / 256)}` === key);
     assert.equal(mesh.count, batch.length);
     batch.forEach((tree, i) => {
       mesh.getMatrixAt(i, matrix); matrix.decompose(position, rotation, scale);
       const t = tree.trunk;
+      if(crown) {
+        assert.ok(position.distanceTo(new THREE.Vector3(t.x,t.base,t.z))<.0003);
+        assert.ok(scale.distanceTo(new THREE.Vector3(tree.radius,tree.height,tree.radius))<.00001);
+        return;
+      }
       assert.ok(position.distanceTo(new THREE.Vector3(t.x, t.base + t.height / 2, t.z)) < .0003);
       assert.ok(scale.distanceTo(new THREE.Vector3(t.width, t.height, t.depth)) < .00001);
     });
@@ -92,22 +97,24 @@ test("geographic render batches use exactly the shared trunk poses", () => {
 
 await RAPIER.init();
 test("driving into a shared trunk stops the car; removing it allows the same shortcut", () => {
-  const trunk = ALDER_EVERGREENS.find(t => t.grove === "union-commons")!.trunk;
-  const baseWorld = createAlderWorld();
-  const flat = { ...baseWorld.project(trunk.x, trunk.z), height: trunk.base, pitch: 0, distance: 0 };
-  function drive(blocked: boolean) {
-    const sim = createSim("fwd", { id: "evergreen-collision-fixture", walls: [], solids: blocked ? [trunk] : [],
-      start: { x: trunk.x - 15, z: trunk.z, y: trunk.base, heading: -Math.PI / 2, pitch: 0 },
-      project: () => flat, surface: () => flat }, { traffic: false });
-    try {
-      sim.body.setLinvel({ x: 18, y: 0, z: 0 }, true);
-      let contact = false;
-      for (let tick = 0; tick < 120; tick++) { step(sim, { ...NEUTRAL, throttle: 1 }); contact ||= hasContact(sim); }
-      return { x: sim.state.vehicle.x, contact };
-    } finally { sim.world.free(); }
+  for (const oldGrowth of [false,true]) {
+    const trunk = ALDER_EVERGREENS.find(t => t.grove === "union-commons" && t.oldGrowth===oldGrowth)!.trunk;
+    const baseWorld = createAlderWorld();
+    const flat = { ...baseWorld.project(trunk.x, trunk.z), height: trunk.base, pitch: 0, distance: 0 };
+    function drive(blocked: boolean) {
+      const sim = createSim("fwd", { id: "evergreen-collision-fixture", walls: [], solids: blocked ? [trunk] : [],
+        start: { x: trunk.x - 15, z: trunk.z, y: trunk.base, heading: -Math.PI / 2, pitch: 0 },
+        project: () => flat, surface: () => flat }, { traffic: false });
+      try {
+        sim.body.setLinvel({ x: 18, y: 0, z: 0 }, true);
+        let contact = false;
+        for (let tick = 0; tick < 120; tick++) { step(sim, { ...NEUTRAL, throttle: 1 }); contact ||= hasContact(sim); }
+        return { x: sim.state.vehicle.x, contact };
+      } finally { sim.world.free(); }
+    }
+    const blocked = drive(true), clear = drive(false);
+    assert.ok(blocked.contact, "the rendered trunk must register contact");
+    assert.ok(blocked.x < trunk.x - 2, "car passed through the tree");
+    assert.ok(clear.x > trunk.x + 15, "control run must cross the trunk's location");
   }
-  const blocked = drive(true), clear = drive(false);
-  assert.ok(blocked.contact, "the rendered trunk must register contact");
-  assert.ok(blocked.x < trunk.x - 2, "car passed through the tree");
-  assert.ok(clear.x > trunk.x + 15, "control run must cross the trunk's location");
 });

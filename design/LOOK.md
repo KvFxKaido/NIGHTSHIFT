@@ -440,3 +440,65 @@ and disabled after warmup. The first D3D11 near-tower view measured 6.6 ms versu
 6.9 ms median (7.5 versus 7.8 ms p95), with six extra draw calls and 4,992 extra
 submitted triangles. That is one view's render cost, not a whole-city driving
 frame-time guarantee.
+
+## Skyline peaks and old-growth firs (2026-09-21)
+
+`sim/alder-skyline.ts` selects sixteen existing towers for 1.5x height. Most peaks
+sit in Alder Center and the Central District; Belltown and Capitol Hill get a
+few smaller accents. The tallest is now 111 m. Footprints, rotation and ground
+positions stay fixed. Scaling the shared generated baseline gives collision,
+the editor, the distant shell and the nearby architecture the same height.
+Facade grids add normal-height floors instead of stretching window textures.
+Authored editor replacements retain their explicitly chosen dimensions, and
+both layout parsers and the editor now accept heights through 150 m.
+
+The evergreen generator keeps all 4,439 positions and enlarges 242 existing
+trees (5.45%) to 1.5x height, crown radius and trunk width. These 21–36 m trees
+are scattered through the park/woodland interiors, with none on the freight
+edge. Selection is seeded and repeatable. Failed growth candidates remain
+ordinary trees. The larger crown must clear the existing road and building
+buffers and the full reserved passage; spatial-index bounds include the
+expanded radius. Enlarged trunks are shared physical solids, grounded at their
+lowest corner. Original crown orientation and tint are retained. Instanced
+tree counts, geometry and material batches do not change.
+
+The world revision adds `-scale-v1` because shared solid dimensions changed.
+The taller generated baseline also updates the editor's layout fingerprint.
+`tests/alder-scale.test.ts` checks the selected peaks, ordinary floor pitch,
+editor limits and unchanged tree population/positions. The evergreen suite
+checks every road (including the circuit), all building clearances and drives
+against both ordinary and enlarged trunks. `scripts/test-alder-scale.mjs`
+captures the skyline and compares ordinary/enlarged tree instances from a
+fixed roadside camera; the tower browser check verifies the taller distant
+silhouette still matches exactly after the detail fade.
+# Modular frontage pilot
+
+Three authored plots now use a shared frontage recipe on their existing envelopes:
+Harbor Supply (-44, 585), Bell Row (-477, -1140), and Meridian House (-110, -564).
+The ordinary upper walls, window pattern, roof silhouette and tower LOD remain.
+These three sites replace random ground-floor panels/signs with fitted modules;
+the rest of Alder keeps its existing dressing while the kit is evaluated.
+
+Each tenant owns a door, signs and any glazing/lighting. Harbor Supply has a
+personnel entrance, two ribbed loading shutters, bay numbers and white work
+lamps. Bell Row pairs Night Owl coffee and Second Spin records with individual
+doors, fascias and canopy-edge neon; Bell Rooms has a separate residential
+entrance. Night Owl also demonstrates a two-sided projecting blade sign.
+Meridian House has a double-door lobby, glazing, an address plaque and a canopy.
+
+`sim/building-fronts.ts` owns facade modules and street-connected access patches;
+the renderer consumes that plan, and the ground query uses the same paving to
+exclude grass and supply tyre grip. The warehouse and shops receive forecourts;
+the tower keeps green setbacks beside a four-metre lobby walk. The first kit is
+deliberately limited to level, unobstructed plots. Edited envelopes or blocked
+approaches fall back to the original building dressing rather than leaving
+floating doors or orphaned paving. Sloped sites need a future platform/ramp kit.
+
+Signs share one mipmapped atlas, with lettering laid out at each sign's physical
+aspect ratio. Architecture merges per material/building (seven materials and at
+most 21 meshes across the entire pilot); no dynamic lights are added. Fine ribs,
+handles and brackets dither away at 100–160 m and stop submitting at 180 m.
+The core entrance, canopy and sign remain, preserving identity at distance.
+Run `node scripts/test-building-fronts.mjs` for night/study/driver captures and
+browser budgets; `tests/building-fronts.test.ts` checks access, overlap, fallback,
+shared paving, geometry budgets and preservation of the original upper shell.
