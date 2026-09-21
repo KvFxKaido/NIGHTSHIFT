@@ -3,7 +3,8 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, PHYSICS_VERSION, type Drivetrain, type Input, type Sim } from "../src/sim/sim.ts";
 import type { RoadWorld } from "../src/sim/road-world.ts";
-import { alderGround, projectOntoAlder, ALDER_GARAGE, ALDER_PAVEMENT, ALDER_STREETS } from "../src/sim/alder.ts";
+import { alderGround, projectOntoAlder, ALDER_GARAGE, ALDER_PAVEMENT, ALDER_STREETS, ALDER_BUILDING_FRONTS } from "../src/sim/alder.ts";
+import { frontagePavingQuery } from "../src/sim/building-fronts.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import { DRIFT_YARD, YARD_LINE } from "../src/sim/drift-yard.ts";
 import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
@@ -100,6 +101,7 @@ test("the ground cost replays tick for tick", () => {
 
 test("Port Alder's ground is past the pavement, and paved yards and routes are not ground", () => {
   let checked = 0;
+  const onForecourt=frontagePavingQuery(ALDER_BUILDING_FRONTS);
   for (const street of ALDER_STREETS) {
     for (let i = 1; i < street.points.length; i++) {
       const a = street.points[i - 1]!, b = street.points[i]!;
@@ -109,10 +111,11 @@ test("Port Alder's ground is past the pavement, and paved yards and routes are n
       const edge = Math.min(a.width, b.width) / 2 + ALDER_PAVEMENT;
       assert.equal(alderGround(mx, mz), false, `${street.id} centreline`);
       assert.equal(alderGround(mx + nx * (edge - 0.3), mz + nz * (edge - 0.3)), false, `${street.id} pavement`);
-      // Only claim ground where no other street's paving reaches.
+      // Only claim open ground beyond other streets and saved building aprons.
+      // ground-index.test.ts independently checks every paving polygon.
       const ox = mx + nx * (edge + 2), oz = mz + nz * (edge + 2);
       const paved = ALDER_STREETS.some(other => { const on = projectOntoPath(other.points, ox, oz); return on.distance <= on.width / 2 + ALDER_PAVEMENT + 0.5; });
-      if (!paved && ox > DRIFT_YARD.bounds.maxX + 5) { assert.equal(alderGround(ox, oz), true, `${street.id} past the pavement`); checked++; }
+      if (!paved && !onForecourt(ox,oz) && ox > DRIFT_YARD.bounds.maxX + 5) { assert.equal(alderGround(ox, oz), true, `${street.id} past the pavement`); checked++; }
     }
   }
   assert.ok(checked > 50, `only ${checked} open verges were checked`);

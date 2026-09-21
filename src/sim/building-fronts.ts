@@ -2,6 +2,7 @@ import { pointFootprintDistance, spatialIndex, type BuildingBlock } from "./buil
 import type { Street } from "./street-path.ts";
 
 export type FrontKind = "warehouse" | "shops" | "office" | "residential";
+export type IndustrialStyle = "freight" | "workshop" | "depot";
 export interface FrontModule {
   readonly kind: "door" | "glazing" | "shutter" | "sign" | "blade" | "light" | "canopy";
   readonly owner: string;
@@ -12,6 +13,8 @@ export interface FrontModule {
   readonly text?: string;
   readonly caption?: string;
   readonly color?: string;
+  /** Painted lettering receives scene light instead of glowing at night. */
+  readonly finish?: "painted";
 }
 export interface FrontRecipe {
   readonly id: string;
@@ -23,6 +26,7 @@ export interface FrontRecipe {
   readonly height: number;
   /** +Z, -Z, +X, -X, in the building's local frame. */
   readonly side: number;
+  readonly industrialStyle?: IndustrialStyle;
 }
 /** Authored pilot plots. Edited/moved envelopes fall back to ordinary dressing. */
 export const FRONT_RECIPES: readonly FrontRecipe[] = [
@@ -41,6 +45,14 @@ export interface FrontPlan {
   readonly modules: readonly FrontModule[];
   /** Paved strips, measured across/outward from the facade. Subdivided for terrain. */
   readonly paving: readonly { left: number; right: number; leftDepth: number; rightDepth: number; joinsStreet: boolean }[];
+}
+
+/** All four elevations use the same frame convention as the saved entrance. */
+export function buildingWallFrames(block:BuildingBlock) {
+  return [0,1,2,3].map(side=>({block,side,width:side<2?block.width:block.depth,
+    turn:[0,Math.PI,Math.PI/2,-Math.PI/2][side]!,
+    wallX:side<2?0:(side===2?1:-1)*block.width/2,
+    wallZ:side>=2?0:(side===0?1:-1)*block.depth/2}));
 }
 
 export function frontPoint(plan: Pick<FrontPlan, "block" | "turn" | "wallX" | "wallZ">, across: number, outward: number) {

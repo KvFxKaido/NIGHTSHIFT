@@ -1,6 +1,6 @@
 import type { BuildingBlock } from "./building-footprint.ts";
 import { authoredSourceId, layoutFingerprint } from "./building-layout.ts";
-import type { FrontKind, FrontModule, FrontPlan } from "./building-fronts.ts";
+import type { FrontKind, FrontModule, FrontPlan, IndustrialStyle } from "./building-fronts.ts";
 
 export interface SavedFrontage {
   buildingId: string;
@@ -46,6 +46,8 @@ export function parseFrontageDocument(value: unknown): FrontageDocument {
     const block:BuildingBlock={x:number(b.x,-10000,10000),z:number(b.z,-10000,10000),width:number(b.width,2,100),
       depth:number(b.depth,2,100),height:number(b.height,2,150),base:number(b.base,-100,500),rotation:number(b.rotation,-Math.PI*2,Math.PI*2)};
     const kind=text(r.kind) as FrontKind;if(!FRONT_KINDS.includes(kind))throw Error("Unknown building use");
+    const industrialStyle=r.industrialStyle as IndustrialStyle|undefined;
+    if(industrialStyle!==undefined&&(!["freight","workshop","depot"].includes(industrialStyle)||kind!=="warehouse"))throw Error("Invalid industrial building style");
     const side=number(r.side,0,3);if(!Number.isInteger(side))throw Error("Invalid facade side");
     const width=side<2?block.width:block.depth;
     const modules:FrontModule[]=array(p.modules,100).map(value=>{
@@ -53,15 +55,16 @@ export function parseFrontageDocument(value: unknown): FrontageDocument {
       if(!MODULE_KINDS.includes(kind))throw Error("Unknown frontage module");
       const color=m.color===undefined?undefined:text(m.color,7);
       if(color&&!/^#[0-9a-f]{6}$/i.test(color))throw Error("Use a six-digit hex colour");
+      if(m.finish!==undefined&&(m.finish!=="painted"||kind!=="sign"))throw Error("Painted lettering needs a wall sign");
       return {kind,owner:text(m.owner),x:number(m.x,-50,50),y:number(m.y,0,15),width:number(m.width,.03,50),height:number(m.height,.03,10),
-        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{})};
+        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{}),...(m.finish==="painted"?{finish:"painted" as const}:{})};
     });
     const paving=array(p.paving,100).map(value=>{
       const s=object(value);return {left:number(s.left,-50,50),right:number(s.right,-50,50),leftDepth:number(s.leftDepth,.1,40),
         rightDepth:number(s.rightDepth,.1,40),joinsStreet:boolean(s.joinsStreet)};
     });
     // Derive the coordinate frame instead of accepting a second conflicting transform.
-    const plan:FrontPlan={block,recipe:{id:text(r.id),kind,side,x:block.x,z:block.z,width:block.width,depth:block.depth,height:block.height},
+    const plan:FrontPlan={block,recipe:{id:text(r.id),kind,side,x:block.x,z:block.z,width:block.width,depth:block.depth,height:block.height,...(industrialStyle?{industrialStyle}:{})},
       width,turn:[0,Math.PI,Math.PI/2,-Math.PI/2][side]!,wallX:side<2?0:(side===2?1:-1)*block.width/2,
       wallZ:side>=2?0:(side===0?1:-1)*block.depth/2,bandHeight:number(p.bandHeight,3,Math.min(10,block.height)),modules,paving};
     const problems=frontageModuleIssues(plan);if(problems.length)throw Error(`${buildingId}: ${problems[0]}`);

@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 await mkdir('artifacts/frontage-editor',{recursive:true});
 const file='src/sim/alder-frontages.json',original=await readFile(file,'utf8');
-const document=JSON.parse(original),entry=document.entries.find(e=>!e.locked&&e.plan.recipe.kind==='shops');
+const document=JSON.parse(original),entry=document.entries.find(e=>!e.locked&&(process.argv.includes('--industrial')?e.plan.recipe.industrialStyle==='workshop':e.plan.recipe.kind==='shops'));
 const browser=await chromium.launch({args:['--use-angle=d3d11']});
 let savedTestFile=null;
 try {
@@ -17,6 +17,8 @@ try {
   await page.locator('#front-view').click();
   const signIndex=entry.plan.modules.findIndex(m=>m.kind==='sign');
   await page.locator('#front-module').selectOption(String(signIndex));
+  const finish=entry.plan.modules[signIndex].finish??'lit';
+  assert.equal(await page.locator('#front-finish').inputValue(),finish);
   await page.locator('#front-text').fill('RAIN CHECK QA');
   await page.locator('#front-apply').click();
   await page.waitForFunction(()=>document.querySelector('#front-status').textContent.includes('Draft preview'));
@@ -39,6 +41,7 @@ try {
   await page.locator('#front-module').selectOption(String(signIndex));
   assert.equal(await page.locator('#front-text').inputValue(),'RAIN CHECK QA');
   assert.equal(await page.locator('#front-locked').isChecked(),true);
+  assert.equal(await page.locator('#front-finish').inputValue(),finish,'painted finish survives save/reload');
   // A missing generation pass preserves the protected pilot and the hand edit.
   await page.locator('#front-generate').click();
   assert.equal(await page.locator('#front-text').inputValue(),'RAIN CHECK QA');

@@ -115,13 +115,18 @@ test("SoDo's warehouses light their docks, and nothing else floodlights a wall",
   const floods = new Map<string, number>();
   const position = new THREE.Vector3();
   scene.traverse(object => {
-    if (!(object instanceof THREE.Mesh) || !object.name.startsWith("district-signage:")) return;
+    if (!(object instanceof THREE.Mesh)) return;
+    const modular=object.name.startsWith("front-core-cell:");
+    if(!modular&&!object.name.startsWith("district-signage:"))return;
+    if(!object.geometry.getAttribute("color"))return;
     const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry;
     const positions = geometry.getAttribute("position"), colors = geometry.getAttribute("color");
     for (let i = 0; i < positions.count; i += 3) {
       const high = Math.max(colors.getX(i), colors.getY(i), colors.getZ(i));
       const low = Math.min(colors.getX(i), colors.getY(i), colors.getZ(i));
-      if (high < 0.8 || high - low > 0.2) continue;
+      // Saved warehouse work lamps replace the generic floods and use a softer
+      // off-white. Painted signs have no vertex emission and cannot count here.
+      if (high < (modular?0.5:0.8) || high - low > 0.2) continue;
       position.fromBufferAttribute(positions, i);
       const id = alderNeighbourhoodAt(position.x, position.z)?.id ?? "none";
       floods.set(id, (floods.get(id) ?? 0) + 1);

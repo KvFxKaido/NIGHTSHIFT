@@ -182,7 +182,7 @@ function mergedMesh(name: string, parts: THREE.BufferGeometry[], material: THREE
  * `floor` starts the tile on a floor of its own; a building's faces share it, so
  * a lit floor runs round the whole building rather than along one wall.
  */
-function facadePanel(width: number, height: number, phase: number, rowsPerTile: number, floor = 0): THREE.PlaneGeometry {
+function facadePanel(width: number, height: number, phase: number, rowsPerTile: number, floor = 0, bottom = 0): THREE.PlaneGeometry {
   const geometry = new THREE.PlaneGeometry(width, height);
   const grid = facadeGrid(width, height);
   const columns = grid.columns / TILE_COLUMNS;
@@ -190,7 +190,13 @@ function facadePanel(width: number, height: number, phase: number, rowsPerTile: 
   const uv = geometry.getAttribute("uv");
   const offset = Math.round(phase * TILE_COLUMNS) / TILE_COLUMNS;
   const lift = Math.round(floor * rowsPerTile) / rowsPerTile;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * columns + offset, uv.getY(i) * rows + lift);
+  const positions=geometry.getAttribute("position");
+  for (let i = 0; i < uv.count; i++) {
+    const v=uv.getY(i);
+    if(v===0)positions.setY(i,-height/2+bottom);
+    // Crop the old wall instead of stretching its remaining windows upward.
+    uv.setXY(i, uv.getX(i) * columns + offset, (v+(1-v)*bottom/height)*rows+lift);
+  }
   return geometry;
 }
 
@@ -210,6 +216,8 @@ const FLOOD = new THREE.Color("#eef3ff");
 export interface BuildingSite extends RoadSolid {
   /** A fitted frontage owns this site's ground-floor panels, entrances and signs. */
   readonly structuredFrontage?: boolean;
+  /** Exact height owned by the four-sided modular shell. */
+  readonly frontageHeight?: number;
   /** Preserve a site's decoration when a neighbouring plot gets a custom model. */
   readonly decorationIndex?: number;
   /** How far a street is from each face centre, outward order +Z, -Z, +X, -X.
@@ -318,7 +326,8 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
     // scattered tile keeps the start it always had.
     const floor = windows === "scattered" ? 0 : hash01(index * 3.7);
     faces.forEach((face, side) => {
-      const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side), WINDOW_PATTERNS[windows].rows, floor);
+      const bottom=site.structuredFrontage?Math.min(site.height,Math.max(0,site.frontageHeight??0)):0;
+      const panel = facadePanel(face.width, site.height, hash01(index * 5.1 + side), WINDOW_PATTERNS[windows].rows, floor,bottom);
       panel.rotateY(face.rotation);
       panel.translate(face.x, base + site.height / 2, face.z);
       const walls = facades.get(windows) ?? [];

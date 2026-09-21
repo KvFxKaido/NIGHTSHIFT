@@ -20,15 +20,20 @@ try {
     window.frontStudy={alder,frontPoint,fill};
   });
   const generated=await page.evaluate(()=>['shops','residential','office'].map(kind=>frontStudy.alder.ALDER_FRONTAGE_DOCUMENT.entries.find(e=>!e.locked&&e.plan.recipe.kind===kind)?.plan.recipe.id).filter(Boolean));
-  const ids=['harbor-supply','bell-row','meridian-house',...generated],shots=[];
+  const industrial=await page.evaluate(()=>['freight','workshop','depot'].map(style=>frontStudy.alder.ALDER_FRONTAGE_DOCUMENT.entries.find(e=>e.plan.recipe.industrialStyle===style)?.plan.recipe.id).filter(Boolean));
+  const ids=['harbor-supply','bell-row','meridian-house',...generated,...industrial],shots=[];
   for(const id of ids) {
-    for(const mode of ['study','night','driver']) {
+    for(const mode of ['study','night','driver','corner','rear']) {
       const stats=await page.evaluate(({id,mode})=>{
         const {alder,frontPoint,fill}=frontStudy,{view,sim}=__ns;
         const plan=alder.ALDER_BUILDING_FRONTS.find(p=>p.recipe.id===id);if(!plan)throw Error(`Missing pilot ${id}`);
-        fill.visible=mode==='study';
+        fill.visible=['study','corner','rear'].includes(mode);
         const distance=mode==='driver'?Math.max(...plan.paving.map(p=>p.leftDepth))+10:25;
-        const pos=frontPoint(plan,mode==='driver'?3:5,distance),target=frontPoint(plan,0,0);
+        const around=mode==='corner'||mode==='rear';
+        const pos=mode==='corner'?frontPoint(plan,plan.width/2+14,20):
+          mode==='rear'?frontPoint(plan,-plan.width/2-14,-(plan.recipe.side<2?plan.block.depth:plan.block.width)-20):
+          frontPoint(plan,mode==='driver'?3:5,distance);
+        const target=around?{x:plan.block.x,z:plan.block.z}:frontPoint(plan,0,0);
         const y=alder.alderHeight(pos.x,pos.z);
         Object.assign(sim.state.vehicle,{x:pos.x,y,z:pos.z,heading:0});view.car.visible=false;
         for(let i=0;i<100;i++)view.grass.update(sim.state,1/60);
@@ -54,7 +59,7 @@ try {
     return {meshes,materials:materials.size,triangles,lights,fine,plans:frontStudy.alder.ALDER_BUILDING_FRONTS.length,atlases:root.userData.signAtlases};
   });
   await writeFile('artifacts/building-fronts/check.json',JSON.stringify({shots,budget,errors},null,2));
-  assert.deepEqual(errors,[]);assert.equal(shots.length,ids.length*3);assert.equal(budget.lights,0);assert.ok(budget.meshes<=budget.plans*5);
+  assert.deepEqual(errors,[]);assert.equal(shots.length,ids.length*5);assert.equal(budget.lights,0);assert.ok(budget.meshes<=budget.plans*5);
   assert.ok(budget.atlases<=12);
   assert.ok(budget.fine.every(l=>!l.farFineVisible));console.log(JSON.stringify({shots,budget,errors}));
 } finally { await browser.close(); }

@@ -52,6 +52,8 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
     input("text").disabled=input("caption").disabled=!sign;
     element<HTMLSelectElement>("front-mount").value=sign?module.kind:"sign";
     element<HTMLSelectElement>("front-mount").disabled=!sign;
+    element<HTMLSelectElement>("front-finish").value=module.finish??"lit";
+    element<HTMLSelectElement>("front-finish").disabled=!sign;
     input("color").value=module.color??"#c5c8c3";
     input("color").disabled=!module.color&&!sign;
   }
@@ -59,7 +61,7 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
     const entry=current();
     if(entry)kind.value=entry.plan.recipe.kind;
     input("locked").checked=entry?.locked??false;
-    selection.textContent=entry?`${entry.plan.recipe.kind} · ${entry.plan.modules.length} fitted modules${entry.edited?" · hand edited":""}`:"No saved frontage on this building. Choose its use and generate a draft.";
+    selection.textContent=entry?`${entry.plan.recipe.industrialStyle??entry.plan.recipe.kind} · ${entry.plan.modules.length} fitted modules${entry.edited?" · hand edited":""}`:"No saved frontage on this building. Choose its use and generate a draft.";
     moduleIndex=Math.min(moduleIndex,Math.max(0,(entry?.plan.modules.length??1)-1));
     modulePicker.replaceChildren(...(entry?.plan.modules??[]).map((m,i)=>new Option(`${m.kind} · ${m.text??m.owner}`,String(i))));
     modulePicker.value=String(moduleIndex);moduleFields();controls();
@@ -108,7 +110,8 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
     const entry=current();if(!entry)return;const module=entry.plan.modules[moduleIndex]!;
     const sign=module.kind==="sign"||module.kind==="blade";
     const changed:FrontModule={...module,x:Number(input("x").value),y:Number(input("y").value),width:Number(input("width").value),height:Number(input("height").value),
-      ...(sign?{text:input("text").value,caption:input("caption").value,kind:element<HTMLSelectElement>("front-mount").value as "sign"|"blade"}:{}),
+      ...(sign?{text:input("text").value,caption:input("caption").value,kind:element<HTMLSelectElement>("front-mount").value as "sign"|"blade",
+        finish:element<HTMLSelectElement>("front-finish").value==="painted"?"painted" as const:undefined}:{}),
       ...(module.color||sign?{color:input("color").value}:{})};
     const modules=entry.plan.modules.map((m,i)=>i===moduleIndex?changed:(module.color||sign)&&m.owner===module.owner&&m.color?{...m,color:input("color").value}:m);
     replace({...entry,locked:true,edited:true,plan:{...entry.plan,modules}});

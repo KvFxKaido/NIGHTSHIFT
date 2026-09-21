@@ -551,3 +551,54 @@ no new dynamic lights. This is a geometry budget, not a whole-city FPS claim.
 undo/redo, real save/reload and placement-refit warnings; the test restores its
 temporary sign edit afterward. `node scripts/test-building-fronts.mjs` captures
 both the pilots and generated examples in study, night and driver-height views.
+
+### SODO industrial frontage pass
+
+SODO now adds 97 saved industrial frontages: 37 freight warehouses, 34 repair
+workshops and 26 trade depots. The original 97 frontages, including every
+Belltown choice and the three pilots, are preserved exactly. Another 28 SODO
+sites are flagged for attention rather than forcing a fit (64 across both
+passes). Use `pnpm frontages:generate --district=sodo` for a missing-only preview;
+the workshop's district controls use the same generator.
+
+The industrial variants keep a separate personnel entrance and closed vehicle
+bays. Freight uses wide receiving shutters; repair shops use narrower service
+bays and a shallow canopy; larger depots add a trade-counter window. Twelve
+business identities supply painted names, bay numbers and practical captions.
+Concrete panel seams, restrained paint wear and flush loading guides make the
+ground floor legible while retaining the original upper shell and skyline.
+Guides are clipped to the shared, validated forecourt; they add no collision
+objects. The paving still supplies driving grip and grass exclusion.
+
+Painted signs use a non-emissive, alpha-tested standard material, sharing bounded
+atlas pages separately from illuminated signs. There are no new dynamic lights.
+**Sign finish** in the editor switches a wall sign between painted lettering and
+an illuminated board; projecting blade signs require the board finish. Saved
+industrial style and sign finish survive edits, export, reload and rerolls of
+other buildings. Existing documents without these optional fields load unchanged.
+
+Both the original urban kit and SODO's industrial variants now wrap all four
+ground-storey elevations. Cladding, base courses, cornices and corner trim are
+continuous; side/rear walls use recessed windows, with quieter industrial high
+windows and rear service grilles. They do not duplicate the front's businesses
+or invent entrances without a validated path. The original upper masses and
+window treatment remain. Side windows use flat panels with modeled sills to
+keep the extra geometry bounded, and the same concrete material owns all walls
+so subsequent palette changes remain coherent.
+
+Across all 194 frontages the checked budget is 435 meshes (including each site's
+fine-detail LOD), 425,210 triangles, eight 1024-square atlases and 15 shared
+materials. Geographic core batching and fine-detail fading remain active. These
+are asset budgets, not a claim of measured whole-city frame rate. In-game captures
+cover all three industrial variants at night, with study lighting, from driver
+height, and around front/rear corners. `pnpm test:frontage-editor --industrial` additionally exercises a
+painted workshop sign through the real save/reload path and restores the data.
+
+The original window shell is cropped at each saved frontage's exact band height
+on all four walls. Its remaining UVs keep their original world scale and phase;
+upper windows and roofs do not move. Tower piers and base trim also yield that
+ground storey to the frontage. Keeping both full walls separated by only 5 cm
+caused distance-dependent depth flicker, so the underlying geometry is removed
+rather than relying on draw order. `node scripts/test-frontage-distance.mjs`
+moves a camera through 100–480 m with a high-contrast hidden shell and checks
+that none of it leaks into any of the four ground-floor kits.

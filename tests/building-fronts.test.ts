@@ -68,11 +68,22 @@ test("frontage kit shares materials, bounds draw cost and preserves the generic 
   for(const plan of PILOT_FRONTS) {
     const ordinary=new THREE.Scene(),structured=new THREE.Scene();
     const site={...plan.block,faceDistances:[5,5,5,5] as const};
-    addNightBuildings(ordinary,[site]);addNightBuildings(structured,[{...site,structuredFrontage:true}]);
-    for(const name of ["district-facades","district-roofs"]) {
-      const before=ordinary.getObjectByName(name) as THREE.Mesh,after=structured.getObjectByName(name) as THREE.Mesh;
-      assert.deepEqual(after.geometry.getAttribute("position").array,before.geometry.getAttribute("position").array);
+    addNightBuildings(ordinary,[site]);addNightBuildings(structured,[{...site,structuredFrontage:true,frontageHeight:plan.bandHeight}]);
+    const before=ordinary.getObjectByName("district-facades") as THREE.Mesh,after=structured.getObjectByName("district-facades") as THREE.Mesh;
+    const a=before.geometry.getAttribute("position"),b=after.geometry.getAttribute("position"),uvA=before.geometry.getAttribute("uv"),uvB=after.geometry.getAttribute("uv");
+    for(let i=0;i<a.count;i++) {
+      assert.equal(b.getX(i),a.getX(i));assert.equal(b.getZ(i),a.getZ(i));
+      assert.ok(b.getY(i)>=plan.block.base+plan.bandHeight-.0001,"the old wall must not remain behind the new shell");
+      assert.equal(uvB.getX(i),uvA.getX(i));
+      if(a.getY(i)>plan.block.base+.001){assert.equal(b.getY(i),a.getY(i));assert.equal(uvB.getY(i),uvA.getY(i));}
+      else {
+        const top=Math.floor(i/4)*4;
+        const expected=uvA.getY(i)+(uvA.getY(top)-uvA.getY(i))*plan.bandHeight/plan.block.height;
+        assert.ok(Math.abs(uvB.getY(i)-expected)<1e-6,"cropping preserves the upper windows' original scale and phase");
+      }
     }
+    assert.deepEqual((structured.getObjectByName("district-roofs") as THREE.Mesh).geometry.getAttribute("position").array,
+      (ordinary.getObjectByName("district-roofs") as THREE.Mesh).geometry.getAttribute("position").array);
     assert.equal(structured.getObjectByName("district-signage"),undefined,"random panels must not overlap the kit");
   }
 });

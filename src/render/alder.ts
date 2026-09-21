@@ -167,7 +167,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       const dressing=place?NEIGHBOURHOOD_DRESSING[place.id]:ASLEEP;
       // A tower is offices wherever it stands, except among SoDo's warehouses.
       const tower=b.height>=TOWER&&place?.id!=="sodo";
-      return {...b,decorationIndex:index,faceDistances:frontage[index]!,structuredFrontage:ALDER_BUILDING_FRONTS.some(p=>p.block===b),
+      const fittedFront=ALDER_BUILDING_FRONTS.find(p=>p.block===b);
+      return {...b,decorationIndex:index,faceDistances:frontage[index]!,structuredFrontage:!!fittedFront,frontageHeight:fittedFront?.bandHeight,
         dressing:tower?{...dressing,windows:"office" as const}:dressing};
     }).filter((_, index)=>!isBrickCorner(buildings[index]!));
     addNightBuildings(scene,sites,alderHeight,ALDER_REACH);

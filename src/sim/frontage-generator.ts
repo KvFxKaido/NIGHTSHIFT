@@ -4,6 +4,7 @@ import { frontPoint, type FrontKind, type FrontModule, type FrontPlan } from "./
 import { alderNeighbourhoodAt } from "./alder-neighbourhoods.ts";
 import { frontageForSite, frontageModuleIssues, placeFrontagePlan, resolveFrontages, type FrontageDocument, type FrontageSite, type SavedFrontage } from "./frontage-document.ts";
 import type { Street } from "./street-path.ts";
+import { industrialModules } from "./industrial-fronts.ts";
 
 export interface FrontageContext {
   sites: readonly FrontageSite[];
@@ -152,16 +153,17 @@ export function generateFrontages(doc:FrontageDocument,context:FrontageContext,
     const district=alderNeighbourhoodAt(block.x,block.z)?.id;
     const kind=options.kind??(district==="sodo"?"warehouse":block.height>=40?"office":
       ["queen-anne","central-district","madrona-ridge"].includes(district??"")||seed%3===0?"residential":"shops");
+    const industrialStyle=district==="sodo"&&kind==="warehouse"?(["freight","workshop","depot"] as const)[seed%3]:undefined;
     const order=[0,1,2,3].sort((a,b)=>faces[index]![a]!-faces[index]![b]!);
     let result:FrontPlan|string="No street-facing wall within 40 metres";
     for(const side of order) {
       if(!Number.isFinite(faces[index]![side]))continue;
       const width=side<2?block.width:block.depth;
-      if(width<(kind==="warehouse"?12:kind==="shops"?10:8)||block.height<(kind==="warehouse"?7.1:4.4)){result="Not enough usable frontage for this building type";continue;}
-      const plan:FrontPlan={block,recipe:{id:site.id,kind,side,x:block.x,z:block.z,width:block.width,depth:block.depth,height:block.height},
+      if(width<(kind==="warehouse"?12:kind==="shops"?10:8)||block.height<(industrialStyle?7.5:kind==="warehouse"?7.1:4.4)){result="Not enough usable frontage for this building type";continue;}
+      const plan:FrontPlan={block,recipe:{id:site.id,kind,side,x:block.x,z:block.z,width:block.width,depth:block.depth,height:block.height,...(industrialStyle?{industrialStyle}:{})},
         width,turn:[0,Math.PI,Math.PI/2,-Math.PI/2][side]!,wallX:side<2?0:(side===2?1:-1)*block.width/2,
-        wallZ:side>=2?0:(side===0?1:-1)*block.depth/2,bandHeight:kind==="warehouse"?7.05:4.35,
-        modules:generatedModules(kind,width,seed),paving:[]};
+        wallZ:side>=2?0:(side===0?1:-1)*block.depth/2,bandHeight:industrialStyle?7.4:kind==="warehouse"?7.05:4.35,
+        modules:industrialStyle?industrialModules(industrialStyle,width,seed):generatedModules(kind,width,seed),paving:[]};
       result=fitAccess(plan,tools);if(typeof result!=="string")break;
     }
     if(typeof result==="string")next.attention.push({buildingId:site.id,message:result});

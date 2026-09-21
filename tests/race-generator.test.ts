@@ -39,7 +39,7 @@ test("a seed draws the same race every time, and different seeds draw different 
 // leaning toward a turf, so a change to circuits alone moves only circuit pins:
 // when circuits began closing under the flow rule, the sprint and unordered pins
 // were computed on the code before and after and did not move.
-const WORLD = "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-4b0e943a";
+const WORLD = "alder-slice-v4-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-180a9b92";
 const FINGERPRINTED: Record<"plain" | "turf", Record<GeneratedKind, { revision: string; world: string; fingerprint: string }>> = {
   plain: {
     sprint: { revision: "generator-v1", world: WORLD, fingerprint: "6b99feee" },

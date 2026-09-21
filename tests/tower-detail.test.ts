@@ -39,6 +39,15 @@ test("detail culls beyond the completed fade and hysteresis cannot expose a hard
   assert.ok(TOWER_DETAIL.cull*(1-TOWER_DETAIL.hysteresis)>TOWER_DETAIL.faded,"reactivate before any detail is visible");
 });
 
+test("tower relief starts above the modular ground storey on every wall",()=>{
+  const height=4.35,root=addTowerDetails(new THREE.Scene(),[{...site,structuredFrontage:true,frontageHeight:height}]);
+  root.traverse(object=>{
+    if(!(object instanceof THREE.Mesh))return;
+    const positions=object.geometry.getAttribute("position");
+    for(let i=0;i<positions.count;i++)assert.ok(positions.getY(i)>=height-.0001,"piers and base courses must not compete with the frontage");
+  });
+});
+
 test("the complete tower kit has bounded geometry and two shared materials without added lights", () => {
   const scene=new THREE.Scene();
   const sites=ALDER_BLOCKS.map(block=>({...site,...block}));

@@ -60,7 +60,7 @@ export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite
       const grid = facadeGrid(face.width,site.height), pitchY = site.height/grid.floors;
       // The texture's cell phase is an integer: its floor/bay boundaries remain
       // the same across every seeded facade. Frames sit in those dark boundaries.
-      const reliefStart = site.structuredFrontage ? 4.4 : 3.6;
+      const reliefStart = site.structuredFrontage ? site.frontageHeight??4.4 : 3.6;
       for (let column = 1; column < grid.columns; column++) {
         const x = column/grid.columns*face.width-face.width/2;
         faceBox(0,x,(site.height+reliefStart)/2,.065,.10,site.height-reliefStart,.13);
@@ -73,8 +73,9 @@ export function addTowerDetails(scene: THREE.Scene, sites: readonly BuildingSite
         if (strong) faceBox(1,0,y-.16,.045,face.width-.3,.055,.09);
       }
       // Narrow corner piers, a base course and a restrained parapet cap.
-      for (const edge of [-1,1]) faceBox(0,edge*(face.width/2-.13),site.height/2,.055,.22,site.height,.11);
-      faceBox(1,0,.22,.065,face.width-.3,.44,.13);
+      const pierBase=site.structuredFrontage?reliefStart:0;
+      for (const edge of [-1,1]) faceBox(0,edge*(face.width/2-.13),(site.height+pierBase)/2,.055,.22,site.height-pierBase,.11);
+      if(!site.structuredFrontage)faceBox(1,0,.22,.065,face.width-.3,.44,.13);
       faceBox(0,0,site.height-.22,.08,face.width-.3,.34,.16);
       if (!site.structuredFrontage && side === entrySide && Number.isFinite(site.faceDistances[side]) && site.faceDistances[side]! < 46) {
         // Ground-floor portal stays shallower than the existing shop glow layer.

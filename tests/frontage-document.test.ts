@@ -7,6 +7,8 @@ import { parseFrontageDocument, resolveFrontages, frontageForSite, frontageSurfa
 import { generateFrontages, frontageAccessTools, validateFrontageAccess, checkedFrontages } from "../src/sim/frontage-generator.ts";
 import { addBuildingFronts } from "../src/render/building-fronts.ts";
 import { authoredFromId } from "../src/sim/building-layout.ts";
+import { buildingWallFrames, frontagePavingQuery } from "../src/sim/building-fronts.ts";
+import { industrialModules } from "../src/sim/industrial-fronts.ts";
 
 test("the baked district loads exact saved choices and all generated entrances clear the world",()=>{
   assert.deepEqual(parseFrontageDocument(JSON.parse(JSON.stringify(DOC))),DOC);
@@ -79,5 +81,70 @@ test("district architecture batches geographically with bounded atlas pages and 
   root.traverse(o=>{assert.ok(!(o instanceof THREE.Light));if(o instanceof THREE.LOD)lods++;
     if(o instanceof THREE.Mesh){meshes++;materials.add(o.material as THREE.Material);triangles+=(o.geometry.index?.count??o.geometry.attributes.position!.count)/3;}});
   assert.equal(lods,ALDER_BUILDING_FRONTS.length);assert.ok(meshes<ALDER_BUILDING_FRONTS.length*5);
-  assert.ok(triangles<150000);assert.ok(root.userData.signAtlases<=12);assert.ok(materials.size<=18);
+  assert.ok(triangles<450000);assert.ok(root.userData.signAtlases<=12);assert.ok(materials.size<=18);
+});
+
+test("SODO generation preserves existing work and saves three industrial identities deterministically",()=>{
+  const base={...DOC,entries:DOC.entries.filter(e=>!e.plan.recipe.industrialStyle),attention:[]};
+  const result=generateFrontages(base,CONTEXT,{district:"sodo"});
+  for(const entry of base.entries)assert.deepEqual(frontageForSite(result,entry.buildingId),entry);
+  assert.deepEqual(result,generateFrontages(base,{...CONTEXT,sites:[...CONTEXT.sites].reverse()},{district:"sodo"}));
+  assert.deepEqual(generateFrontages(result,CONTEXT,{district:"sodo"}),result);
+  const industrial=result.entries.filter(e=>e.plan.recipe.industrialStyle);
+  assert.ok(industrial.length>75);
+  assert.deepEqual(new Set(industrial.map(e=>e.plan.recipe.industrialStyle)),new Set(["freight","workshop","depot"]));
+  for(const {plan} of industrial) {
+    assert.ok(plan.modules.some(m=>m.kind==="door"));assert.ok(plan.modules.some(m=>m.kind==="shutter"));
+    assert.ok(plan.modules.filter(m=>m.kind==="sign").every(m=>m.finish==="painted"));
+    assert.ok(!plan.modules.some(m=>m.kind==="blade"));
+  }
+  assert.deepEqual(parseFrontageDocument(result),result);
+  const bad=structuredClone(result),entry=bad.entries.find(e=>e.plan.recipe.industrialStyle)!;
+  (entry.plan.modules.find(m=>m.finish) as {kind:string}).kind="blade";
+  assert.throws(()=>parseFrontageDocument(bad),/Painted lettering/);
+});
+
+test("industrial openings fit both narrow and broad sites, and loading guides stay on the shared paving",()=>{
+  for(const style of ["freight","workshop","depot"] as const)for(const width of [12,17,18,27,48]) {
+    const source=DOC.entries.find(e=>e.plan.recipe.industrialStyle===style)!.plan;
+    const plan={...source,width,modules:industrialModules(style,width,19),paving:[{left:-width/2,right:width/2,leftDepth:5,rightDepth:5,joinsStreet:true}]};
+    const candidate={...DOC,entries:[{...DOC.entries.find(e=>e.plan.recipe.industrialStyle===style)!,plan:{...plan,block:{...plan.block,width,depth:width}}}]};
+    assert.doesNotThrow(()=>parseFrontageDocument(candidate));
+  }
+  const plans=["freight","workshop","depot"].map(style=>ALDER_BUILDING_FRONTS.find(p=>p.recipe.industrialStyle===style)!);
+  const paved=frontagePavingQuery(plans),root=addBuildingFronts(new THREE.Scene(),plans,alderHeight);
+  let guides=0,painted=0;
+  root.traverse(o=>{
+    if(!(o instanceof THREE.Mesh))return;
+    const material=o.material as THREE.Material;
+    if(material.name==="front-painted-sign-atlas"){assert.ok(material instanceof THREE.MeshStandardMaterial);painted++;}
+    if(o.name!=="front-loading-guides")return;
+    guides++;const positions=o.geometry.getAttribute("position"),normals=o.geometry.getAttribute("normal");
+    for(let i=0;i<positions.count;i++) {
+      assert.ok(paved(positions.getX(i),positions.getZ(i)),"paint remains inside the physical apron");
+      assert.ok(normals.getY(i)>.99);assert.ok(Math.abs(positions.getY(i)-alderHeight(positions.getX(i),positions.getZ(i))-.026)<.001);
+    }
+  });
+  assert.equal(guides,3);assert.ok(painted>0);
+});
+
+test("every kit closes all four ground-storey walls, including rotated rectangular buildings",()=>{
+  const examples=["shops","residential","office","warehouse"].map(kind=>ALDER_BUILDING_FRONTS.find(p=>p.recipe.kind===kind)!);
+  for(const original of examples) {
+    const plan={...original,block:{...original.block,rotation:.37}};
+    const root=addBuildingFronts(new THREE.Scene(),[plan],alderHeight);root.updateMatrixWorld(true);
+    const site=root.getObjectByName(`front-${plan.recipe.id}`)!;
+    assert.deepEqual(site.userData.elevations,[0,1,2,3]);
+    const surfaceVertices:THREE.Vector3[]=[];
+    for(const mesh of site.children)if(mesh instanceof THREE.Mesh) {
+      const positions=mesh.geometry.getAttribute("position");
+      for(let i=0;i<positions.count;i++)surfaceVertices.push(new THREE.Vector3().fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld));
+    }
+    // The cladding's four corners on each elevation must exist at both base
+    // and cornice height; this catches omitted rear walls and reversed frames.
+    for(const wall of buildingWallFrames(plan.block))for(const across of [-wall.width/2,wall.width/2])for(const height of [0,plan.bandHeight]) {
+      const point=frontPoint(wall,across,.05);
+      assert.ok(surfaceVertices.some(v=>Math.hypot(v.x-point.x,v.y-plan.block.base-height,v.z-point.z)<.002),`${plan.recipe.kind} wall ${wall.side} must close its corner`);
+    }
+  }
 });
