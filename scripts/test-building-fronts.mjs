@@ -10,7 +10,7 @@ try {
   await page.addInitScript(()=>{let api;Object.defineProperty(window,'__ns',{get:()=>api,set(value){
     api=value;window.drawFront=api.view.renderer.render.bind(api.view.renderer);api.view.renderer.setPixelRatio(1);api.view.renderer.render=()=>{};
   }});});
-  await page.goto('http://localhost:5173/?world=alder&scene=track&freeze=1&car=cinder');
+  await page.goto('http://localhost:5173/?world=alder&scene=track&freeze=1&car=cinder',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__ns?.view);await page.keyboard.press('Escape');
   await page.evaluate(async()=>{
     __ns.freeze(true);document.querySelectorAll('body > :not(canvas):not(script)').forEach(e=>e.style.visibility='hidden');
@@ -19,8 +19,9 @@ try {
     const fill=new THREE.HemisphereLight(0xc0d9e8,0x605343,1.6);__ns.view.scene.add(fill);
     window.frontStudy={alder,frontPoint,fill};
   });
-  const shots=[];
-  for(const id of ['harbor-supply','bell-row','meridian-house']) {
+  const generated=await page.evaluate(()=>['shops','residential','office'].map(kind=>frontStudy.alder.ALDER_FRONTAGE_DOCUMENT.entries.find(e=>!e.locked&&e.plan.recipe.kind===kind)?.plan.recipe.id).filter(Boolean));
+  const ids=['harbor-supply','bell-row','meridian-house',...generated],shots=[];
+  for(const id of ids) {
     for(const mode of ['study','night','driver']) {
       const stats=await page.evaluate(({id,mode})=>{
         const {alder,frontPoint,fill}=frontStudy,{view,sim}=__ns;
@@ -50,9 +51,10 @@ try {
       const position=lod.getWorldPosition(camera.position.clone());camera.position.copy(position).addScalar(300);camera.updateMatrixWorld();lod.update(camera);
       return {farFineVisible:lod.levels[0].object.visible};
     });
-    return {meshes,materials:materials.size,triangles,lights,fine};
+    return {meshes,materials:materials.size,triangles,lights,fine,plans:frontStudy.alder.ALDER_BUILDING_FRONTS.length,atlases:root.userData.signAtlases};
   });
   await writeFile('artifacts/building-fronts/check.json',JSON.stringify({shots,budget,errors},null,2));
-  assert.deepEqual(errors,[]);assert.equal(shots.length,9);assert.equal(budget.lights,0);assert.ok(budget.meshes<=21);
+  assert.deepEqual(errors,[]);assert.equal(shots.length,ids.length*3);assert.equal(budget.lights,0);assert.ok(budget.meshes<=budget.plans*5);
+  assert.ok(budget.atlases<=12);
   assert.ok(budget.fine.every(l=>!l.farFineVisible));console.log(JSON.stringify({shots,budget,errors}));
 } finally { await browser.close(); }

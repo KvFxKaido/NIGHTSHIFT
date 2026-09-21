@@ -5,6 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.13.0",
   "scripts": {
+    "frontages:generate": "node --experimental-strip-types scripts/generate-frontages.ts",
+    "test:frontage-editor": "node scripts/test-frontage-editor.mjs",
     "track:guide": "node scripts/export-course-guide.mjs",
     "track:export": "node --env-file-if-exists=.env scripts/export-track.mjs",
     "assets:track": "node scripts/optimize-track.mjs",

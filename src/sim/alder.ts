@@ -21,9 +21,14 @@ import type { CoursePoint } from "./track.ts";
 import { createCornerProps } from "./corner-dressing.ts";
 import { marketUtilities, onMarketPaving } from "./market-block.ts";
 import { scaleAlderSkyline } from "./alder-skyline.ts";
-import { planBuildingFronts, frontagePavingQuery } from "./building-fronts.ts";
+import { frontagePavingQuery } from "./building-fronts.ts";
+import savedFrontages from "./alder-frontages.json" with { type: "json" };
+import { parseFrontageDocument, frontageSurfaceFingerprint } from "./frontage-document.ts";
+import { checkedFrontages, type FrontageContext } from "./frontage-generator.ts";
+import { marketBuilding } from "./market-block.ts";
 
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v1` };
+export const ALDER_FRONTAGE_DOCUMENT = parseFrontageDocument(savedFrontages);
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v1-drift-yard-v1-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
@@ -168,14 +173,31 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
 const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
-export const ALDER_BUILDING_FRONTS = planBuildingFronts(ALDER_BLOCKS, ALDER_STREETS, alderHeight);
-const onFrontagePaving = frontagePavingQuery(ALDER_BUILDING_FRONTS);
-export const ALDER_EVERGREENS = createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
-  [...ALDER_BLOCKS, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS,
+const evergreensForBlocks = (blocks:readonly BuildingBlock[]) => createEvergreens([...ALDER_STREETS, ...ARENA_ROADS],
+  [...blocks, ...YARD_STRUCTURES, YARD_RESERVE, landmarks.broadcastTower, ...ALDER_TREES, ...ALDER_CORNER_SOLIDS,
     { x: 6.5, z: 910, width: 35, depth: 44, height: 1, base: 2, rotation: 0 }], alderHeight);
+export const ALDER_EVERGREENS = evergreensForBlocks(ALDER_BLOCKS);
 /** One collision list for the player, rivals, grass exclusions and line clearance. */
 export const ALDER_SOLIDS = [...ALDER_BLOCKS, ...YARD_STRUCTURES, landmarks.broadcastTower, ...ALDER_TREES,
   ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS, ...ALDER_MARKET_UTILITIES];
+export const ALDER_FRONTAGE_CONTEXT: FrontageContext = {
+  sites: resolvedLayout.entries, streets: ALDER_STREETS, heightAt: alderHeight,
+  obstacles: ALDER_SOLIDS.filter(b=>!ALDER_BLOCKS.includes(b)),
+  protectedIds: new Set(resolvedLayout.entries.filter(s=>s.id===GARAGE_PLOT_ID||marketBuilding(s.block)).map(s=>s.id)),
+};
+/** Authoring validates against the same trees and solids that a reload will use. */
+export function frontageContextForLayout(value:unknown): FrontageContext {
+  const layout=resolveAlderLayout(value);
+  return {...ALDER_FRONTAGE_CONTEXT,sites:layout.entries,
+    obstacles:[...YARD_STRUCTURES,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,...ALDER_MARKET_UTILITIES,
+      ...evergreensForBlocks(layout.blocks).map(t=>t.trunk)],
+    protectedIds:new Set(layout.entries.filter(s=>s.id===GARAGE_PLOT_ID||marketBuilding(s.block)).map(s=>s.id)),
+  };
+}
+const resolvedFrontages = checkedFrontages(ALDER_FRONTAGE_DOCUMENT, ALDER_FRONTAGE_CONTEXT);
+export const ALDER_BUILDING_FRONTS = resolvedFrontages.plans;
+export const ALDER_FRONTAGE_ISSUES = resolvedFrontages.issues;
+const onFrontagePaving = frontagePavingQuery(ALDER_BUILDING_FRONTS);
 /** Props that belong to the street rather than to a parcel. The lamps are the
  *  rule the renderer used to apply inline; the bins are the second consumer,
  *  which is how the anchor earns its keep. Neither collides: they are dressing

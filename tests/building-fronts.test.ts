@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import { ALDER_BLOCKS, ALDER_BUILDING_FRONTS, ALDER_STREETS, ALDER_SOLIDS, alderHeight, alderGround } from "../src/sim/alder.ts";
-import { frontPoint, frontagePavingQuery, planBuildingFronts } from "../src/sim/building-fronts.ts";
+import { frontPoint, frontagePavingQuery, planBuildingFronts, FRONT_RECIPES } from "../src/sim/building-fronts.ts";
 import { pointFootprintDistance } from "../src/sim/building-footprint.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import { addBuildingFronts } from "../src/render/building-fronts.ts";
 import { addNightBuildings } from "../src/render/night.ts";
+const PILOT_FRONTS=ALDER_BUILDING_FRONTS.filter(p=>FRONT_RECIPES.some(r=>r.id===p.recipe.id));
 
 test("pilot tenants have accessible entrances and their signs fit reserved facade bays",()=>{
-  assert.equal(ALDER_BUILDING_FRONTS.length,3);
+  assert.equal(PILOT_FRONTS.length,3);
   const paved=frontagePavingQuery(ALDER_BUILDING_FRONTS);
-  for(const plan of ALDER_BUILDING_FRONTS) {
+  for(const plan of PILOT_FRONTS) {
     const doors=plan.modules.filter(m=>m.kind==="door");assert.ok(doors.length);
     for(const module of plan.modules) {
       const wallWidth=module.kind==="blade"?.18:module.width;
@@ -42,7 +43,7 @@ test("pilot tenants have accessible entrances and their signs fit reserved facad
 });
 
 test("edited plots and obstructed approaches fall back without orphaned signage or paving",()=>{
-  const target=ALDER_BUILDING_FRONTS[0]!;
+  const target=PILOT_FRONTS[0]!;
   const moved=ALDER_BLOCKS.map(b=>b===target.block?{...b,width:b.width+1}:b);
   assert.equal(planBuildingFronts(moved,ALDER_STREETS,alderHeight).length,2);
   const p=frontPoint(target,0,3),obstruction={...target.block,x:p.x,z:p.z,width:2,depth:2};
@@ -51,7 +52,7 @@ test("edited plots and obstructed approaches fall back without orphaned signage 
 });
 
 test("frontage kit shares materials, bounds draw cost and preserves the generic upper shell",()=>{
-  const scene=new THREE.Scene(),root=addBuildingFronts(scene,ALDER_BUILDING_FRONTS,alderHeight);
+  const scene=new THREE.Scene(),root=addBuildingFronts(scene,PILOT_FRONTS,alderHeight);
   const materials=new Set<THREE.Material>();let triangles=0,meshes=0;
   root.traverse(o=>{
     assert.ok(!(o instanceof THREE.Light),"a tenant must not add a dynamic light");
@@ -64,7 +65,7 @@ test("frontage kit shares materials, bounds draw cost and preserves the generic 
     }
   });
   assert.ok(materials.size<=7);assert.ok(meshes<=21);assert.ok(triangles<6500,`${triangles} triangles`);
-  for(const plan of ALDER_BUILDING_FRONTS) {
+  for(const plan of PILOT_FRONTS) {
     const ordinary=new THREE.Scene(),structured=new THREE.Scene();
     const site={...plan.block,faceDistances:[5,5,5,5] as const};
     addNightBuildings(ordinary,[site]);addNightBuildings(structured,[{...site,structuredFrontage:true}]);

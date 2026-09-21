@@ -4,7 +4,10 @@ import { TransformControls, type TransformControlsMode } from "three/addons/cont
 import { addAlder } from "../render/alder.ts";
 import alderData from "../sim/alder-data.json";
 import { ALDER_LAYOUT, GENERATED_ALDER_BLOCKS, ALDER_LAYOUT_BASELINE, GARAGE_PLOT_ID,
-  resolveAlderLayout } from "../sim/alder.ts";
+  resolveAlderLayout, frontageContextForLayout } from "../sim/alder.ts";
+import { createFrontagePanel } from "./frontages.ts";
+import { frontPoint } from "../sim/building-fronts.ts";
+import type { FrontageContext } from "../sim/frontage-generator.ts";
 import { buildingId, parseAnyLayout, authoredFromId, authoredSourceId, AUTHORED_ID_PREFIX,
   type AuthoredLayout } from "../sim/building-layout.ts";
 import { placeBuilding, placementFromMesh, placementDiffers, layoutFromEditor, importEditorScene, exportEditorScene,
@@ -35,7 +38,7 @@ const reference = new THREE.Scene();
 addAlder(reference, "blockout");
 // The editor draws one unit box per shared solid; environment meshes are reference only.
 for (const child of [...reference.children]) {
-  if (child.name === "alder-buildings" || child.name === "district-garage") {
+  if (child.name === "alder-buildings" || child.name === "district-garage" || child.name === "alder-modular-fronts") {
     child.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
     reference.remove(child);
   }
@@ -85,6 +88,11 @@ let selected = "", mode: TransformControlsMode = "translate";
 let revision: string | null = null, saving = false, dragging = false;
 let issues: string[] = [], saved = "", committed = "";
 const undo: string[] = [], redo: string[] = [];
+let frontages: ReturnType<typeof createFrontagePanel> | undefined;
+let frontageContextCache: FrontageContext | undefined;
+function frontageContext(): FrontageContext {
+  return frontageContextCache ??= frontageContextForLayout(documentValue());
+}
 
 function entries(): EditorEntry[] {
   return [...buildings].map(([id, mesh]) => ({
@@ -154,15 +162,18 @@ function validate(): void {
   buttons();
 }
 function checkpoint(): void {
+  frontageContextCache=undefined;
   const next = serialized();
   if (next !== committed) {
     undo.push(committed); if (undo.length > 100) undo.shift(); redo.length = 0; committed = next;
     status.textContent = "Draft changed. Save to apply it to the game.";
   }
   readFields(); validate();
+  frontages?.layoutChanged();
 }
 /** Show the layout: generated plots as generated, retired or edited; authored plots as their own meshes. */
 function applyLayout(layout: AuthoredLayout): void {
+  frontageContextCache=undefined;
   const retired = new Set(layout.retired);
   const authoredById = new Map(layout.authored.map(placement => [placement.id, placement]));
   standalone = new Set();
@@ -186,6 +197,7 @@ function applyLayout(layout: AuthoredLayout): void {
   rebuildPicker();
   if (hidden.has(selected)) select(visibleIds()[0]!);
   readFields(); validate();
+  frontages?.layoutChanged();
 }
 function focus(top = false): void {
   const mesh = buildings.get(selected)!;
@@ -207,6 +219,7 @@ function select(id: string): void {
   selected = id; picker.value = id;
   if (id === GARAGE_PLOT_ID) transform.detach(); else transform.attach(buildings.get(id)!);
   setMode(mode); readFields();
+  frontages?.select();
 }
 function snap(): void {
   const enabled = element<HTMLInputElement>("snap").checked;
@@ -293,7 +306,7 @@ window.addEventListener("keydown", event => {
   if (key === "delete") deleteSelected();
   if (selected !== GARAGE_PLOT_ID) { if (key === "w") setMode("translate"); if (key === "e") setMode("rotate"); if (key === "r") setMode("scale"); }
 });
-window.addEventListener("beforeunload", event => { if (serialized() !== saved) { event.preventDefault(); event.returnValue = ""; } });
+window.addEventListener("beforeunload", event => { if (serialized() !== saved || frontages?.dirty()) { event.preventDefault(); event.returnValue = ""; } });
 
 save.onclick = async () => {
   if (save.disabled) return;
@@ -303,6 +316,7 @@ save.onclick = async () => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error ?? "Save failed");
     revision = result.revision; saved = draft;
+    frontages?.layoutChanged();
     status.textContent = "Saved to project. Open or reload the game to drive this layout.";
   } catch (error) { status.textContent = String((error as Error).message); }
   finally { saving = false; buttons(); }
@@ -363,6 +377,14 @@ try {
   status.textContent = "Edits save into the project and are shared by rendering and collision.";
 } catch { status.textContent = "Preview mode. Export a backup, or use pnpm dev locally to save into the project."; }
 buttons();
+frontages=createFrontagePanel({scene,context:frontageContext,placementDirty:()=>serialized()!==saved,
+  selected:()=>frontageContext().sites.find(s=>s.id===selected||authoredSourceId(s.id)===selected)?.id??selected,
+  pick:id=>{const meshId=meshIdFor(id);if(buildings.has(meshId)&&!hidden.has(meshId)){select(meshId);focus();}},
+  focus:plan=>{
+    const at=frontPoint(plan,0,0),from=frontPoint(plan,4,Math.max(18,plan.width*1.4));
+    orbit.target.set(at.x,plan.block.base+2.5,at.z);camera.position.set(from.x,plan.block.base+5,from.z);orbit.update();
+  },
+});
 const resize = () => { const { width, height } = viewport.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); };
 new ResizeObserver(resize).observe(viewport); resize();
 renderer.setAnimationLoop(() => { orbit.update(); selectionBox.update(); renderer.render(scene, camera); });

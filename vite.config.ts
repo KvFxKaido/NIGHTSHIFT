@@ -3,8 +3,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { layoutMiddleware } from "./scripts/layout-server.mjs";
 import { lapsMiddleware } from "./scripts/laps-server.mjs";
+import { readFile } from "node:fs/promises";
 
 const layoutFile = fileURLToPath(new URL("./src/sim/alder-layout.json", import.meta.url));
+const frontageFile = fileURLToPath(new URL("./src/sim/alder-frontages.json", import.meta.url));
 const lapsDir = fileURLToPath(new URL("./recordings/laps", import.meta.url));
 const validatorRevision = Date.now();
 
@@ -33,6 +35,20 @@ export default defineConfig({
   }, {
     name: "alder-layout-editor",
     configureServer(server) {
+      server.middlewares.use(layoutMiddleware(frontageFile, async value => {
+        const { parseFrontageDocument, resolveFrontages, frontageForSite } = await import("./src/sim/frontage-document.ts");
+        const { frontageAccessTools, validateFrontageAccess } = await import("./src/sim/frontage-generator.ts");
+        const { frontageContextForLayout } = await import("./src/sim/alder.ts");
+        const doc = parseFrontageDocument(value), context = frontageContextForLayout(JSON.parse(await readFile(layoutFile,"utf8")));
+        const {plans,issues} = resolveFrontages(doc,context.sites);
+        if(issues.length)throw Error(issues[0].message);
+        for(const site of context.sites)if(context.protectedIds.has(site.id)&&frontageForSite(doc,site.id))throw Error("This landmark owns its architecture");
+        const tools=frontageAccessTools(context);
+        for(const plan of plans) {
+          const errors=validateFrontageAccess(plan,tools);if(errors.length)throw Error(`${plan.recipe.id}: ${errors[0]}`);
+        }
+        return doc;
+      }, () => server.moduleGraph.invalidateAll(), {route:"/__editor/frontages",maxBytes:16_000_000}));
       server.middlewares.use(layoutMiddleware(layoutFile, async value => {
         const { resolveAlderLayout } = await import(pathToFileURL(join(dirname(layoutFile), "alder.ts")).href + `?validator=${validatorRevision}`);
         // Whichever schema arrives, the file is written as schema 2.
@@ -42,7 +58,7 @@ export default defineConfig({
       }, () => server.moduleGraph.invalidateAll()));
     },
     handleHotUpdate({ file, server }) {
-      if (file.replaceAll("\\", "/") === layoutFile.replaceAll("\\", "/")) {
+      if ([layoutFile,frontageFile].some(path=>file.replaceAll("\\", "/") === path.replaceAll("\\", "/"))) {
         // Keep unsaved editor drafts alive. A fresh game load uses the saved file.
         server.moduleGraph.invalidateAll();
         return [];

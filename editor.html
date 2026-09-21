@@ -35,6 +35,33 @@
       <div class="tools" role="group" aria-label="Authored buildings"><button id="add-building">Add building</button><button id="delete-building">Delete building</button></div>
       <div id="validation" role="status" aria-live="polite">Loading district…</div>
       <p id="save-status" role="status" aria-live="polite"></p>
+      <section id="frontage-panel" aria-label="Building frontages">
+        <h2>Building frontages</h2>
+        <p class="muted">Generate a draft, inspect it here, then save. Locked buildings keep their choices during generation.</p>
+        <label>District<select id="front-district" aria-label="Frontage district"></select></label>
+        <div class="tools"><button id="front-generate">Generate missing</button><button id="front-regenerate">Reroll unedited district</button></div>
+        <label>Building use<select id="front-kind"><option value="residential">Residential</option><option value="shops">Shops & apartments</option><option value="office">Office lobby</option><option value="warehouse">Warehouse</option></select></label>
+        <label class="snap"><input id="front-locked" type="checkbox" /> Lock against regeneration</label>
+        <div class="tools"><button id="front-reroll">Reroll selected</button><button id="front-refit">Refit access</button><button id="front-view">View entrance</button></div>
+        <p id="front-selection" class="muted"></p>
+        <label>Facade module<select id="front-module" aria-label="Facade module"></select></label>
+        <fieldset id="front-fields"><legend>Selected module</legend>
+          <label>Across <span>m</span><input id="front-x" type="number" step=".1" /></label>
+          <label>Height above base <span>m</span><input id="front-y" type="number" step=".1" /></label>
+          <label>Width <span>m</span><input id="front-width" type="number" min=".03" step=".1" /></label>
+          <label>Height <span>m</span><input id="front-height" type="number" min=".03" step=".1" /></label>
+          <label class="wide">Sign name<input id="front-text" type="text" maxlength="60" /></label>
+          <label class="wide">Caption<input id="front-caption" type="text" maxlength="80" /></label>
+          <label>Tenant accent<input id="front-color" type="color" value="#c5c8c3" /></label>
+          <label>Sign mounting<select id="front-mount"><option value="sign">Wall fascia</option><option value="blade">Projecting blade</option></select></label>
+        </fieldset>
+        <div class="tools"><button id="front-apply">Apply module edit</button><button id="front-remove">Remove module</button></div>
+        <div class="tools"><button id="front-undo">Undo frontage</button><button id="front-redo">Redo frontage</button></div>
+        <button id="front-save" class="primary">Save frontages to project</button>
+        <p id="front-status" role="status" aria-live="polite"></p>
+        <details><summary id="front-summary">Needs attention</summary><select id="front-attention" size="6" aria-label="Frontages needing attention"></select></details>
+        <details><summary>Frontage files</summary><button id="front-export">Export frontage backup</button><button id="front-reload">Reload saved frontages</button></details>
+      </section>
       <details><summary>Files & Three.js editor</summary>
         <p>Export a scene for the official editor. Move the named building boxes, then import its saved scene here. Only building transforms are read; bases are placed on the ground again.</p>
         <a href="https://threejs.org/editor/" target="_blank" rel="noopener">Open Three.js editor ↗</a>

@@ -502,3 +502,52 @@ The core entrance, canopy and sign remain, preserving identity at distance.
 Run `node scripts/test-building-fronts.mjs` for night/study/driver captures and
 browser budgets; `tests/building-fronts.test.ts` checks access, overlap, fallback,
 shared paving, geometry budgets and preservation of the original upper shell.
+## Saved frontage generation and authoring
+
+The frontage pilot is now backed by `src/sim/alder-frontages.json`: complete
+module choices and local access strips, not a seed evaluated by the game.
+The first district pass adds 94 Belltown buildings (97 total including the three
+locked pilots). The saved set contains 48 shop rows, 26 residential entrances,
+22 office lobbies and Harbor Supply. Thirty-six sites remain in the needs-attention
+list rather than receiving blocked, floating or disconnected entrances.
+
+Open `/editor.html` and scroll to **Building frontages**. Select a district and
+use **Generate missing** to preview additional buildings. **Reroll unedited
+district** preserves locked and hand-edited work. To replace one chosen frontage,
+unlock it, choose its building use and press **Reroll selected**. **View entrance**
+frames the street face. Module fields edit position, size, sign name/caption,
+mounting and tenant accent; applying an edit locks that frontage. Door/access,
+overlap and frame-clearance checks reject invalid module edits. Each frontage
+draft has undo/redo, export, reload and an explicit **Save frontages to project**
+action. Generation and preview never write the file on their own.
+
+Placement and frontage saves remain distinct. Save building placement first;
+then **Refit access** checks the moved/resized building against the updated road,
+terrain, trees and prop geometry while preserving the tenant/module choices.
+Modules follow the building in the editor preview. A changed envelope is flagged
+and uses the ordinary runtime frontage until its access is refitted and saved.
+Authored replacements retain ownership through their original plot identity.
+Loading also checks saved paths against current neighbours, trees and terrain;
+blocked access is withheld and reported without replacing the stored choices.
+Deleted buildings' stored frontages remain dormant so restoring a plot restores
+its authored choices. The garage and custom Market block keep their own models.
+
+The development endpoint validates the complete document and fitted access
+before atomically replacing the file; revision checks reject stale editor tabs.
+Local drafts survive saves and hot updates. Sign-only edits preserve race/world
+identity; changed paving contributes a surface fingerprint to the world version.
+
+The same generator can be run from the terminal:
+`pnpm frontages:generate --district=belltown` previews a missing-only pass.
+Append `--write` to save it, or `--reroll-unedited` to regenerate the unlocked,
+unedited part of that district. Each building has an independent stable seed,
+so changing processing order or adding another plot does not reroll neighbours.
+
+The wider renderer deduplicates signs into bounded 1024 × 1024 atlas pages and
+batches core geometry in 256 m cells. Fine detail retains per-building distance
+fading. The 97-building set contains about 101k triangles, four sign atlases and
+no new dynamic lights. This is a geometry budget, not a whole-city FPS claim.
+`pnpm test:frontage-editor` exercises non-destructive preview, manual-edit locks,
+undo/redo, real save/reload and placement-refit warnings; the test restores its
+temporary sign edit afterward. `node scripts/test-building-fronts.mjs` captures
+both the pilots and generated examples in study, night and driver-height views.

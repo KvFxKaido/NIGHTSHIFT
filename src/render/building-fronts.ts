@@ -7,12 +7,12 @@ import { tint } from "./night.ts";
  * sign's colour/composition when its lettering becomes subpixel at distance. */
 function signAtlas(signs: readonly FrontModule[]): THREE.Texture | null {
   if (typeof document === "undefined") return null;
-  const canvas=document.createElement("canvas");canvas.width=1024;canvas.height=2**Math.ceil(Math.log2(Math.max(1,signs.length)*128));
+  const canvas=document.createElement("canvas");canvas.width=1024;canvas.height=1024;
   const ctx=canvas.getContext("2d")!;
   ctx.fillStyle="#192227";ctx.fillRect(0,0,canvas.width,canvas.height);
   signs.forEach((sign,i)=>{
     const width=128*sign.width/sign.height;
-    ctx.save();ctx.translate(0,i*128);ctx.scale(1024/width,1);ctx.fillStyle=sign.color??"#d4d2c8";
+    ctx.save();ctx.translate((i%2)*512,Math.floor(i/2)*64);ctx.scale(512/width,.5);ctx.fillStyle=sign.color??"#d4d2c8";
     // Simple house mark and an inset keyline leave a dark margin against bloom.
     ctx.fillRect(8,24,3,80);ctx.fillRect(8,101,width-16,3);
     ctx.textAlign="center";ctx.textBaseline="middle";
@@ -34,8 +34,19 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
   const glass=new THREE.MeshStandardMaterial({color:0x243741,emissive:0x152129,emissiveIntensity:.35,roughness:.38});
   const luminous=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false});
   const signs=plans.flatMap(p=>p.modules.filter(m=>m.kind==="sign"||m.kind==="blade"));
-  const atlas=signAtlas(signs),atlasRows=2**Math.ceil(Math.log2(Math.max(1,signs.length)));
-  const lettering=new THREE.MeshBasicMaterial({map:atlas,color:atlas?0xffffff:0xaebcaf,toneMapped:false});
+  const unique:FrontModule[]=[],indices=new Map<string,number>(),signIndices=new Map<FrontModule,number>();
+  for(const sign of signs) {
+    const key=JSON.stringify([sign.text,sign.caption,sign.color,sign.width/sign.height]);
+    if(!indices.has(key)){indices.set(key,unique.length);unique.push(sign);}
+    signIndices.set(sign,indices.get(key)!);
+  }
+  const lettering:THREE.MeshBasicMaterial[]=[];
+  for(let i=0;i<unique.length;i+=32) {
+    const atlas=signAtlas(unique.slice(i,i+32));
+    const material=new THREE.MeshBasicMaterial({map:atlas,color:atlas?0xffffff:0xaebcaf,toneMapped:false});
+    material.name="front-sign-atlas";lettering.push(material);
+  }
+  root.userData.signAtlases=lettering.length;
   const pavingMaterial=new THREE.MeshStandardMaterial({color:0x4f575b,roughness:1,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
   const fineMaterial=new THREE.MeshStandardMaterial({color:0x737e82,roughness:.8});
   fineMaterial.onBeforeCompile=shader=>{
@@ -98,10 +109,11 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
         const blade=kind==="blade",depth=blade?w/2+.4:.23;
         box(metal,x,y,depth,blade?.18:w+.16,h+.14,blade?w+.16:.24);
         for(const side of blade?[-1,1]:[0]) {
-          const face=new THREE.PlaneGeometry(w,h),uv=face.getAttribute("uv"),row=signs.indexOf(module);
-          for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i),1-(row+1-uv.getY(i))/atlasRows);
+          const index=signIndices.get(module)!,tile=index%32;
+          const face=new THREE.PlaneGeometry(w,h),uv=face.getAttribute("uv");
+          for(let i=0;i<uv.count;i++)uv.setXY(i,(tile%2+uv.getX(i))/2,1-(Math.floor(tile/2)+1-uv.getY(i))/16);
           if(blade)face.rotateY(side*Math.PI/2);
-          record(place(face,x+side*.1,y,blade?depth:.36),lettering);
+          record(place(face,x+side*.1,y,blade?depth:.36),lettering[Math.floor(index/32)]!);
         }
         if(blade)for(const dy of [-1,1])box(fineMaterial,x,y+dy*h*.32,.22,.10,.08,.44,true);
         else for(const dx of [-1,1])box(fineMaterial,x+dx*w*.4,y,.10,.08,h+.3,.18,true);
@@ -119,7 +131,7 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
     }
     for(const [material,parts] of batches) {
       const mesh=new THREE.Mesh(mergeGeometries(parts)!,material);parts.forEach(p=>p.dispose());
-      mesh.name=material===lettering?"front-tenant-signs":"front-architecture";site.add(mesh);
+      mesh.name=material.name==="front-sign-atlas"?"front-tenant-signs":"front-architecture";site.add(mesh);
     }
     const lod=new THREE.LOD();lod.name="front-fine-lod";
     if(fine.length){const mesh=new THREE.Mesh(mergeGeometries(fine)!,fineMaterial);fine.forEach(p=>p.dispose());lod.addLevel(mesh,0);}
@@ -146,5 +158,26 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
     }
     const apron=new THREE.Mesh(paving,pavingMaterial);apron.name=`front-paving-${plan.recipe.id}`;apron.receiveShadow=true;root.add(apron);
   }
+  // Core architecture batches geographically; only tiny distance-faded details
+  // keep their own building LOD. The three-site study can still inspect each kit.
+  if(plans.length>3)batchFrontageCore(root);
   scene.add(root);return root;
+}
+
+function batchFrontageCore(root:THREE.Group):void {
+  root.updateMatrixWorld(true);
+  const batches=new Map<string,{material:THREE.Material;receiveShadow:boolean;parts:THREE.BufferGeometry[]}>();
+  const meshes:THREE.Mesh[]=[];
+  root.traverse(o=>{if(o instanceof THREE.Mesh&&!(o.parent instanceof THREE.LOD))meshes.push(o);});
+  for(const mesh of meshes) {
+    const material=mesh.material as THREE.Material,geometry=mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    geometry.computeBoundingBox();const center=geometry.boundingBox!.getCenter(new THREE.Vector3());
+    const key=`${Math.floor(center.x/256)},${Math.floor(center.z/256)}:${material.uuid}:${mesh.receiveShadow}`;
+    const batch=batches.get(key)??{material,receiveShadow:mesh.receiveShadow,parts:[]};
+    batch.parts.push(geometry);batches.set(key,batch);mesh.removeFromParent();mesh.geometry.dispose();
+  }
+  for(const [key,batch] of batches) {
+    const mesh=new THREE.Mesh(mergeGeometries(batch.parts)!,batch.material);batch.parts.forEach(g=>g.dispose());
+    mesh.name=`front-core-cell:${key}`;mesh.receiveShadow=batch.receiveShadow;root.add(mesh);
+  }
 }

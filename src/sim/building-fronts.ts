@@ -1,7 +1,7 @@
 import { pointFootprintDistance, spatialIndex, type BuildingBlock } from "./building-footprint.ts";
 import type { Street } from "./street-path.ts";
 
-export type FrontKind = "warehouse" | "shops" | "office";
+export type FrontKind = "warehouse" | "shops" | "office" | "residential";
 export interface FrontModule {
   readonly kind: "door" | "glazing" | "shutter" | "sign" | "blade" | "light" | "canopy";
   readonly owner: string;

@@ -4,10 +4,10 @@ import { createHash } from "node:crypto";
 const revisionOf = text => createHash("sha256").update(text).digest("hex");
 
 /** A single-file, same-origin development endpoint. No client-supplied paths. */
-export function layoutMiddleware(file, validate, changed = () => {}) {
+export function layoutMiddleware(file, validate, changed = () => {}, { route = "/__editor/layout", maxBytes = 1_000_000 } = {}) {
   let queue = Promise.resolve();
   return (request, response, next) => {
-    if (request.url?.split("?")[0] !== "/__editor/layout") return next();
+    if (request.url?.split("?")[0] !== route) return next();
     const send = (status, body) => {
       response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
       response.end(JSON.stringify(body));
@@ -26,7 +26,7 @@ export function layoutMiddleware(file, validate, changed = () => {}) {
       let body = "", bytes = 0;
       for await (const chunk of request) {
         bytes += chunk.length;
-        if (bytes > 1_000_000) return send(413, { error: "Layout is too large" });
+        if (bytes > maxBytes) return send(413, { error: "Layout is too large" });
         body += chunk.toString("utf8");
       }
       const raw = await readFile(file, "utf8");
