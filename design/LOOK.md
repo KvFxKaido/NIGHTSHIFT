@@ -230,6 +230,7 @@ scheduled.
    meet, so the emptiness is a venue waiting for its event, not a hole in the
    city. Light it as an event when the time comes, portable floods and
    generators, and leave the buildings to lots that are not promised elsewhere.
+   `design/CHAOS.md` holds the venue and what it is for.
 2. **Silhouettes** (Form). Every building is a box with a flat roof. Rooflines,
    setbacks, water tanks and loading-dock canopies are where Port Alder's
    identity above the street would come from next, and a script can build all
