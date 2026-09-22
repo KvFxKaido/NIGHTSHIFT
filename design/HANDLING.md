@@ -1039,6 +1039,20 @@ is, which none of this changes.
   roam); ten bit-identical. Sable's parked car in her yard did not move, because a
   handbraked car applies no drive and `traction` is drive alone.
 
+**Re-measured 2026-09-22, at `driver-v2`.** Street pace is the rival's planner
+driving each car, and the planner's steering changed after the pass above (the slip
+feedforward, 09-21), so the ladder the cars were tuned against had moved under them
+(`design/COUPLINGS.md`). `pnpm cars --streets`, the same six sprints (gen-1, gen-7,
+gen-15, gen-moth-12, gen-crest-23, gen-wake-42), clear:
+
+| #10 Moth | #9 Stray | #8 Rivet | #7 Bollard | #6 Deuce | #5 Sable | #4 Plumb | #3 Crest | #2 Wake | #1 Tally |
+|---|---|---|---|---|---|---|---|---|---|
+| −0.39% | −1.05% | *−0.47%* | −1.59% | −2.48% | −3.51% | −3.97% | −4.86% | −5.89% | −7.19% |
+
+The order holds and every car is within a third of a point of the pass (the
+Breakwater moved most, −1.90 to −1.59); the Bulwark is +0.23%, the Cinder 594.3 s.
+No tune changes.
+
 ## Deliberate sim-cade assists
 
 - **Combined grip:** lateral force gets priority on FWD/AWD. RWD reserves part
