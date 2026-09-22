@@ -59,6 +59,11 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
 - **Handling is the first quality gate** (GDD §22). Poor handling cannot
   be rescued by more content. Phase 1 work outranks everything until the
   car feels good.
+- **Mark what a change moves.** Changing a layer of the sim (the tyres, a tune, the world, lanes, how traffic
+  drives or which traffic, the rival, the generator) means finding its row in `design/COUPLINGS.md` and marking
+  every number measured on it suspect; re-measuring marks it current, and a new tuned number gets an entry. The
+  lane corner share 0.80 was measured on traffic that moved turning cars 15 m in a tick and on steering that asked
+  for a third of the wheel, both fixed within two days, and nobody went back to it.
 - Phase 1's handling values are intentionally centralized in `HANDLING` in
   `src/sim/sim.ts`. Tune from evidence gathered on the handling course; do not
   scatter feel constants through simulation or rendering code.
@@ -319,6 +324,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
 | MC3 / MCLA rosters, unlocks, REP economy (research data, csv) | `design/reference/midnight-club/` | its `README.md`, then `digest.md` |
 | The yard by the start, and the chaos it is meant to prove | — | `design/CHAOS.md` |
+| What a change in one layer moves in another, and what each tuned number was measured on | — | `design/COUPLINGS.md` |
 | The stories | — | `design/FIELD_NOTES.md` |
 
 ## Traps (each one has already cost a day)
