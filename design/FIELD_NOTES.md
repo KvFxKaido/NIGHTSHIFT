@@ -10,6 +10,26 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Six layouts, and whose crash it was (2026-09-22)
+
+Asked for: start on COUPLINGS' suspect list. The car ladder first (it held, `HANDLING.md`),
+then the batch at several traffic seeds as the gate. What was assumed and wrong:
+
+- That the rival's new incidents on other seeds were the rival's. Dissecting all 21 at
+  three seeds (what the traffic car was doing, when it claimed its junction, where the
+  rival was then) put 12 on traffic: cars turning across or into the rival's road, having
+  claimed with it 50 to 570 m away. The rule was right; the car's reckoning of how long it
+  would be in the junction was its speed now, and it then slowed to turn.
+- That fixing it would cut the incidents. It cut the contact ticks (one incident had been
+  26 races at a shared grid) and not the incidents: once one junction goes another way a
+  race meets other traffic from there, and seven went while eight came. Count incidents by
+  place, and read what each new one is before calling a change good or bad.
+- That the next fix, the rival not pulling out into oncoming cars, was one rule. It
+  removed those and opened a side the rival had never reached, the kerb side of a car on
+  a narrow street, from which it steered back through that car once the far side cleared.
+  Held back. A reactive rule that re-picks a side every tick needs a commitment, not
+  another look.
+
 ## A seed per attempt, and what one traffic had been hiding (2026-09-22)
 
 Asked for: the traffic seed per attempt, after Shawn noticed a restart meets the same

@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import RAPIER from "@dimforge/rapier3d-compat";
 import { createAlderWorld } from "../src/sim/alder.ts";
-import { DT } from "../src/sim/sim.ts";
-import { APPROACH_READ, createTraffic, forecastTraffic, forecastTrafficPath, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
+import { carHandling, createSim, DT, step } from "../src/sim/sim.ts";
+import { APPROACH_READ, clearingTime, createTraffic, forecastTraffic, forecastTrafficPath, RACER_HORIZON, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { RIVET } from "../src/sim/drag-event.ts";
 import { SABLE } from "../src/sim/drift-yard.ts";
+
+await RAPIER.init();
 
 // Traffic's plan (2026-09-13): which way each car turns is decided when it enters
 // a lane, so where it is going is a fact the sim holds. The rival reads it as a
@@ -204,6 +208,64 @@ test("traffic does not claim a junction a racer at 123 mph could not stop short 
   const crossed = junctionRun(true, arrive, pick, 55);
   assert.ok(crossed.passedAt > clear.claimedAt, "the racer was through before the junction would have been claimed; the test proves nothing");
   assert.ok(crossed.claimedAt < 0 || crossed.claimedAt >= crossed.passedAt, `it claimed the junction at tick ${crossed.claimedAt}, with a racer at 55 m/s arriving at ${crossed.passedAt}`);
+});
+
+// How long a claim holds its junction is what that look is measured against (2026-09-22). Reckoned at the speed a car
+// had and a flat 30 m, over three seeds and 5,300 claims it was short in three claims of four and by over 2 s in one of
+// three, held / reckoned from 0.63 to 1.74 (p10 to p90): the car slows to its corner and the reckoning did not. The
+// reckoning is now the car's own drive through the chain, and has to match the holds traffic drives with nobody in its
+// way: a claim that stood still, or ran to the 8 s cap, says nothing about the reckoning.
+test("a claim reckons the hold the car will drive", () => {
+  for (const seed of SEEDS) {
+    const traffic = createTraffic(network, undefined, seed);
+    const open = new Map<number, { tick: number; reckoned: number; stood: boolean }>(), ratios: number[] = [];
+    let late = 0;
+    for (let tick = 0; tick < 60 * 60; tick++) {
+      const had = new Map(traffic.vehicles.map(v => [v.id, v.holds.length]));
+      stepTraffic(network, traffic, DT);
+      for (const v of traffic.vehicles) {
+        const lane = network.lanes[v.lane]!;
+        if (!had.get(v.id) && v.holds.length) open.set(v.id, { tick, reckoned: clearingTime(network, v, v.holds, lane.length - lane.entry - v.distance), stood: false });
+        const claim = open.get(v.id);
+        if (!claim) continue;
+        if (v.speed < 0.5) claim.stood = true;
+        if (had.get(v.id) && !v.holds.length) {
+          open.delete(v.id);
+          const held = (tick - claim.tick) * DT;
+          if (claim.stood || held >= RACER_HORIZON.max) continue;
+          ratios.push(held / claim.reckoned);
+          if (held > claim.reckoned + 2) late++;
+        }
+      }
+    }
+    ratios.sort((a, b) => a - b);
+    const at = (p: number) => ratios[Math.floor(ratios.length * p)]!;
+    assert.ok(ratios.length > 300, `only ${ratios.length} unhindered claims were released${under(seed)}; the test proves little`);
+    assert.ok(at(.5) > 0.85 && at(.5) < 1.02, `a claim held ${at(.5).toFixed(2)} of what it reckoned, median${under(seed)}`);
+    assert.ok(at(.9) < 1.05, `one claim in ten held over ${at(.9).toFixed(2)} of what it reckoned${under(seed)}`);
+    assert.equal(late, 0, `${late} claims held over 2 s longer than they reckoned${under(seed)}`);
+  }
+});
+
+// Traffic seed 271828 put a taxi at the first junction of 26 of the street-line batch's races: it claimed a left turn
+// with the rival 217 m off at 67 mph, reckoned itself clear in 3.8 s, took the turn at 16 mph and held it 7.1, and the
+// rival braked from 109 mph and met it at 60. Reckoned as it drives, the junction is the rival's.
+test("a car does not turn across a racer it will still be in front of", () => {
+  const course = drawAlderCourse("gen-28", null);
+  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival: fieldAlderRival(course.rival), traffic: true, trafficSeed: 271828 });
+  try {
+    let slowest = Infinity, touched = 0;
+    while (sim.state.rival!.driver.along < 330) {
+      step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+      const r = sim.state.rival!, c = r.vehicle, taxi = sim.state.traffic!.vehicles.find(v => v.id === 23)!;
+      if (r.race.countdown > 0) continue;
+      assert.ok(r.race.ticks < 20 * 60, "the rival never reached the junction");
+      if (r.driver.along > 180) slowest = Math.min(slowest, c.speed);
+      if (Math.hypot(taxi.x - c.x, taxi.z - c.z) < 5) touched++;
+    }
+    assert.equal(touched, 0, "the rival came within 5 m of the taxi");
+    assert.ok(slowest > 40, `the rival slowed to ${(slowest * 2.237).toFixed(0)} mph through the junction`);
+  } finally { sim.world.free(); }
 });
 
 // How traffic gets round a corner (2026-09-20). It used to drive to the end of

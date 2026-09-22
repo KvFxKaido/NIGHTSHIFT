@@ -50,7 +50,10 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // is too short to start a vehicle on, so traffic is laid out exactly as before;
 // but its length is part of the reservation spans at both its junctions, and
 // traffic differs from v6 within ten seconds, from the first vehicle through them.
-export const TRAFFIC_REVISION = "traffic-v7";
+// v8 (2026-09-22): a claim reckons how long the vehicle will hold its junction from
+// the corner it will take, not the speed it has (`clearingTime`), so it holds a
+// junction for a racer it would have turned across. Traffic alone is unchanged.
+export const TRAFFIC_REVISION = "traffic-v8";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -831,6 +834,39 @@ function movementPath(network: TrafficNetwork, id: number): LanePose[] {
   return path;
 }
 
+/**
+ * How long a vehicle about to claim `chain` will be in it, seconds, never more than the racer horizon (2026-09-22):
+ * braking to the tightest corner on the chain by its line, as `cornerLimit` plans the approach, and through every
+ * movement to where it is clear at that corner's speed. Reckoned at the speed it had and a flat 30 m, which it was to
+ * traffic-v7, the hold came out at half what was driven: a taxi at 38 mph claimed a left turn it took at 16, was
+ * reckoned clear in 3.8 s and held it 7.1, and the rival, 217 m off at 67 mph and still accelerating, met it at
+ * 60 mph (traffic seed 271828, the first junction of 26 of the street-line batch's races). Of eleven junction claims
+ * a rival later ran into over three seeds, four were this, the rest coming round a bend (which traffic cannot see
+ * without the racer's route, and must not be given the rival's alone) or a car stuck in the junction.
+ * Other vehicles are not reckoned: this is the car's own drive, and anything in its way only makes it longer.
+ */
+export function clearingTime(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, chain: readonly number[], toEntry: number): number {
+  const cruise = TRAFFIC_KINDS[vehicle.kind].cruise;
+  let through = 0, taken = cruise;
+  for (const id of chain) {
+    const path = movementPath(network, id);
+    for (let i = 1; i < path.length; i++) through += Math.hypot(path[i]!.x - path[i - 1]!.x, path[i]!.z - path[i - 1]!.z);
+    const corner = cornerOf(network, id);
+    if (corner) taken = Math.min(taken, corner.speed);
+  }
+  taken = Math.max(RACER_MOVING, taken);
+  const step = 0.1;
+  let speed = vehicle.speed, covered = 0, seconds = 0;
+  while (covered < toEntry + through && seconds < RACER_HORIZON.max) {
+    const limit = covered < toEntry ? Math.sqrt(taken * taken + 2 * CORNER.comfort * (toEntry - covered)) : taken;
+    const target = Math.min(cruise, limit);
+    speed += Math.max(-BRAKING * step, Math.min(ACCELERATION * step, target - speed));
+    covered += speed * step;
+    seconds += step;
+  }
+  return Math.min(RACER_HORIZON.max, seconds);
+}
+
 /** Whether a racer is in a movement's path now, or will be before the car could clear it (`clearing` seconds) or the racer could stop. */
 function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[], clearing: number): boolean {
   for (const racer of racers) {
@@ -909,8 +945,7 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     if (chain.slice(0, -1).some(id => (byLane.get(network.movements[id]!.to) ?? []).some(other => other !== vehicle))) continue;
     if (!mayEnter(network, byLane, vehicle, chain)) continue;
     // A racer in the junction, or crossing it before this vehicle could be clear, has it.
-    const clearIn = Math.min(RACER_HORIZON.max, (toEntry(vehicle) + 30) / Math.max(3, vehicle.speed));
-    if (racerCrossing(network, chain, racers, clearIn)) continue;
+    if (racers.some(racer => racer.speed >= RACER_MOVING) && racerCrossing(network, chain, racers, clearingTime(network, vehicle, chain, toEntry(vehicle)))) continue;
     vehicle.holds = chain;
     for (const id of chain) holders.set(id, [...(holders.get(id) ?? []), vehicle]);
   }

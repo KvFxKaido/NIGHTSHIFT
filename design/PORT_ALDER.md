@@ -1606,6 +1606,64 @@ What the seed found is bigger than the seed:
   0's two minutes had never sampled that approach. It and the forecast test now run under
   a seed as well as seed 0.
 
+**Six layouts, and whose crash it was (2026-09-22, `traffic-v8`).** The batch at six
+traffic seeds (0, 1000, 271828 and three more soaked the day before, 1, 42, 314159)
+met 50 distinct incidents where seed 0 alone had met 4, and every one of the 21 at the
+first three seeds was dissected: what the traffic car was doing, when it had claimed
+its junction and where the rival was then, when the rival began to brake. Five kinds:
+traffic turning across the rival (9, the shared 275 m one among them), traffic turning
+into its road just ahead (3), an oncoming car with no junction in it (3), a same-way car
+the rival read too late (2), and grazes at walking pace (4). The first two were traffic's.
+
+A car claims its junction only if no racer on the move will cross it before the car is
+clear (the 09-13 rule above), and it reckoned how long it would be in it as
+(metres to its line + 30) / the speed it had. It then slows for its corner. At seed
+271828 a taxi at 38 mph claimed a left turn with the rival 217 m off at 67 mph,
+reckoned itself clear in 3.8 s, took the turn at 16 mph and held it 7.1; the rival
+braked from 109 mph at 47 m and met it at 60, in 26 of the batch's races, which share
+that grid. Of eleven claims the rival later ran into, projecting the rival over the
+hold the car actually drove found four of them (0.2 to 4.4 m, inside the 5 m band): the
+reckoning was the whole fault there. Of the rest, three came round a bend (the look is
+straight along the racer's heading, and traffic cannot see a bend without the racer's
+route; given the rival's alone it would help the rival and not the player), two were
+marginal on the band, and two were cars stuck in the junction for 20 s and more.
+
+A claim now reckons its hold as the car will drive it (`clearingTime`): braking to the
+tightest corner of its chain by the line, the way `cornerLimit` plans the approach, and
+through every movement to where it is clear at that corner's speed. Traffic alone,
+over 5,300 claims at three seeds, held / reckoned went from a median of 1.36 to 1.40 by
+seed (p10 to p90 0.63 to 1.74, a third of claims held 2 s past it) to 0.94 to 0.95 (0.85
+to 1.00, none). The
+look along a racer is unchanged, and traffic alone is unchanged, so neither the soak
+nor the starvation moves. `pnpm golden`: 13 of 14 identical, free roam moved (the one
+run where racers meet traffic at junctions). Both tests fail on the old reckoning.
+
+| Six seeds, 498 races, the rival alone | Time | Contact ticks | Races with contact | Distinct incidents | On a line | In a pass | Off the pavement |
+|---|---|---|---|---|---|---|---|
+| `traffic-v7` | 47,513 s | 1,197 | 89 | 50 | 31 | 27 | 849 |
+| **`traffic-v8`** | 47,364 s | 640 | 66 | 53 | 11 | 27 | 824 |
+
+Not a clean win, and read as one it would mislead. Contact ticks and races with contact
+fall mostly because the 26-race incident is gone. Distinct incidents are flat: matched
+by place rather than the tick, seven went and eight came, because once one junction goes
+differently a race meets other traffic from there on. None of the eight is a car held
+for the rival and then let go into it. What v8 removes is one way traffic was wrong; what
+the rival meets after that is mostly the rival. Four of the eight, and three of the old
+ones, are the next thing: an oncoming car with no junction in it, which is the rival
+pulling out to pass a slow or stopped car in its lane into a car coming the other way,
+and braking in that lane rather than leaving it (gen-70 at 125 mph). Its three looks at a
+side (now beside it, now beside the car, and alongside) miss a car that meets it between
+them. A rule for that was built and measured (`driver-v3`, not shipped): it removed those
+contacts and let the rival take the right on a 12 m street instead, from where it steered
+back through the car beside it once the left reopened, four seconds of contact. The
+reactive dodge picks its side afresh every tick; that is the next thing to fix.
+
+The six-seed batch is now a command, `pnpm rival:gate`: every seed and quarter of the races
+in its own process (about 20 minutes on 24 processes), compared race by race with
+`design/measurements/rival-gate.json`, which the change that moves it re-saves (`--save`).
+A distinct incident is one (time, route metres) pair; it over-counts a contact broken in
+two and one that shifts a tenth of a second, so read the list, not only the count.
+
 **Three races against Wake, and the rear-end under "traffic slows her down" (2026-09-22,
 `driver-v2`).** Shawn raced `gen-wake-42` three times from the grid in the Cinder, no
 pedal assist, all three recorded and all three replaying exactly:
