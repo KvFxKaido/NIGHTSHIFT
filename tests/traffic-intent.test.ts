@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { DT } from "../src/sim/sim.ts";
-import { createTraffic, forecastTraffic, forecastTrafficPath, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
+import { APPROACH_READ, createTraffic, forecastTraffic, forecastTrafficPath, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { RIVET } from "../src/sim/drag-event.ts";
 import { SABLE } from "../src/sim/drift-yard.ts";
 
@@ -10,6 +10,10 @@ import { SABLE } from "../src/sim/drift-yard.ts";
 // a lane, so where it is going is a fact the sim holds. The rival reads it as a
 // forecast and the player reads it as indicators; both have to be true.
 const network = createAlderWorld(true).traffic!;
+/** Traffic with no seed, and one of the traffic seeds a race attempt draws (createTraffic, 2026-09-22): the plan the
+ *  forecast and the indicators read has to be the plan driven under either. */
+const SEEDS = [0, 271828];
+const under = (seed: number) => seed ? `, under traffic seed ${seed}` : "";
 
 test("a batched forecast follows single forecasts through turns without changing live traffic", () => {
   const traffic = createTraffic(network);
@@ -33,8 +37,8 @@ test("a batched forecast follows single forecasts through turns without changing
   assert.deepEqual(traffic, before, "forecast mutated the live vehicles or junction claims");
 });
 
-test("a forecast is where a car that keeps its speed actually goes, turns and junction lines included", () => {
-  const traffic = createTraffic(network);
+for (const seed of SEEDS) test(`a forecast is where a car that keeps its speed actually goes, turns and junction lines included${under(seed)}`, () => {
+  const traffic = createTraffic(network, undefined, seed);
   for (let tick = 0; tick < 60 * 30; tick++) stepTraffic(network, traffic, DT);
   const seconds = 2, ticks = Math.round(seconds / DT);
   let steady = 0, turned = 0, worst = 0;
@@ -76,8 +80,8 @@ test("a forecast is where a car that keeps its speed actually goes, turns and ju
   assert.ok(Math.hypot(stopped.x - atLine.x, stopped.z - atLine.z) < 0.05, `a car with no claim was forecast ${Math.hypot(stopped.x - atLine.x, stopped.z - atLine.z).toFixed(1)} m from its entry line`);
 });
 
-test("a car signals the way it then turns, and signals nothing going straight on", () => {
-  const traffic = createTraffic(network);
+for (const seed of SEEDS) test(`a car signals the way it then turns, and signals nothing going straight on${under(seed)}`, () => {
+  const traffic = createTraffic(network, undefined, seed);
   for (let tick = 0; tick < 60 * 10; tick++) stepTraffic(network, traffic, DT);
   // Per vehicle: the signal, heading and position when it first came within range
   // of a line off any earlier slide, and the movement it was about to make.
@@ -89,7 +93,11 @@ test("a car signals the way it then turns, and signals nothing going straight on
     for (const vehicle of traffic.vehicles) {
       const seen = watching.get(vehicle.id);
       if (!seen && vehicle.holds.length === 0 && !trafficCornering(network, vehicle) && toLine(vehicle) <= SIGNAL_RANGE && toLine(vehicle) > SIGNAL_RANGE - 5) {
-        watching.set(vehicle.id, { movement: vehicle.movement, signal: trafficSignal(network, vehicle), heading: vehicle.heading, x: vehicle.x, z: vehicle.z });
+        // The turn is measured from where the indicator reads its approach, not from the car 45 m out: lane 29 bends
+        // 64 degrees on its way to a straight-on junction, which under traffic seed 271828 read as a right turn with
+        // no indicator (2026-09-22). Seed 0's two minutes had never sampled that approach.
+        const lane = network.lanes[vehicle.lane]!, approach = network.pose(vehicle.lane, Math.max(0, lane.length - lane.entry - APPROACH_READ));
+        watching.set(vehicle.id, { movement: vehicle.movement, signal: trafficSignal(network, vehicle), heading: approach.heading, x: approach.x, z: approach.z });
       } else if (seen) {
         const movement = network.movements[seen.movement]!;
         if (vehicle.lane !== movement.from && vehicle.lane !== movement.to) { watching.delete(vehicle.id); continue; }

@@ -279,6 +279,11 @@ fixtures outside the playable bundle, and old world links redirect.
   slowed is forecast still slow. One per 900 m of lane (`TRAFFIC_SPACING`) over Port Alder's 302 km,
   which is still sparse. The density-24 and ceiling-55 figures in
   `design/FIELD_NOTES.md` are the retired district's 192 lanes, not this map.
+  Since 2026-09-22 each attempt at a race meets its own traffic: the game draws a seed
+  (`SimOptions.trafficSeed`, `createTraffic`) that moves where every car starts and salts
+  which way it turns, and the recording carries it. Free roam, the tests, the batch and
+  the golden master keep seed 0, the one traffic there used to be. `?trafficSeed=` fixes
+  one for a session, to reproduce a report (`design/PORT_ALDER.md`, "Traffic per attempt").
 - **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), the
   neighbourhood's name as you cross into it in free roam (`district-banner.ts`,
   after 1.2 s so a border street never flickers), a city map overlay (M) naming
@@ -558,6 +563,16 @@ fixtures outside the playable bundle, and old world links redirect.
   a race handed to `createSim` with no rival and no exits has no arrows.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
+- Seed 0 is the traffic every traffic fix was soaked on and every rival gate was measured on, and it is the cleanest
+  of twelve seeds measured (2026-09-22): under the others traffic starves a long chain through a junction cluster for
+  up to 6.6 minutes, and the rival meets three times the distinct incidents, including the first contact on a line and
+  in a pass since those gates existed. A claim about traffic or the rival measured at seed 0 alone is a claim about one
+  layout: soak with `pnpm traffic:soak` and run the batch with `TRAFFIC_SEED`. Keeping a refused car's turn against
+  later cars was tried on the starvation and made it worse on balance (`design/measurements/traffic-seeds.json`).
+- A traffic seed keeps the vehicle count and each id's kind, and must: the renderer sizes one instanced mesh per kind
+  once, at load (`render/traffic.ts`), and a restart onto another seed draws into the same slots. Starts move by a phase
+  along the one ruler, never by adding or dropping a car. Seed 0's vehicles carry no `seed` field, because the golden
+  master hashes the state as JSON and seed 0 has to be the old traffic to the byte.
 - Compare heights above the road, never raw. The rival's 3 m filter meant for
   bridges compared raw heights and hid same-street traffic on about a third of the
   city at top speed; it now reads `routeHeightAt`. The check on the racing player
@@ -643,6 +658,7 @@ pnpm pace             # fit the route-choice pace model to recorded Uptown laps;
 pnpm pace --sensitivity # what moving the pace does to the map's verdicts and to the draw (needs no recordings)
 pnpm cars             # every car's measured card; before and after a tune. --laps (AI laps), --try=, --json
 pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
+pnpm traffic:soak     # traffic alone for ten minutes per traffic seed: what stood over a minute. Seeds as args, --json
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

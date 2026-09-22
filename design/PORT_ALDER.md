@@ -1559,6 +1559,53 @@ What is left, measured the same evening with the rival alone on the same race:
   before judging the ladder by its bottom rung; slipstream, the same for both
   cars; and then what the faster cars' bad laps in traffic are made of.
 
+**Traffic per attempt (2026-09-22).** "The traffic spawns the same exact way every time
+when restarting a race" (Shawn). It did: the sim starts at tick 0 and traffic had no
+seed, so a race from the grid met the same cars in the same places, every attempt. Each
+attempt at a race now draws a traffic seed in `main.ts` (outside the sim; the recording
+carries it, as it carries the pedal assist, so replay meets the same cars) and a restart
+draws another. `createTraffic` takes it two ways: every vehicle starts a phase of up to
+one spacing further along the one ruler it is laid on, and which way it turns is the
+integer hash salted by the seed. The count and each id's kind do not move, because the
+renderer sized its instanced meshes by them once, at load; checked in the browser after
+a restart onto a fresh seed, all 261 cars drawn where the sim has them. Seed 0 is the old
+traffic to the byte (the golden master is identical, 14 of 14), and free roam, the tests,
+the batch and the golden master keep it. `?trafficSeed=` fixes one for a session and the
+HUD's mode line names it.
+
+What the seed found is bigger than the seed:
+
+- **Seed 0 was the layout everything was fitted to.** Every traffic fix was soaked on it
+  and every rival gate was measured on it, and of twelve seeds it is the cleanest. Traffic
+  alone for ten minutes (`pnpm traffic:soak`): at seed 0 the longest stand is 88 s and
+  three cars stand over a minute; across the other eleven the longest is 78 to 396 s and
+  2 to 25 cars stand over a minute, some still standing at the end.
+- **Those stands are starvation, not locks.** Tallied tick by tick for the four worst, a
+  car at its line needing a chain of three to five movements through short connector
+  lanes is refused for "a crossing is held" on nearly every tick, by 27 to 33 different
+  cars in turn: something always holds one of its crossings. A car later in the grant
+  order is granted whenever its own chain is free, even while one ahead of it is
+  refused. Letting a car refused only for held movements keep its turn against later
+  cars was built and measured, and made it worse on balance: seed 271828 went from 396
+  to 345 s, seed 7 from 104 to 175, seed 99 from 91 to 165, and seed 0 from 3 cars over a
+  minute to 7. It helped the car that kept its turn and cost everyone behind the cars it
+  blocked, and it could only apply when the lanes a long chain runs through are empty,
+  which they seldom are. Reverted; traffic stays `traffic-v7`. Starvation at junction
+  clusters is open, and it is a property of reserving whole chains, not a missing rule.
+- **The rival is fitted to seed 0 too.** The 83-race batch under two of the worst seeds,
+  player parked (`design/measurements/traffic-seeds.json`): distinct incidents go from 4
+  at seed 0 to 8 at seed 1000 and 9 at seed 271828, and at seed 271828 the first contact
+  on a line (gen-63, gen-71) and in a pass (gen-37) since those gates existed, with
+  +1.0% and +2.8% on time. Races with contact go from 3 to 11 and 37, but 26 of seed
+  271828's are one incident at 275 m, 9 s from the shared grid. "Zero contact on a line
+  or in a pass" was true of one traffic.
+- **And one test was fitted to it.** The indicator test measured a car's turn from its
+  heading 45 m before the line, and lane 29 bends 64 degrees on its way to a straight-on
+  junction: under seed 271828 that read as a right turn with no indicator. The indicator
+  was right; the test now measures from where the indicator reads (`APPROACH_READ`). Seed
+  0's two minutes had never sampled that approach. It and the forecast test now run under
+  a seed as well as seed 0.
+
 **Three races against Wake, and the rear-end under "traffic slows her down" (2026-09-22,
 `driver-v2`).** Shawn raced `gen-wake-42` three times from the grid in the Cinder, no
 pedal assist, all three recorded and all three replaying exactly:
@@ -1650,7 +1697,7 @@ Two things he raised are open, not decided:
   another moment, meets other traffic. Law 2 makes this correct; whether a retried
   stage should be the same race with the same traffic is a design choice. A seed per
   attempt would have to be recorded, as `startCode` is, so the recording still
-  replays; the batch would keep seed 0.
+  replays; the batch would keep seed 0. Built the same day: "Traffic per attempt" above.
 
 **A rival named by what it is made of (2026-09-21).** A raced recording replays only
 against the rival it raced, and "the rival" was one hand-bumped string,

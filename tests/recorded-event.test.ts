@@ -47,8 +47,10 @@ test("a race id resolves to what a recording of it is a recording of", () => {
 test("a generated sprint raced against its rival records as one lap, replays exactly, and compares gate by gate", () => {
   const event = recordedEvent("gen-crest-23")!;
   const { line: _line, ...route } = event.rival!;
-  // Driven by the rival's planner in the rival's car, in traffic, against the rival: recorded as main.ts records it.
-  const sim = createSim(carHandling(route.car!), createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: true, pedalAssist: 0 });
+  // Driven by the rival's planner in the rival's car, in traffic, against the rival: recorded as main.ts records it,
+  // on an attempt's own traffic (main.ts draws a seed per attempt, 2026-09-22).
+  const trafficSeed = 1000;
+  const sim = createSim(carHandling(route.car!), createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: true, trafficSeed, pedalAssist: 0 });
   let session: LapSession | null = null;
   try {
     const recorder = createLapRecorder(event.track), driver = createRivalDriver();
@@ -59,7 +61,7 @@ test("a generated sprint raced against its rival records as one lap, replays exa
       if (!recordTick(recorder, input, sim.state.vehicle, sim.state.race, TICK_HZ)) continue;
       session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-20-120000-gen-crest-23", recordedAt: "2026-09-20T12:00:00.000Z", world: sim.roadWorld.id,
         arena: event.identity, rival: rivalRevision(event.rival!), physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: false, traffic: true,
-        trafficRevision: TRAFFIC_REVISION, laps: event.race.laps ?? 1, car: route.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, pedalAssist: 0,
+        trafficRevision: TRAFFIC_REVISION, trafficSeed, laps: event.race.laps ?? 1, car: route.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, pedalAssist: 0,
         start: sim.roadWorld.start }))) as LapSession;
     }
   } finally { sim.world.free(); }
@@ -68,6 +70,9 @@ test("a generated sprint raced against its rival records as one lap, replays exa
   assert.equal(session.recorded.length, 1);
   assert.equal(session.recorded[0]!.gateTicks.length, event.race.checkpoints.length, "one lap is every gate of the race");
   assert.deepEqual(replayLapSession(session), { ok: true, laps: 1 });
+  // The same race on other traffic is another run: without its seed the replay meets seed 0's traffic and parts.
+  const { trafficSeed: _seed, ...unseeded } = session;
+  assert.equal((replayLapSession(unseeded as LapSession) as { ok: boolean }).ok, false, "a session replayed on other traffic");
   // Another draw of the same seed is another race, and is refused by name rather than compared.
   assert.match((replayLapSession({ ...session, arena: "generator-v0" }) as { reason: string }).reason, /generator generator-v0/);
   assert.match((replayLapSession({ ...session, rival: "full-line-v32" }) as { reason: string }).reason, /raced rival full-line-v32, from before/);

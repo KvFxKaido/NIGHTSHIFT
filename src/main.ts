@@ -127,6 +127,8 @@ let smooth = true;
 // none by default, but all of it on the drag strip (sim/pedal-assist.ts). ?assist= is a
 // developer comparison like ?drivetrain=: read from the URL, never saved.
 let requestedAssist: number | null = null;
+/** `?trafficSeed=`: every attempt at the race meets this traffic, to reproduce a report. A preview: never saved. */
+let requestedTrafficSeed: number | null = null;
 /** The tick before the last, taken before each live step; null when there is none to blend from. */
 let previousPoses: Poses | null = null;
 try {
@@ -210,6 +212,13 @@ try {
     requestedAssist = Number(assist);
     if (!(requestedAssist >= 0 && requestedAssist <= 1)) throw new Error(`?assist= is a number from 0 to 1, not '${assist}'`);
   }
+  const trafficSeed = params.get("trafficSeed");
+  if (trafficSeed !== null) {
+    requestedTrafficSeed = Number(trafficSeed);
+    if (!(Number.isInteger(requestedTrafficSeed) && requestedTrafficSeed >= 0 && requestedTrafficSeed <= 0xffffffff)) {
+      throw new Error(`?trafficSeed= is a whole number from 0 to 4294967295, not '${trafficSeed}'`);
+    }
+  }
   await RAPIER.init();
   const requestedCar = new URLSearchParams(location.search).get("car") ?? restored.car;
   // ?car=<id>&unlock=1 drives a car the career has not won, for pad testing a
@@ -256,7 +265,16 @@ const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const pedalAssist = requestedAssist ?? defaultPedalAssist(race);
-const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+/**
+ * The traffic an attempt at a race meets (2026-09-22). With none, a race from the grid met the same cars in the same
+ * places every time, since the sim starts at tick 0 and traffic had no seed; Shawn noticed on the third restart. Each
+ * attempt draws one here, outside the sim, which is why law 2 holds: the recording carries it and a replay meets the
+ * same traffic. Free roam keeps seed 0.
+ */
+function attemptTrafficSeed(): number {
+  return requestedTrafficSeed ?? (crypto.getRandomValues(new Uint32Array(1))[0]! || 1);
+}
+const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, trafficSeed: attemptTrafficSeed(), race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
@@ -386,6 +404,8 @@ function reset(setup: Drivetrain | CarHandling = sim.state.handling): void {
   previousPoses = null;
   challengePending = false;
   flashRemaining = 0;
+  // Another attempt at a race meets other traffic.
+  if (race) sim.trafficSeed = attemptTrafficSeed();
   resetSim(sim, setup);
   resetViewCamera(view);
   // A reset breaks the input log, so the run after it is a new recording.
@@ -408,7 +428,7 @@ function recordStep(tickInput: Input): void {
   if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
   const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: recorded.rival ? rivalRevision(recorded.rival) : NO_RIVAL,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: recorded.layout, solo: recorded.solo, traffic: recorded.traffic,
-    ...(recorded.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), laps: race.laps ?? 1,
+    ...(recorded.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), ...(recorded.traffic && sim.trafficSeed ? { trafficSeed: sim.trafficSeed } : {}), laps: race.laps ?? 1,
     // A generated race's flash is part of what its id draws: without it the replay draws another race.
     ...(raceStartCode ? { startCode: raceStartCode } : {}),
     car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
@@ -773,7 +793,7 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
   // Race transitions retain the loaded slot's build without changing other slots.
   url.searchParams.set("drivetrain", sim.state.drivetrain);
   for (const [key, value] of Object.entries(customization)) url.searchParams.set(key, value);
-  for (const key of ["drive", "freeze", "rival", "visit"]) url.searchParams.delete(key);
+  for (const key of ["drive", "freeze", "rival", "visit", "trafficSeed"]) url.searchParams.delete(key);
   location.href = url.href;
 }
 /** Seconds the brand line keeps naming the camera after a change. */
@@ -941,6 +961,7 @@ function updateHud(): void {
     document.getElementById("drift-help")!.textContent = `${input.activeGamepadName() ? padLabel(bindings.gamepad.handbrake, input.activeGamepadName()) : keyLabel(bindings.keyboard.handbrake)}: initiate · Straighten to bank`;
   }
   modeElement.textContent = `${race ? race.name.toUpperCase() + " / " : ""}${recorder ? `${recording.status} / ` : ""}LIVE / ${sim.state.drivetrain.toUpperCase()}${sim.pedalAssist !== defaultPedalAssist(race) ? ` / ASSIST ${Math.round(sim.pedalAssist * 100)}%` : ""}`
+    + (race && requestedTrafficSeed !== null ? ` / TRAFFIC ${requestedTrafficSeed}` : "")
     + (cameraNoticeRemaining > 0 ? ` / CAMERA ${CHASE_CAMERAS[view.chaseCamera].label.toUpperCase()}` : "")
     + (trackNoticeRemaining > 0 ? ` / ${trackNotice}` : "");
   const gamepadName = input.activeGamepadName();

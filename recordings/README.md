@@ -67,4 +67,7 @@ Anything that moves the car outside the fixed tick (debug placement through
 
 A session in traffic names the traffic that drove it (`trafficRevision`,
 `TRAFFIC_REVISION` in `src/sim/traffic.ts`), and replay refuses another by name.
+Since 2026-09-22 it also says which traffic (`trafficSeed`): every attempt at a race
+draws one, and replay meets the same cars. Absent is seed 0, the one traffic every
+session had before, so older sessions replay as they did.
 Sessions in traffic from before traffic revisions are refused the same way.

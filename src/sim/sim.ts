@@ -152,6 +152,8 @@ export interface Sim {
   readonly roadWorld: RoadWorld;
   /** `SimOptions.pedalAssist`: 1 unless previewed, and the player's car's alone. */
   pedalAssist: number;
+  /** `SimOptions.trafficSeed`: set it before `resetSim` for the next run to meet other traffic. */
+  trafficSeed: number;
   pedalFeedback: PedalFeedback;
   state: SimState;
   world: RAPIER.World;
@@ -198,6 +200,10 @@ export interface SimOptions {
    */
   readonly pedalAssist?: number;
   readonly traffic?: boolean;
+  /** Which traffic this run meets (`createTraffic`): where every vehicle starts and which way it turns. Absent is 0,
+   *  the one traffic every run had to 2026-09-22 and what every test, the batch and the golden master keep. The game
+   *  draws a fresh one for each attempt at a race and a recording carries it, as it carries the pedal assist. */
+  readonly trafficSeed?: number;
   /** Run an open-checkpoint race on this world from its start pose. */
   readonly race?: RaceDefinition;
   readonly rival?: RivalDefinition;
@@ -666,7 +672,7 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   // it keeps the player's contact response the only dynamics in the tick — the
   // handling gate (GDD §22) must not move because a van exists.
   const network = options.traffic === false ? null : roadWorld.traffic;
-  const traffic = network ? createTraffic(network) : null;
+  const traffic = network ? createTraffic(network, undefined, options.trafficSeed ?? 0) : null;
   const trafficBodies = (traffic?.vehicles ?? []).map(vehicle => {
     const spec = TRAFFIC_KINDS[vehicle.kind];
     const trafficBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
@@ -717,7 +723,7 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   }
   return {
     roadWorld,
-    pedalAssist: clamp(options.pedalAssist ?? 1, 0, 1), pedalFeedback: { spin: 0, lock: 0 },
+    pedalAssist: clamp(options.pedalAssist ?? 1, 0, 1), trafficSeed: options.trafficSeed ?? 0, pedalFeedback: { spin: 0, lock: 0 },
     state: { physicsVersion: PHYSICS_VERSION, drivetrain: handling.drivetrain, handling, tick: 0,
       vehicle, traffic, rival, encounter, parkedRivals, cruisers, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
@@ -739,7 +745,7 @@ export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.h
   const handling = typeof setup === "string" ? carHandling(sim.state.handling.car, setup) : setup;
   // Rebuild contact warm-start caches too, so replay after a crash starts from
   // exactly the same world as a fresh run. Preserve the outer Sim object.
-  const fresh = createSim(handling, sim.roadWorld, { pedalAssist: sim.pedalAssist, traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
+  const fresh = createSim(handling, sim.roadWorld, { pedalAssist: sim.pedalAssist, trafficSeed: sim.trafficSeed, traffic: sim.state.traffic !== null, race: sim.race ?? undefined, rival: sim.rivalDefinition ?? undefined, encounter: sim.encounterStart ?? undefined, encounterRoute: sim.encounterRoute ?? undefined, parkedRivals: sim.parkedRivalDefinitions, cruisers: sim.cruiserDefinitions });
   sim.world.free();
   sim.world = fresh.world;
   sim.body = fresh.body;
@@ -756,6 +762,7 @@ export function resetSim(sim: Sim, setup: Drivetrain | CarHandling = sim.state.h
   sim.pedalFeedback = fresh.pedalFeedback;
   sim.trafficBodies = fresh.trafficBodies;
   sim.race = fresh.race;
+  sim.trafficSeed = fresh.trafficSeed;
 }
 
 /** Return from a garage without restarting traffic or the rest of the world. */

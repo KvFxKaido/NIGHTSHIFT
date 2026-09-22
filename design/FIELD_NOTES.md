@@ -10,6 +10,33 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## A seed per attempt, and what one traffic had been hiding (2026-09-22)
+
+Asked for: the traffic seed per attempt, after Shawn noticed a restart meets the same
+cars. What was assumed and wrong, in order:
+
+- That a seed was variety: a small change to where cars start and a salt on which way
+  they turn, seed 0 kept byte for byte, done in an hour. The plumbing was that. What
+  it found took the evening: seed 0 is the one traffic every traffic fix was soaked on
+  and every rival number was measured on, and it is the cleanest of twelve.
+- That the long stands were locks, because the traps say new waiting finds holes in the
+  reservation rules. They were starvation: a car needing a chain through a junction
+  cluster refused on nearly every tick by a stream of 27 to 33 other cars, never all at
+  once. The tally that showed it counted the refusing rule and the blockers each tick,
+  which no reading of the code had suggested.
+- That fairness would fix it. Keeping a refused car's turn helped that car and cost the
+  cars behind everyone it blocked, and seed 0 itself got worse. Measured on twelve seeds
+  and reverted. What is left is a property of reserving whole chains through short lanes
+  under crossing traffic, and it wants a design, not a rule.
+- That the rival's traffic numbers were the rival's. The 83-race batch is 83 races
+  through one traffic. Under two other seeds it meets two to three times the distinct
+  incidents, including contact on a line and in a pass, the two gates that had read zero
+  since they were built. The batch now takes `TRAFFIC_SEED`, and a rival change that is
+  measured at seed 0 alone is measured on the layout it was fitted to.
+- That the renderer would follow. It would have, only because the count and each id's
+  kind stayed put: it sizes its instanced meshes once, at load. The phase along the ruler
+  was chosen for that, and a test holds it.
+
 ## Three races against Wake, and what "traffic slows her down" was (2026-09-22)
 
 Asked for: nothing, at first. Shawn raced Wake through the open ground because a new

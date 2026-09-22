@@ -166,6 +166,9 @@ export interface LapSession {
   traffic?: boolean;
   /** `TRAFFIC_REVISION` when traffic was on: a session in traffic replays only on the traffic that drove it. */
   trafficRevision?: string;
+  /** `SimOptions.trafficSeed` when traffic was on: which traffic, where `trafficRevision` says how it drives. Absent is
+   *  seed 0, the one traffic every session had before 2026-09-22. */
+  trafficSeed?: number;
   laps: number;
   car: string;
   drivetrain: string;

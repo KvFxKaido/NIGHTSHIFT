@@ -31,7 +31,8 @@ for (const id of ids) {
   const rival = withLine ? withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
     { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}), ...(process.env.BENDREACH ? { bendReach: Number(process.env.BENDREACH) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) }) : bare;
   if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
-  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true });
+  // TRAFFIC_SEED=n runs every race against another traffic (createTraffic): the rival alone across traffic layouts.
+  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true, trafficSeed: Number(process.env.TRAFFIC_SEED ?? 0) });
   let aborts = 0, wasGo = false, contactOnLine = 0; let contact = 0, off = 0, stray = 0, onLine = 0, racing = 0, jumps = 0, lastAlong = 0, goCorners = 0, lastCorner = -1, wentGo = false, corners = 0;
   const events: string[] = [];
   let passTicks = 0, passes = 0, passContact = 0, lastPass = -1;

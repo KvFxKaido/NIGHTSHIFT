@@ -29,6 +29,7 @@
     "cars": "node --experimental-strip-types --no-warnings scripts/car-card.ts",
     "cars:stats": "node --experimental-strip-types --no-warnings scripts/car-stats.ts",
     "golden": "node --experimental-strip-types --no-warnings scripts/golden.ts",
+    "traffic:soak": "node --experimental-strip-types --no-warnings scripts/traffic-soak.ts",
     "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
     "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts"
   },

@@ -38,7 +38,7 @@ export function replayLapSession(session: LapSession): ReplayResult {
   if ((session.carRevision ?? 1) !== handling.revision) return { ok: false, reason: `driven in the ${session.car} at handling revision ${session.carRevision ?? 1}, this build's is ${handling.revision}` };
   // Traffic is part of the world and replays with it, by its revision.
   const sim = createSim(handling, createAlderWorld(true, event.start),
-    { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic, pedalAssist: session.pedalAssist ?? 1 });
+    { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
   try {
     const recorder = createLapRecorder(event.track);
     const { throttle, brake, steer, handbrake } = session.inputs;

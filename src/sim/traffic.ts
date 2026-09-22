@@ -211,6 +211,10 @@ export interface TrafficVehicleState {
   via: number;
   /** Slowing, or held at a standstill: what its brake lights show. */
   braking: boolean;
+  /** The traffic seed it was laid out under (`createTraffic`), and part of which way it turns at every junction.
+   *  Absent is seed 0: the one traffic every run had to 2026-09-22. Carried on the vehicle, so a forecast and the
+   *  indicators, which copy the vehicle, read the same plan the vehicle drives. */
+  readonly seed?: number;
 }
 
 export interface TrafficState {
@@ -578,14 +582,16 @@ function place(network: TrafficNetwork, vehicle: TrafficVehicleState): void {
 }
 
 /** The movement a vehicle takes at the end of `lane`, on its `turns`-th
- *  transition. Pure, so the chain below predicts exactly what will be driven. */
-function movementAt(network: TrafficNetwork, id: number, lane: number, turns: number): number {
+ *  transition. Pure, so the chain below predicts exactly what will be driven.
+ *  Under a seed the hash's input is salted by it (`mix` is a bijection, so every nonzero seed salts); seed 0 is
+ *  the unsalted hash, the turns every run took to 2026-09-22. */
+function movementAt(network: TrafficNetwork, id: number, lane: number, turns: number, seed = 0): number {
   const options = network.lanes[lane]!.movements;
-  return options[mix(id * 40503 + turns) % options.length]!;
+  return options[(seed ? mix((id * 40503 + turns) ^ mix(seed)) : mix(id * 40503 + turns)) % options.length]!;
 }
 
 function chooseMovement(network: TrafficNetwork, vehicle: TrafficVehicleState): number {
-  return movementAt(network, vehicle.id, vehicle.lane, vehicle.turns);
+  return movementAt(network, vehicle.id, vehicle.lane, vehicle.turns, vehicle.seed);
 }
 
 /** Whether a lane has anywhere to stand between its junctions. */
@@ -638,7 +644,7 @@ function chainFor(network: TrafficNetwork, vehicle: TrafficVehicleState): number
   for (let step = 1; step <= MAX_CHAIN; step++) {
     const last = network.movements[chain[chain.length - 1]!]!;
     if (hasRefuge(network, last, length)) break;
-    chain.push(movementAt(network, vehicle.id, last.to, vehicle.turns + step));
+    chain.push(movementAt(network, vehicle.id, last.to, vehicle.turns + step, vehicle.seed));
   }
   return chain;
 }
@@ -648,13 +654,31 @@ function chainFor(network: TrafficNetwork, vehicle: TrafficVehicleState): number
  * spawning and no despawning: the set of vehicles never changes, which keeps
  * the collider set constant and takes the player's position out of a decision
  * that a replay would then have to reproduce.
+ *
+ * `seed` (2026-09-22): with no seed a race from the grid met the same cars in the
+ * same places every time it was run, since the sim starts at tick 0 and nothing
+ * here varies. Shawn noticed on the third restart. A seed moves where every vehicle
+ * starts along the ruler (a phase of up to one `spacing`) and salts which way it
+ * turns (`movementAt`). It changes nothing the renderer sized itself by at load:
+ * the vehicle count is the ruler's length over the spacing whatever the phase, and
+ * each id keeps its kind, so a restart draws into the same instanced slots. Seed 0
+ * is the traffic every run had before, to the byte: its vehicles carry no `seed`,
+ * and the golden master hashes the state as JSON.
  */
-export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING): TrafficState {
+export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING, seed = 0): TrafficState {
   const vehicles: TrafficVehicleState[] = [];
   // Laid out along one ruler laid end to end over every lane's placeable window,
   // rather than restarted per lane. Per-lane placement puts a vehicle on every
   // stub in the network regardless of how short it is, which quietly doubles the
   // count and is not what "sparse" means.
+  // The ruler's length, accumulated exactly as the loop below accumulates it, and the vehicles it holds at seed 0:
+  // positions k * spacing - phase for k = 1..count all lie on it for any phase in [0, spacing).
+  let length = 0;
+  for (const lane of network.lanes) {
+    const window = lane.length - lane.entry - SPAWN_MARGIN - (lane.entry + SPAWN_MARGIN);
+    if (window > 0) length += window;
+  }
+  const count = Math.floor(length / spacing), phase = seed ? mix(seed) / 4294967296 * spacing : 0;
   let travelled = 0;
   for (const lane of network.lanes) {
     // Never start a vehicle inside a junction. Lanes are laid out independently,
@@ -665,15 +689,15 @@ export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING
     const first = lane.entry + SPAWN_MARGIN;
     const window = lane.length - lane.entry - SPAWN_MARGIN - first;
     if (window <= 0) continue;
-    for (let next = Math.ceil((travelled + 1e-9) / spacing) * spacing;
-      next <= travelled + window; next += spacing) {
+    for (let next = Math.ceil((travelled + phase + 1e-9) / spacing) * spacing - phase;
+      next <= travelled + window && vehicles.length < count; next += spacing) {
       const id = vehicles.length;
       const kind = KIND_ORDER[mix(id * 2654435761) % KIND_ORDER.length]!;
       const vehicle: TrafficVehicleState = {
         id, kind, lane: lane.id, distance: first + (next - travelled),
         speed: TRAFFIC_KINDS[kind].cruise,
         movement: -1, holds: [], turns: 0, x: 0, y: 0, z: 0, heading: 0,
-        via: -1, braking: false,
+        via: -1, braking: false, ...(seed ? { seed } : {}),
       };
       vehicle.movement = chooseMovement(network, vehicle);
       place(network, vehicle);
@@ -1024,7 +1048,7 @@ const SIGNAL_DEGREES = 30;
 const movementTurns = new WeakMap<TrafficNetwork, Map<number, "left" | "right" | null>>();
 
 /** Metres before the entry line the approach is read from: some lanes already bend at the line. */
-const APPROACH_READ = 15;
+export const APPROACH_READ = 15;
 
 /**
  * Which way a movement turns: the approach heading, read before the junction,

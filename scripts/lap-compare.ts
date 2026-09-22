@@ -70,7 +70,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
   const event = { ...raced, rival: rival ?? raced.rival };
   const handling = carHandling(session.car, session.drivetrain as Drivetrain);
   const sim = createSim(handling, createAlderWorld(true, event.start),
-    { race: event.race, rival: event.rival, traffic: event.traffic, pedalAssist: session.pedalAssist ?? 1 });
+    { race: event.race, rival: event.rival, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
   try {
     const you = createLapRecorder(event.track), theirs = createLapRecorder(event.track);
     const { throttle, brake, steer, handbrake } = session.inputs;
