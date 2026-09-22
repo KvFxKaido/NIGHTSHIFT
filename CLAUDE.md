@@ -198,7 +198,10 @@ fixtures outside the playable bundle, and old world links redirect.
   follows its road in the road's frame where that car is (`RIVAL_TRAFFIC_FRAME`), stays out in a
   pass blocked only by the car being passed, and gets a line through a gentle bend where that is
   quicker than the lane (`design/PORT_ALDER.md`, "What one recorded race found"). Over 83 races
-  alone against v30: 1.0% quicker, 149 ticks of contact to 12, nothing off the pavement. On
+  alone against v30: 1.0% quicker, 149 ticks of contact to 12, nothing off the pavement. Shawn then raced
+  Wake three times at v32 (2026-09-22): once through the open ground, 1:10.68, and twice on the streets, 1:17
+  against her 1:21, 4 s a race, and her spin into a sedan behind him is `driver-v2` (the will-be check
+  below; `design/PORT_ALDER.md`, "Three races against Wake"). On
   Ridge Circuit it drives a K1999 racing line (`racing-line.ts`) at the player's
   pace, held by steering feedforward (`RIVAL_STEERING`, streets too since their
   corners are arcs) and a braking plan that leaves grip for
@@ -494,6 +497,17 @@ fixtures outside the playable bundle, and old world links redirect.
   150 mph a line a touch less straight than the lane is planned slower, and a window at every gentle bend cost Tally
   2.7 s. A bend's window is still a corner's size (60 m) and too short at speed; `bendReach` 120 is worth 5.5 s to
   Wake and costs Crest 2, because the solver kinks in a window five corners long. Fix the drawing before the number.
+- In `rivalInput` a slower car following the road is judged against where this car WILL be when it gets there
+  (`willBe`: its offset across the road at its own station, moving at the rate it is and credited `followAcross`,
+  towards the side being chosen and never past it), not `intent` alone. `intent` moves 4 m/s the moment a side is
+  chosen, and at 85 mph the car moved 0.4 m in the time that took: a sedan 24 m ahead read as out of the path, no lift,
+  a 5 s spin in Shawn's race (`driver-v2`). Offsets across the road are one quantity along the road and are compared
+  only at their own stations: her offset at the aim point and her offset projected onto the road 60 m on differ by
+  0.65 m through a bend, and `nearestSide` (across the polyline leg) is 1.6 m from the driving path through a corner
+  arc. Six versions of the rule were measured on the batch before the one shipped, four of them frames, on top of the
+  three that had bitten this loop already: say which frame every number is in, and read it where the thing is. The
+  rule is honest to about 0.2 m and its margin is 0.3: a pass driver-v1 made at 2.2 m it may brake for, and a value
+  that separates that from a 2.3 m pass does not exist. Measure a change to it on the batch AND the rear-end test.
 - A committed pass is clear of a car that is ON its path, and looks only 26 m ahead at 105 mph because of it. More
   than `PASS_ASTRAY` off that path the car looks as far as it would with no pass; a tracked pass must not change.
 - A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,

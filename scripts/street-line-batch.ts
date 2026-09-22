@@ -4,7 +4,7 @@ import { appendFileSync, writeFileSync } from "node:fs";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { alderCourseDraws, drawAlderCourse } from "../src/sim/alder-course.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
-import { RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, sampleDrivingPath, sampleRivalPath, shiftAt, type RivalDefinition } from "../src/sim/rival.ts";
+import { RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, sampleDrivingPath, sampleRivalPath, shiftAt, type RivalDefinition } from "../src/sim/rival.ts";
 import { createSim, step, TICK_HZ, carHandling } from "../src/sim/sim.ts";
 import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
 import { withStreetLine } from "../src/sim/street-line.ts";
@@ -15,6 +15,8 @@ const withLine = process.argv.includes("--line"), trace = process.argv.includes(
 const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
 // SLIP=0 is the steering feedforward without the tyres' slip, as it was to full-line-v31.
 if (process.env.SLIP) (RIVAL_STEERING as { slip: number }).slip = Number(process.env.SLIP);
+// FOLLOW=0 judges a slower car ahead against where the rival means to be alone, as it was to driver-v1.
+if (process.env.FOLLOW === "0") (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = false;
 // FRAME=0 reads every car from the aim point's frame, as it was to full-line-v31.
 if (process.env.FRAME === "0") (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = false;
 if (output) writeFileSync(output, "");

@@ -367,6 +367,8 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * only by the car being passed stays out rather than braking to its speed, and a car off its pass's path looks ahead
  * as if it had none (traffic-pass.ts, PASS_ASTRAY); and a gentle bend gets a line where that is quicker (street-line.ts).
  * "driver-v1", "street-line-v1", "pass-v1" (rival-revision.ts) are full-line-v32, named by layer.
+ * "driver-v2" (2026-09-22): a slower car ahead is slowed for where this car will be, at the rate it is moving across
+ * the road, not only where it means to be (RIVAL_RACING.followWhereItIs). Shawn's second legit race against Wake.
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -381,6 +383,20 @@ export const RIVAL_RACING = {
   /** Share of the room available that a block uses, and its lateral rate in metres per tick. */
   blockShare: 0.8,
   blockRate: 0.03,
+  /** A slower car ahead is slowed for where this car WILL be when it gets there, from where it is at the rate it is
+   *  moving across the road, and not only where it means to be (2026-09-22). False is the driver to driver-v1. */
+  followWhereItIs: true,
+  /** Metres per second squared the car is credited with across the road while it judges that: what the heading
+   *  controller delivers once it is steering (1.4 m in the 0.6 s after it began, at 85 mph). Zero would read a car
+   *  30 m ahead, in the lane, as unavoidable before the wheel has turned. */
+  followAcross: 2,
+  /** Metres between the two cars' centres, across the road, at which they touch: the corridor that check keeps clear
+   *  when it is alongside, and the margin it adds to that over the first second there is to react. */
+  followCorridor: 2,
+  followMargin: 0.3,
+  /** Metres per second of closing speed under which the check does not apply: an impact there is a nudge, the old
+   *  bumper rule holds, and a car slowed to a stop beside a stopped car is let go rather than held (gen-67). */
+  followClosing: 4,
 } as const;
 
 /**
@@ -671,6 +687,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   driver.resetCheckIn = Math.max(0, driver.resetCheckIn - 1);
   const lookAhead = 8 + car.speed * .35;
   const target = sampleDrivingPath(route, Math.min(gate, driver.along + lookAhead));
+  const here = sampleDrivingPath(route, driver.along);
   const trafficDecision = route.trafficPassing && trafficContext ? planTrafficPass(route, driver, car, trafficContext) : undefined;
   const pass = trafficDecision?.pass;
   if (trafficDecision) driver.lineGo = false;
@@ -877,7 +894,32 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const open=sides.find(clear);
     if (open!==undefined) { offset=open; blocking=false; }
     const onBumper=ahead-length<4;
-    if (ahead>0 && Math.abs(offRoute-intent)<2.8 && (open===undefined || onBumper)) slowFor(along,ahead,length);
+    // And, for a car following this road, against where this car will actually BE when it gets there (2026-09-22):
+    // from where it is, at the rate it is moving across the road, towards the side being chosen now (`open`) or where
+    // it already means to be, and never past it, credited with the lateral acceleration it has (`followAcross`) so a
+    // car it has room to pass is not read as unavoidable before the wheel has turned. `intent` moves 4 m/s the moment
+    // a side is chosen; at 85 mph the car behind it moved 0.4 m in the 0.75 s that took (gen-wake-42, 2465 m, Shawn's
+    // race): a sedan 24 m ahead at 31 mph read as out of its path, the foot stayed down, and the hit spun it for 5 s.
+    // Every offset here is across the road at its own station and nothing is projected onto another's frame: her
+    // offset at the aim point 17 m on and her offset projected onto the road 60 m on differed by 0.65 m where the road
+    // bent, and carrying `open` across as a displacement braked gen-54 from 100 to 35 mph for a truck 4.6 m beside
+    // its line. Where she is: `nearestSide`, across the route at her own station; where the car is: `offRoute`, across
+    // the road at its; where she means to be: `open`, across the road where the aim is, the same quantity followed.
+    const carAcross = (car.x - here.x) * -here.uz + (car.z - here.z) * here.ux, nx = -here.uz, nz = here.ux;
+    const acrossRate = (-Math.sin(car.heading) * car.forwardSpeed + Math.cos(car.heading) * car.lateralSpeed) * nx
+      + (-Math.cos(car.heading) * car.forwardSpeed - Math.sin(car.heading) * car.lateralSpeed) * nz;
+    const meant = open ?? intent;
+    const toward = Math.sign(meant - carAcross), moving = Math.max(0, acrossRate * toward);
+    const willBe = carAcross + toward * Math.min(Math.abs(meant - carAcross), moving * arrival + .5 * RIVAL_RACING.followAcross * arrival * arrival);
+    // Alongside, the corridor is the cars' own width: matching the speed of a car 2.5 m beside this one is not a way
+    // out of its path (gen-70 again, 135 ticks); with a second to react it has `followMargin` on top. Not the loop's
+    // 2.6 m: a truck drifting 0.5 m/s across the road in its own lane (gen-54, a bend) was 2.5 m from where she would
+    // be, which driver-v1 passed at, and 2.6 braked her from 100 mph to 35 for it.
+    // Not under `followClosing` of closing speed: a car slowed to a stop beside a stopped car 2.5 m off its line is
+    // let go, where held to this it stayed stopped until the unseen reset (gen-67, the old rule passed it at 34 mph).
+    const corridor = RIVAL_RACING.followCorridor + RIVAL_RACING.followMargin * Math.min(1, arrival);
+    const stillInPath = RIVAL_RACING.followWhereItIs && follows && car.speed - along > RIVAL_RACING.followClosing && Math.abs(sideAtArrival - willBe) < corridor;
+    if (ahead>0 && ((Math.abs(offRoute-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;

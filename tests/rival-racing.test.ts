@@ -5,7 +5,7 @@ import { carHandling, createSim, step, steadyWheelAngleFor, HANDLING, type Input
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
 import { passingOffset } from "../src/sim/traffic-pass.ts";
-import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_STEERING, RIVAL_STREET_CORNERS, RIVAL_TRAFFIC_FRAME, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_CORNERS, RIVAL_TRAFFIC_FRAME, type RivalDefinition } from "../src/sim/rival.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
 await RAPIER.init();
 
@@ -511,4 +511,42 @@ test("off the path of its pass, it looks as far ahead as it would with no pass",
   assert.ok(on.planned > 1.1 && on.planned < 2.5, `the pass puts it ${on.planned.toFixed(2)} m across here`);
   assert.equal(on.target, 45, "on its path it braked for the car its pass clears");
   assert.ok(short.target < 40, `1.5 m short of its path, 70 m from a stopped car at 45 m/s, it kept ${short.target.toFixed(1)} m/s`);
+});
+
+// Where it will be, not where it means to be (2026-09-22). Shawn's second legit race against Wake: he passed her into
+// the bend at 2400 m, she moved back right behind him, and 24 m ahead of her was a sedan doing 31 mph. She chose to go
+// round it on the left, which moves `intent` 3 m across at 4 m/s; the car under it moved 0.4 m in the 0.75 s that
+// took, the sedan read as out of her path the whole way, she never lifted, and the hit spun her for five seconds.
+test("closing on a slower car it has not yet moved out from behind, it slows for where it is, not where it means to be", () => {
+  const points: CoursePoint[] = [[0, 0], [0, -4000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 20, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "rear-end", start: { x: 2, y: 0, z: -200, heading: 0, pitch: 0 }, points, along: [0, 4000], gates: [4000], car: "reign" };
+  // The rival driven as the player by its own controller, in the Reign, 2 m right of centre at 85 mph; the sedan is a
+  // hazard moving down the same lane at 31 mph, `gap` metres ahead.
+  const drive = (gap: number, follows: boolean) => {
+    const shipped = RIVAL_RACING.followWhereItIs;
+    (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = follows;
+    const sim = createSim(carHandling("reign"), { id: "rear-end", start: route.start, walls: [], project: (x, z) => projectOntoPath(points, x, z) }, { traffic: false });
+    try {
+      sim.body.setLinvel({ x: 0, y: 0, z: -38 }, true);
+      const driver = createRivalDriver();
+      driver.avoidance = 2; driver.along = driver.progressMark = 200;
+      const sedan = { id: 163, kind: "sedan" as const, x: 2, y: 0, z: -200 - gap, heading: 0, speed: 14, length: 4.6 };
+      let closest = Infinity, slowest = Infinity;
+      for (let t = 0; t < 60 * 8; t++) {
+        sedan.z -= 14 / 60;
+        const car = sim.state.vehicle;
+        step(sim, rivalInput(route, { vehicle: car, driver, race: null }, [sedan], null));
+        const ahead = car.z - sedan.z, side = sedan.x - car.x;
+        closest = Math.min(closest, Math.max(Math.abs(ahead) - 4.5, Math.abs(side) - 1.9));
+        slowest = Math.min(slowest, car.speed);
+      }
+      return { closest, slowest };
+    } finally { sim.world.free(); (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = shipped; }
+  };
+  const was = drive(24, false), now = drive(24, true), room = drive(90, true);
+  assert.ok(was.closest < 0, `read against where it meant to be, it cleared the sedan by ${was.closest.toFixed(1)} m; the test proves nothing`);
+  assert.ok(now.closest > 0, `it hit the sedan: ${(-now.closest).toFixed(1)} m of overlap, box to box`);
+  // It slows while it moves out and never stops behind it; with 90 m in hand it does not slow at all.
+  assert.ok(now.slowest > 12 && now.slowest < 30, `it slowed to ${(now.slowest * 2.237).toFixed(0)} mph behind a car doing 31`);
+  assert.ok(room.slowest > 37 && room.closest > 1.5, `with 90 m in hand it slowed to ${(room.slowest * 2.237).toFixed(0)} mph and passed ${room.closest.toFixed(1)} m from the sedan`);
 });

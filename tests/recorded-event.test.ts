@@ -72,7 +72,7 @@ test("a generated sprint raced against its rival records as one lap, replays exa
   assert.match((replayLapSession({ ...session, arena: "generator-v0" }) as { reason: string }).reason, /generator generator-v0/);
   assert.match((replayLapSession({ ...session, rival: "full-line-v32" }) as { reason: string }).reason, /raced rival full-line-v32, from before/);
   // Another rival is named by what differs: here a driver a revision on, and nothing else.
-  assert.match((replayLapSession({ ...session, rival: session.rival.replace("driver-v1", "driver-v0") }) as { reason: string }).reason, /^raced another rival: driver-v0\.\w+ -> driver-v1\.\w+$/);
+  assert.match((replayLapSession({ ...session, rival: session.rival.replace(/^driver-v\d+/, "driver-v0") }) as { reason: string }).reason, /^raced another rival: driver-v0\.\w+ -> driver-v\d+\.\w+$/);
   // The player against the rival, from the one input log. Whoever finished second is let finish.
   const compared = compareSession(session);
   assert.equal(compared.playerReproduced, true);

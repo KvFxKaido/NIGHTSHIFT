@@ -10,6 +10,47 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Three races against Wake, and what "traffic slows her down" was (2026-09-22)
+
+Asked for: nothing, at first. Shawn raced Wake through the open ground because a new
+player would, then twice on the streets, and said traffic in the second half slows
+the rival down, and that it spawns the same way every restart. What was assumed
+and wrong, in order:
+
+- That the cheat race, with its two cuts subtracted, said how a clean race would go:
+  "about a second". Two clean races said 4 s. A replay with the cuts removed is
+  still a race he drove knowing he would cut, and the corners either side of a cut
+  are not driven the same.
+- That "traffic slows the rival" was traffic. It was the rival driving into a sedan
+  at 85 mph, 24 m after choosing to pass it, because the hazard loop judged the
+  sedan against where she meant to be and not where she was. The third time a
+  frame has bitten this loop: `side` against `carOffset` (2026-09-13), the aim
+  point's frame round a bend (2026-09-20), now intent against position. Each fix
+  was right and none of them named the rule: every number in that loop must say
+  which frame it is in, and a prediction must start from where the car is.
+- That the rule was then one line. Six versions were measured on the batch before
+  the one shipped, and four of them were frames: her offset at the aim point
+  carried to the truck's station as a displacement (0.65 m wrong through a bend, a
+  100 to 35 mph brake for a truck 4.6 m beside her line); `nearestSide` for where
+  she is, which through a corner arc is 1.6 m from the path she drives (she
+  matched a sedan's speed beside it into a junction); no credit for the lateral
+  motion she had not started (a car 30 m ahead in the lane read as unavoidable);
+  and the loop's 2.6 m corridor applied to a prediction good to 0.2 m (brakes for
+  gaps of 2.2 to 2.5 that driver-v1 drove through). The last two were the margin:
+  scaled by closing speed it shrank as she braked and released her mid-manoeuvre,
+  and held from engagement it kept her stopped beside a stopped car. The numbers
+  came from a hook printing what the check saw, not from reasoning about it; the
+  reasoning was wrong six times. The rule as shipped compares offsets only at
+  their own stations, adds a flat 0.3 m, and lets go under 4 m/s of closing.
+- That the 83-race batch would have found it. It cannot: she was 2 m right of her
+  lane because Shawn had just passed her and she covered his side. Alone she is in
+  her lane, left of that sedan, and the planner commits a pass. Four of the last
+  five rival faults came out of his recordings; the batch is the rival alone, and
+  says so.
+- That the same traffic on every restart was a bug. It is law 2: traffic has no
+  seed, so a race from the grid is the same race, cars and all. Whether that is
+  what a retried stage should be is a design question, written down as one.
+
 ## One recorded race, and the crash under the batch's one regression (2026-09-20)
 
 Asked for: "I raced wake just now." The first generated race with a recording.

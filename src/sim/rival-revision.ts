@@ -26,7 +26,7 @@ import { TRAFFIC_PASS } from "./traffic-pass.ts";
 /** Bump a layer when its CODE changes how a rival drives. Its tables and a route's own numbers name themselves. */
 export const RIVAL_REVISIONS = {
   /** `rivalInput`, the launch and recovery: steering, the speed plan, reading traffic, racing the player. */
-  driver: "driver-v1",
+  driver: "driver-v2",
   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
   streetLine: "street-line-v1",
   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */

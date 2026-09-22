@@ -19,10 +19,11 @@ const kinds = (route: RivalDefinition) => rivalRevisionParts(route).map(part => 
 test("a rival is named by what its own race uses, and by nothing else", () => {
   // Every raced rival has the driver and its car. A route that is a line has the line; only a street route in traffic
   // has the line's reader and the pass planner; only a name has a share of the grip.
-  assert.deepEqual(kinds(ridge()), ["driver-v1", "kestrel", "line"]);
-  assert.deepEqual(kinds(clear()), ["driver-v1", "kestrel", "cornering", "line"]);
-  assert.deepEqual(kinds(uptown()), ["driver-v1", "kestrel", "street-line-v1", "pass-v1"]);
-  assert.deepEqual(kinds(wake()), ["driver-v1", "reign", "launch", "street-line-v1", "skill", "pass-v1"]);
+  const { driver, streetLine, pass } = RIVAL_REVISIONS;
+  assert.deepEqual(kinds(ridge()), [driver, "kestrel", "line"]);
+  assert.deepEqual(kinds(clear()), [driver, "kestrel", "cornering", "line"]);
+  assert.deepEqual(kinds(uptown()), [driver, "kestrel", streetLine, pass]);
+  assert.deepEqual(kinds(wake()), [driver, "reign", "launch", streetLine, "skill", pass]);
   assert.ok(rivalRevision(wake()).includes(` reign-r${CAR_TUNES.reign!.revision} `) && rivalRevision(wake()).includes(` skill-${BLACKLIST_CORNERING.wake}`));
   // The same race names the same rival every time it is drawn, and another race another.
   assert.equal(rivalRevision(wake()), rivalRevision(wake()));
@@ -44,8 +45,8 @@ test("a change renames the rivals it moves and leaves the rest", () => {
   during(TRAFFIC_PASS, { rejoinGap: TRAFFIC_PASS.rejoinGap + 1 } as never, () => assert.deepEqual(moved(), ["uptown", "wake"]));
   // The driver's numbers reach everybody, whether or not anyone bumped its token: a table is its own witness.
   during(RIVAL_STEERING, { slip: 0.9 } as never, () => assert.deepEqual(moved(), ["ridge", "clear", "uptown", "wake"]));
-  during(RIVAL_REVISIONS, { driver: "driver-v2" } as never, () => assert.deepEqual(moved(), ["ridge", "clear", "uptown", "wake"]));
-  during(RIVAL_REVISIONS, { pass: "pass-v2" } as never, () => assert.deepEqual(moved(), ["uptown", "wake"]));
+  during(RIVAL_REVISIONS, { driver: "driver-v0" } as never, () => assert.deepEqual(moved(), ["ridge", "clear", "uptown", "wake"]));
+  during(RIVAL_REVISIONS, { pass: "pass-v0" } as never, () => assert.deepEqual(moved(), ["uptown", "wake"]));
   assert.deepEqual(moved(), []);
 });
 

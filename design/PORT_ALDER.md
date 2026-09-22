@@ -1559,6 +1559,99 @@ What is left, measured the same evening with the rival alone on the same race:
   before judging the ladder by its bottom rung; slipstream, the same for both
   cars; and then what the faster cars' bad laps in traffic are made of.
 
+**Three races against Wake, and the rear-end under "traffic slows her down" (2026-09-22,
+`driver-v2`).** Shawn raced `gen-wake-42` three times from the grid in the Cinder, no
+pedal assist, all three recorded and all three replaying exactly:
+
+- **Through the open ground first**, 1:10.68 against her 1:21.25, "I cheated because
+  any player picking this game up for the first time would probably do exactly what
+  I did". Two cuts across grass: 235 m of route done in 152 m before gate 2 (+3.2 s)
+  and 729 m done in 457 m on the last leg (+6.3 s net), at 78 to 110 mph, 89% of it
+  on ground a line may not go. The recorder calls the lap invalid; the GDD calls it
+  open racing. The Reign is AWD and grass costs it nothing, so the cut is a better
+  deal for her car than for his, and she cannot take it: she lives on the street
+  graph. Shawn wants both of the answers below; neither is built.
+- **Then twice on the streets**, 1:17.45 and 1:17.07. He held the launch each time
+  (the handbrake let go 5 and 16 ticks after the flag) and was still 1.8 s down at
+  the 100 m mark: the Cinder off the line against an AWD car launching at 0.9. He
+  loses 1.7 s in the corner complex before gate 2, where she is on her line at 50
+  mph and he is not, and takes 3.4 to 4.3 s out of her at the 26 degree bend at
+  2400 m, where she brakes to 77 mph and he does 130 (the bend the window redraw is
+  for). Alone she runs this race in 81.3 s; against him on the streets he is about
+  4 s quicker, not the "about a second" the cheat race's replay had suggested.
+- **What he saw as "traffic that slows the rival down"** was her hitting it. In the
+  second race she ran 86.83 s: he passed her into the bend, she moved back right
+  behind him (`RIVAL_RACING`, covering his side), and 24 m ahead of her at 2435 m was
+  a sedan doing 31 mph in her lane. She chose to go round it on the left. That moves
+  `intent` 3 m across at 4 m/s; the car under it moved 0.4 m in the 0.75 s that took,
+  because at 85 mph the heading controller asks for a fifth of the lock. The hazard
+  loop judged the sedan against `intent`, found it 3.2 m out of the path, never
+  lifted, and hit it at 85 mph: a spin, full lock for five seconds, 15 mph. In the
+  third race she was already left of the same sedan and the planner committed a pass
+  at 39 mph instead. The pass planner had declined in the second race because the
+  reactive driver had already chosen the same corridor (`traffic-pass.ts`, "left
+  alone"), and the reactive driver's timing was wrong.
+- **The fix** is in the hazard loop: a slower car following this road is also
+  judged against where this car WILL be when it gets there (`willBe`), from where
+  it is, at the rate it is moving across the road and credited with the lateral
+  acceleration it has (`followAcross`, 2 m/s²: what the controller delivers once it
+  is steering), towards the side it is choosing and never past it. It is in the
+  path if that is within the cars' own width (`followCorridor`, 2 m) plus a margin
+  that grows to 0.3 m with a second to react (`followMargin`), and never under
+  4 m/s of closing speed (`followClosing`), where an impact is a nudge and the old
+  bumper rule holds. Alone on a straight, 2 m right at 85 mph with the sedan 24 m
+  ahead: driver-v1 overlaps it by 1.5 m; driver-v2 brakes to 49 mph while it moves
+  out and goes round touching, box to box, with nothing to spare. At 40 m it passes
+  at 77 mph with 0.5 m, at 60 m at 95 as before, at 90 m nothing changes. Replaying
+  his inputs against her: the second race's 86.83 s becomes 80.33, and the other two
+  are identical to driver-v1 to the tick. The golden master is bit-identical, 14 of
+  14: nothing in it meets this. The 83-race batch, player parked, against v32
+  (`design/measurements/driver-v2.json`): 65 races identical to the tick; 7,804 to
+  7,827 s (+0.3%); contact 12 to 40 ticks, all 28 new ones in one race; resets 3 to
+  4, no reversals, nothing off the pavement. Where it costs, it is the rule doing
+  what it says: gen-35 brakes 3.9 s for a taxi merging across its line at 96 mph
+  that driver-v1 passed because the taxi straightened; gen-67 slows 2.8 s beside a
+  stopped car 2.5 m off its line; gen-57 and gen-81 lose 1.5 s to a stopped taxi
+  2.2 m off theirs, and gen-81 then 8 s more to a queue behind a crawling sedan
+  with a truck oncoming, which it reaches 1.5 s earlier than driver-v1 did and
+  driver-v1 missed. The fault it fixes cannot happen in the batch and happens in a
+  race whenever the player passes her, so that is the trade.
+- **Six versions of that rule were measured on the batch before this one**, and
+  every one traded a case for a case: her offset at the aim point 17 m on carried to
+  the car's station 60 m on (0.65 m apart through a bend: gen-54 braked from 100 mph
+  to 35 for a truck 4.6 m beside its line); `nearestSide`, across the polyline leg,
+  for where she is (1.6 m from the driving path through a corner arc: she matched a
+  sedan's speed beside it into a junction); no credit for lateral motion not yet
+  begun (a car 30 m ahead in the lane read as unavoidable); the loop's 2.6 m corridor
+  on a prediction good to 0.2 m (brakes for gaps of 2.2 to 2.5 m that driver-v1 drove
+  through); a margin that shrank with the closing speed (released 0.3 m early, mid
+  manoeuvre); and a margin held from engagement (gen-67 engaged far out, held the
+  full margin, and stopped beside a stopped car until the unseen reset). Every
+  offset in the rule as shipped is across the road at its own station, and the
+  numbers came from a hook printing what the check saw, not from reasoning about
+  it. What it still costs is at the borderline of that 0.3 m, and there is no value
+  of it that separates a 2.2 m pass from a 2.3 m one: the rule is honest to about
+  0.2 m and no more.
+- **The batch could not see this either.** It needs the player to push her off her
+  lane, which is what racing him does. Four of the last five rival faults were found
+  in his recordings and not in 83 races alone.
+
+Two things he raised are open, not decided:
+
+- **Shortcuts.** Open racing says the cut is legal; the rival cannot take it. The two
+  answers he likes: let her take it (an off-road leg between gates where the ground is
+  open, planned at the ground's pace), and draw courses that measure how much a cut
+  is worth (cut 2 is 0.63 of the street distance) so a course does not hinge on one.
+  Neither replaces the other.
+- **Traffic is the same on every restart.** `createTraffic` lays vehicles along a
+  fixed ruler with no seed, and their turns are the integer hash of the vehicle and
+  its junction count, so a race from the grid starts the sim at tick 0 and meets the
+  same cars in the same places every time; only a flash, which starts the sim at
+  another moment, meets other traffic. Law 2 makes this correct; whether a retried
+  stage should be the same race with the same traffic is a design choice. A seed per
+  attempt would have to be recorded, as `startCode` is, so the recording still
+  replays; the batch would keep seed 0.
+
 **A rival named by what it is made of (2026-09-21).** A raced recording replays only
 against the rival it raced, and "the rival" was one hand-bumped string,
 `RIVAL_REVISION`: 32 values in eight days, eleven of them one name's car being

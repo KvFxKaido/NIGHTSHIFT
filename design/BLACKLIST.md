@@ -378,6 +378,14 @@ best without it.
   0.7 s slower, which is which cars they met. Wake's own race still holds the bend
   that started this: 121 mph of it is in a longer window the line drawing is not
   ready for (`design/PORT_ALDER.md`).
+- **Raced three more times (Shawn, 2026-09-22, `gen-wake-42`, Cinder, no pedal assist):
+  1:10.68 through the open ground, then 1:17.45 and 1:17.07 on the streets against
+  her 1:21.25 and, in the second race, 1:26.83, five seconds of which were a spin
+  after she drove into a sedan behind him (`driver-v2`; `design/PORT_ALDER.md`,
+  "Three races against Wake"). Clean, she is about 4 s a race slower than him on
+  this course, most of it at one 26 degree bend she still brakes for; the launch
+  and the corner complex before gate 2 are hers. The cut through the grass, legal
+  by the GDD, is worth 9.5 s to him and nothing to her.
 - **Not settled.** The values are an even climb between two measured ends, not ten
   tuned numbers, and one has been raced by a person, once. What is still open from the
   same evening: the faster cars lose one lap in three to traffic on Uptown.
