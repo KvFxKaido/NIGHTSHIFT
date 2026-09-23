@@ -662,12 +662,17 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   // 125 m in. Walls keep their own sign: their rotation was derived in
   // roadRotation's convention and six inspection drives verify it.
   for (const solid of roadWorld.solids ?? []) {
+    if (solid.collision === false) continue;
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(solid.width * 0.5, solid.height * 0.5, solid.depth * 0.5)
         .setTranslation(solid.x, (solid.base ?? 0) + solid.height * 0.5, solid.z)
         .setRotation(roadRotation(-(solid.rotation ?? 0), 0))
         .setFriction(0.25).setRestitution(0.08),
     );
+  }
+  for (const mesh of roadWorld.meshes ?? []) {
+    world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(mesh.vertices), new Uint32Array(mesh.indices))
+      .setFriction(0.25).setRestitution(0.08));
   }
   const body = createVehicleBody(world, roadWorld.start, handling.mass);
 

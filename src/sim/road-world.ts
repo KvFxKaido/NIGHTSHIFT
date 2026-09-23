@@ -5,6 +5,8 @@ import type { TrafficNetwork } from "./traffic.ts";
  *  apart from `walls` because a wall is 1.3 m of guard rail and is rendered as
  *  one; a block is a building and has to be as tall as it looks. */
 export interface RoadSolid {
+  /** False for planning footprints backed by an exact static mesh collider. */
+  readonly collision?: boolean;
   readonly x: number;
   readonly z: number;
   readonly width: number;
@@ -25,6 +27,8 @@ export interface RoadWorld {
   readonly start: { x: number; y: number; z: number; heading: number; pitch: number };
   readonly walls: readonly CourseWall[];
   readonly solids?: readonly RoadSolid[];
+  /** Fixed scenery baked in world coordinates, shared with its render asset. */
+  readonly meshes?: readonly { vertices: readonly number[]; indices: readonly number[] }[];
   /** The lane graph traffic drives, when the world has one. Blackglass does
    *  not: its lanes were never modelled, so it simply has no traffic. */
   readonly traffic?: TrafficNetwork;

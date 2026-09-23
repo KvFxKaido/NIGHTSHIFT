@@ -135,7 +135,7 @@ test("real tyre forces support repeatable drift runs across all drivetrains with
           steer: Math.max(-1, Math.min(1, -error * 2.8 + c.yawRate * .8)),
           handbrake: Math.abs(error) > .2 && c.speed > 12 && tick % 60 < 22 ? 1 : 0 });
         if (sim.state.race!.drift!.drifting) driftingTicks++;
-        assert.ok(!sim.state.race!.drift!.feedback.startsWith("CONTACT"), `${layout} struck yard scenery`);
+        assert.ok(!sim.state.race!.drift!.feedback.startsWith("CONTACT"), `${layout} struck yard scenery at ${c.x},${c.z} tick ${tick}`);
       }
       const result = { ...sim.state.race!.drift };
       assert.equal(sim.state.race!.finished, true);
@@ -157,7 +157,7 @@ test("a real wall contact breaks the drift chain and Sable owns the nearby chall
   // (2026-09-21). The gap has to be about a metre: the car is sliding sideways,
   // so at more than 2 m it spins before it touches anything and the chain is
   // lost to the spin rather than to the contact this is about.
-  const sim = createSim("rwd", createAlderWorld(true, { ...DRIFT_YARD.start, x: -485, z: 955 }), { race: SABLE_DRIFT, traffic: false });
+  const sim = createSim("rwd", createAlderWorld(true, { ...DRIFT_YARD.start, x: -485, z: 1055 }), { race: SABLE_DRIFT, traffic: false });
   try {
     sim.state.race!.countdown = 0;
     sim.state.race!.drift!.chain = 200; sim.state.race!.drift!.score = 100;

@@ -33,6 +33,25 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 | Committed passes | `traffic-pass.ts` | `RIVAL_REVISIONS.pass` | the same races | `pnpm rival:gate` |
 | The generator, route choice, `PACE` | `race-generator.ts`, `route-choice.ts` | `GENERATOR_REVISIONS` | which races exist; stored career courses; **the batch itself**, whose 82 generated races are generator draws, so a generator change changes what the batch runs and a before/after comparison across it compares different races | the generator fingerprints; a fresh `pnpm rival:gate --save` |
 
+## Wharf arena world change — 2026-09-23
+
+`drift-yard-v4` replaces the old fence with a colliding shell and shifts Sable's
+course/props 100 m south. All earlier **world-dependent** measurements below
+are suspect on this world revision: Ridge and street-line shares, per-name
+shares, steering sweeps, pass/window gates, street car-card pace, route-choice
+calibration, rival-gate totals, and recorded-race contact/recovery results.
+Their older statuses describe their measured worlds, not a fresh arena gate.
+Tyre/tune bench fixtures, isolated lane fixtures, traffic-only reservation
+fixtures and authored distance rules are unchanged. Existing recordings carry
+a different world identity and must not be treated as comparable new-world laps.
+
+Re-measured here: both entrances and perimeter collision using real cars;
+Sable's complete event in FWD/RWD/AWD, including repeat RWD determinism; matching
+visual/collision triangles and retained-prop clearance. The six-seed rival gate
+and stored-lap verification have not been rerun for this scenery change.
+All six generated-course fingerprints were re-measured unchanged: Sable's
+street territory keeps its established anchor independently of the drift grid.
+
 ## The ledger
 
 As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v5`,

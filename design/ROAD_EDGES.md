@@ -2,8 +2,9 @@
 
 Each original traffic carriageway now has a 5.6 m asphalt shoulder followed by
 a 2.8 m sidewalk. Lane routing and markings retain their original widths.
-Solid white lines mark the shoulder's inner boundary. All road paint stops
-1.5 m before crossing asphalt, including the crossing road's added shoulder;
+Solid white lines mark the shoulder's inner boundary. Road paint clears
+crossing approaches by 1.5 m, including their added shoulders. Approach ends
+have a 1.5 m square cap so a T junction preserves the opposite shoulder line;
 alleys remain unmarked. The clearance pass trimmed 5,338 old two-metre paint
 segments across 317 street segments that extended into the widened crossings.
 The asphalt, sidewalk and ground meshes come from `scripts/build-alder.py`;
@@ -54,3 +55,28 @@ drivetrains. There are no solid curb walls.
 The sidewalk uses a two-metre repeating concrete grain with subtle pores,
 weathering and a shallow bump map. Its world-space UVs continue through the
 rounded corners and dropped entrances; the material is matte and nonmetallic.
+
+
+## Shared paint geometry — 2026-09-23
+
+Paint offsets are built as complete polylines before tessellation and dashing.
+Outside bends use round joins matching the road envelope; inside bends meet
+at their offset-rail intersection. Folded inner edge pieces are omitted.
+Four-metre divider dashes and eight-metre gaps are measured along each rail,
+including bends. Closed solid rails no longer have an artificial endpoint gap.
+The old segment-normal sampling stretched 99 nominal two-metre paint strips
+into corner diagonals (up to 19.9 m), across 43 roads; none now exceed two metres.
+
+Crossing clearance uses the actual approach extent. The former circular
+endpoint mask unnecessarily removed the opposite side of T junctions.
+The bounded approach restores 1,911 m of edge paint across 145 roads while
+retaining real crossing clearance. Together these fixes affect 160 of 318
+painted street records, measured on the current Alder map. Lane widths,
+traffic paths, physics, road surfaces and world identity are unchanged.
+
+Validation: 30 road-marking, lane, night-render and city-chunk tests pass,
+along with the production build. Five matching aerial views cover Wharf,
+Harbor Way, Pike and SoDo; a normal-lighting driver view checks the garage bend.
+`node scripts/check-road-paint.mjs after` captures these views. Evidence lives
+under ignored `artifacts/road-paint/`. The full simulation suite was not rerun
+for this render-only change.

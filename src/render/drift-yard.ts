@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { SITE_FENCE_WALLS, SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
+import { asphaltMaterial } from "./asphalt.ts";
+import { SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
 export function addDriftYard(scene: THREE.Scene, night: boolean) {
@@ -11,7 +12,8 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     group.add(mesh); return mesh;
   }
   const entry = DRIFT_YARD.driveway;
-  const asphalt = material(night ? 0x303b43 : 0x46535a);
+  const asphalt = asphaltMaterial(0x3c4548);
+  asphalt.polygonOffset = true; asphalt.polygonOffsetFactor = -3; asphalt.polygonOffsetUnits = -3;
   // The whole site is paved now, not just the old lot: the two rectangles the
   // fence encloses, plus the driveway that reaches it.
   for (const [name, rect] of [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const),
@@ -19,6 +21,13 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(rect.maxX - rect.minX, rect.maxZ - rect.minZ), asphalt);
     mesh.name = `drift-yard-${name}`; mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((rect.minX + rect.maxX) / 2, DRIFT_YARD.base + .035, (rect.minZ + rect.maxZ) / 2);
+    const positions = mesh.geometry.getAttribute("position"), uv = mesh.geometry.getAttribute("uv");
+    mesh.updateMatrix();
+    const point = new THREE.Vector3();
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i).applyMatrix4(mesh.matrix);
+      uv.setXY(i, point.x / 8, point.z / 8);
+    }
     mesh.receiveShadow = true; group.add(mesh);
   }
   const dark = material(0x26333d), trim = material(0x7c929b);
@@ -28,12 +37,12 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
     if (s.id === "warehouse") {
       box("warehouse-roof", s.x, 14.15, s.z, s.width + 1, .3, s.depth + 1, dark);
-      for (let z = 928; z < 990; z += 18) {
+      for (let z = s.z - 27; z < s.z + 35; z += 18) {
         box("warehouse-loading-shutter", s.x - s.width / 2 - .12, 5, z, .2, 6, 12, dark);
         for (let y = 2.6; y < 8; y += .6) box("shutter-rib", s.x - s.width / 2 - .24, y, z, .08, .08, 11.5, trim);
         box("loading-bay-lamp", s.x - s.width / 2 - .3, 9, z, .4, .18, 8, teal);
       }
-      for (const x of [-529, -505]) box("warehouse-roof-vent", x, 15, 955, 8, 1.5, 12, trim);
+      for (const x of [-529, -505]) box("warehouse-roof-vent", x, 15, s.z, 8, 1.5, 12, trim);
     } else if (s.id.startsWith("container")) {
       for (let x = s.x - s.width / 2 + .6; x < s.x + s.width / 2; x += 1.6)
         box("container-rib", x, 4.6, s.z, .15, 5, s.depth + .15, trim);
@@ -73,21 +82,12 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   boothWindow.rotation.y = Math.PI / 2;
   group.add(boothWindow);
 
-  // The barrier round the whole site: the yard, what is built in it, and the
-  // grass around it. Gaps are where the ways in are.
-  for (const wall of SITE_FENCE_WALLS) {
-    const mesh = box(`site-fence`, wall.x, wall.base + wall.height / 2, wall.z,
-      wall.width, wall.height, wall.depth, material(wall.color));
-    mesh.rotation.y = -wall.rotation;
-    // The same reflectors the apron's walls carry, so it reads as the same place.
-    const marks = Math.max(1, Math.round(wall.width / 9));
-    for (let i = 0; i < marks; i++) {
-      const along = (i + .5) / marks * wall.width - wall.width / 2;
-      const mark = box("site-fence-reflector",
-        wall.x + Math.cos(wall.rotation) * along, wall.base + wall.height - .5,
-        wall.z + Math.sin(wall.rotation) * along, 2, .18, wall.depth + .1, yellow);
-      mark.rotation.y = -wall.rotation;
-    }
+  // The street gate faces west; these sparse approach marks lead southwest
+  // through the shell's diagonal portal before the open arena floor.
+  for (let distance = 30; distance < 185; distance += 18) {
+    const mark = box("arena-entry-guide", YARD_GATE.x - Math.cos(.52) * distance,
+      DRIFT_YARD.base + .065, YARD_GATE.z + Math.sin(.52) * distance, 5, .015, .22, yellow);
+    mark.rotation.y = .52;
   }
 
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.
@@ -120,8 +120,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
     mesh.name = `yard-sign-${text}`; mesh.position.set(x, y, z); if (flat) mesh.rotation.set(-Math.PI / 2, 0, Math.PI); else mesh.rotation.y = yaw; group.add(mesh);
   }
-  label("SOUTH WHARF / DRIFT YARD", -457, 7, 807.8, 58, 6);
-  label("SABLE / CLIP. LINK. BANK.", -515, 11, 919.8, 48, 5);
+  label("SABLE / CLIP. LINK. BANK.", -515, 11, 1019.8, 48, 5);
   return { update(race: RaceState | null) {
     rings.forEach((ring, i) => {
       const active = race?.drift?.nextZone === i && !race.finished;

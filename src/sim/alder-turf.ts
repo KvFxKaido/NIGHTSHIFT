@@ -51,7 +51,7 @@ export const ALDER_TURFS: readonly RivalTurf[] = [
   turf("rivet", "Rivet", "Harbor Quarter", "her quarter-mile", RIVET_TURF),
   turf("bollard", "Bollard", "Elliott Avenue waterfront", "Elliott Ave", streets("Elliott Ave")),
   turf("deuce", "Deuce", "Belltown, Broadcast Tower loop", "the Broadcast Tower", landmarks.broadcastTower),
-  turf("sable", "Sable", "South Wharf drift yard", "the drift yard", DRIFT_YARD.start),
+  turf("sable", "Sable", "South Wharf drift yard", "the yard's street-side anchor", DRIFT_YARD.streetTurf),
   turf("plumb", "Plumb", "Madrona Ridge", "the MADRONA RIDGE map label", label("MADRONA RIDGE")),
   turf("crest", "Crest", "Queen Anne climb", "Queen Anne Climb", streets("Queen Anne Climb")),
   turf("wake", "Wake", "Capitol Hill", "the CAPITOL HILL map label", label("CAPITOL HILL")),

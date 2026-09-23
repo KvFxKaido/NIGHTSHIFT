@@ -43,7 +43,7 @@ test("a seed draws the same race every time, and different seeds draw different 
 // 2026-09-21 and all six fingerprints recomputed to the value already pinned, so
 // only the world moved here. Check that before repinning — six unchanged hashes
 // are the evidence the gate changed no race, and a changed one is the warning.
-const WORLD = "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b";
+const WORLD = "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v4-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b";
 const FINGERPRINTED: Record<"plain" | "turf", Record<GeneratedKind, { revision: string; world: string; fingerprint: string }>> = {
   plain: {
     sprint: { revision: "generator-v1", world: WORLD, fingerprint: "2209b0e3" },

@@ -273,3 +273,12 @@ corner") is written for a car that stays on them.
   a silent divergence rather than a refusal. No recording crosses that ground
   today, which is the only reason it is safe; anything that re-surfaces it
   should bump the yard's token by hand in the same commit.
+
+
+## Built arena shell — 2026-09-23
+
+The approved whole-site shell now replaces the rectangular fence. It has real
+mesh collision, a north driveway opening and a diagonal opening behind the east
+gate. Sable's course and retained props move south to fit. The floor remains
+asphalt and grounded driving; the interior reference ramp is removed. See
+[WHARF_ARENA.md](WHARF_ARENA.md) for the geometry, license, build and test contract.

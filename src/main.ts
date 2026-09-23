@@ -1,3 +1,4 @@
+import { addWharfArena } from "./render/wharf-arena.ts";
 import { createLiveryEditor } from "./ui/livery.ts";
 import { padLabel, refreshControlHints } from "./ui/prompts.ts";
 import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
@@ -263,8 +264,13 @@ const input = createInputController();
 if (loadedSave && progress.preserveLegacyOwnership()) settings.update({ ...loadedSave.build, car: restored.car });
 const controls = createControlsPanel(input);
 const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
-const roadWorld = createAlderWorld(!!race || !!visiting, raceStart ?? (visiting
-  ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : undefined));
+// Development arrival shortcut: start inside the arena so its scale can be judged
+// from the car. Normal drives, saves, visits and races retain their own starts.
+const yardShellStart = import.meta.env?.DEV && !race && !visiting && !loadedSave
+  && new URLSearchParams(location.search).get("yardShell") === "1"
+  ? { x: -730, z: 1040, y: 2, heading: Math.PI / 2, pitch: 0 } : undefined;
+const roadWorld = createAlderWorld(!!race || !!visiting || !!yardShellStart, raceStart ?? (visiting
+  ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : yardShellStart));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const pedalAssist = requestedAssist ?? defaultPedalAssist(race);
@@ -296,6 +302,7 @@ if (sableParts) {
   setParkedRivalCar(view, SABLE.id, sableParts);
 }
 const driftYardView = addDriftYard(view.scene, lighting === "night");
+await addWharfArena(view.scene);
 const dragStripView = race?.drag ? addDragStrip(view.scene, race.drag, alderHeight) : null;
 document.body.dataset.world = "alder";
 document.title = "NIGHTSHIFT — Port Alder";

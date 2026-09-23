@@ -1,4 +1,5 @@
 import { SITE_FENCE_WALLS, SITE_PAVING, DRIFT_YARD, GATE_STRUCTURES, YARD_RESERVE, YARD_STRUCTURES } from "./drift-yard.ts";
+import { WHARF_ARENA_MESH } from "./wharf-arena.ts";
 import { garageSite } from "./garage-site.ts";
 import landmarks from "./alder-landmarks.json" with { type: "json" };
 import terrain from "./alder-terrain.json" with { type: "json" };
@@ -38,7 +39,7 @@ import { planSiteGrounds, groundsPavingQuery, type SiteGrounds, type SiteGrounds
 // The planner validates JSON dimensions and supported surface modes before use.
 const groundsRecipes=savedGrounds as SiteGroundsRecipe[];
 export const ALDER_FRONTAGE_DOCUMENT = parseFrontageDocument(savedFrontages);
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}-parking-v1-${layoutFingerprint(parkingRecipes)}-grounds-v1-${layoutFingerprint(groundsRecipes)}-garage-v2-clearance-${layoutFingerprint(clearance)}` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v2-drift-yard-v4-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}-parking-v1-${layoutFingerprint(parkingRecipes)}-grounds-v1-${layoutFingerprint(groundsRecipes)}-garage-v2-clearance-${layoutFingerprint(clearance)}` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
 export const alderSidewalkLift = sidewalkSampler(data.pavement, data.pavementLifts);
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
@@ -341,6 +342,7 @@ export function alderDrivable(x: number, z: number): boolean {
 export function createAlderWorld(racing = false, from: RoadWorld["start"] = start): RoadWorld {
   return { id: ALDER_VERSION, start: racing ? from : ALDER_GARAGE_EXIT,
     solids: ALDER_SOLIDS,
+    meshes: [WHARF_ARENA_MESH],
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],
