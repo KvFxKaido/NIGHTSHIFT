@@ -52,18 +52,25 @@ export const YARD_STRUCTURES = [
  *  the ground past it stays open (design/CHAOS.md, "The shape of the venue").
  *  Harbor Way runs at x -10 with 20 m of carriageway here, and the west kerb
  *  lamps stand at z 890 and 945, so a 13 m opening centred on 910 clears both. */
+/** The gate stands ON the fence line (x -45), so it is the way through rather
+ *  than a second gateway in front of one. It was 11 m outside it until
+ *  2026-09-21, with grass between the two and a 22 m hole in the fence behind
+ *  a 13 m gate — an approach that crossed a threshold twice and a lawn once.
+ *
+ *  The garage exit faces it down z = 910, which moving it west did not change. */
 export const YARD_GATE = {
-  x: -34, z: 910, opening: 13.3, postHeight: 9,
+  x: -45, z: 910, opening: 13.3, postHeight: 9,
+  /** Where the posts stand, which is also where the fence stops either side. */
+  postZ: [903, 917] as const,
   sign: { y: 6.9, width: 13, height: 1.6, text: "SOUTH WHARF YARD / EAST GATE" },
-  booth: { x: -41, z: 922.5, width: 4, depth: 3.6, height: 3.2 },
+  booth: { x: -52, z: 922.5, width: 4, depth: 3.6, height: 3.2 },
 } as const;
 
 export const GATE_STRUCTURES = [
-  block("gate-post-north", YARD_GATE.x, 903, .7, .7, YARD_GATE.postHeight, 0x526775),
-  block("gate-post-south", YARD_GATE.x, 917, .7, .7, YARD_GATE.postHeight, 0x526775),
-  // Stubs that stop: enough to say the gate is a way through something.
-  block("gate-rail-north", YARD_GATE.x, 897, .4, 12.7, 1.2, 0x73818a),
-  block("gate-rail-south", YARD_GATE.x, 923, .4, 12.7, 1.2, 0x73818a),
+  block("gate-post-north", YARD_GATE.x, YARD_GATE.postZ[0], .7, .7, YARD_GATE.postHeight, 0x526775),
+  block("gate-post-south", YARD_GATE.x, YARD_GATE.postZ[1], .7, .7, YARD_GATE.postHeight, 0x526775),
+  // The rails are gone: the fence runs up to each post now, so a stub of wall
+  // beside the gate would be a second fence beside the real one.
   block("gate-booth", YARD_GATE.booth.x, YARD_GATE.booth.z,
     YARD_GATE.booth.width, YARD_GATE.booth.depth, YARD_GATE.booth.height, 0x46545e),
 ] satisfies readonly (BuildingBlock & { id: string; color: number })[];
@@ -96,8 +103,9 @@ export const SITE_FENCE: readonly (readonly [number, number])[] = [
 export const SITE_FENCE_GAPS = [
   // The yard's own driveway, off the south-western leg of Harbor Way.
   { x: -560, z: 800, width: 48 },
-  // The east gate, which the garage exit faces down z = 910.
-  { x: -45, z: 910, width: 22 },
+  // The east gate. Derived from the gate itself so the two cannot drift apart
+  // again: the fence stops at each post and the opening is the gate's.
+  { x: YARD_GATE.x, z: YARD_GATE.z, width: YARD_GATE.postZ[1] - YARD_GATE.postZ[0] },
 ] as const;
 
 /** The site is paved wall to wall, so it drives as asphalt rather than as the
@@ -107,6 +115,10 @@ export const SITE_FENCE_GAPS = [
 export const SITE_PAVING = [
   { minX: -1150, maxX: -250, minZ: 800, maxZ: 1195 },
   { minX: -250, maxX: -45, minZ: 860, maxZ: 1195 },
+  // The approach: gate to kerb, because a gate reached across grass is not a
+  // gate. It runs a little past the pavement's edge so there is no seam of
+  // turf between the street and the site.
+  { minX: -45, maxX: -22, minZ: 898, maxZ: 922 },
 ] as const;
 
 /** How it stands: the apron's wall, taller, because this one encloses a site

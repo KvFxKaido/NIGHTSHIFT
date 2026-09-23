@@ -99,13 +99,15 @@ test("the venue measures what it measured when this was pinned", () => {
   const measured = { cells: cells.length, usable: count(c => c.usable), blocked: count(c => c.blocked),
     roadside: count(c => c.roadside), apron: count(c => c.usable && c.surface === "apron"),
     ground: count(c => c.usable && c.surface === "ground") };
-  // Repinned 2026-09-21, when the site was fenced and paved: four more cells
-  // blocked where the fence crosses this grid, and 203 dirt cells became
-  // paved. Both moved on purpose, which is what this pin is for.
-  assert.deepEqual(measured, { cells: 480, usable: 397, blocked: 83, roadside: 0, apron: 365, ground: 32 },
+  // Repinned 2026-09-23, when the gate moved onto the fence line. Every cell of
+  // the difference is accounted for: the two gate rails came out, freeing two
+  // unpaved cells; the gate's old cell east of the fence freed a paved one; and
+  // narrowing the fence's gap from 22 m to 14 m put wall back into the cell the
+  // posts stand in, which was paved. Net two fewer blocked, two more usable.
+  assert.deepEqual(measured, { cells: 480, usable: 399, blocked: 81, roadside: 0, apron: 365, ground: 34 },
     `the venue changed shape: repin to ${JSON.stringify(measured)}`);
   // Just under 16 hectares of it, and the site stops at Harbor Way's kerb
   // rather than swallowing the street, which is why nothing is roadside.
-  assert.equal(measured.usable * YARD_CELL * YARD_CELL, 158800);
+  assert.equal(measured.usable * YARD_CELL * YARD_CELL, 159600);
   assert.equal(YARD_SITE.maxX, -20);
 });

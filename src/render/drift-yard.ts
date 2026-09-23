@@ -55,7 +55,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
   label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
     YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
-  for (const z of [YARD_GATE.z - YARD_GATE.opening / 2 - .35, YARD_GATE.z + YARD_GATE.opening / 2 + .35]) {
+  for (const z of YARD_GATE.postZ) {
     const top = DRIFT_YARD.base + YARD_GATE.postHeight;
     // Sat on the post the way the apron's floods are, not hung beside it.
     box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
