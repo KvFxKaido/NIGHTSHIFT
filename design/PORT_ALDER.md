@@ -2928,6 +2928,7 @@ cases read as a rival grazing a turning van at 25 mph and carrying on, and shovi
 aside at walking pace after braking to 2 mph for it, where the wall would have driven its turn
 through it (`pnpm rival:scene street-uptown --seed=314159`, `gen-82 --seed=1`). The gate's
 contact counts were built for a world where contact was failure; read its outcomes now.
+Shawn drove it the same day: "This feels great."
 `pnpm golden`: the five runs where racers drive among traffic moved, nine bit-identical.
 
 ## Corner dressing trial (2026-09-21)
