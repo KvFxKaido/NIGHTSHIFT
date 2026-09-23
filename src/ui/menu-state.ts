@@ -33,8 +33,9 @@ export function createInitialMenuState(): MenuState {
 }
 
 export function transitionMenu(state: MenuState, event: MenuEvent): MenuState {
-  // Results require an explicit destination; pause/back must not resume a finished race.
-  if (state.screen === "results") return state;
+  // Results require an explicit destination; pause/back must not resume a finished race. Racing it again is one
+  // (2026-09-23): Shawn restarted before the flag to get a fair race, because after it there was no way back in.
+  if (state.screen === "results") return event === "restart" ? { screen: "playing", returnTo: "main" } : state;
   switch (event) {
     case "race-finished":
       return state.screen === "playing" || state.screen === "pause" ? { screen: "results", returnTo: "main" } : state;

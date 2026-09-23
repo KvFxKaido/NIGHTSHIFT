@@ -33,6 +33,8 @@ test("race results pause driving and require a destination instead of resuming o
   for (const event of ["pause-toggle", "back", "resume", "map-toggle", "race-finished"] as const) {
     assert.deepEqual(transitionMenu(result, event), result);
   }
+  // Racing it again is a destination, not a resume.
+  assert.deepEqual(transitionMenu(result, "restart"), { screen: "playing", returnTo: "main" });
   assert.equal(transitionMenu(createInitialMenuState(), "race-finished").screen, "main");
 });
 
