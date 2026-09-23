@@ -5,7 +5,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { ARENA, ARENA_ACCESS, ARENA_CORNERS, ARENA_LAYOUT_IDS, ARENA_LAYOUTS, arenaLap, type ArenaLayoutId } from "../src/sim/arena.ts";
 import { arenaEvent, arenaLayoutForRace, arenaRaceId, ARENA_GATE_RADIUS, ARENA_LAPS } from "../src/sim/arena-events.ts";
 import { RACING_LINE } from "../src/sim/racing-line.ts";
-import { ALDER_DRIVE_BOUNDS, ALDER_EVERGREENS, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, alderGround, alderHeight, createAlderWorld } from "../src/sim/alder.ts";
+import { ALDER_DRIVE_BOUNDS, ALDER_EVERGREENS, ALDER_STREETS, ARENA_ROADS, ALDER_PAVED_MARGIN, alderGround, alderHeight, createAlderWorld } from "../src/sim/alder.ts";
 import { projectOntoPathUnindexed } from "../src/sim/street-path.ts";
 import { createRace } from "../src/sim/race.ts";
 import { sampleRivalPath, withExits } from "../src/sim/rival.ts";
@@ -99,7 +99,7 @@ test("the site is clear: no building, tree or street stands on the circuit", () 
   for (const street of ALDER_STREETS) {
     for (const point of street.points) {
       for (const road of ARENA_ROADS) {
-        const clear = point.width / 2 + ALDER_PAVEMENT + road.points[0]!.width / 2 + ARENA.shoulder;
+        const clear = point.width / 2 + ALDER_PAVED_MARGIN + road.points[0]!.width / 2 + ARENA.shoulder;
         const d = distanceTo(road.points, point.x, point.z);
         if (d >= clear) continue;
         assert.ok(road.id === "arena-access" && ["Ridge Scenic Way", "Pine East"].includes(street.name) && Math.hypot(point.x - ARENA_ACCESS.from.x, point.z - ARENA_ACCESS.from.z) < 40,

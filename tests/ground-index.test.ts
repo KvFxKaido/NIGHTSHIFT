@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVEMENT, ALDER_FORECOURT, ALDER_BUILDING_FRONTS, ALDER_GROUNDS_FRONT_IDS, ALDER_SITE_GROUNDS } from "../src/sim/alder.ts";
+import { alderGround, ALDER_STREETS, ARENA_ROADS, ALDER_PAVED_MARGIN, ALDER_FORECOURT, ALDER_BUILDING_FRONTS, ALDER_GROUNDS_FRONT_IDS, ALDER_SITE_GROUNDS } from "../src/sim/alder.ts";
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { ARENA, nearArena } from "../src/sim/arena.ts";
 import { DRIFT_YARD, SITE_PAVING } from "../src/sim/drift-yard.ts";
@@ -35,7 +35,7 @@ function originalGround(x: number, z: number): boolean {
     const p=projectOntoPath(road.points,x,z); return p.distance<=p.width/2+ARENA.shoulder;
   })) return false;
   return !ALDER_STREETS.some(street => {
-    const p=projectOntoPath(street.points,x,z); return p.distance<=p.width/2+ALDER_PAVEMENT;
+    const p=projectOntoPath(street.points,x,z); return p.distance<=p.width/2+ALDER_PAVED_MARGIN;
   });
 }
 
@@ -45,7 +45,7 @@ test("indexed paving agrees with the complete paths at shoulders, junctions, buc
   }
   const check = (x: number,z: number) => assert.equal(alderGround(x,z),originalGround(x,z),`paving changed at ${x},${z}`);
   for (const road of [...ALDER_STREETS,...ARENA_ROADS]) {
-    const shoulder=road.id.startsWith("arena-") ? ARENA.shoulder : ALDER_PAVEMENT;
+    const shoulder=road.id.startsWith("arena-") ? ARENA.shoulder : ALDER_PAVED_MARGIN;
     // Every street and all parts of the three circuit laps, including endpoints.
     const stride=Math.max(1,Math.floor(road.points.length/8));
     for(let i=1;i<road.points.length;i+=stride) {

@@ -3,12 +3,12 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls, type TransformControlsMode } from "three/addons/controls/TransformControls.js";
 import { addAlder } from "../render/alder.ts";
 import alderData from "../sim/alder-data.json";
-import { ALDER_LAYOUT, GENERATED_ALDER_BLOCKS, ALDER_LAYOUT_BASELINE, GARAGE_PLOT_ID,
+import { ALDER_LAYOUT, ALDER_GENERATED_SITES, ALDER_LAYOUT_BASELINE, GARAGE_PLOT_ID,
   resolveAlderLayout, frontageContextForLayout } from "../sim/alder.ts";
 import { createFrontagePanel } from "./frontages.ts";
 import { frontPoint } from "../sim/building-fronts.ts";
 import type { FrontageContext } from "../sim/frontage-generator.ts";
-import { buildingId, parseAnyLayout, authoredFromId, authoredSourceId, AUTHORED_ID_PREFIX,
+import { parseAnyLayout, authoredFromId, authoredSourceId, AUTHORED_ID_PREFIX,
   type AuthoredLayout } from "../sim/building-layout.ts";
 import { placeBuilding, placementFromMesh, placementDiffers, layoutFromEditor, importEditorScene, exportEditorScene,
   type EditorEntry } from "./exchange.ts";
@@ -54,7 +54,7 @@ type BuildingMesh = THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
 const buildings = new Map<string, BuildingMesh>();
 const hidden = new Set<string>();
 const box = new THREE.BoxGeometry(1, 1, 1);
-const originals = new Map(GENERATED_ALDER_BLOCKS.map(block => [buildingId(block), block]));
+const originals = new Map(ALDER_GENERATED_SITES.map(({id,block}) => [id, block]));
 const isAuthored = (id: string) => id.startsWith(AUTHORED_ID_PREFIX);
 function addMesh(id: string, name: string): BuildingMesh {
   const mesh: BuildingMesh = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ color: COLOUR.generated, roughness: 0.9 }));
@@ -63,8 +63,7 @@ function addMesh(id: string, name: string): BuildingMesh {
   buildings.set(id, mesh); scene.add(mesh);
   return mesh;
 }
-GENERATED_ALDER_BLOCKS.forEach((block, index) => {
-  const id = buildingId(block);
+ALDER_GENERATED_SITES.forEach(({id,block}, index) => {
   placeBuilding(addMesh(id, id === GARAGE_PLOT_ID ? "Wharf Garage — fixed" : `Building ${String(index + 1).padStart(3, "0")}`), block);
 });
 function authoredName(id: string): string {

@@ -227,6 +227,23 @@ export function withStreetLine(route: RivalDefinition, options: RacingLineOption
       if (shift > STREET_LINE.widest) return false;
       if (options.paved && shift >= STREET_LINE.shift && !options.paved(x, z)) return false;
     }
+    // Wider clear verges can expose a solver path that swings outward before
+    // a sharp corner. Keep that approach in its lane instead of accepting it
+    // merely because the shoulder underneath is paved.
+    if (corners.includes(window)) {
+      let apex=window.first, deepest=0;
+      for(let k=window.first;k<=window.last;k++) {
+        const shift=Math.hypot(window.x[k-window.first]!-lane[k]!.x,window.z[k-window.first]!-lane[k]!.z);
+        if(shift>deepest){deepest=shift;apex=k;}
+      }
+      const entry=sampleDrivingPath(route,window.first*STREET_LINE.spacing),exit=sampleDrivingPath(route,window.last*STREET_LINE.spacing);
+      const inward=Math.sign(entry.ux*exit.uz-entry.uz*exit.ux);
+      for(let k=window.first;k<window.first+(apex-window.first)/2;k++) {
+        const at=sampleDrivingPath(route,k*STREET_LINE.spacing);
+        const across=((window.x[k-window.first]!-lane[k]!.x)*-at.uz+(window.z[k-window.first]!-lane[k]!.z)*at.ux)*inward;
+        if(across<=-1)return false;
+      }
+    }
     return true;
   };
   // How tightly a path bends at each station: 8 m either way, as the driver reads it.

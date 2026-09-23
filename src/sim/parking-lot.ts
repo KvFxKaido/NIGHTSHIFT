@@ -95,7 +95,7 @@ export function createParkingLot(recipe: ParkingLotRecipe, heightAt: (x: number,
   }
   const lamps = [-1, 1].map(side => block(side * (width / 2 - 2), -depth / 2 + .6, .3, .3, 7.5));
   const kerbs = [-1, 1].map(side => block(-recipe.endMargin / 2, side * (depth / 2 - .12), width - recipe.endMargin, .24));
-  const sign = block(width / 2 + 1.5, depth / 2 + recipe.entranceLength - 6, .16, .16, 2.9);
+  const sign = block(width / 2 + 1.5, depth / 2 + 1.5, .16, .16, 2.9);
   return { recipe, footprint, entrance, surfaces, bays, cars, wheelStops, lamps, kerbs, sign,
     solids: [...cars.map(c => c.solid), ...wheelStops, ...lamps, ...kerbs, sign] };
 }

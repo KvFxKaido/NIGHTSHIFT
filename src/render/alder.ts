@@ -1,11 +1,11 @@
 import { addBroadcastTower } from "./broadcast-tower.ts";
 import { addParkingLots } from "./parking-lot.ts";
 import { addSiteGrounds } from "./site-grounds.ts";
-import { ALDER_SITE_GROUNDS, ALDER_GROUNDS_FRONT_IDS, ALDER_PARKING } from "../sim/alder.ts";
+import { ALDER_SITE_GROUNDS, ALDER_GROUNDS_FRONT_IDS, ALDER_PARKING, alderSidewalkLift } from "../sim/alder.ts";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { ALDER_DATA as data, ALDER_STREETS, ALDER_BLOCKS, ALDER_GARAGE, ALDER_TREES, ALDER_EVERGREENS,
-  ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, ALDER_CORNER_PROPS, alderHeight } from "../sim/alder.ts";
+  ALDER_FORECOURT, ALDER_LAMP_POSES, ALDER_SEAWALL_LAMP_POSES, ALDER_BIN_POSES, ALDER_CORNER_PROPS, ALDER_SHOULDER, alderHeight } from "../sim/alder.ts";
 import { addCornerDressing } from "./corner-dressing.ts";
 import { addEvergreens } from "./evergreens.ts";
 import { addBrickCorner, isBrickCorner } from "./brick-corner.ts";
@@ -21,6 +21,7 @@ import { chunkAlderScenery } from "./city-chunks.ts";
 import { addGarageExterior, addGarageForecourt } from "./garage.ts";
 import { roadMarkings } from "./road-markings.ts";
 import { asphaltMaterial } from "./asphalt.ts";
+import { concreteMaterial } from "./concrete.ts";
 import { grassGroundMaterial } from "./grass-ground.ts";
 import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing } from "./night.ts";
 import { buildingFrontage } from "../sim/frontage.ts";
@@ -119,17 +120,18 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     const positions = new Float32Array(points.length/2*3);
     for(let i=0;i<points.length;i+=2) {
       const x=points[i]!, z=points[i+1]!;
-      positions.set([x,alderHeight(x,z)+lift,z],i/2*3);
+      positions.set([x,alderHeight(x,z)+lift+(name==="alder-pavement"?data.pavementLifts[i/2]!:0),z],i/2*3);
     }
     const geometry=new THREE.BufferGeometry(); geometry.setAttribute("position",new THREE.BufferAttribute(positions,3)); geometry.computeVertexNormals();
     const grass = name === "alder-ground" || name === "alder-outskirts" || data.parks.some(park => park.id === name);
-    if (name === "alder-asphalt" || grass) geometry.setAttribute("uv", new THREE.Float32BufferAttribute(points.map(v => v / 8), 2));
-    const mesh=new THREE.Mesh(geometry,name === "alder-asphalt" ? asphaltMaterial(color) : grass ? grassGroundMaterial(color) : new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
+    const pavement=name === "alder-pavement";
+    if (name === "alder-asphalt" || grass || pavement) geometry.setAttribute("uv", new THREE.Float32BufferAttribute(points.map(v => v / (pavement?2:8)), 2));
+    const mesh=new THREE.Mesh(geometry,name === "alder-asphalt" ? asphaltMaterial(color) : pavement ? concreteMaterial(color) : grass ? grassGroundMaterial(color) : new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.08,
       polygonOffset:lift>0,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
     mesh.name=name; mesh.receiveShadow=true;scene.add(mesh);
   }
   surface("alder-asphalt",data.asphalt,night?0x46515b:0x62686b);
-  surface("alder-pavement",data.pavement,night?0x4b515b:0x879090);
+  surface("alder-pavement",data.pavement,night?0x777b7e:0xb3b0a6);
   surface("alder-ground",data.ground,night?0x354733:0x526149);
   for (const park of data.parks) surface(park.id,park.surface,night?0x3d573a:0x608054,.012);
   const trunks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x554239}),ALDER_TREES.length);
@@ -195,7 +197,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flatMap(([x,z])=>[x!,alderHeight(x!,z!)+.025,z!]),3));
     paint[color].push(geometry);
   }
-  for (const mark of roadMarkings(ALDER_STREETS)) strip(mark.ax,mark.az,mark.bx,mark.bz,.13,mark.color);
+  for (const mark of roadMarkings(ALDER_STREETS,{shoulderWidth:ALDER_SHOULDER}))
+    strip(mark.ax,mark.az,mark.bx,mark.bz,mark.kind==="edge"?.18:.13,mark.color);
   for (const color of ["yellow", "white"] as const) {
     const merged = paint[color].length ? mergeGeometries(paint[color]) : null;
     if (merged) {
@@ -299,7 +302,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   // they join its meshes; only their glow is extra, and only because no road
   // is nearer the water than 116 m and the haze takes a bare lamp head by then.
   for(const pose of [...ALDER_LAMP_POSES,...ALDER_SEAWALL_LAMP_POSES]){
-    const x=pose.x,z=pose.z,y=alderHeight(x,z);
+    const x=pose.x,z=pose.z,y=alderHeight(x,z)+alderSidewalkLift(x,z);
     lamps.push(new THREE.BoxGeometry(.22,7,.22).translate(x,y+3.5,z));
     bulbs.push(new THREE.BoxGeometry(1.6,.2,.5).translate(x,y+7,z));
     if(night){
@@ -308,7 +311,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
       const cx=x-pose.outX*SODIUM_POOL_INSET,cz=z-pose.outZ*SODIUM_POOL_INSET;
       for(let j=0;j<position.count;j++){
         const px=position.getX(j)+cx,pz=position.getZ(j)+cz;
-        position.setXYZ(j,px,alderHeight(px,pz)+.045,pz);
+        position.setXYZ(j,px,alderHeight(px,pz)+alderSidewalkLift(px,pz)+.045,pz);
       }
       pools.push(pool);
     }
@@ -337,7 +340,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   for(const pose of ALDER_BIN_POSES){
     const bin=new THREE.BoxGeometry(.62,.95,.44);
     bin.rotateY(pose.heading);
-    bin.translate(pose.x,alderHeight(pose.x,pose.z)+.475,pose.z);
+    bin.translate(pose.x,alderHeight(pose.x,pose.z)+alderSidewalkLift(pose.x,pose.z)+.475,pose.z);
     bins.push(bin);
   }
   if(bins.length){

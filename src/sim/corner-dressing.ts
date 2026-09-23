@@ -1,4 +1,5 @@
 import { blockCorners, type BuildingBlock } from "./building-footprint.ts";
+import clearance from "./alder-clearance.json" with { type: "json" };
 
 export type CornerKind = "planter" | "terrace" | "freight";
 export interface CornerSite {
@@ -22,9 +23,9 @@ export interface CornerProp {
 }
 
 /** Eight authored parcel corners, not a rule that fences every intersection.
- * The front sits beyond the 2.8 m pavement, leaving the shallow apex usable.
+ * The front sits beyond the widened shoulder and sidewalk, leaving the shallow apex usable.
  * Short returns make each group a landscaped pocket or a working yard edge. */
-export const CORNER_SITES: readonly CornerSite[] = [
+const ORIGINAL_CORNER_SITES: readonly CornerSite[] = [
   { id: "harbor-yard", name: "Harbor Way / 1st Ave S", kind: "freight", junction: [-9, 780],
     arms: ["sea-0", "sea-29"], x: -30.25, z: 799.73, rotation: -2.31922 },
   { id: "holgate-yard", name: "Holgate / 4th Ave S", kind: "freight", junction: [215, 658],
@@ -42,6 +43,8 @@ export const CORNER_SITES: readonly CornerSite[] = [
   { id: "olive-terrace", name: "Olive / Denny East", kind: "terrace", junction: [950, -1200],
     arms: ["sea-east-36", "sea-east-98"], x: 961.87, z: -1179.14, rotation: 2.62428 },
 ];
+export const CORNER_SITES: readonly CornerSite[] = ORIGINAL_CORNER_SITES.map(site=>
+  ({...site,...(clearance.corners as Record<string,{x:number;z:number}>)[site.id]}));
 
 export function createCornerProps(heightAt: (x: number, z: number) => number): CornerProp[] {
   const props: CornerProp[] = [];

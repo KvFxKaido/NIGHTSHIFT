@@ -3,6 +3,8 @@ import { garageSite } from "./garage-site.ts";
 import landmarks from "./alder-landmarks.json" with { type: "json" };
 import terrain from "./alder-terrain.json" with { type: "json" };
 import data from "./alder-data.json" with { type: "json" };
+import { sidewalkSampler } from "./sidewalk.ts";
+import clearance from "./alder-clearance.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
 import { buildingId, layoutFingerprint, layoutHasContent, parseAnyLayout, type AuthoredLayout, type BuildingPlacement } from "./building-layout.ts";
@@ -36,8 +38,9 @@ import { planSiteGrounds, groundsPavingQuery, type SiteGrounds, type SiteGrounds
 // The planner validates JSON dimensions and supported surface modes before use.
 const groundsRecipes=savedGrounds as SiteGroundsRecipe[];
 export const ALDER_FRONTAGE_DOCUMENT = parseFrontageDocument(savedFrontages);
-export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}-parking-v1-${layoutFingerprint(parkingRecipes)}-grounds-v1-${layoutFingerprint(groundsRecipes)}-garage-v2` };
+export const ALDER_DATA = { ...data, version: `${data.version}-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-${frontageSurfaceFingerprint(ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan))}-parking-v1-${layoutFingerprint(parkingRecipes)}-grounds-v1-${layoutFingerprint(groundsRecipes)}-garage-v2-clearance-${layoutFingerprint(clearance)}` };
 export const ALDER_TREES: readonly BuildingBlock[] = data.trees;
+export const alderSidewalkLift = sidewalkSampler(data.pavement, data.pavementLifts);
 const garageBuilding: BuildingBlock = {x:34,z:910,width:32,depth:24,height:10,base:2,rotation:-Math.PI/2};
 export const ALDER_GARAGE = {id:"wharf-garage",name:"Wharf Garage",building:garageBuilding,
   entrance:{x:17,y:2,z:910,heading:0,pitch:0}};
@@ -49,8 +52,8 @@ export const ALDER_FORECOURT: BuildingBlock = {x:11.5,z:910,width:21,depth:40,he
 export const ALDER_GARAGE_SITE = garageSite(garageBuilding);
 export const ALDER_GARAGE_SOLIDS = ALDER_GARAGE_SITE.planters;
 export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...scaleAlderSkyline(data.buildings),garageBuilding];
-export const ALDER_LAYOUT_BASELINE = layoutFingerprint(GENERATED_ALDER_BLOCKS.map(block=>
-  Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000]))));
+export const ALDER_LAYOUT_BASELINE = layoutFingerprint({clearance,blocks:GENERATED_ALDER_BLOCKS.map(block=>
+  Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000])))});
 export function alderHeight(x: number, z: number): number {
   const smooth = (t: number) => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
   let height = 2 + 34 * smooth((x + 50) / 640) * smooth((330 - z) / 500);
@@ -76,6 +79,9 @@ export const ALDER_STREETS: readonly Street[] = data.roads.map(road => ({
   points: road.points.map(([x, z]) => ({ x: x!, z: z!, y: alderHeight(x!, z!), width: road.width,
     zone: z! > 250 ? "freight" : x! < -270 ? "waterfront" : "old-quarter" })),
 }));
+/** Site access meets the outer asphalt edge; traffic keeps its original lanes. */
+export const ALDER_ROADSIDE_STREETS: readonly Street[] = ALDER_STREETS.map(street=>({...street,
+  points:street.points.map(point=>({...point,width:point.width+2*data.shoulderWidth}))}));
 /**
  * The circuit's paved paths with their height: each layout's lap as a closed
  * polyline, and the access road. They are not streets: no traffic, no routing,
@@ -153,14 +159,16 @@ export interface ResolvedLayout {
  */
 export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlock[]=GENERATED_ALDER_BLOCKS): ResolvedLayout {
   const layout=parseAnyLayout(value,ALDER_LAYOUT_BASELINE);
-  const retired=new Set(layout.retired);
+  const retired=new Set([...layout.retired,...clearance.removed]);
   if(retired.has(GARAGE_PLOT_ID))throw Error("Wharf Garage is fixed in this editor version");
   const authored=layout.authored.map(({id:_id,...placement})=>groundBuilding(placement));
   const forecourt=ALDER_FORECOURT;
   const entries:{id:string;source:"generated"|"authored";block:BuildingBlock}[]=[];
   const displaced:string[]=[];
-  for(const block of generated){
-    const id=buildingId(block);
+  for(const original of generated){
+    const id=buildingId(original);
+    const placement=(clearance.buildings as Record<string,{x:number;z:number;width?:number;depth?:number}>)[id];
+    const block=placement?groundBuilding({...original,...placement}):original;
     if(retired.has(id))continue;
     if(id!==GARAGE_PLOT_ID&&authored.some(other=>blockPenetration(block,other)>.01)){displaced.push(id);continue;}
     entries.push({id,source:"generated",block});
@@ -169,7 +177,7 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
   layout.authored.forEach((placement,index)=>{
     const block=authored[index]!, id=placement.id;
     if(ALDER_STREETS.some(street=>street.points.slice(1).some((b,i)=>
-      segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+2.8)))issues.push(`${id}: overlaps a road or its pavement`);
+      segmentFootprintDistance(block,street.points[i]!,b)<Math.max(b.width,street.points[i]!.width)/2+data.shoulderWidth+data.pavementWidth)))issues.push(`${id}: overlaps a road or its pavement`);
     if (blockPenetration(block, YARD_RESERVE) > 0) issues.push(`${id}: overlaps South Wharf Yard`);
     if(blockPenetration(block,landmarks.broadcastTower)>0)issues.push(`${id}: overlaps the Broadcast Tower`);
     if([...ALDER_PARKING_RESERVES,...ALDER_PARKING_SOLIDS].some(area=>blockPenetration(block,area)>0))issues.push(`${id}: overlaps a parking lot or its access`);
@@ -185,11 +193,13 @@ export function resolveAlderLayout(value:unknown, generated:readonly BuildingBlo
   });
   return {layout,blocks:entries.map(entry=>entry.block),entries,displaced,issues};
 }
+/** Stable source plot IDs paired with the cleared placements used by the editor. */
+export const ALDER_GENERATED_SITES=resolveAlderLayout({schema:2,authored:[],retired:[]}).entries;
 const resolvedLayout=resolveAlderLayout(authoredLayout);
 if(resolvedLayout.issues.length)throw Error(`Invalid Port Alder layout:\n${resolvedLayout.issues.join("\n")}`);
 export const ALDER_BLOCKS=resolvedLayout.blocks;
 export const groundsForBlocks = (blocks:readonly BuildingBlock[], fronts:readonly FrontPlan[]=ALDER_FRONTAGE_DOCUMENT.entries.map(e=>e.plan)) => planSiteGrounds(groundsRecipes,
-  fronts,blocks,ALDER_STREETS,alderHeight,
+  fronts,blocks,ALDER_ROADSIDE_STREETS,alderHeight,
   [...YARD_STRUCTURES,...GATE_STRUCTURES,...SITE_FENCE_WALLS,YARD_RESERVE,landmarks.broadcastTower,...ALDER_TREES,...ALDER_CORNER_SOLIDS,...ALDER_MARKET_UTILITIES,...ALDER_GARAGE_SOLIDS,...ALDER_PARKING_RESERVES,...ALDER_PARKING_SOLIDS]);
 const grounds = groundsForBlocks(ALDER_BLOCKS);
 export const ALDER_SITE_GROUNDS = grounds.plans;
@@ -205,7 +215,7 @@ export const ALDER_EVERGREENS = evergreensForBlocks(ALDER_BLOCKS,ALDER_SITE_GROU
 export const ALDER_SOLIDS = [...ALDER_BLOCKS, ...YARD_STRUCTURES, ...GATE_STRUCTURES,...SITE_FENCE_WALLS, landmarks.broadcastTower, ...ALDER_TREES,
   ...ALDER_EVERGREENS.map(tree => tree.trunk), ...ALDER_CORNER_SOLIDS, ...ALDER_MARKET_UTILITIES, ...ALDER_PARKING_SOLIDS, ...ALDER_GROUNDS_SOLIDS, ...ALDER_GARAGE_SOLIDS];
 export const ALDER_FRONTAGE_CONTEXT: FrontageContext = {
-  sites: resolvedLayout.entries, streets: ALDER_STREETS, heightAt: alderHeight,
+  sites: resolvedLayout.entries, streets: ALDER_ROADSIDE_STREETS, heightAt: alderHeight,
   obstacles: [...ALDER_SOLIDS.filter(b=>!ALDER_BLOCKS.includes(b)), ...ALDER_PARKING_RESERVES, ...ALDER_GROUNDS_RESERVES],
   obstacleOwners: groundsOwners(ALDER_SITE_GROUNDS),
   protectedIds: new Set(resolvedLayout.entries.filter(s=>s.id===GARAGE_PLOT_ID||marketBuilding(s.block)).map(s=>s.id)),
@@ -232,7 +242,9 @@ const onGroundsPaving = groundsPavingQuery(ALDER_SITE_GROUNDS);
  *  until something puts them in `solids` on purpose. */
 // Extend access across the sidewalk so existing bins/posts do not block it.
 const groundsStreetAccess=ALDER_GROUNDS_RESERVES.map(b=>({...b,depth:b.depth+6}));
-export const ALDER_LAMP_POSES = kerbPoses(ALDER_STREETS, {...ALDER_LAMPS,radius:1.1},groundsStreetAccess);
+export const ALDER_LAMP_POSES = kerbPoses(ALDER_STREETS,
+  {...ALDER_LAMPS,offset:ALDER_LAMPS.offset+data.shoulderWidth,roadClearance:data.shoulderWidth+.5,radius:1.1},
+  [...ALDER_SOLIDS,YARD_RESERVE,...groundsStreetAccess]);
 /** Metres inland of the seawall's line that its lamps stand: clear of the wall's face. */
 export const SEAWALL_LAMP_SETBACK = 1.5;
 /**
@@ -245,20 +257,22 @@ export const ALDER_SEAWALL_LAMP_POSES: readonly KerbPose[] = Array.from(
   { length: Math.floor((data.bounds[3]! - data.bounds[1]! - ALDER_LAMPS.spacing / 2) / ALDER_LAMPS.spacing) + 1 },
   (_, i) => ({ street: "seawall", x: data.shore + SEAWALL_LAMP_SETBACK,
     z: data.bounds[1]! + ALDER_LAMPS.spacing / 2 + i * ALDER_LAMPS.spacing, outX: -1, outZ: 0, heading: Math.PI / 2 }));
-export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS, ALDER_BINS,
+export const ALDER_BIN_POSES = kerbPoses(ALDER_STREETS,
+  {...ALDER_BINS,offset:ALDER_BINS.offset+data.shoulderWidth,roadClearance:data.shoulderWidth+.5},
   [...ALDER_SOLIDS, YARD_RESERVE,...groundsStreetAccess]);
 export const ALDER_LAYOUT=resolvedLayout;
 export const ALDER_VERSION=ALDER_DATA.version+(layoutHasContent(resolvedLayout.layout)?`-layout-${layoutFingerprint(resolvedLayout.layout)}`:"");
 let network: TrafficNetwork | undefined;
-/** Metres of pavement past each carriageway edge. build-alder.py draws the
- *  pavement as `asphalt.buffer(2.8)`, so the paved ribbon the player sees and
- *  the paved ribbon the tyres feel are the same width. */
-export const ALDER_PAVEMENT = 2.8;
+/** Sidewalk width beyond the asphalt shoulder, shared with the generated mesh. */
+export const ALDER_PAVEMENT = data.pavementWidth;
+export const ALDER_SHOULDER = data.shoulderWidth;
+/** Full paved ribbon outside the traffic lanes: asphalt shoulder plus sidewalk. */
+export const ALDER_PAVED_MARGIN = ALDER_SHOULDER + ALDER_PAVEMENT;
 /** Paved ground that is not a street: drawn as asphalt, so it drives as asphalt. */
 const PAVED_AREAS = [...SITE_PAVING, DRIFT_YARD.bounds, DRIFT_YARD.driveway, {
   minX: ALDER_FORECOURT.x - ALDER_FORECOURT.width / 2, maxX: ALDER_FORECOURT.x + ALDER_FORECOURT.width / 2,
   minZ: ALDER_FORECOURT.z - ALDER_FORECOURT.depth / 2, maxZ: ALDER_FORECOURT.z + ALDER_FORECOURT.depth / 2 }];
-const GROUND_REACH = Math.max(...ALDER_STREETS.flatMap(street => street.points.map(point => point.width))) / 2 + ALDER_PAVEMENT;
+const GROUND_REACH = Math.max(...ALDER_STREETS.flatMap(street => street.points.map(point => point.width))) / 2 + ALDER_PAVED_MARGIN;
 const ARENA_REACH = ARENA.width / 2 + ARENA.shoulder;
 /** Streets only: the circuit's paths are paved to their shoulder, not to a city pavement. */
 const streetBounds = bounds.slice(0, ALDER_STREETS.length);
@@ -299,7 +313,7 @@ export function alderGround(x: number, z: number): boolean {
     const dx = Math.max(box.minX - x, 0, x - box.maxX), dz = Math.max(box.minZ - z, 0, z - box.maxZ);
     if (dx * dx + dz * dz > GROUND_REACH * GROUND_REACH) continue;
     const on = projectOntoPath(box.street.points, x, z);
-    if (on.distance <= on.width / 2 + ALDER_PAVEMENT) return false;
+    if (on.distance <= on.width / 2 + ALDER_PAVED_MARGIN) return false;
   }
   return true;
 }
@@ -330,7 +344,9 @@ export function createAlderWorld(racing = false, from: RoadWorld["start"] = star
     // Only the seawall is a barrier; street edges and junctions stay open.
     walls: [{x:data.shore,y:2,z:(data.bounds[1]!+data.bounds[3]!)/2,
       width:1.2,depth:data.bounds[3]!-data.bounds[1]!,rotation:0,pitch:0,accent:"white",zone:"waterfront"}],
-    project: projectOntoAlder, surface: projectOntoAlder, ground: alderGround, grade: alderGrade,
+    project: projectOntoAlder,
+    surface: (x,z)=>{const road=projectOntoAlder(x,z);return {...road,height:road.height+alderSidewalkLift(x,z)};},
+    curb: alderSidewalkLift, ground: alderGround, grade: alderGrade,
     get traffic() { return network ??= buildStreetTrafficNetwork(ALDER_STREETS, alderHeight); } };
 }
 

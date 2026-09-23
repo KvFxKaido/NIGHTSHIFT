@@ -1,10 +1,14 @@
-"""Offline city slice. pip install --target artifacts/map-tools shapely==2.1.2"""
-import json, math, sys
+"""Offline city slice. pip install --target artifacts/map-tools shapely==2.1.2
+
+Use --surfaces-only to rebuild road/sidewalk/ground meshes without changing placements.
+"""
+import json, math, sys, subprocess
 from pathlib import Path
 sys.path.insert(0, str(Path('artifacts/map-tools').resolve()))
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union, linemerge, polygonize
 from shapely import constrained_delaunay_triangles
+from shapely.strtree import STRtree
 
 # Freeze the released southwest roads and plots; the new addition is authored
 # separately and meets it only at existing junctions.
@@ -49,6 +53,10 @@ for i,line in enumerate(alley_lines):
         'from':key(line.coords[0]), 'to':key(line.coords[-1]),
         'points':[[round(x,3),round(z,3)] for x,z in points]})
 roads = base['roads'] + new_roads + alley_roads
+# Surface-only rebuilds preserve every released road and object placement.
+surface_only = '--surfaces-only' in sys.argv
+existing = json.loads(Path('src/sim/alder-data.json').read_text(encoding='utf-8')) if surface_only else None
+if existing is not None: roads = existing['roads']
 # Use the serialized vertices for meshes too; physics never sees extra precision.
 lines = [LineString(road['points']) for road in roads]
 
@@ -61,9 +69,17 @@ def height(x, z):
         r2 = ((x-hill['x'])/hill['rx'])**2 + ((z-hill['z'])/hill['rz'])**2
         if r2 < 1: y += hill['rise'] * (1-r2)**3
     return y
-asphalt = unary_union([line.buffer(road['width']/2, quad_segs=4) for line, road in zip(lines, roads)])
-pavement = asphalt.buffer(2.8, quad_segs=2).difference(asphalt)
-bounds = asphalt.bounds
+carriageway = unary_union([line.buffer(road['width']/2, quad_segs=4) for line, road in zip(lines, roads)])
+SHOULDER_WIDTH = 5.6
+PAVEMENT_WIDTH = 2.8
+# Split the existing 8.4 m ribbon, keeping its outer boundary unchanged.
+paved_envelope = carriageway.buffer(SHOULDER_WIDTH + PAVEMENT_WIDTH, quad_segs=2)
+asphalt = carriageway.buffer(SHOULDER_WIDTH, quad_segs=8)
+# Close concave road corners with a 4 m radius: cut back the sidewalk at
+# intersections without widening straight shoulders or changing lane paths.
+asphalt = asphalt.buffer(4, quad_segs=8).buffer(-4, quad_segs=8).union(asphalt)
+pavement = paved_envelope.difference(asphalt)
+bounds = carriageway.bounds
 shore = math.floor(bounds[0] - 90)
 land = box(shore, bounds[1]-180, bounds[2]+180, bounds[3]+180)
 
@@ -92,6 +108,44 @@ def triangles(geometry):
                 if (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]) > 0: points.reverse()
                 result.extend(round(v, 3) for p in points for v in p)
     return result
+
+def sidewalk_surface():
+    access_path = Path('artifacts/curb-access.json')
+    access_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(['node', '--experimental-strip-types', 'scripts/export-curb-access.ts', str(access_path)], check=True)
+    accesses = unary_union([Polygon(p).buffer(0) for p in json.loads(access_path.read_text())]).buffer(.1)
+    raised = pavement.difference(accesses)
+    # A 25 cm bevel is mountable; entrances taper over a gentler metre.
+    plateau = raised.buffer(-.25, quad_segs=4).difference(accesses.buffer(.75))
+    ramp = raised.difference(plateau)
+    flat = pavement.intersection(accesses)
+    def boundary_tree(shape):
+        boundary = shape.boundary
+        rings = list(boundary.geoms) if hasattr(boundary, 'geoms') else [boundary]
+        return STRtree([LineString([a,b]) for ring in rings for a,b in zip(ring.coords,list(ring.coords)[1:])])
+    raised_edges, access_edges = boundary_tree(raised), boundary_tree(accesses)
+    def distance(tree, point): return tree.geometries[tree.nearest(point)].distance(point)
+    points, lifts = [], []
+    for shape, level in [(plateau, .15), (ramp, None), (flat, 0)]:
+        vertices = triangles(shape)
+        points.extend(vertices)
+        for x,z in zip(vertices[::2], vertices[1::2]):
+            point = Point(x,z)
+            lift = level if level is not None else min(.15, distance(raised_edges,point)*.6,
+                distance(access_edges,point)*.15)
+            lifts.append(round(lift, 4))
+    return points, lifts
+
+if existing is not None:
+    sidewalk, lifts = sidewalk_surface()
+    existing.update(version='alder-slice-v7', pavementWidth=PAVEMENT_WIDTH, shoulderWidth=SHOULDER_WIDTH,
+        asphalt=triangles(asphalt), pavement=sidewalk, pavementLifts=lifts,
+        ground=triangles(box(*existing['bounds']).difference(asphalt.union(pavement))))
+    for park in existing['parks']:
+        park['surface'] = triangles(box(*park['bounds']).difference(asphalt.union(pavement)))
+    Path('src/sim/alder-data.json').write_text(json.dumps(existing, separators=(',',':'))+'\n', encoding='utf-8')
+    print(f'Rebuilt {SHOULDER_WIDTH} m asphalt shoulders and {PAVEMENT_WIDTH} m sidewalks; lane and object placements preserved.')
+    sys.exit(0)
 
 # Use the real blocks as parcels, reserving a through passage in each larger
 # parcel. Buildings are fictional, fitted wholly within the paved street edges.
@@ -156,13 +210,14 @@ for park in extension['parks']:
             if (row+col)%3 == 0 or asphalt.distance(Point(x,z)) < 20: continue
             trees.append({'x':x,'z':z,'width':1,'depth':1,'height':7+(row+col)%4,'rotation':0,'base':round(height(x,z),3)})
 
-result = {'version':'alder-slice-v4', 'source':base['source'], 'retrieved':base['retrieved'],
+sidewalk, lifts = sidewalk_surface()
+result = {'version':'alder-slice-v7', 'pavementWidth':PAVEMENT_WIDTH, 'shoulderWidth':SHOULDER_WIDTH, 'source':base['source'], 'retrieved':base['retrieved'],
           'expansion':'Authored east-hills-layout.json, 2026-09-11',
           'parks':parks, 'trees':trees, 'neighborhoods':extension['neighborhoods'],
           'roadEnvelopeKm2':round(box(*asphalt.bounds).area/1e6,4),
           'roadHullKm2':round(unary_union(lines).convex_hull.area/1e6,4),
           'bounds':list(land.bounds), 'shore':shore, 'roads':roads, 'buildings':buildings,
-          'asphalt':triangles(asphalt), 'pavement':triangles(pavement),
+          'asphalt':triangles(asphalt), 'pavement':sidewalk, 'pavementLifts':lifts,
           'ground':triangles(land.difference(asphalt.union(pavement)))}
 Path('src/sim/alder-data.json').write_text(json.dumps(result, separators=(',',':'))+'\n', encoding='utf-8')
 print(json.dumps({'roads':len(roads),'buildings':len(buildings),'km':round(sum(l.length for l in lines)/1000,2),

@@ -35,6 +35,8 @@ export interface RoadWorld {
    *  rails removed needs this, or the first gap a car drives through leaves it
    *  floating on the nearest road's height. */
   surface?(x: number, z: number): CourseProjection;
+  /** Raised, mountable pavement height above the landform, in metres. */
+  curb?(x: number, z: number): number;
   /** True where a tyre is off the paved surface: past the road and its
    *  pavement, on grass or bare ground. The sim charges some grip and pace
    *  there (`HANDLING.ground*`). Absent on a world with no ground to leave

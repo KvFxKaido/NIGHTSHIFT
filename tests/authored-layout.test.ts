@@ -1,3 +1,4 @@
+import clearance from "../src/sim/alder-clearance.json" with { type: "json" };
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildingId, layoutFingerprint, layoutHasContent, parseAuthoredLayout } from "../src/sim/building-layout.ts";
@@ -30,7 +31,7 @@ test("an authored plot stands after the map is regenerated under it", () => {
   assert.ok(after.blocks.includes(moved), "the moved plot, no longer retired by anything, should stand");
   assert.deepEqual(after.displaced, [buildingId(fresh)]);
   assert.ok(!after.blocks.includes(fresh), "the fresh plot under the authored one still stands");
-  assert.equal(after.entries.filter(entry => entry.source === "generated").length, regenerated.length - 1);
+  assert.equal(after.entries.filter(entry => entry.source === "generated").length, regenerated.filter(b=>!clearance.removed.includes(buildingId(b))).length - 1);
   assert.equal(after.entries.filter(entry => entry.source === "authored").length, 1);
 });
 

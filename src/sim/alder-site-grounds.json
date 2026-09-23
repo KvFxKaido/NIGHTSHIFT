@@ -39,106 +39,6 @@
     "loadingDepth": 0
   },
   {
-    "id": "pine-court-garden",
-    "frontageId": "plot--397.000--1234.000",
-    "kind": "residential",
-    "landingDepth": 6,
-    "driveStart": 14,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [
-        -6.2,
-        -3.2
-      ],
-      "outward": 17.8,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [
-      {
-        "across": -5.2,
-        "outward": 9.7,
-        "width": 4,
-        "depth": 5.4
-      },
-      {
-        "across": 5.2,
-        "outward": 9.7,
-        "width": 4,
-        "depth": 5.4
-      }
-    ],
-    "benches": [
-      {
-        "across": -5,
-        "outward": 6.5,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5,
-        "outward": 6.5,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0
-  },
-  {
-    "id": "alder-parts-yard",
-    "frontageId": "plot--146.000-713.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -9.2,
-        -6.4
-      ],
-      "outward": 8.2,
-      "width": 2.8,
-      "depth": 5.6,
-      "occupied": [
-        1
-      ]
-    },
-    "planters": [
-      {
-        "across": -8,
-        "outward": 3.9,
-        "width": 3.4,
-        "depth": 1.1
-      }
-    ],
-    "benches": [],
-    "loadingDepth": 18
-  },
-  {
-    "id": "grounds-plot--112.000-41.000",
-    "frontageId": "plot--112.000-41.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 18
-  },
-  {
     "id": "grounds-plot--125.000--1234.000",
     "frontageId": "plot--125.000--1234.000",
     "kind": "residential",
@@ -183,49 +83,6 @@
     ],
     "loadingDepth": 0,
     "surface": "court"
-  },
-  {
-    "id": "grounds-plot--125.000--1490.000",
-    "frontageId": "plot--125.000--1490.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -4.2,
-        -1.2,
-        1.8,
-        4.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--146.000-41.000",
-    "frontageId": "plot--146.000-41.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 17
   },
   {
     "id": "grounds-plot--159.000--1234.000",
@@ -288,48 +145,6 @@
     "loadingDepth": 0
   },
   {
-    "id": "grounds-plot--180.000-41.000",
-    "frontageId": "plot--180.000-41.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 14
-  },
-  {
-    "id": "grounds-plot--180.000-713.000",
-    "frontageId": "plot--180.000-713.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -8.7
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 18
-  },
-  {
     "id": "grounds-plot--193.000--1234.000",
     "frontageId": "plot--193.000--1234.000",
     "kind": "residential",
@@ -376,82 +191,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--214.000-41.000",
-    "frontageId": "plot--214.000-41.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 12
-  },
-  {
-    "id": "grounds-plot--214.000-713.000",
-    "frontageId": "plot--214.000-713.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -8.7
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 16
-  },
-  {
-    "id": "grounds-plot--227.000--1234.000",
-    "frontageId": "plot--227.000--1234.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
     "id": "grounds-plot--227.000--1490.000",
     "frontageId": "plot--227.000--1490.000",
     "kind": "shops",
@@ -476,78 +215,6 @@
     "planters": [],
     "benches": [],
     "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--248.000--43.000",
-    "frontageId": "plot--248.000--43.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 12
-  },
-  {
-    "id": "grounds-plot--248.000-713.000",
-    "frontageId": "plot--248.000-713.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 14
-  },
-  {
-    "id": "grounds-plot--295.000--1234.000",
-    "frontageId": "plot--295.000--1234.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": 5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": 5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
   },
   {
     "id": "grounds-plot--307.000--916.000",
@@ -582,25 +249,6 @@
     ],
     "loadingDepth": 0,
     "surface": "court"
-  },
-  {
-    "id": "grounds-plot--316.000--43.000",
-    "frontageId": "plot--316.000--43.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 17
   },
   {
     "id": "grounds-plot--329.000--1234.000",
@@ -663,58 +311,8 @@
     "loadingDepth": 0
   },
   {
-    "id": "grounds-plot--341.000--948.000",
-    "frontageId": "plot--341.000--948.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -7.2,
-        -4.2,
-        -1.2,
-        1.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        3
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
     "id": "grounds-plot--35.000--1140.000",
     "frontageId": "plot--35.000--1140.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -4.2,
-        -1.2,
-        1.8,
-        4.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--363.000--1234.000",
-    "frontageId": "plot--363.000--1234.000",
     "kind": "shops",
     "landingDepth": 3,
     "driveStart": 3,
@@ -769,32 +367,6 @@
     ],
     "loadingDepth": 0,
     "surface": "court"
-  },
-  {
-    "id": "grounds-plot--375.000--1140.000",
-    "frontageId": "plot--375.000--1140.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -7.2,
-        -4.2,
-        -1.2,
-        1.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        1
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
   },
   {
     "id": "grounds-plot--375.000--980.000",
@@ -961,40 +533,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--465.000--1202.000",
-    "frontageId": "plot--465.000--1202.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": 5.04,
-        "outward": 5.68,
-        "width": 3.4,
-        "depth": 2.55
-      }
-    ],
-    "benches": [
-      {
-        "across": 5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
     "id": "grounds-plot--465.000--1554.000",
     "frontageId": "plot--465.000--1554.000",
     "kind": "shops",
@@ -1017,74 +555,6 @@
     "planters": [],
     "benches": [],
     "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--466.000--948.000",
-    "frontageId": "plot--466.000--948.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--477.000--1044.000",
-    "frontageId": "plot--477.000--1044.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
   },
   {
     "id": "grounds-plot--499.000--1202.000",
@@ -1179,148 +649,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--520.000--715.000",
-    "frontageId": "plot--520.000--715.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -8.7,
-        -5.7,
-        -2.7,
-        0.3
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        2
-      ]
-    },
-    "planters": [
-      {
-        "across": 7.56,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": 7.56,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--533.000--1202.000",
-    "frontageId": "plot--533.000--1202.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -4.2,
-        -1.2,
-        1.8,
-        4.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        2
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--533.000--1586.000",
-    "frontageId": "plot--533.000--1586.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -7.2,
-        -4.2,
-        -1.2,
-        1.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        3
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--545.000--1108.000",
-    "frontageId": "plot--545.000--1108.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -4.2,
-        -1.2,
-        1.8,
-        4.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--57.000--1234.000",
-    "frontageId": "plot--57.000--1234.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -4.2,
-        -1.2,
-        1.8,
-        4.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        2
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
-  },
-  {
     "id": "grounds-plot--57.000--1490.000",
     "frontageId": "plot--57.000--1490.000",
     "kind": "residential",
@@ -1367,40 +695,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--574.000--773.000",
-    "frontageId": "plot--574.000--773.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
     "id": "grounds-plot--574.000--805.000",
     "frontageId": "plot--574.000--805.000",
     "kind": "shops",
@@ -1426,297 +720,6 @@
     "benches": [
       {
         "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--587.000--1040.000",
-    "frontageId": "plot--587.000--1040.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--588.000--651.000",
-    "frontageId": "plot--588.000--651.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -6.72,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      },
-      {
-        "across": 6.72,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -6.72,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 6.72,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--622.000--619.000",
-    "frontageId": "plot--622.000--619.000",
-    "kind": "residential",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [],
-      "outward": 6.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -6.72,
-        "outward": 5.38,
-        "width": 3.4,
-        "depth": 1.95
-      },
-      {
-        "across": 6.72,
-        "outward": 5.38,
-        "width": 3.4,
-        "depth": 1.95
-      }
-    ],
-    "benches": [
-      {
-        "across": -6.72,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 6.72,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--622.000-73.000",
-    "frontageId": "plot--622.000-73.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -12,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -8.7
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 16
-  },
-  {
-    "id": "grounds-plot--671.000--1631.000",
-    "frontageId": "plot--671.000--1631.000",
-    "kind": "residential",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [],
-      "outward": 6.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      },
-      {
-        "across": 5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--69.000--1140.000",
-    "frontageId": "plot--69.000--1140.000",
-    "kind": "residential",
-    "landingDepth": 5,
-    "driveStart": 12,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [
-        -7.2,
-        -4.2
-      ],
-      "outward": 15.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        1
-      ]
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 8.65,
-        "width": 3.4,
-        "depth": 4.5
-      },
-      {
-        "across": 5.04,
-        "outward": 8.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 5.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
-        "outward": 5.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--697.000--929.000",
-    "frontageId": "plot--697.000--929.000",
-    "kind": "residential",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [],
-      "outward": 6.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.37,
-        "width": 3.4,
-        "depth": 3.95
-      },
-      {
-        "across": 5.04,
-        "outward": 6.37,
-        "width": 3.4,
-        "depth": 3.95
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
         "outward": 3.55,
         "width": 2.2,
         "depth": 0.65
@@ -1806,124 +809,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--773.000--1631.000",
-    "frontageId": "plot--773.000--1631.000",
-    "kind": "residential",
-    "landingDepth": 5,
-    "driveStart": 12,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [
-        4.8
-      ],
-      "outward": 15.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 8.65,
-        "width": 3.4,
-        "depth": 4.5
-      },
-      {
-        "across": 5.04,
-        "outward": 8.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 5.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
-        "outward": 5.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0
-  },
-  {
-    "id": "grounds-plot--777.000--990.000",
-    "frontageId": "plot--777.000--990.000",
-    "kind": "residential",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [],
-      "outward": 6.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.57,
-        "width": 3.4,
-        "depth": 4.35
-      },
-      {
-        "across": 5.04,
-        "outward": 6.57,
-        "width": 3.4,
-        "depth": 4.35
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
-    "id": "grounds-plot--78.000-41.000",
-    "frontageId": "plot--78.000-41.000",
-    "kind": "warehouse",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": -10.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -7.2
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        0
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 18
-  },
-  {
     "id": "grounds-plot--875.000--1631.000",
     "frontageId": "plot--875.000--1631.000",
     "kind": "shops",
@@ -1994,32 +879,6 @@
     ],
     "loadingDepth": 0,
     "surface": "court"
-  },
-  {
-    "id": "grounds-plot--909.000--1631.000",
-    "frontageId": "plot--909.000--1631.000",
-    "kind": "shops",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 7.5,
-    "walkWidth": 2.4,
-    "parking": {
-      "across": [
-        -7.2,
-        -4.2,
-        -1.2,
-        1.8
-      ],
-      "outward": 7,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": [
-        1
-      ]
-    },
-    "planters": [],
-    "benches": [],
-    "loadingDepth": 0
   },
   {
     "id": "grounds-plot--91.000--1490.000",
@@ -2102,52 +961,6 @@
     "surface": "court"
   },
   {
-    "id": "grounds-plot--943.000--1631.000",
-    "frontageId": "plot--943.000--1631.000",
-    "kind": "residential",
-    "landingDepth": 3,
-    "driveStart": 3,
-    "walkAcross": 0,
-    "walkWidth": 3.2,
-    "parking": {
-      "across": [],
-      "outward": 6.2,
-      "width": 3,
-      "depth": 5.6,
-      "occupied": []
-    },
-    "planters": [
-      {
-        "across": -5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      },
-      {
-        "across": 5.04,
-        "outward": 6.65,
-        "width": 3.4,
-        "depth": 4.5
-      }
-    ],
-    "benches": [
-      {
-        "across": -5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      },
-      {
-        "across": 5.04,
-        "outward": 3.55,
-        "width": 2.2,
-        "depth": 0.65
-      }
-    ],
-    "loadingDepth": 0,
-    "surface": "court"
-  },
-  {
     "id": "grounds-plot--977.000--1567.000",
     "frontageId": "plot--977.000--1567.000",
     "kind": "shops",
@@ -2206,5 +1019,663 @@
     "planters": [],
     "benches": [],
     "loadingDepth": 0
+  },
+  {
+    "id": "grounds-plot--112.000-41.000",
+    "frontageId": "plot--112.000-41.000",
+    "kind": "warehouse",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -10.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [],
+    "benches": [],
+    "loadingDepth": 13
+  },
+  {
+    "id": "grounds-plot--125.000--1490.000",
+    "frontageId": "plot--125.000--1490.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "alder-parts-yard",
+    "frontageId": "plot--146.000-713.000",
+    "kind": "warehouse",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -12,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [
+        -8.7
+      ],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": [
+        0
+      ]
+    },
+    "planters": [],
+    "benches": [],
+    "loadingDepth": 16
+  },
+  {
+    "id": "grounds-plot--180.000-713.000",
+    "frontageId": "plot--180.000-713.000",
+    "kind": "warehouse",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -12,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [
+        -8.7
+      ],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": [
+        0
+      ]
+    },
+    "planters": [],
+    "benches": [],
+    "loadingDepth": 13
+  },
+  {
+    "id": "grounds-plot--227.000--1234.000",
+    "frontageId": "plot--227.000--1234.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 5.58,
+        "width": 3.4,
+        "depth": 2.35
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--341.000--948.000",
+    "frontageId": "plot--341.000--948.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--363.000--1234.000",
+    "frontageId": "plot--363.000--1234.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--375.000--1140.000",
+    "frontageId": "plot--375.000--1140.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "pine-court-garden",
+    "frontageId": "plot--397.000--1234.000",
+    "kind": "residential",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 0,
+    "walkWidth": 3.2,
+    "parking": {
+      "across": [],
+      "outward": 6.2,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      },
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      },
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--520.000--715.000",
+    "frontageId": "plot--520.000--715.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -12,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -7.56,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      },
+      {
+        "across": 7.56,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -7.56,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      },
+      {
+        "across": 7.56,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--533.000--1202.000",
+    "frontageId": "plot--533.000--1202.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--533.000--1586.000",
+    "frontageId": "plot--533.000--1586.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--545.000--1108.000",
+    "frontageId": "plot--545.000--1108.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--57.000--1234.000",
+    "frontageId": "plot--57.000--1234.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--69.000--1140.000",
+    "frontageId": "plot--69.000--1140.000",
+    "kind": "residential",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 0,
+    "walkWidth": 3.2,
+    "parking": {
+      "across": [],
+      "outward": 6.2,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      },
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      },
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--773.000--1631.000",
+    "frontageId": "plot--773.000--1631.000",
+    "kind": "residential",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 0,
+    "walkWidth": 3.2,
+    "parking": {
+      "across": [],
+      "outward": 6.2,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      },
+      {
+        "across": 5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      },
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--78.000-41.000",
+    "frontageId": "plot--78.000-41.000",
+    "kind": "warehouse",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": -10.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [
+        -7.2
+      ],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": [
+        0
+      ]
+    },
+    "planters": [],
+    "benches": [],
+    "loadingDepth": 16
+  },
+  {
+    "id": "grounds-plot--909.000--1631.000",
+    "frontageId": "plot--909.000--1631.000",
+    "kind": "shops",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 7.5,
+    "walkWidth": 2.4,
+    "parking": {
+      "across": [],
+      "outward": 7,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 6.65,
+        "width": 3.4,
+        "depth": 4.5
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
+  },
+  {
+    "id": "grounds-plot--943.000--1631.000",
+    "frontageId": "plot--943.000--1631.000",
+    "kind": "residential",
+    "landingDepth": 3,
+    "driveStart": 3,
+    "walkAcross": 0,
+    "walkWidth": 3.2,
+    "parking": {
+      "across": [],
+      "outward": 6.2,
+      "width": 3,
+      "depth": 5.6,
+      "occupied": []
+    },
+    "planters": [
+      {
+        "across": -5.04,
+        "outward": 5.18,
+        "width": 3.4,
+        "depth": 1.55
+      },
+      {
+        "across": 5.04,
+        "outward": 5.18,
+        "width": 3.4,
+        "depth": 1.55
+      }
+    ],
+    "benches": [
+      {
+        "across": -5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      },
+      {
+        "across": 5.04,
+        "outward": 3.55,
+        "width": 2.2,
+        "depth": 0.65
+      }
+    ],
+    "loadingDepth": 0,
+    "surface": "court"
   }
 ]

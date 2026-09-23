@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { buildingId, parseAuthoredLayout, authoredFromId, AUTHORED_ID_PREFIX, type AuthoredLayout,
+import { parseAuthoredLayout, authoredFromId, AUTHORED_ID_PREFIX, type AuthoredLayout,
   type BuildingPlacement } from "../sim/building-layout.ts";
-import { ALDER_LAYOUT_BASELINE, GENERATED_ALDER_BLOCKS, GARAGE_PLOT_ID, groundBuilding } from "../sim/alder.ts";
+import { ALDER_LAYOUT_BASELINE, ALDER_GENERATED_SITES, GARAGE_PLOT_ID, groundBuilding } from "../sim/alder.ts";
 import type { BuildingBlock } from "../sim/building-footprint.ts";
 
 /** Reference meshes need millimetres, not the JSON expansion of float32 noise.
@@ -81,7 +81,7 @@ export function importEditorScene(value: unknown): AuthoredLayout {
   if ((object.userData as Record<string, unknown>)?.nightshiftBaseline !== ALDER_LAYOUT_BASELINE) {
     throw new Error("This scene belongs to a different district layout");
   }
-  const originals = new Map(GENERATED_ALDER_BLOCKS.map(block => [buildingId(block), block]));
+  const originals = new Map(ALDER_GENERATED_SITES.map(({id,block}) => [id, block]));
   const seen = new Map<string, BuildingPlacement>();
   let count = 0;
   const walk = (node: Record<string, unknown>, parent: THREE.Matrix4, depth: number) => {

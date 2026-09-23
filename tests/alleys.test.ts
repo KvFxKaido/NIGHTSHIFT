@@ -62,13 +62,13 @@ test("every authored alley is an 8 m alley between two existing junctions that c
   }
 });
 
-test("Freight Cut gives the start a choice: priced or even legs ahead from the grid, where there were none", () => {
+test("Freight Cut adds priced or even choices ahead of the cleared starting grid", () => {
   const without = buildRoutingGraph(ALDER_STREETS.filter(s => !s.id.startsWith("sea-alley-")), alderHeight, ALDER_BLOCKS);
-  // Measured on the map before the alley: 0 priced, 0 even. Without the alley
-  // but with its two displaced plots gone, one leg reads even; still no priced.
+  // Shoulder clearance opens additional baseline cuts; compare both graphs
+  // using the same current buildings instead of pinning the old blocked grid.
   const before = ahead(without, approach.node, approach.arriving), after = ahead(graph, approach.node, approach.arriving);
   assert.equal(before.priced, 0, `without the alley the grid has ${before.priced} priced legs ahead`);
-  assert.ok(before.priced + before.even <= 1, `without the alley the grid has ${before.even} even legs ahead`);
+  assert.ok(after.priced + after.even > before.priced + before.even, "the alley adds no competitive choices");
   assert.ok(after.priced >= 1 && after.priced + after.even >= 3, `with the alley: ${JSON.stringify(after)}`);
 });
 

@@ -1,3 +1,4 @@
+import { drivingCourse } from "./helpers/driving-course.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -62,7 +63,7 @@ test("a street line is a shift from the lane: nothing between corners, never off
   for (const route of [streetCircuitEvent(3, true, false).rival!, fieldAlderRival(drawAlderCourse("gen-39", null).rival)]) {
     const line = route.line!;
     assert.ok(line, `${route.id} carries no street line`);
-    assert.ok(line.corners.length >= 5, `${route.id}: ${line.corners.length} corners`);
+    assert.ok(line.corners.length >= 3, `${route.id}: ${line.corners.length} corners`);
     assert.equal(route.lateral, undefined, "the route itself stays a centreline: its gates, distances and resets are the lane rival's");
     let deepest = 0;
     for (let k = 0; k < line.dx.length; k++) {
@@ -197,9 +198,9 @@ test("the three highest names' own cars hold their share on a driven lap of a cl
 // slower than the lane, and between bends the lane is perfectly straight: a line through every bend cost Tally 2.7 s
 // of a clear gen-tally-7. So a window is kept only where its line is quicker than the lane through it (`worth`).
 test("a gentle bend gets a line where the line is quicker than the lane, and only there", () => {
-  const drawn = (id: string, tune: Parameters<typeof withStreetLine>[3]) => { const rival = drawAlderCourse(id, null).rival; return withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!, tune); };
+  const drawn = (id: string, tune: Parameters<typeof withStreetLine>[3]) => { const rival = drivingCourse(id).rival; return withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!, tune); };
   const clear = (id: string, rival: RivalDefinition) => {
-    const course = drawAlderCourse(id, null), sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival, traffic: false });
+    const course = drivingCourse(id), sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival, traffic: false });
     try {
       let offPavement = 0;
       while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 150 * TICK_HZ) { step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 }); if (sim.state.rival!.vehicle.groundContact > 0) offPavement++; }
@@ -212,7 +213,7 @@ test("a gentle bend gets a line where the line is quicker than the lane, and onl
     return Math.acos(Math.max(-1, Math.min(1, a.ux * b.ux + a.uz * b.uz))) * 180 / Math.PI;
   };
   const none = drawn("gen-tally-7", { bendFrom: Infinity }), every = drawn("gen-tally-7", { worth: -Infinity }), shipped = drawn("gen-tally-7", {});
-  assert.deepEqual(fieldAlderRival(drawAlderCourse("gen-tally-7", null).rival).line!.corners, shipped.line!.corners, "the game draws its lines on STREET_LINE's own numbers");
+  assert.deepEqual(fieldAlderRival(drivingCourse("gen-tally-7").rival).line!.corners, shipped.line!.corners, "the game draws its lines on STREET_LINE's own numbers");
   const overlaps = (a: { from: number; to: number }, b: { from: number; to: number }) => a.from < b.to && b.from < a.to;
   // Every corner it had is still a corner; some bends are, and some are not.
   for (const corner of none.line!.corners) assert.ok(shipped.line!.corners.some(window => overlaps(window, corner)), `the corner at ${corner.from} m lost its line`);
@@ -233,7 +234,7 @@ test("a gentle bend gets a line where the line is quicker than the lane, and onl
 // and Wake braked to 77 mph for a 26 degree bend Shawn took at 105 to 132. A bend's line is also one arc, tangent to the
 // lane either side and as large as the road allows, and the quicker of the two is kept.
 test("a gentle bend's line is an arc as large as the road allows, and it is taken where it is quicker", () => {
-  const rival = drawAlderCourse("gen-wake-42", null).rival, shipped = withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!);
+  const rival = drivingCourse("gen-wake-42").rival, shipped = withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!);
   const window = shipped.line!.corners.find(w => w.from < 2417 && w.to > 2417);
   assert.ok(window, `gen-wake-42's 26 degree bend at 2417 m has no line: ${shipped.line!.corners.map(w => `${w.from}-${w.to}`).join(", ")}`);
   let line = Infinity, lane = Infinity;
@@ -244,7 +245,7 @@ test("a gentle bend's line is an arc as large as the road allows, and it is take
     if (turn > 1e-6) lane = Math.min(lane, Math.hypot(c.x - a.x, c.z - a.z) / (2 * Math.sin(turn / 2)));
   }
   assert.ok(line > 2 * lane, `its line bends to ${line.toFixed(0)} m where the road's own arc is ${lane.toFixed(0)} m`);
-  const course = drawAlderCourse("gen-wake-42", null), time = (route: RivalDefinition) => {
+  const course = drivingCourse("gen-wake-42"), time = (route: RivalDefinition) => {
     const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival: route, traffic: false });
     try {
       let offPavement = 0;

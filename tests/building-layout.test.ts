@@ -3,21 +3,20 @@ import test from "node:test";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { buildingId, parseAuthoredLayout, layoutFingerprint, authoredFromId } from "../src/sim/building-layout.ts";
-import { GENERATED_ALDER_BLOCKS, ALDER_LAYOUT_BASELINE, ALDER_BLOCKS, GARAGE_PLOT_ID,
+import { ALDER_GENERATED_SITES, ALDER_LAYOUT_BASELINE, ALDER_BLOCKS, GARAGE_PLOT_ID,
   resolveAlderLayout, ALDER_STREETS, createAlderWorld } from "../src/sim/alder.ts";
 import { importEditorScene, layoutFromEditor, placementFromMesh, placeBuilding, exportEditorScene } from "../src/editor/exchange.ts";
 import { createSim } from "../src/sim/sim.ts";
 
 function sceneForExport(): THREE.Scene {
   const scene = new THREE.Scene(); scene.userData.nightshiftBaseline = ALDER_LAYOUT_BASELINE;
-  for (const block of GENERATED_ALDER_BLOCKS) {
+  for (const {id,block} of ALDER_GENERATED_SITES) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
-    mesh.userData.nightshiftBuildingId = buildingId(block); placeBuilding(mesh, block); scene.add(mesh);
+    mesh.userData.nightshiftBuildingId = id; placeBuilding(mesh, block); scene.add(mesh);
   }
   return scene;
 }
-const source = GENERATED_ALDER_BLOCKS.find(block => buildingId(block) !== GARAGE_PLOT_ID)!;
-const sourceId = buildingId(source);
+const {block:source,id:sourceId} = ALDER_GENERATED_SITES.find(site => site.id !== GARAGE_PLOT_ID)!;
 const edited = { id: authoredFromId(sourceId), x: source.x, z: source.z, width: source.width, depth: source.depth,
   height: source.height + 2, rotation: source.rotation };
 /** The layout the editor writes for one generated plot made two metres taller. */
@@ -36,7 +35,7 @@ test("visual scale and yaw become shared solid dimensions with the correct hande
   const scene = sceneForExport(), mesh = scene.children[0]!;
   mesh.scale.y += 2; mesh.updateMatrix();
   const imported = importEditorScene(scene.toJSON());
-  assert.deepEqual(imported.retired, [buildingId(GENERATED_ALDER_BLOCKS[0]!)]);
+  assert.deepEqual(imported.retired, [ALDER_GENERATED_SITES[0]!.id]);
   const resolved = resolveAlderLayout(imported);
   assert.deepEqual(resolved.issues, []);
   const block = resolved.entries.find(entry => entry.source === "authored")!.block;
@@ -49,7 +48,7 @@ test("visual scale and yaw become shared solid dimensions with the correct hande
       return true;
     });
     assert.ok(hit, "authored height did not reach the physics collider");
-    assert.equal(block.height, GENERATED_ALDER_BLOCKS[0]!.height + 2);
+    assert.equal(block.height, ALDER_GENERATED_SITES[0]!.block.height + 2);
     assert.ok(Math.abs(block.rotation + mesh.rotation.y) < 1e-6);
   } finally { sim.world.free(); }
 });
@@ -74,26 +73,26 @@ test("invalid and stale imports cannot silently replace the layout", () => {
 test("a retired plot the generator no longer produces is ignored, and a box missing from a scene is a deletion", () => {
   const resolved = resolveAlderLayout({ ...empty, retired: ["plot-1.000-2.000"] });
   assert.deepEqual(resolved.issues, []);
-  assert.equal(resolved.blocks.length, GENERATED_ALDER_BLOCKS.length);
+  assert.equal(resolved.blocks.length, ALDER_GENERATED_SITES.length);
   const scene = sceneForExport();
   scene.remove(scene.children[0]!);
   const imported = importEditorScene(scene.toJSON());
-  assert.deepEqual(imported, { ...empty, retired: [buildingId(GENERATED_ALDER_BLOCKS[0]!)] });
-  assert.equal(resolveAlderLayout(imported).blocks.length, GENERATED_ALDER_BLOCKS.length - 1);
+  assert.deepEqual(imported, { ...empty, retired: [ALDER_GENERATED_SITES[0]!.id] });
+  assert.equal(resolveAlderLayout(imported).blocks.length, ALDER_GENERATED_SITES.length - 1);
 });
 
 test("road overlaps are reported before save; a generated neighbour stands down, an authored one is an issue", () => {
   const point = ALDER_STREETS[0]!.points[0]!;
   const inRoad = resolveAlderLayout({ ...layout(), authored: [{ ...edited, x: point.x, z: point.z }] });
   assert.ok(inRoad.issues.some(issue => /road|street/.test(issue)));
-  const neighbour = GENERATED_ALDER_BLOCKS.find(block => buildingId(block) !== sourceId && buildingId(block) !== GARAGE_PLOT_ID)!;
+  const neighbour = ALDER_GENERATED_SITES.find(site => site.id !== sourceId && site.id !== GARAGE_PLOT_ID)!.block;
   const onNeighbour = resolveAlderLayout({ ...layout(), authored: [{ ...edited, x: neighbour.x, z: neighbour.z }] });
   assert.deepEqual(onNeighbour.issues, []);
   assert.deepEqual(onNeighbour.displaced, [buildingId(neighbour)]);
   assert.ok(!onNeighbour.blocks.includes(neighbour), "the displaced plot still stands");
   const twoAuthored = resolveAlderLayout({ ...layout(), authored: [edited, { ...edited, id: "authored-2", x: edited.x + 1 }] });
   assert.ok(twoAuthored.issues.some(issue => /another authored/.test(issue)));
-  assert.deepEqual(ALDER_BLOCKS[0], GENERATED_ALDER_BLOCKS[0], "draft validation mutated the live layout");
+  assert.deepEqual(ALDER_BLOCKS[0], ALDER_GENERATED_SITES[0]!.block, "draft validation mutated the live layout");
 });
 
 test("placement identity changes with edits and returns when edits are undone", () => {

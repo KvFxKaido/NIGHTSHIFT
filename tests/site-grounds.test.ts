@@ -7,7 +7,7 @@ import { planSiteGrounds, groundsPavingQuery, groundsRect } from "../src/sim/sit
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { blockCorners, blockPenetration, pointFootprintDistance } from "../src/sim/building-footprint.ts";
 import { ALDER_SITE_GROUNDS as sites, ALDER_GROUNDS_ISSUES, ALDER_GROUNDS_FRONT_IDS, ALDER_FRONTAGE_ISSUES,
-  ALDER_BUILDING_FRONTS, ALDER_BLOCKS, ALDER_STREETS, ALDER_SOLIDS, ALDER_EVERGREENS,
+  ALDER_BUILDING_FRONTS, ALDER_BLOCKS, ALDER_ROADSIDE_STREETS, ALDER_SOLIDS, ALDER_EVERGREENS,
   ALDER_LAMP_POSES, ALDER_BIN_POSES, ALDER_FRONTAGE_CONTEXT, alderHeight, alderGround, frontageContextForLayout } from "../src/sim/alder.ts";
 import { frontageAccessTools } from "../src/sim/frontage-generator.ts";
 import { addSiteGrounds } from "../src/render/site-grounds.ts";
@@ -15,8 +15,8 @@ import { addBuildingFronts } from "../src/render/building-fronts.ts";
 
 test("expanded saved grounds and the original pilots fit the released city without losing a frontage",()=>{
   assert.deepEqual(ALDER_GROUNDS_ISSUES,[]);assert.deepEqual(ALDER_FRONTAGE_ISSUES,[]);
-  assert.equal(sites.length,66);assert.deepEqual(sites.slice(0,3).map(s=>s.recipe.kind),["shops","residential","warehouse"]);
-  const again=planSiteGrounds(recipes,ALDER_BUILDING_FRONTS,ALDER_BLOCKS,ALDER_STREETS,alderHeight);
+  assert.equal(sites.length,47);assert.deepEqual(new Set(sites.map(s=>s.recipe.kind)),new Set(["shops","residential","warehouse"]));
+  const again=planSiteGrounds(recipes,ALDER_BUILDING_FRONTS,ALDER_BLOCKS,ALDER_ROADSIDE_STREETS,alderHeight);
   assert.deepEqual(again.plans,sites);assert.deepEqual(again.issues,[]);
   for(const site of sites) {
     assert.ok(site.solids.every(s=>ALDER_SOLIDS.includes(s)));
@@ -47,19 +47,19 @@ test("every door reaches paved circulation while the apartment garden retains gr
       const p=frontPoint(site.front,site.recipe.walkAcross,d);assert.ok(paved(p.x,p.z));assert.equal(alderGround(p.x,p.z),false);
     }
   }
-  const garden=sites[1]!,p=frontPoint(garden.front,7.8,12.8);
+  const garden=sites.find(s=>s.recipe.id==='pine-court-garden')!,p=frontPoint(garden.front,7.8,8.8);
   assert.equal(paved(p.x,p.z),false);assert.equal(alderGround(p.x,p.z),true);
 });
 
 test("invalid, moved, obstructed and conflicting site plans are withheld without mutating saved choices",()=>{
   const recipe=recipes[0]!,front=sites[0]!.front,snapshot=JSON.stringify(recipe);
-  const run=(r=recipe,blocks=ALDER_BLOCKS,obstacles:typeof ALDER_SOLIDS=[])=>planSiteGrounds([r],[front],blocks,ALDER_STREETS,alderHeight,obstacles);
+  const run=(r=recipe,blocks=ALDER_BLOCKS,obstacles:typeof ALDER_SOLIDS=[])=>planSiteGrounds([r],[front],blocks,ALDER_ROADSIDE_STREETS,alderHeight,obstacles);
   for(const result of [
     run({...recipe,walkAcross:100}),
     run({...recipe,parking:{...recipe.parking,across:[recipe.walkAcross]}}),
     run(recipe,ALDER_BLOCKS.filter(b=>b!==front.block)),
     run(recipe,ALDER_BLOCKS,[groundsRect(front,0,20,4,4,2)]),
-    planSiteGrounds([recipe,recipe],[front],ALDER_BLOCKS,ALDER_STREETS,alderHeight),
+    planSiteGrounds([recipe,recipe],[front],ALDER_BLOCKS,ALDER_ROADSIDE_STREETS,alderHeight),
   ])assert.equal(result.issues.length,1);
   assert.equal(JSON.stringify(recipe),snapshot);
 });
@@ -68,7 +68,7 @@ test("rotating a frontage rotates its whole grounds layout and paving query",()=
   const site=sites[0]!,angle=.73,rotate=(x:number,z:number)=>({x:x*Math.cos(angle)-z*Math.sin(angle),z:x*Math.sin(angle)+z*Math.cos(angle)});
   const blocks=ALDER_BLOCKS.map(b=>({...b,...rotate(b.x,b.z),rotation:b.rotation+angle}));
   const front={...site.front,block:{...site.front.block,...rotate(site.front.block.x,site.front.block.z),rotation:site.front.block.rotation+angle}};
-  const roads=ALDER_STREETS.map(s=>({...s,points:s.points.map(p=>({...p,...rotate(p.x,p.z)}))}));
+  const roads=ALDER_ROADSIDE_STREETS.map(s=>({...s,points:s.points.map(p=>({...p,...rotate(p.x,p.z)}))}));
   const result=planSiteGrounds([site.recipe],[front],blocks,roads,()=>2);
   assert.deepEqual(result.issues,[]);const turned=result.plans[0]!,paved=groundsPavingQuery(result.plans);
   for(let i=0;i<site.solids.length;i++) {

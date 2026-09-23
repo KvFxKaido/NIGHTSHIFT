@@ -17,7 +17,7 @@ test("the baked district loads exact saved choices and all generated entrances c
   const tools=frontageAccessTools(CONTEXT);
   for(const plan of ALDER_BUILDING_FRONTS)assert.deepEqual(validateFrontageAccess(plan,tools),[],plan.recipe.id);
   for(const pilot of planBuildingFronts(ALDER_BLOCKS,ALDER_STREETS,alderHeight))
-    assert.deepEqual(DOC.entries.find(e=>e.plan.recipe.id===pilot.recipe.id)?.plan,pilot,"approved pilots retain their exact choices");
+    assert.deepEqual(DOC.entries.find(e=>e.plan.recipe.id===pilot.recipe.id)?.plan.modules,pilot.modules,"approved pilots retain their facade choices after access refitting");
   assert.deepEqual(new Set(DOC.entries.map(e=>e.plan.recipe.kind)),new Set(["office","shops","residential","warehouse"]));
 });
 

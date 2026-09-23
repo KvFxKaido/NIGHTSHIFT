@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { ALDER_BLOCKS, ALDER_BUILDING_FRONTS, ALDER_STREETS, ALDER_SOLIDS, alderHeight, alderGround } from "../src/sim/alder.ts";
+import { ALDER_BLOCKS, ALDER_BUILDING_FRONTS, ALDER_ROADSIDE_STREETS, ALDER_SOLIDS, alderHeight, alderGround } from "../src/sim/alder.ts";
 import { frontPoint, frontagePavingQuery, planBuildingFronts, FRONT_RECIPES } from "../src/sim/building-fronts.ts";
 import { pointFootprintDistance } from "../src/sim/building-footprint.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
@@ -36,7 +36,7 @@ test("pilot tenants have accessible entrances and their signs fit reserved facad
         assert.ok(Math.abs(alderHeight(p.x,p.z)-plan.block.base)<.15,"entrance needs stairs or a ramp");
       }
       const end=frontPoint(plan,u,depth);
-      const clearance=Math.min(...ALDER_STREETS.map(s=>{const p=projectOntoPath(s.points,end.x,end.z);return p.distance-p.width/2;}));
+      const clearance=Math.min(...ALDER_ROADSIDE_STREETS.map(s=>{const p=projectOntoPath(s.points,end.x,end.z);return p.distance-p.width/2;}));
       if(strip.joinsStreet)assert.ok(clearance>2.1&&clearance<2.81,"apron meets the sidewalk without painting the road");
     }
   }
@@ -45,10 +45,10 @@ test("pilot tenants have accessible entrances and their signs fit reserved facad
 test("edited plots and obstructed approaches fall back without orphaned signage or paving",()=>{
   const target=PILOT_FRONTS[0]!;
   const moved=ALDER_BLOCKS.map(b=>b===target.block?{...b,width:b.width+1}:b);
-  assert.equal(planBuildingFronts(moved,ALDER_STREETS,alderHeight).length,2);
+  assert.equal(planBuildingFronts(moved,ALDER_ROADSIDE_STREETS,alderHeight).length,2);
   const p=frontPoint(target,0,3),obstruction={...target.block,x:p.x,z:p.z,width:2,depth:2};
-  assert.equal(planBuildingFronts([...ALDER_BLOCKS,obstruction],ALDER_STREETS,alderHeight).length,2);
-  assert.equal(planBuildingFronts(ALDER_BLOCKS,ALDER_STREETS,()=>10).length,0);
+  assert.equal(planBuildingFronts([...ALDER_BLOCKS,obstruction],ALDER_ROADSIDE_STREETS,alderHeight).length,2);
+  assert.equal(planBuildingFronts(ALDER_BLOCKS,ALDER_ROADSIDE_STREETS,()=>10).length,0);
 });
 
 test("frontage kit shares materials, bounds draw cost and preserves the generic upper shell",()=>{

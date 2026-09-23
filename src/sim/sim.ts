@@ -1,4 +1,5 @@
 import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionState } from "./transmission.ts";
+import { curbRise } from "./sidewalk.ts";
 import { createLaunch, LAUNCH, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
 import { dragLaneInput } from "./drag-rules.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
@@ -999,6 +1000,16 @@ function applyVehicleInput(sim: VehicleRig, rawInput: Input, player = false): vo
   car.groundContact = onGround.filter(Boolean).length / onGround.length;
   const groundPenalty = handling.drivetrain === "awd" ? 0 : car.groundContact;
   const governedTopSpeed = handling.topSpeed * (1 - groundPenalty * (1 - HANDLING.groundTopSpeedScale));
+  if(sim.roadWorld.curb) {
+    const v=body.linvel(), speed=Math.hypot(v.x,v.z);
+    if(speed>.01) {
+      const rise=curbRise(sim.roadWorld.curb,position.x,position.z,v.x*DT,v.z*DT);
+      // A full curb costs about 0.45 m/s (1 mph), at every drivetrain and for
+      // player/CPU alike. It remains climbable even from walking speed.
+      const impulse=body.mass()*Math.min(speed*.25,rise*3);
+      body.applyImpulse({x:-v.x/speed*impulse,y:0,z:-v.z/speed*impulse},true);
+    }
+  }
   const velocity = body.linvel();
   const forwardSpeed = velocity.x * forwardX + velocity.z * forwardZ;
   const speed = Math.hypot(velocity.x, velocity.z);

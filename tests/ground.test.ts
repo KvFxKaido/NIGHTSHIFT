@@ -3,7 +3,7 @@ import test from "node:test";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createSim, step, HANDLING, PHYSICS_VERSION, type Drivetrain, type Input, type Sim } from "../src/sim/sim.ts";
 import type { RoadWorld } from "../src/sim/road-world.ts";
-import { alderGround, projectOntoAlder, ALDER_GARAGE, ALDER_PAVEMENT, ALDER_STREETS, ALDER_BUILDING_FRONTS } from "../src/sim/alder.ts";
+import { alderGround, projectOntoAlder, ALDER_GARAGE, ALDER_PAVED_MARGIN, ALDER_STREETS, ALDER_BUILDING_FRONTS } from "../src/sim/alder.ts";
 import { frontagePavingQuery } from "../src/sim/building-fronts.ts";
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import { DRIFT_YARD, YARD_LINE } from "../src/sim/drift-yard.ts";
@@ -108,13 +108,13 @@ test("Port Alder's ground is past the pavement, and paved yards and routes are n
       const length = Math.hypot(b.x - a.x, b.z - a.z);
       if (length < 40) continue;
       const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, nx = -(b.z - a.z) / length, nz = (b.x - a.x) / length;
-      const edge = Math.min(a.width, b.width) / 2 + ALDER_PAVEMENT;
+      const edge = Math.min(a.width, b.width) / 2 + ALDER_PAVED_MARGIN;
       assert.equal(alderGround(mx, mz), false, `${street.id} centreline`);
       assert.equal(alderGround(mx + nx * (edge - 0.3), mz + nz * (edge - 0.3)), false, `${street.id} pavement`);
       // Only claim open ground beyond other streets and saved building aprons.
       // ground-index.test.ts independently checks every paving polygon.
       const ox = mx + nx * (edge + 2), oz = mz + nz * (edge + 2);
-      const paved = ALDER_STREETS.some(other => { const on = projectOntoPath(other.points, ox, oz); return on.distance <= on.width / 2 + ALDER_PAVEMENT + 0.5; });
+      const paved = ALDER_STREETS.some(other => { const on = projectOntoPath(other.points, ox, oz); return on.distance <= on.width / 2 + ALDER_PAVED_MARGIN + 0.5; });
       if (!paved && !onForecourt(ox,oz) && ox > DRIFT_YARD.bounds.maxX + 5) { assert.equal(alderGround(ox, oz), true, `${street.id} past the pavement`); checked++; }
     }
   }
@@ -124,17 +124,16 @@ test("Port Alder's ground is past the pavement, and paved yards and routes are n
   assert.equal(alderGround(DRIFT_YARD.start.x, DRIFT_YARD.start.z), false);
   assert.equal(alderGround(ALDER_GARAGE.entrance.x, ALDER_GARAGE.entrance.z), false);
   // Every street is asked, not the nearest centreline: find a point on one
-  // street's asphalt whose nearest centreline belongs to a narrower street.
-  // On 2026-09-13 a radial search found 8 such points (one is 1st Ave S's 24 m
-  // carriageway beside an 8 m street at -0.7, 783.4).
+  // street's paving whose nearest centreline belongs to a narrower street.
+  // Include the sidewalk now that its width covers the old asphalt-only probes.
   let junction = 0;
   for (const street of ALDER_STREETS) {
     for (const point of street.points) {
-      for (let r = 1; r < point.width / 2; r++) for (let k = 0; k < 16; k++) {
+      for (let r = 1; r < point.width / 2 + ALDER_PAVED_MARGIN; r++) for (let k = 0; k < 16; k++) {
         const x = point.x + Math.cos(k * Math.PI / 8) * r, z = point.z + Math.sin(k * Math.PI / 8) * r;
         const nearest = projectOntoAlder(x, z), own = projectOntoPath(street.points, x, z);
-        if (own.distance < own.width / 2 && nearest.distance > nearest.width / 2 + ALDER_PAVEMENT) {
-          assert.equal(alderGround(x, z), false, `${street.id} asphalt read as ground at ${x}, ${z}`);
+        if (own.distance < own.width / 2 + ALDER_PAVED_MARGIN && nearest.distance > nearest.width / 2 + ALDER_PAVED_MARGIN) {
+          assert.equal(alderGround(x, z), false, `${street.id} paving read as ground at ${x}, ${z}`);
           junction++;
         }
       }

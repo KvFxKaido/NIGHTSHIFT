@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { buildingId } from "../sim/building-layout.ts";
 import type { BuildingBlock } from "../sim/building-footprint.ts";
 import { marketBuilding } from "../sim/market-block.ts";
 
@@ -70,7 +69,7 @@ export function addBrickCorner(scene: THREE.Scene, block: BuildingBlock): THREE.
   const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const root = new THREE.Group(); root.name = "alder-brick-corner";
   root.position.set(block.x, block.base, block.z); root.rotation.y = -block.rotation;
-  root.userData.plotId = buildingId(block);
+  root.userData.plotId = site.plotId;
   root.userData.business = site.name;
   function record(material: THREE.Material, geometry: THREE.BufferGeometry): void {
     const list = batches.get(material) ?? []; list.push(geometry); batches.set(material, list);

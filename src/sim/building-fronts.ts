@@ -1,5 +1,7 @@
 import { pointFootprintDistance, spatialIndex, type BuildingBlock } from "./building-footprint.ts";
 import type { Street } from "./street-path.ts";
+import clearance from "./alder-clearance.json" with { type: "json" };
+import { buildingId } from "./building-layout.ts";
 
 export type FrontKind = "warehouse" | "shops" | "office" | "residential";
 export type IndustrialStyle = "freight" | "workshop" | "depot";
@@ -29,11 +31,13 @@ export interface FrontRecipe {
   readonly industrialStyle?: IndustrialStyle;
 }
 /** Authored pilot plots. Edited/moved envelopes fall back to ordinary dressing. */
-export const FRONT_RECIPES: readonly FrontRecipe[] = [
+const ORIGINAL_FRONT_RECIPES: readonly FrontRecipe[] = [
   { id: "harbor-supply", kind: "warehouse", x: -44, z: 585, width: 27, depth: 24, height: 9, side: 2 },
   { id: "bell-row", kind: "shops", x: -477, z: -1140, width: 18, depth: 18, height: 30, side: 1 },
   { id: "meridian-house", kind: "office", x: -110, z: -564, width: 24, depth: 23, height: 111, side: 1 },
 ];
+export const FRONT_RECIPES: readonly FrontRecipe[] = ORIGINAL_FRONT_RECIPES.map(recipe=>({...recipe,
+  ...(clearance.buildings as Record<string,{x:number;z:number}>)[buildingId(recipe)]}));
 export interface FrontPlan {
   readonly recipe: FrontRecipe;
   readonly block: BuildingBlock;
