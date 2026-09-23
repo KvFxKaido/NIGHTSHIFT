@@ -10,6 +10,24 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## A gentle bend's arc (2026-09-23)
+
+Asked for: the rival slowing on slight turns that Shawn takes like a straight road. What was assumed and wrong:
+
+- That the lane's 0.80 share was timidity. It was the recommendation, and "let's do it" was for it. Measured in the
+  shared FWD fixture a 35 degree bend ran 1.26 m wide at 0.92, well inside its 2 m; measured in the names' own cars, a
+  fast gentle bend at top speed ran the Reign 6.10 m wide at 0.86 and the Vesper 2.33 at 0.80. Full lock at 150 mph is
+  about 1 g. The fixture is not the car.
+- That the arc would beat the solver everywhere. On gen-crest-23 the solver's one long window through a run of bends
+  was 3.5 s better than three separate arcs, so both are candidates and the better one is kept.
+- That taking bends out of the solver left corners alone. A 16 degree bend inside an 89 degree corner's window was what
+  gave that corner its long exit; without it she came out 25 m down. A corner's window keeps its bends.
+- That a line that is good is good to join at any point. Given go 35 m into an arc she swerved onto it and came out
+  over the centre line into an oncoming truck, and an arc's quicker exit put her onto a sedan her lane would have met
+  slower. And that the fix for that belonged everywhere: on corners it gave up clean lines and went off the pavement.
+- That her replay against his race was still his race. On two of three it split where she caught him, one after the
+  first draft of this put her level with him and his car crashed 20 s later; read a replay only to where his path moves.
+
 ## A player catching her in a pass (2026-09-23)
 
 Asked for: fix the rival slowing when passing, and her hand-off from ghost to solid. What was

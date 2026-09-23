@@ -9,7 +9,7 @@
 //                                           the history), or --save=<path> somewhere else
 //   pnpm rival:gate --rows=.probe/v8s       read rows already run (<prefix><seed>-<0..3>.jsonl) instead of running
 //
-// The batch's knobs (PLAN, REACH, BEND, BENDREACH, WORTH, SLIP, FRAME, FOLLOW) pass through the environment to every
+// The batch's knobs (PLAN, REACH, BEND, BENDTANGENT, WORTH, SLIP, FRAME, FOLLOW) pass through the environment to every
 // process. Races are compared by id; a distinct incident is one (time, route metres) pair, because races from the grid
 // share their first kilometres and one incident can be many rows.
 import { spawn } from "node:child_process";

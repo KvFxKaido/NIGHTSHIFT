@@ -28,7 +28,7 @@ export const RIVAL_REVISIONS = {
   /** `rivalInput`, the launch and recovery: steering, the speed plan, reading traffic, racing the player. */
   driver: "driver-v4",
   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
-  streetLine: "street-line-v1",
+  streetLine: "street-line-v2",
   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */
   pass: "pass-v2",
 } as const;

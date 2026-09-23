@@ -51,7 +51,7 @@ export interface StreetLine {
   readonly z: readonly number[];
   readonly radius: readonly number[];
   /** The stretches of the route, in its own metres, where the line leaves the lane. */
-  readonly corners: readonly { readonly from: number; readonly to: number }[];
+  readonly corners: readonly { readonly from: number; readonly to: number; readonly bend?: true }[];
   /** The share of the grip-limited speed the line is cornered at (RIVAL_STREET_LINE), and the ground it keeps clear. */
   readonly cornering: number;
   readonly clearance: number;
@@ -434,6 +434,17 @@ export const RIVAL_RACING = {
  * So "past about 0.8 its tracking, not its grip, is the limit" still holds; what
  * moved is the symptom, from a wheel on the grass to a wide arc, and with it the
  * ceiling, from 0.76 to about 0.82. Sound to Sky 145.8 s to 144.2.
+ *
+ * Re-measured 2026-09-23, after the slip term: that 35 degree bend runs 0.96 m wide
+ * at 0.80 and 1.26 at 0.92 on the shared fixture, which flatters it. In the names'
+ * own cars the limit is a fast gentle bend, two 21 degree bends on a 20 m street
+ * after a long run: 0.80 holds the Reign to 1.45 m, 0.84 lets it run 3.25, 0.86
+ * 6.10, and the Vesper is 2.33 at 0.80 already. There the steering is at full lock
+ * (`steeringAngleFor` allows about 1.5 degrees at 150 mph) and the tyres at 93% of
+ * their envelope under full throttle: about 1 g where the planner's grip is 1.56,
+ * which is 0.8 squared. So 0.80 is the lock at speed as much as nerve, and it stays.
+ * A player takes such a bend faster by using the road's width, which is the street
+ * line's job (`bendArcs` in street-line.ts), not this number's.
  *
  * A RACING LINE keeps 0.76 (`RIVAL_BRAKING.speedFactor`): it cannot take more.
  * Ridge Full with Moth's Kestrel goes onto the grass for 53 ticks at 0.80, 111 at

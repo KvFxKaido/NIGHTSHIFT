@@ -29,7 +29,7 @@ for (const id of ids) {
   else { if (!alderCourseDraws(id, null)) continue; const course = drawAlderCourse(id, null); route = { ...course.rival }; race = course.race; }
   const { line: _shipped, ...bare } = route as RivalDefinition & { line?: unknown };
   const rival = withLine ? withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
-    { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}), ...(process.env.BENDREACH ? { bendReach: Number(process.env.BENDREACH) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) }) : bare;
+    { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}), ...(process.env.BENDTANGENT ? { bendTangent: Number(process.env.BENDTANGENT) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) }) : bare;
   if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
   // TRAFFIC_SEED=n runs every race against another traffic (createTraffic): the rival alone across traffic layouts.
   const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true, trafficSeed: Number(process.env.TRAFFIC_SEED ?? 0) });

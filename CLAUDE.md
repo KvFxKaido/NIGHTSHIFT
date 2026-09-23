@@ -527,8 +527,12 @@ fixtures outside the playable bundle, and old world links redirect.
   reads as crossing into this one (a full-brake stab at 123 mph). Anything not on this road is read as before.
 - A street line's window is kept only where its line is QUICKER than the lane through it (`STREET_LINE.worth`): at
   150 mph a line a touch less straight than the lane is planned slower, and a window at every gentle bend cost Tally
-  2.7 s. A bend's window is still a corner's size (60 m) and too short at speed; `bendReach` 120 is worth 5.5 s to
-  Wake and costs Crest 2, because the solver kinks in a window five corners long. Fix the drawing before the number.
+  2.7 s. A bend's line is also an arc (`bendArcs`, `street-line-v2`): the solver held to its lane within 60 m either
+  side swings out and back tighter than the lane, and a longer reach kinks, so where a bend has both the one that saves
+  more is kept (the solver's still wins gen-crest-23's run of bends by 3.5 s). An arc is joined only where it leaves the
+  lane and read to where it rejoins it (`corners[].bend`, `bendRejoin`); held to that, corners lost lines they took
+  cleanly and went off the pavement, so it is bends' alone. The lane's 0.80 is the steering lock at 150 mph as much as
+  nerve: 0.84 runs the Reign 3.25 m wide through a fast gentle bend, and the shared FWD fixture hides it.
 - In `rivalInput` a slower car following the road is judged against where this car WILL be when it gets there
   (`willBe`: its offset across the road at its own station, moving at the rate it is and credited `followAcross`,
   towards the side being chosen and never past it), not `intent` alone. `intent` moves 4 m/s the moment a side is

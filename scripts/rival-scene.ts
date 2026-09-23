@@ -10,7 +10,7 @@
 //                                                             with the traffic near it (--every= seconds)
 //   pnpm rival:scene street-uptown --seed=42 --until=120      stop after that many race seconds
 //
-// The batch's knobs (PLAN, REACH, BEND, BENDREACH, WORTH, SLIP, FRAME, FOLLOW) are read from the environment as it reads
+// The batch's knobs (PLAN, REACH, BEND, BENDTANGENT, WORTH, SLIP, FRAME, FOLLOW) are read from the environment as it reads
 // them. A contact is the batch's own test (a box against a box, roughly), so a scene counts what the gate counted.
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createAlderWorld } from "../src/sim/alder.ts";
@@ -42,7 +42,7 @@ else {
 const { line: _shipped, ...bare } = route as RivalDefinition & { line?: unknown };
 const rival = withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
   { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}),
-    ...(process.env.BENDREACH ? { bendReach: Number(process.env.BENDREACH) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) });
+    ...(process.env.BENDTANGENT ? { bendTangent: Number(process.env.BENDTANGENT) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) });
 const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true, trafficSeed: seed });
 console.log(`${id}, traffic seed ${seed}, ${TRAFFIC_REVISION}, ${RIVAL_REVISIONS.driver}: ${from === null ? "every contact" : `the rival from ${from} to ${to === Infinity ? "the end" : to} m`}`);
 

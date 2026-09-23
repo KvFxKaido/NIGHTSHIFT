@@ -35,9 +35,10 @@ test("a change renames the rivals it moves and leaves the rest", () => {
   const moved = () => Object.entries({ ridge: ridge(), clear: clear(), uptown: uptown(), wake: wake() }).filter(([name, route]) => rivalRevision(route) !== before[name as keyof typeof before]).map(([name]) => name);
   const during = <T extends object>(table: T, change: Partial<T>, read: () => void) => { const was = { ...table }; Object.assign(table, change); try { read(); } finally { Object.assign(table, was); } };
   // A street line drawn differently is another rival only where that line is driven: Wake's race, not Ridge Circuit.
-  const bare = drawAlderCourse("gen-wake-42", null).rival, redrawn = withStreetLine(bare, STREET_CIRCUIT_LINE, bare.skill!, { bendReach: 120 });
+  const bare = drawAlderCourse("gen-wake-42", null).rival, redrawn = withStreetLine(bare, STREET_CIRCUIT_LINE, bare.skill!, { bendTangent: 100 });
   assert.notEqual(rivalRevision(redrawn), before.wake);
-  assert.match(rivalDifference(before.wake, redrawn)!, /^raced another rival: street-line-v1\.\w+\.\w+ -> street-line-v1\.\w+\.\w+$/);
+  const token = RIVAL_REVISIONS.streetLine;
+  assert.match(rivalDifference(before.wake, redrawn)!, new RegExp(`^raced another rival: ${token}\\.\\w+\\.\\w+ -> ${token}\\.\\w+\\.\\w+$`));
   // One name's share of the grip is that name's races.
   assert.match(rivalDifference(before.wake, { ...wake(), skill: 0.9 })!, /^raced another rival: skill-0\.96 -> skill-0\.9$/);
   // The reader's and the planner's own numbers reach the routes that have them.

@@ -3016,6 +3016,64 @@ down to 29; and solid throughout (with this rule she stays ahead of him and neve
 to 29. That stretch stops her however she arrives. It is the rival in traffic, which is good enough
 for Phase 1 (`design/HANDLING.md`), and the ghost is unchanged.
 
+## A gentle bend's arc (2026-09-23, `street-line-v2`)
+
+Shawn, after two more races against Wake: "the ai seems to slow down on slight turns. I drive it like a straight
+road where she looks like she has to process the transition."
+
+**What it was.** Where he was faster at the same place on the road and no traffic was near her, four bends of 16 to 26
+degrees on 20 m streets: she planned 77 to 120 mph through them and he held 105 to 139, 3 to 6 m across the road. None
+of them carried a line. Bend windows existed (`bendFrom`, 2026-09-20), but the solver drew each inside 60 m either side,
+held to her lane at both ends, and a line that short swings out and back and bends harder than the road: 81 m against
+the lane's 168, 101 against 294. Every one was slower than the lane and dropped, so she drove her lane arc at the lane's
+0.80. A longer reach merged windows and the solver kinked in them (`bendReach` 120: 5.5 s to Wake, 2 s from Crest).
+
+**The lane's 0.80 is not the lever.** Raising it was measured first: on his newest race, 0.96 in the lane is 3.1 s. But
+in the names' own cars a fast gentle bend at top speed is where the lane arc runs wide, and there the steering is at
+full lock: `steeringAngleFor` allows about 1.5 degrees at 150 mph, and the Reign held 8.0 to 8.6 degrees a second of turn
+where the arc asked 8.8, drifting out at 0.4 m/s with its tyres at 93% of their envelope. Two 21 degree bends after a
+long run (the lane-holding test's own scene): the Reign 1.45 m wide at 0.80, 3.25 at 0.84, 6.10 at 0.86; the Vesper 2.33
+at 0.80 already. So 0.80 stays (`RIVAL_CORNERING`'s note has the numbers). A player takes such a bend faster the only
+way there is at that lock, on a bigger radius, which is the line's job.
+
+**The arc** (`bendArcs` in `street-line.ts`). A bend, the run of vertices turning its way, gets one arc tangent to her
+lane on the straight either side, as large as the road allows with `edgeMargin` to the edge at every point, clear of
+any corner's window and halfway to the next bend. It only ever cuts inside the lane. Where the bend turns towards her
+own kerb she has 6 m to cut, which her lane arc (allowed closer to the kerb) already uses, so no arc is tangent to the
+lane there and none is drawn. The solver's bend windows stay as candidates too, since on gen-crest-23 its one long
+window through a run of bends beats separate arcs by 3.5 s: where a bend has both, the one that saves more is kept,
+and each must still be quicker than the lane (`worth`). A corner's window, and a bend inside one, is the solver's as
+it always was: the golden master's other generated races and every authored one are identical to the bit.
+
+**What it is worth.** Clear streets, the rival alone: gen-wake-42 79.37 s with no bend lines, 78.87 before, 74.67 now;
+gen-tally-7 81.62, 81.25, 78.65; gen-crest-23 64.20, 58.35, 58.35 (the solver's windows kept). On Shawn's newest race,
+his inputs replayed and his 1:19.10 holding to the finish: Wake 1:23.52 to 1:20.78, all of it the 26 degree bend at
+gate 3 (75 mph to 135), since a taxi on the 21 degree bend refused her its arc. On the two earlier races she now catches
+him about 1,700 m in, and his replay stops being his race, so those finishes cannot be measured. On the arcs she runs at
+most 2.2 m off the line; at gate 3 she spends one to two seconds at full lock, and running wide of an arc that
+cuts across the centre line takes her back towards her own lane.
+
+**Joined where it leaves the lane, read to where it rejoins it.** The first gate run found two contacts on a line, both
+the arcs': on gen-61 at seed 0 the reader, refusing the arc for an oncoming taxi, gave it go 35 m in, and blending onto
+a line already 2 to 4 m across in 15 m of road at full lock she ran 3.7 m wide of it and came out over the centre line
+into an oncoming box truck; on gen-31 at seed 42 she came off an arc at 130 mph onto a sedan doing 33 in her lane. So
+a bend (`corners[].bend`) is taken only while the shift where the blend would be complete is still the lane's, and its
+reading runs over the whole window, its tails included, and `bendRejoin` (40 m) of lane past it. Held to the first
+rule too, corners gave up lines they had been taking cleanly: 287 ticks off the pavement where there had been 2, and 25
+resets to 15, on three seeds. A corner's window is slow and eased; it keeps the old reading.
+
+**Not done.** A bend towards her own kerb, where he takes the middle of the road at 126 to 139 and her lane arc allows
+116 to 120: a line would have to enter from the oncoming half, which the entry rule (into a corner never outside its
+lane) exists to stop. Whether a gentle bend is worth an exception is a separate call.
+
+**The gate** (`pnpm rival:gate`, re-saved): 161 s quicker over the 498 races, every seed; distinct incidents 58 to 57;
+contact on a line 30 ticks to 21, in a pass 27 to 14; resets 29 to 19, reversals 10 to 4. What came is two kinds that
+were there already, met because the races now reach places at other times, neither on a line: gen-36 at seed 314159 in
+a committed pass into the back of the box truck it was passing, doing 3 mph (the gen-46 kind), and gen-33 at seed 1,
+in its lane, braking from 97 mph for a sedan turning across it at a junction it had claimed, off the pavement for 127
+ticks at 35 mph (the junction crossing parked on 2026-09-23). `pnpm golden` moves gen-stray-5 alone, whose race has a
+bend that now draws an arc; its other thirteen runs, the authored races and two generated ones, are identical to the bit.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

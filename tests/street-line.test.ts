@@ -219,11 +219,40 @@ test("a gentle bend gets a line where the line is quicker than the lane, and onl
   const bends = (route: RivalDefinition) => route.line!.corners.filter(window => !none.line!.corners.some(corner => overlaps(window, corner)));
   assert.ok(bends(shipped).length >= 3 && bends(shipped).length < bends(every).length, `${bends(shipped).length} of ${bends(every).length} bends kept`);
   for (const window of bends(shipped)) assert.ok(turned(shipped, window) >= STREET_LINE.bendFrom - 1 && turned(shipped, window) < 46, `the window at ${window.from} m turns ${turned(shipped, window).toFixed(0)} degrees`);
-  // Driven, on clear streets: a line through every bend is slower than none, and the ones kept are not.
+  // Driven, on clear streets: a line through every bend loses to the ones kept, and the ones kept do not lose to none.
   const lane = clear("gen-tally-7", none), all = clear("gen-tally-7", every), kept = clear("gen-tally-7", shipped);
-  assert.ok(all > lane + 1, `a line through every bend took ${all.toFixed(2)} s against ${lane.toFixed(2)}; the test proves nothing`);
+  assert.ok(all > kept + 1, `a line through every bend took ${all.toFixed(2)} s against ${kept.toFixed(2)} for the ones kept; the test proves nothing`);
   assert.ok(kept < lane + 0.1, `with the bends it kept, ${kept.toFixed(2)} s against ${lane.toFixed(2)} with none`);
   // And where bends are worth having they are worth a lot: Crest's race is mostly bends.
   const without = clear("gen-crest-23", drawn("gen-crest-23", { bendFrom: Infinity })), crest = clear("gen-crest-23", drawn("gen-crest-23", {}));
   assert.ok(crest < without - 3, `gen-crest-23 in ${crest.toFixed(2)} s with its bends, ${without.toFixed(2)} without`);
+});
+
+// A bend's arc (2026-09-23). Held to its lane within 60 m either side, the solver's line through a gentle bend swung
+// out and back and came out tighter than the lane (81 m against 168 on gen-wake-42), so every bend there was dropped
+// and Wake braked to 77 mph for a 26 degree bend Shawn took at 105 to 132. A bend's line is also one arc, tangent to the
+// lane either side and as large as the road allows, and the quicker of the two is kept.
+test("a gentle bend's line is an arc as large as the road allows, and it is taken where it is quicker", () => {
+  const rival = drawAlderCourse("gen-wake-42", null).rival, shipped = withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!);
+  const window = shipped.line!.corners.find(w => w.from < 2417 && w.to > 2417);
+  assert.ok(window, `gen-wake-42's 26 degree bend at 2417 m has no line: ${shipped.line!.corners.map(w => `${w.from}-${w.to}`).join(", ")}`);
+  let line = Infinity, lane = Infinity;
+  for (let k = window.from / STREET_LINE.spacing; k <= window.to / STREET_LINE.spacing; k++) {
+    line = Math.min(line, shipped.line!.radius[k]!);
+    const a = sampleDrivingPath(rival, (k - 4) * STREET_LINE.spacing), b = sampleDrivingPath(rival, k * STREET_LINE.spacing), c = sampleDrivingPath(rival, (k + 4) * STREET_LINE.spacing);
+    const turn = Math.abs(Math.atan2(a.ux * c.uz - a.uz * c.ux, a.ux * c.ux + a.uz * c.uz));
+    if (turn > 1e-6) lane = Math.min(lane, Math.hypot(c.x - a.x, c.z - a.z) / (2 * Math.sin(turn / 2)));
+  }
+  assert.ok(line > 2 * lane, `its line bends to ${line.toFixed(0)} m where the road's own arc is ${lane.toFixed(0)} m`);
+  const course = drawAlderCourse("gen-wake-42", null), time = (route: RivalDefinition) => {
+    const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race: course.race, rival: route, traffic: false });
+    try {
+      let offPavement = 0;
+      while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 150 * TICK_HZ) { step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 }); if (sim.state.rival!.vehicle.groundContact > 0) offPavement++; }
+      assert.ok(sim.state.rival!.race.finished && offPavement === 0, `finished ${sim.state.rival!.race.finished}, ${offPavement} ticks off the pavement`);
+      return sim.state.rival!.race.ticks / TICK_HZ;
+    } finally { sim.world.free(); }
+  };
+  const none = time(withStreetLine(rival, STREET_CIRCUIT_LINE, rival.skill!, { bendFrom: Infinity })), bends = time(shipped);
+  assert.ok(bends < none - 4, `gen-wake-42 clear in ${bends.toFixed(2)} s with its bends, ${none.toFixed(2)} without`);
 });
