@@ -3074,6 +3074,34 @@ in its lane, braking from 97 mph for a sedan turning across it at a junction it 
 ticks at 35 mph (the junction crossing parked on 2026-09-23). `pnpm golden` moves gen-stray-5 alone, whose race has a
 bend that now draws an arc; its other thirteen runs, the authored races and two generated ones, are identical to the bit.
 
+## The shoulder is road (2026-09-23, `driver-v5`, `pass-v3`, `street-line-v3`)
+
+Every carriageway gained 5.6 m of asphalt shoulder each side that day, then a raised sidewalk (`design/ROAD_EDGES.md`):
+room no traffic drives, which Shawn called "essentially a free passing lane". The player had it at once. The rival did
+not: a route's `width` is still the carriageway traffic drives, and four things in the driver bounded it by that width.
+Past the carriageway by `OFF_ROAD_MARGIN` it was lost and held to 22 mph; off the carriageway it made no progress, so a
+stretch on the shoulder ran toward a reset; `edge` clamped every aim, a committed pass's path included, back inside the
+carriageway; and the pass planner and a bend's arc (`bendArcs`) were rejected past it.
+
+`RivalDefinition.shoulder` (5.6, `ALDER_SHOULDER`) is set on every generated race's rival where it is drawn
+(`drawAlderCourse`, so the game, the gate's batch and the tests see the same road) and on Uptown's rival in traffic,
+and each of the four adds it. It is part of the rival's name (`shoulder-5.6`). Sound to Sky, the cruisers, Ridge Circuit
+and Uptown / Clear have none and are as they were.
+
+**First, the baseline.** The shoulders changed the world (`alder-slice-v7`) and with it what every seed draws, so the
+gate's races were different courses (gen-wake-42 is now 4.6 km and four gates). The gate was re-saved on the new world
+before this change, and its totals against the old baseline compare two sets of races, not the shoulders (resets 19
+to 66, for one, is ten races sharing one start at seed 1).
+
+**The gate, against that baseline:** 316 s quicker over the 498 races; races with contact 82 to 64; distinct incidents
+61 to 50; resets 66 to 30 (seed 1 alone 36 to 5); contact in a pass 19 to 17. It passes a little more (138 passes to 144).
+Contact ticks rose, 4,907 to 7,440, in fewer races: two incidents shared by the races that start alike, at seed 1 (eleven
+races, 181 ticks each at 13 mph, and 2 to 17 s quicker) and seed 271828 (five, 403 ticks, 4 to 8 s slower), each a
+junction's crossing car the rival now works its way past at walking pace where before it was reset out of sight. What
+else came is the same kind: gen-38 at seed 1 spun onto the verge by an oncoming box truck turning across it (off the
+pavement 23 ticks, its aim never left the lane), and a 5 to 9 mph nudge on gen-66 counted as on a line for 7 ticks.
+The junction's crossing car is the problem parked on 2026-09-23; this change neither caused it nor fixes it.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

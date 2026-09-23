@@ -9,7 +9,7 @@
  * stage was accepted from such a flash, every later flash returned it, and loading
  * it threw: a stage that could neither be raced nor replaced.
  */
-import { ALDER_STREETS, alderGeneratedRace, alderHeight } from "./alder.ts";
+import { ALDER_SHOULDER, ALDER_STREETS, alderGeneratedRace, alderHeight } from "./alder.ts";
 import { turfFor } from "./alder-turf.ts";
 import { cruiserFor } from "./alder-cruisers.ts";
 import { BLACKLIST_LAUNCH, RIVAL_LAUNCH_SKILL } from "./launch.ts";
@@ -44,7 +44,8 @@ export function drawAlderCourse(raceId: string, start: string | null): AlderCour
   const race = drawn.race.id === raceId ? drawn.race : { ...drawn.race, id: raceId };
   const generated = drawn.generated.definition.id === raceId ? drawn.generated : { ...drawn.generated, definition: race };
   // Raced in the rival's own car and its handling, not the Kestrel every generated race used to field.
-  const rival = { ...drawn.rival, id: `${raceId}-driver`, car: cruiser?.car ?? drawn.rival.car,
+  // On the city's shoulders too (ROAD_EDGES.md): road to a race rival, where no traffic drives.
+  const rival = { ...drawn.rival, id: `${raceId}-driver`, car: cruiser?.car ?? drawn.rival.car, shoulder: ALDER_SHOULDER,
     // Higher up the list, a cleaner start (`launch.ts`).
     launch: (id.rival ? BLACKLIST_LAUNCH[id.rival] : undefined) ?? RIVAL_LAUNCH_SKILL,
     // And a harder line through a corner (`BLACKLIST_CORNERING`). A race with no name on it has no field at all.

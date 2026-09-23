@@ -35,8 +35,8 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 
 ## The ledger
 
-As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v4`,
-`street-line-v2`, `pass-v2`.
+As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v5`,
+`street-line-v3`, `pass-v3`, on `alder-slice-v7` (the shoulders, `design/ROAD_EDGES.md`).
 
 | Number | Where | Set | Measured on | Changed under it since | Status |
 |---|---|---|---|---|---|
@@ -53,7 +53,7 @@ As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v4`,
 | The ladder: street pace climbs the list | `CAR_TUNES` (`HANDLING.md`, "The ladder pass") | 09-19 | `pnpm cars --streets` at `driver-v2`, 09-22 (`HANDLING.md`, "Re-measured"): the same six sprints, clear | a generator change redraws the six sprints | **current**: the order holds, every car within 0.31 points of 09-19. The traffic column is `traffic-v7` at seed 0 |
 | Car cards without AI laps (0 to 60, top speed, grip, slide) | `car-card.ts`, `car-stats.json` | 09-19 | `pnpm cars` on `four-wheel-v6` | nothing it reads; the fingerprint test guards each tune | **current** |
 | Route-choice pace (114 mph top, 2.5 s per right angle) | `PACE` | 09-15 (`61de175`) | Shawn's recorded Uptown laps, driven on the pedal clamp | no pedal assist by default (09-20) | **suspect, low stakes**: re-fitting redraws most seeds (every `GENERATOR_REVISIONS` entry) |
-| The rival gate's baseline | `measurements/rival-gate.json` | 09-23 | the 83-race batch at six traffic seeds (0, 1000, 271828, 1, 42, 314159), `traffic-v9`, `driver-v4`, `street-line-v2`, `pass-v2` | nothing | **current**; re-saved by the change that moves it (`pnpm rival:gate --save`). Its contact counts were built for traffic that was a wall; since v9 contact continues, so read its outcomes (time, resets, finishing, off the pavement). `driver-v2.json` is the seed 0 batch at `traffic-v7`, kept |
+| The rival gate's baseline | `measurements/rival-gate.json` | 09-23 | the 83-race batch at six traffic seeds (0, 1000, 271828, 1, 42, 314159), `traffic-v9`, `driver-v5`, `street-line-v3`, `pass-v3`, on `alder-slice-v7`, whose seeds draw other courses than v4's | nothing | **current**; re-saved by the change that moves it (`pnpm rival:gate --save`). Its contact counts were built for traffic that was a wall; since v9 contact continues, so read its outcomes (time, resets, finishing, off the pavement). `driver-v2.json` is the seed 0 batch at `traffic-v7`, kept |
 | What a hit on traffic costs: masses (sedan 900 kg to van 1,500, the box truck none) and `TRAFFIC_KNOCK` (knock at 1.2 m/s or 0.35 rad/s, a wreck braked at 4 m/s², back 2 s after rest out of sight), collider friction 0.15 | `TRAFFIC_KINDS`, `sim.ts` | 09-23 (Shawn: the MC3 feel) | the one-tick cost of a hit 12 m/s faster (sedan 4.1 m/s, the wall 9.4); a sedan clipped on a corner turning 29 degrees; the six-seed gate | nothing | **current by feel**: Shawn drove it on 2026-09-23, "This feels great"; glancing hits fine, a head-on clip could be stiffer (left for now). Tuned at the pad if it proves too easy |
 | How long a junction claim reckons it will hold (`clearingTime`) | `traffic.ts` | 09-22 | 5,300 claims, traffic alone, seeds 0, 42, 271828: held / reckoned median 0.94 to 0.95 by seed, p10 to p90 0.85 to 1.00, none held 2 s past it (the old reckoning: 1.36 to 1.40, 0.63 to 1.74, a third of them) | nothing | **current**; pinned by `traffic-intent.test.ts` |
 | Out-of-sight recovery, 2.5 s beyond 120 m | `UNSEEN_RECOVERY` | 09-13 (Shawn) | a rule, not a measurement | nothing | **current** |

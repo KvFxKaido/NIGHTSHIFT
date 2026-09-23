@@ -20,7 +20,7 @@
  * is not a lap of this circuit. Only the next gate is ever shown, with the arrow
  * for where the loop goes from it.
  */
-import { ALDER_STREETS, alderDrivable, alderHeight } from "./alder.ts";
+import { ALDER_SHOULDER, ALDER_STREETS, alderDrivable, alderHeight } from "./alder.ts";
 import { laneOffset } from "./lanes.ts";
 import type { Checkpoint, RaceDefinition } from "./race.ts";
 import { STREET_RACING_LINE, withRacingLine } from "./racing-line.ts";
@@ -134,7 +134,7 @@ export function uptownLap(): StreetCircuitLap {
 const trafficLines = new Map<number, RivalDefinition>();
 function trafficLine(route: RivalDefinition, laps: number): RivalDefinition {
   let line = trafficLines.get(laps);
-  if (!line) trafficLines.set(laps, line = withStreetLine(route, STREET_CIRCUIT_LINE, RIVAL_STREET_LINE.speedFactor));
+  if (!line) trafficLines.set(laps, line = withStreetLine({ ...route, shoulder: ALDER_SHOULDER }, STREET_CIRCUIT_LINE, RIVAL_STREET_LINE.speedFactor));
   return line;
 }
 function clearLine(route: RivalDefinition, laps: number): RivalDefinition {

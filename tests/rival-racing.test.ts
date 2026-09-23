@@ -350,6 +350,18 @@ test("a rival wide of its racing line but on the road is not treated as lost", (
   };
   assert.ok(onStreet(line + 5.5) > 30, `5.5 m off a street centreline, on the road, it was held to ${onStreet(line + 5.5)} m/s`);
   assert.ok(onStreet(line + width / 2 + OFF_ROAD_MARGIN + 0.5) <= 10, "off a street it kept its speed");
+  // A shoulder is road (2026-09-23, Port Alder's 5.6 m of asphalt past each carriageway): on it a rival is not lost,
+  // and past it, it is.
+  const shouldered: RivalDefinition = { ...street, id: "shoulder-check", shoulder: 5.6 };
+  const onShoulder = (x: number) => {
+    const vehicle = { ...createSim("awd").state.vehicle, x, y: 0, z: -1000, heading: 0, speed: 42, forwardSpeed: 42, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 1000, progressMark: 1000 };
+    rivalInput(shouldered, { vehicle, driver, race }, []);
+    return driver.targetSpeed;
+  };
+  const shoulder = line + width / 2 + OFF_ROAD_MARGIN + 0.5;
+  assert.ok(onShoulder(shoulder) > 30, `on the shoulder it was held to ${onShoulder(shoulder).toFixed(1)} m/s, as lost`);
+  assert.ok(onShoulder(shoulder + 5.6) <= 10, "past the shoulder it kept its speed");
 });
 
 /** A street route through `raw`, resampled as given, 16 m wide unless told. */

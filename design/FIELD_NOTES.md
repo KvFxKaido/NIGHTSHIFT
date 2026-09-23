@@ -10,6 +10,16 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## The shoulder is road (2026-09-23)
+
+Asked for: the rival using the shoulders that had just been added. What was assumed and wrong:
+
+- That the new world's gate baseline, against the old, measured what the shoulders did to the rival: resets 19 to 66
+  read as a regression and was reported as one. The shoulders changed the world and every seed drew another course,
+  so the two baselines are different races; ten of those resets were one start shared at seed 1.
+- That the shoulder would be a passing lane for the rival as it is for the player. Passes went from 138 to 144. What
+  the rival gained most was not being lost there, and not being reset for it: resets 66 to 30.
+
 ## A gentle bend's arc (2026-09-23)
 
 Asked for: the rival slowing on slight turns that Shawn takes like a straight road. What was assumed and wrong:

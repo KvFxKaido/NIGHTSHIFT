@@ -83,7 +83,7 @@ export function evaluatePass(route: RivalDefinition, pass: TrafficPass, car: Veh
     const previous = points.at(-1);
     if (previous) distance += Math.hypot(p.x - previous.x, p.z - previous.z);
     // Keep the complete footprint on the paved road, including the outside of a bent passing path.
-    if (Math.abs(passingOffset(route, pass, at)) > p.width / 2 - TRAFFIC_PASS.clearance) return { clear: false, time: Infinity, speed: 0, collision: distance, reason: "geometry" };
+    if (Math.abs(passingOffset(route, pass, at)) > p.width / 2 + (route.shoulder ?? 0) - TRAFFIC_PASS.clearance) return { clear: false, time: Infinity, speed: 0, collision: distance, reason: "geometry" };
     if (ground) for (const side of [-1, 1]) for (const end of [-1, 1]) {
       if (ground(p.x + ux * end * 2.4 - uz * side * 1.2, p.z + uz * end * 2.4 + ux * side * 1.2))
         return { clear: false, time: Infinity, speed: 0, collision: distance, reason: "geometry" };

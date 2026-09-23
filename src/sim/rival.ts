@@ -34,6 +34,10 @@ export interface RivalDefinition {
   readonly line?: StreetLine;
   /** Forecasted, committed overtakes for street races. */
   readonly trafficPassing?: boolean;
+  /** Metres of asphalt past each edge of the carriageway that no traffic drives: Port Alder's shoulders (2026-09-23,
+   *  design/ROAD_EDGES.md). A rival may pass on it and take a bend's arc over it, and is neither lost nor making no
+   *  progress there. Absent is none, as on every road before them. */
+  readonly shoulder?: number;
   /** How hard this DRIVER takes a street line's corners, as a share of the grip-limited speed (`BLACKLIST_CORNERING`).
    *  Absent is `RIVAL_STREET_LINE`'s. It is the line's corners only: in its lane a rival's limit is its tracking, not
    *  its nerve (`RIVAL_CORNERING`), whoever is driving. */
@@ -374,6 +378,8 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * (UNSEEN_ROAD in sim.ts, Shawn).
  * "pass-v2" (2026-09-23): the player is in a pass's way only while ahead of it (planTrafficPass); a player catching
  * it from behind had braked it to let them by. Shawn's race against Wake that morning.
+ * "driver-v5", "pass-v3", "street-line-v3" (2026-09-23): the shoulders Port Alder gained that day are road to a race
+ * rival (`shoulder`): its edge, its passes, its bends' arcs, and where it is lost or making progress.
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -696,7 +702,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // A high-water mark prevents reversing or circling over the same few metres
   // from continually postponing the fallback reset. Off-road drift isn't progress.
-  if (driver.along > driver.progressMark + 4 && nearest < sampleRivalPath(route, driver.along).width / 2) {
+  if (driver.along > driver.progressMark + 4 && nearest < sampleRivalPath(route, driver.along).width / 2 + (route.shoulder ?? 0)) {
     driver.progressMark = driver.along;
     driver.noProgressTicks = 0;
   } else driver.noProgressTicks++;
@@ -807,7 +813,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // right only while the rival was on its route: 3.8 m out to pass a truck on
   // Uptown Circuit, it saw the truck 1.2 m to its left as 5 m out of its path,
   // neither slowed nor moved, and pushed it at full throttle for 42 s.
-  const edge = Math.max(0, target.width / 2 - 2.2);
+  // The shoulder is road: a pass's path, a dodge or a block may use it (`shoulder`).
+  const edge = Math.max(0, target.width / 2 + (route.shoulder ?? 0) - 2.2);
   // Never past the line itself: a line that cuts a corner over the pavement is further from the road's centre than
   // `edge`, and these would otherwise push the aim off it, back towards the road, at every apex.
   const lowest = Math.min(0, -edge - target.lateral), highest = Math.max(0, edge - target.lateral);
@@ -977,7 +984,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const at = sampleDrivingPath(route, driver.along), shift = shiftAt(line!, driver.along);
     return Math.hypot(car.x - (at.x - at.uz * driver.avoidance + blend * shift.x), car.z - (at.z + at.ux * driver.avoidance + blend * shift.z)) < line!.clearance;
   };
-  const lost = Math.abs(nearestRoad) > nearestWidth / 2 + OFF_ROAD_MARGIN && Math.abs(nearestSide) >= (route.clearance ?? 0)
+  const lost = Math.abs(nearestRoad) > nearestWidth / 2 + (route.shoulder ?? 0) + OFF_ROAD_MARGIN && Math.abs(nearestSide) >= (route.clearance ?? 0)
     && !(line && blend > 0 && onItsLine());
   if (lost) desiredSpeed=Math.min(desiredSpeed,10);
   if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);

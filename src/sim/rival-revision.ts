@@ -26,11 +26,11 @@ import { TRAFFIC_PASS } from "./traffic-pass.ts";
 /** Bump a layer when its CODE changes how a rival drives. Its tables and a route's own numbers name themselves. */
 export const RIVAL_REVISIONS = {
   /** `rivalInput`, the launch and recovery: steering, the speed plan, reading traffic, racing the player. */
-  driver: "driver-v4",
+  driver: "driver-v5",
   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
-  streetLine: "street-line-v2",
+  streetLine: "street-line-v3",
   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */
-  pass: "pass-v2",
+  pass: "pass-v3",
 } as const;
 
 /**
@@ -55,6 +55,7 @@ export function rivalRevisionParts(route: RivalDefinition): string[] {
   if (route.launch !== undefined) parts.push(`launch-${route.launch}`);
   if (route.cornering !== undefined) parts.push(`cornering-${route.cornering}`);
   if (route.speedLimit !== undefined) parts.push(`limit-${route.speedLimit}`);
+  if (route.shoulder !== undefined) parts.push(`shoulder-${route.shoulder}`);
   // A route that IS a line: Ridge Circuit's, Uptown / Clear's. The centreline under any route is the world's and the
   // race's, which a recording names already; what is the rival's own is where it was drawn across the road.
   if (route.lateral) parts.push(`line-${layoutFingerprint([toTheMillimetre(route.lateral), toTheMillimetre(route.points.flatMap(p => [p.x, p.z])), toTheMillimetre(route.gates), route.clearance ?? null])}`);

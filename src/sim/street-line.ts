@@ -113,7 +113,7 @@ function bendArcs(route: RivalDefinition, lane: readonly { x: number; z: number 
   }
   const arcs: { first: number; last: number; x: number[]; z: number[] }[] = [];
   // How far across the road a point is, off the nearest segment, against how far it may be.
-  const withinRoad = (x: number, z: number) => { const at = projectOntoPath(points, x, z); return at.distance <= at.width / 2 - options.edgeMargin; };
+  const withinRoad = (x: number, z: number) => { const at = projectOntoPath(points, x, z); return at.distance <= at.width / 2 + (route.shoulder ?? 0) - options.edgeMargin; };
   // The lane station nearest a point, and how far the point is off the lane there: across it, not along it.
   const nearest = (x: number, z: number, around: number) => {
     let best = around, distance = Infinity;

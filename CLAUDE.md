@@ -545,6 +545,11 @@ fixtures outside the playable bundle, and old world links redirect.
   three that had bitten this loop already: say which frame every number is in, and read it where the thing is. The
   rule is honest to about 0.2 m and its margin is 0.3: a pass driver-v1 made at 2.2 m it may brake for, and a value
   that separates that from a 2.3 m pass does not exist. Measure a change to it on the batch AND the rear-end test.
+- A route's `width` is the carriageway traffic drives; Port Alder's asphalt runs `shoulder` (5.6 m) past it each side
+  (2026-09-23). Anything in the rival bounded by the width adds `route.shoulder`, or on the shoulder it is lost (held
+  to 22 mph), makes no progress toward a reset, and a pass onto it is clamped back: `lost`, the progress mark, `edge`,
+  `evaluatePass`, `bendArcs`. A world change that redraws the seeds makes the gate's races other courses: re-save its
+  baseline on the new world before judging a change on it.
 - A committed pass is clear of a car that is ON its path, and looks only 26 m ahead at 105 mph because of it. More
   than `PASS_ASTRAY` off that path the car looks as far as it would with no pass; a tracked pass must not change.
 - A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,

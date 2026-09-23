@@ -65,6 +65,18 @@ test("a committed side persists and does not rejoin while still alongside the le
   assert.equal(driver.trafficPass, undefined, "recovery must discard the old maneuver");
 });
 
+test("a pass may use a shoulder, and no more than the shoulder", () => {
+  // Port Alder's carriageways gained 5.6 m of asphalt each side on 2026-09-23 that no traffic drives (`shoulder`). A
+  // pass 9 m from the centre of a 20 m road is off it; with the shoulder it is on asphalt, and 14 m out is not: the
+  // edge is 13.1, half the road and the shoulder, less `clearance`.
+  const lead = vehicle(40, 5), path = Array.from({ length: 26 }, (_, i) => ({ x: lead.x, z: -40 - i * .25 * 5, heading: 0, speed: 5 }));
+  const wide = (offset: number): TrafficPass => ({ ...candidate(), offset });
+  assert.equal(evaluatePass(route, wide(9), car, 0, [{ vehicle: lead, path }]).reason, "geometry");
+  const shouldered = { ...route, shoulder: 5.6 };
+  assert.ok(evaluatePass(shouldered, wide(9), car, 0, [{ vehicle: lead, path }]).clear, "a pass on the shoulder must be clear");
+  assert.equal(evaluatePass(shouldered, wide(14), car, 0, [{ vehicle: lead, path }]).reason, "geometry");
+});
+
 test("oriented footprint checks catch a crossing truck that a centre-distance check misses", () => {
   assert.equal(passingOverlap(0, 0, 0, -1, { x: 3.5, z: 0, heading: Math.PI / 2 }, "box-truck"), true);
   assert.equal(passingOverlap(0, 0, 0, -1, { x: 8, z: 0, heading: Math.PI / 2 }, "box-truck"), false);

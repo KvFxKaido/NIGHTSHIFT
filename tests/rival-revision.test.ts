@@ -18,12 +18,12 @@ const kinds = (route: RivalDefinition) => rivalRevisionParts(route).map(part => 
 
 test("a rival is named by what its own race uses, and by nothing else", () => {
   // Every raced rival has the driver and its car. A route that is a line has the line; only a street route in traffic
-  // has the line's reader and the pass planner; only a name has a share of the grip.
+  // has the line's reader and the pass planner, and Port Alder's shoulder; only a name has a share of the grip.
   const { driver, streetLine, pass } = RIVAL_REVISIONS;
   assert.deepEqual(kinds(ridge()), [driver, "kestrel", "line"]);
   assert.deepEqual(kinds(clear()), [driver, "kestrel", "cornering", "line"]);
-  assert.deepEqual(kinds(uptown()), [driver, "kestrel", streetLine, pass]);
-  assert.deepEqual(kinds(wake()), [driver, "reign", "launch", streetLine, "skill", pass]);
+  assert.deepEqual(kinds(uptown()), [driver, "kestrel", "shoulder", streetLine, pass]);
+  assert.deepEqual(kinds(wake()), [driver, "reign", "launch", "shoulder", streetLine, "skill", pass]);
   assert.ok(rivalRevision(wake()).includes(` reign-r${CAR_TUNES.reign!.revision} `) && rivalRevision(wake()).includes(` skill-${BLACKLIST_CORNERING.wake}`));
   // The same race names the same rival every time it is drawn, and another race another.
   assert.equal(rivalRevision(wake()), rivalRevision(wake()));
