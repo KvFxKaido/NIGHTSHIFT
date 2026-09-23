@@ -214,6 +214,10 @@ fixtures outside the playable bundle, and old world links redirect.
   than waiting to be over it; streets keep the old brake, which strays less in
   traffic. A route must get its line once: drawing a line
   through a route that already carries one doubles the offsets.
+  The rival in traffic is good enough for Phase 1 at `traffic-v8` / `driver-v2` and not part of
+  the handling gate (Shawn, 2026-09-23, `design/HANDLING.md`): over six traffic layouts it meets
+  traffic in about one race in ten, alone. Reopening it is a scope decision, and starts from
+  `design/COUPLINGS.md`, "What was ruled out": a type per frame first, then plan-then-commit.
 - **The launch.** Hold the handbrake and the gas through a race countdown, let
   the handbrake go at the flag, and the first 1.6 s carry extra traction: about
   two car lengths by five seconds, less the later you release, a penalty if you
@@ -314,7 +318,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Rival, encounter, cruisers, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `alder-cruisers.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
-| The rival in traffic: corner lines, committed passes, the 83-race batch and the six-seed gate | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
+| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
 | Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
@@ -579,6 +583,10 @@ fixtures outside the playable bundle, and old world links redirect.
   in a pass since those gates existed. A claim about traffic or the rival measured at seed 0 alone is a claim about one
   layout: soak with `pnpm traffic:soak` and gate with `pnpm rival:gate`. Keeping a refused car's turn against
   later cars was tried on the starvation and made it worse on balance (`design/measurements/traffic-seeds.json`).
+- The gate has a noise band, and it is wide: a change to the rival's reactive loop sends a race past other cars from
+  the first tick it decides differently, so one kind of incident removed is another met. A rule that changed almost
+  nothing (2026-09-22) still moved contact on a line from 11 ticks to 19; read five distinct incidents in fifty as
+  noise, and judge a change by what KIND of incident went and came (`pnpm rival:scene`), never by the totals alone.
 - Where a junction claim is judged against a racer, the car's time in the junction is what it will DRIVE, braking for
   its corner (`clearingTime`), never its distance over the speed it has: that came out at half the truth for a car
   that slows to turn, and traffic turned across a rival it could not have cleared. Traffic alone never reads it, so a
@@ -674,6 +682,7 @@ pnpm cars             # every car's measured card; before and after a tune. --la
 pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
 pnpm traffic:soak     # traffic alone for ten minutes per traffic seed: what stood over a minute. Seeds as args, --json
 pnpm rival:gate       # the rival alone in traffic, 83 races at six traffic seeds (~20 min), against its baseline; --save re-pins it
+pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

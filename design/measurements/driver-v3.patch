@@ -1,0 +1,256 @@
+# driver-v3 and the claim given back: built and gated 2026-09-22, not shipped (design/COUPLINGS.md,
+# "What was ruled out, and on what"; design/PORT_ALDER.md, "Six layouts"). Applies to fedbe2b: git apply <this file>.
+# Gate numbers are in design/measurements/driver-v3-gates.json.
+diff --git a/scripts/rival-gate.ts b/scripts/rival-gate.ts
+index 9c911e0..4f2678f 100644
+--- a/scripts/rival-gate.ts
++++ b/scripts/rival-gate.ts
+@@ -9,9 +9,9 @@
+ //                                           the history), or --save=<path> somewhere else
+ //   pnpm rival:gate --rows=.probe/v8s       read rows already run (<prefix><seed>-<0..3>.jsonl) instead of running
+ //
+-// The batch's knobs (PLAN, REACH, BEND, BENDREACH, WORTH, SLIP, FRAME, FOLLOW) pass through the environment to every
+-// process. Races are compared by id; a distinct incident is one (time, route metres) pair, because races from the grid
+-// share their first kilometres and one incident can be many rows.
++// The batch's knobs (PLAN, REACH, BEND, BENDREACH, WORTH, SLIP, FRAME, FOLLOW, ONCOMING, GIVEBACK) pass
++// through the environment to every process. Races are compared by id; a distinct incident is one (time, route metres) pair,
++// because races from the grid share their first kilometres and one incident can be many rows.
+ import { spawn } from "node:child_process";
+ import { createHash } from "node:crypto";
+ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+diff --git a/scripts/street-line-batch.ts b/scripts/street-line-batch.ts
+index 33038dd..9b4a907 100644
+--- a/scripts/street-line-batch.ts
++++ b/scripts/street-line-batch.ts
+@@ -8,7 +8,7 @@ import { RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, s
+ import { createSim, step, TICK_HZ, carHandling } from "../src/sim/sim.ts";
+ import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
+ import { withStreetLine } from "../src/sim/street-line.ts";
+-import { TRAFFIC_KINDS } from "../src/sim/traffic.ts";
++import { RACER_GIVE_BACK, TRAFFIC_KINDS } from "../src/sim/traffic.ts";
+ 
+ await RAPIER.init();
+ const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace");
+@@ -17,6 +17,10 @@ const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
+ if (process.env.SLIP) (RIVAL_STEERING as { slip: number }).slip = Number(process.env.SLIP);
+ // FOLLOW=0 judges a slower car ahead against where the rival means to be alone, as it was to driver-v1.
+ if (process.env.FOLLOW === "0") (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = false;
++// ONCOMING=0 lets a pass pull out into a car coming the other way, as it could to driver-v2.
++if (process.env.ONCOMING === "0") (RIVAL_RACING as { passOncoming: boolean }).passOncoming = false;
++// GIVEBACK=1 has a car give its junction claim back while it can still stop, for a racer it would not clear (off in traffic-v8).
++if (process.env.GIVEBACK === "1") RACER_GIVE_BACK.on = true;
+ // FRAME=0 reads every car from the aim point's frame, as it was to full-line-v31.
+ if (process.env.FRAME === "0") (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = false;
+ if (output) writeFileSync(output, "");
+diff --git a/src/sim/rival-revision.ts b/src/sim/rival-revision.ts
+index 868df22..9b874dd 100644
+--- a/src/sim/rival-revision.ts
++++ b/src/sim/rival-revision.ts
+@@ -26,7 +26,7 @@ import { TRAFFIC_PASS } from "./traffic-pass.ts";
+ /** Bump a layer when its CODE changes how a rival drives. Its tables and a route's own numbers name themselves. */
+ export const RIVAL_REVISIONS = {
+   /** `rivalInput`, the launch and recovery: steering, the speed plan, reading traffic, racing the player. */
+-  driver: "driver-v2",
++  driver: "driver-v3",
+   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
+   streetLine: "street-line-v1",
+   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */
+diff --git a/src/sim/rival.ts b/src/sim/rival.ts
+index 7609f59..01ec4a8 100644
+--- a/src/sim/rival.ts
++++ b/src/sim/rival.ts
+@@ -369,6 +369,8 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
+  * "driver-v1", "street-line-v1", "pass-v1" (rival-revision.ts) are full-line-v32, named by layer.
+  * "driver-v2" (2026-09-22): a slower car ahead is slowed for where this car will be, at the rate it is moving across
+  * the road, not only where it means to be (RIVAL_RACING.followWhereItIs). Shawn's second legit race against Wake.
++ * "driver-v3" (2026-09-22): a side to pass on is no side if a car coming the other way will meet this one in it before
++ * this one is past and back (RIVAL_RACING.passOncoming). The multi-seed batch's commonest contact after traffic-v8.
+  */
+ export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
+ 
+@@ -397,6 +399,18 @@ export const RIVAL_RACING = {
+   /** Metres per second of closing speed under which the check does not apply: an impact there is a nudge, the old
+    *  bumper rule holds, and a car slowed to a stop beside a stopped car is let go rather than held (gen-67). */
+   followClosing: 4,
++  /** A side to pass a car on is no side if a car coming the other way will meet this one in it before this one is
++   *  past and back (2026-09-22). False is the driver to driver-v2. */
++  passOncoming: true,
++  /** Seconds after drawing level with the car's front that a pass needs to be back in: 3.2 m across at 4.2 m/s. */
++  passReturn: 1,
++  /** Metres across the road, centre to centre, inside which a car coming the other way is in a pass's side: the 2 m
++   *  at which the two touch and the 0.8 m a rival runs past its aim pulling out at 130 mph (gen-70, seed 271828). */
++  passOncomingCorridor: 3,
++  /** Metres of gap to the car ahead's bumper inside which a pass keeps the side of that car it is on, and the metres
++   *  across the road from that car's centre past which it is on a side at all (2026-09-22, gen-16). */
++  passCommit: 10,
++  passCommitSide: 0.5,
+ } as const;
+ 
+ /**
+@@ -814,6 +828,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
+   const intent = (pass ? offset : driver.avoidance) + (aimShift ? blend * (aimShift.x * normalX + aimShift.z * normalZ) : 0);
+   // Pulling out or coming back in, is the car where its pass says it is?
+   const astray = !!pass && Math.abs(carOffset - passingOffset(route, pass, driver.along)) > PASS_ASTRAY;
++  // Where this car is across the road at its own station: the frame `offRoute` is read in for a car on this road.
++  const carAcross = (car.x - here.x) * -here.uz + (car.z - here.z) * here.ux;
+   for (const obstacle of hazards) {
+     const dx=obstacle.x-car.x, dz=obstacle.z-car.z;
+     const ahead=dx*target.ux+dz*target.uz, side=dx*normalX+dz*normalZ;
+@@ -888,11 +904,43 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
+       Math.hypot(other.x-(car.x+normalX*(candidate-carOffset)),other.z-(car.z+normalZ*(candidate-carOffset)))<7
+       || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7
+       || Math.hypot(other.x-Math.sin(other.heading)*other.speed*alongside-passAt(candidate).x,other.z-Math.cos(other.heading)*other.speed*alongside-passAt(candidate).z)<7));
++    // And nobody coming the other way into that side before this car is past and back (2026-09-22). The three looks
++    // above are now, now, and alongside; a car coming the other way meets this one between them. On a street with one
++    // lane each way a pass on the left IS the oncoming lane, and on a collector a pass is capped (`PASS.reach`) short of
++    // this car's own outer lane, so the left is the side it takes. Of the rival's contacts with oncoming cars over six
++    // traffic seeds, five were this: out round a stopped or slow car in its lane, into a car in its own lane coming the
++    // other way, braking in that lane rather than getting out of it (gen-70 at 125 mph). Each car is read in the road's
++    // frame where it is, as the loop reads it (`RIVAL_TRAFFIC_FRAME`); a car off this road there is not in the pass.
++    const past=(ahead+length)/Math.max(1,car.speed-along)+RIVAL_RACING.passReturn;
++    const oncomingInto=(candidate: number)=>RIVAL_RACING.passOncoming && hazards.some(other=>{
++      if (other===obstacle) return false;
++      const oAhead=(other.x-car.x)*target.ux+(other.z-car.z)*target.uz;
++      if (oAhead<=0 || oAhead>(car.speed+other.speed)*past+10) return false;
++      const road=sampleDrivingPath(route, driver.along+oAhead);
++      if (Math.abs(other.y-routeHeightAt(route, driver.along+oAhead)-aboveRoute)>3) return false;
++      if (Math.abs((other.x-road.x)*road.ux+(other.z-road.z)*road.uz)>RIVAL_TRAFFIC_FRAME.station) return false;
++      const oAlong=other.speed*(-Math.sin(other.heading)*road.ux-Math.cos(other.heading)*road.uz);
++      if (oAlong>-2) return false;
++      const meet=Math.max(0,oAhead-(other.length??4.2)/2-2.1)/Math.max(1,car.speed-oAlong);
++      return meet<past && Math.abs((other.x-road.x)*-road.uz+(other.z-road.z)*road.ux-candidate)<RIVAL_RACING.passOncomingCorridor;
++    });
+     const reach=Math.min(PASS.reach, edge);
++    // Close to the car and already to one side of it, the other side is through it (2026-09-22). The side is chosen
++    // afresh every tick: with the left refused for a car coming the other way (`passOncoming`) the rival took the right
++    // of a sedan turning off a 12 m street, and when the oncoming car had gone and the sedan straightened into the room
++    // on its right, chose the left again and steered through the sedan beside it for four seconds (gen-16, seed 0).
++    // Within `passCommit` of its bumper a pass keeps the side it is on. With no room left on it, it holds where it is
++    // rather than easing back through the car, and alongside it does not brake to the car's speed (Wake, gen-wake-42).
++    const mine=ahead-length<RIVAL_RACING.passCommit && Math.abs(carAcross-offRoute)>RIVAL_RACING.passCommitSide ? Math.sign(carAcross-offRoute) : 0;
+     const sides=[offRoute-PASS.gap,offRoute+PASS.gap].map(c=>clamp(c,Math.max(lowest,-reach),Math.min(highest,reach)))
+-      .filter(c=>Math.abs(c-offRoute)>=2.6).sort((a,b)=>Math.abs(a-intent)-Math.abs(b-intent));
+-    const open=sides.find(clear);
++      .filter(c=>Math.abs(c-offRoute)>=2.6 && (!mine || Math.sign(c-offRoute)===mine)).sort((a,b)=>Math.abs(a-intent)-Math.abs(b-intent));
++    const open=sides.find(c=>clear(c) && !oncomingInto(c));
+     if (open!==undefined) { offset=open; blocking=false; }
++    const held=open===undefined && mine!==0;
++    // Held, it keeps its side of the car: its aim no nearer that car's centre than a pass would put it. Holding the aim
++    // it had was holding a place already moving back into its lane, which was where the car was: coming off a corner
++    // line wide of an SUV, the rival stayed "beside" it, so did not brake, and steered into it (gen-56, seed 314159).
++    if (held) offset=mine<0 ? Math.min(driver.avoidance, offRoute-PASS.gap) : Math.max(driver.avoidance, offRoute+PASS.gap);
+     const onBumper=ahead-length<4;
+     // And, for a car following this road, against where this car will actually BE when it gets there (2026-09-22):
+     // from where it is, at the rate it is moving across the road, towards the side being chosen now (`open`) or where
+@@ -905,7 +953,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
+     // bent, and carrying `open` across as a displacement braked gen-54 from 100 to 35 mph for a truck 4.6 m beside
+     // its line. Where she is: `nearestSide`, across the route at her own station; where the car is: `offRoute`, across
+     // the road at its; where she means to be: `open`, across the road where the aim is, the same quantity followed.
+-    const carAcross = (car.x - here.x) * -here.uz + (car.z - here.z) * here.ux, nx = -here.uz, nz = here.ux;
++    const nx = -here.uz, nz = here.ux;
+     const acrossRate = (-Math.sin(car.heading) * car.forwardSpeed + Math.cos(car.heading) * car.lateralSpeed) * nx
+       + (-Math.cos(car.heading) * car.forwardSpeed - Math.sin(car.heading) * car.lateralSpeed) * nz;
+     const meant = open ?? intent;
+@@ -919,7 +967,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
+     // let go, where held to this it stayed stopped until the unseen reset (gen-67, the old rule passed it at 34 mph).
+     const corridor = RIVAL_RACING.followCorridor + RIVAL_RACING.followMargin * Math.min(1, arrival);
+     const stillInPath = RIVAL_RACING.followWhereItIs && follows && car.speed - along > RIVAL_RACING.followClosing && Math.abs(sideAtArrival - willBe) < corridor;
+-    if (ahead>0 && ((Math.abs(offRoute-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
++    // Beside it is side by side, past the two cars' touching width across the road (`followCorridor`): its centre within a
++    // car's length is also nose to tail, and read as beside, a rival cutting back behind an SUV held its throttle for
++    // two seconds on its bumper (gen-56, seed 314159).
++    const beside=held && ahead<length && Math.abs(carAcross-offRoute)>RIVAL_RACING.followCorridor;
++    if (ahead>0 && ((Math.abs(offRoute-intent)<2.8 && (open===undefined || onBumper) && !beside) || stillInPath)) slowFor(along,ahead,length);
+   }
+   // A block eases across; dodging a hazard or taking a pass does not wait.
+   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
+diff --git a/src/sim/traffic.ts b/src/sim/traffic.ts
+index 529b81d..9df745d 100644
+--- a/src/sim/traffic.ts
++++ b/src/sim/traffic.ts
+@@ -80,6 +80,9 @@ const RACER_IN_JUNCTION = 5;
+ export const RACER_HORIZON = { braking: 9, reaction: 0.5, max: 8 } as const;
+ /** A racer slower than this, m/s, holds no junction: it is waiting, not crossing. */
+ const RACER_MOVING = 3;
++/** Whether a claim is given back while the car can still stop short of its line, and the metres of stopping room
++ *  it keeps in hand (`stepTraffic`). Off: being measured. */
++export const RACER_GIVE_BACK = { on: false, room: 2 };
+ 
+ export interface TrafficKindSpec {
+   readonly length: number;
+@@ -897,6 +900,20 @@ function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers
+ 
+ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: number, racers: readonly TrafficRacer[] = []): void {
+   const byLane = occupancy(state);
++  // A claim given back while it still can be (2026-09-22, off: being measured). A claim is judged against the
++  // racers once, when it is made; a racer that accelerates, or comes round a bend into line with the junction,
++  // after that is never seen. Each tick a car on its approach, not yet on its curve and still able to stop short
++  // of its line, asks again, and gives the claim back if a racer will now cross before it is clear. Tried on
++  // 2026-09-13 without traffic-v8's reckoning: it halved circling, and made standoffs with a rival that then rode
++  // the centreline among traffic blind to it.
++  if (RACER_GIVE_BACK.on && racers.some(racer => racer.speed >= RACER_MOVING)) {
++    for (const vehicle of state.vehicles) {
++      if (!vehicle.holds.length || network.movements[vehicle.holds[0]!]!.from !== vehicle.lane || trafficCornering(network, vehicle)) continue;
++      const lane = network.lanes[vehicle.lane]!, entry = lane.length - lane.entry - vehicle.distance;
++      if (entry - STOP_SHORT < vehicle.speed * vehicle.speed / (2 * BRAKING) + RACER_GIVE_BACK.room) continue;
++      if (racerCrossing(network, vehicle.holds, racers, clearingTime(network, vehicle, vehicle.holds, entry))) vehicle.holds = [];
++    }
++  }
+   // A vehicle claims its movements when it is granted, not when it reaches the
+   // junction, and keeps them until it is clear on the far side.
+   //
+diff --git a/tests/rival-racing.test.ts b/tests/rival-racing.test.ts
+index 0378c5f..5e7e41e 100644
+--- a/tests/rival-racing.test.ts
++++ b/tests/rival-racing.test.ts
+@@ -319,6 +319,50 @@ test("it does not pull out to pass into the path of an oncoming car", () => {
+   assert.ok(held.driver.targetSpeed < 29, `with nowhere to pass it kept a target of ${held.driver.targetSpeed.toFixed(1)} m/s`);
+ });
+ 
++// The looks above are now and alongside. A car coming the other way meets this one between them: a car stopped in the
++// lane 55 m on is alongside in 1.7 s, and a car 65 m on coming the other way meets the rival in 1.3, 10 m from the car
++// being passed now and 15 m from where it is passed. Pulled out to pass at 125 mph (gen-70, traffic seed 271828), it
++// braked in the oncoming car's lane rather than leaving it (2026-09-22).
++test("it does not pull out to pass into a car coming the other way that it will meet before it is past", () => {
++  const stopped = { x: 0, z: -155, speed: 0, heading: 0 };
++  const beside = { x: 5.5, z: -100, speed: 30, heading: 0 };
++  const oncoming = { x: -3.2, z: -165, speed: 15, heading: Math.PI };
++  const free = decide([stopped, beside]);
++  assert.ok(free.driver.avoidance < -0.01, "with the left clear it did not move out to pass; the test proves nothing");
++  const rule = RIVAL_RACING as { passOncoming: boolean };
++  rule.passOncoming = false;
++  try {
++    assert.ok(decide([stopped, beside, oncoming]).driver.avoidance < -0.01, "without the rule it held back anyway; the test proves nothing");
++  } finally { rule.passOncoming = true; }
++  const held = decide([stopped, beside, oncoming]);
++  assert.ok(held.driver.avoidance > -0.01, `it pulled out ${held.driver.avoidance.toFixed(2)} m into a car coming the other way`);
++  // Queued behind the stopped car, its target is what stopping short of it allows, not the road's.
++  assert.ok(held.driver.targetSpeed < 30 && free.driver.targetSpeed > held.driver.targetSpeed + 10,
++    `with nowhere to pass it planned ${held.driver.targetSpeed.toFixed(1)} m/s, against ${free.driver.targetSpeed.toFixed(1)} with the side clear`);
++  // Gone past, the side is the rival's again.
++  const after = decide([stopped, beside, { ...oncoming, z: -80 }]);
++  assert.ok(after.driver.avoidance < -0.01, "with the oncoming car behind it, it still would not pass");
++});
++
++// A side is chosen afresh every tick, so the far side of a car it is beside was one choice away (2026-09-22, gen-16,
++// seed 0): on the right of a sedan on a 12 m street, the sedan drifting back into the room there, it chose the left
++// and steered through the sedan for four seconds. Beside a car, it keeps its side of it.
++test("beside a car it is passing, it keeps that side rather than choosing the far side through it", () => {
++  const sedan = { x: 1.5, z: -115, speed: 11, heading: 0 };
++  // From behind, centred on it, the left is open: the test is about the choice, not the room.
++  const behind = decide([sedan], 12, 1.5);
++  assert.ok(behind.driver.avoidance < 1.5 - 0.05, "from behind it did not take the left; the test proves nothing");
++  // Beside it on its right, 2.1 m across, its bumper level, and no room left on the right (a 12 m street's edge).
++  const alongside = decide([{ ...sedan, z: -101 }], 12, 3.6);
++  assert.ok(alongside.driver.avoidance > 3.6 - 0.01, `beside it on its right, it moved to ${alongside.driver.avoidance.toFixed(2)} m, towards it`);
++  assert.ok(alongside.driver.targetSpeed > 20, `beside it, it planned ${alongside.driver.targetSpeed.toFixed(1)} m/s, the car's own speed`);
++  // Nose to tail is not beside: 1.3 m to its left and on its bumper, closing too slowly for the will-be check (under
++  // `followClosing`), the left refused for a car coming the other way, it slows to the car's speed. Read as beside, a
++  // rival held its throttle on an SUV's bumper for two seconds (gen-56, seed 314159).
++  const tail = decide([{ ...sedan, z: -103, speed: 27 }, { x: -2.9, z: -140, speed: 15, heading: Math.PI }], 12, 0.2);
++  assert.ok(tail.driver.targetSpeed < 28, `on its bumper, it planned ${tail.driver.targetSpeed.toFixed(1)} m/s behind a car doing 27`);
++});
++
+ // The lost-car cap (2026-09-13). A rival is held to 10 m/s until it is back
+ // where it should be. It used to mean more than 5 m from its route. On a racing
+ // line that fired in a recorded race: abandoning a re-pass at 95 mph, the rival

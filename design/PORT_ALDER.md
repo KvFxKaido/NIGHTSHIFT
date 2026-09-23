@@ -1664,6 +1664,19 @@ in its own process (about 20 minutes on 24 processes), compared race by race wit
 A distinct incident is one (time, route metres) pair; it over-counts a contact broken in
 two and one that shifts a tenth of a second, so read the list, not only the count.
 
+What came next was not the fix (2026-09-22 to 09-23). The side commitment was built, and
+with it everything the rival and traffic had ruled out on 09-13 was re-examined on the
+gate: most of those rules were made on a rival that rode the centreline among traffic that
+could not see it. Deciding an oncoming car by where the rival is going changed nothing;
+letting a pass use the rival's own half to the kerb was clearly worse; a claim given back
+while the car can still stop had the best incident counts and more standoffs. driver-v3
+itself traded one kind of incident for another in three forms, the first two each failing
+on a bug in its new rules. None of it shipped (`design/COUPLINGS.md`, "What was ruled out";
+`design/measurements/driver-v3.patch` and `driver-v3-gates.json`). Shawn called the rival in
+traffic good enough for Phase 1 at `traffic-v8` / `driver-v2` (`design/HANDLING.md`).
+`pnpm rival:scene <race> --seed=` replays any race of the gate as a scene: every contact
+dissected, or the rival tick by tick through a stretch (`--from= --to=`).
+
 **Three races against Wake, and the rear-end under "traffic slows her down" (2026-09-22,
 `driver-v2`).** Shawn raced `gen-wake-42` three times from the grid in the Cinder, no
 pedal assist, all three recorded and all three replaying exactly:

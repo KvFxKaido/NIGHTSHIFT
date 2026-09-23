@@ -10,6 +10,30 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Re-examining what was ruled out, and stopping (2026-09-22 to 09-23)
+
+Asked for: re-examine everything ruled out and look for a better solution, after the
+side commitment kept exposing the next incident. What was assumed and wrong:
+
+- That the rejections were stale because they were old. Most were made on 09-13 on a
+  different rival, and two of the three re-tested still stood on today's: deciding an
+  oncoming car by the rival's target changed nothing, and passes into the rival's own half
+  were clearly worse. A rejection goes stale the way a number does, and like a number it
+  has to be measured again before it is called stale.
+- That the bug found in the commitment rule ("beside" meaning nose to tail) was what put
+  the rival on an SUV's bumper in gen-56. The trace after the fix was the same to the
+  tick. An instrumented loop showed the real one: held, the rule kept the rival's AIM,
+  and the aim was already back in its lane, where the SUV was. Trace again after a fix
+  before calling it the cause; a fix that changes nothing in the scene fixed something else.
+- That the gate could judge a rule of this size. A change that decided almost nothing
+  moved contact on a line from 11 ticks to 19. At five incidents in fifty, a rule and a
+  reshuffle look alike.
+- That the next step was a better rival. Another session read the log: 49 of 189 commits
+  since 09-12 were the rival or traffic, and nobody had decided they should outrank the
+  car. Its own counts for the car were wrong (it said `sim.ts` eight commits; it was 22,
+  half of them the launch, burnout, pedals and tunes), and its question was right. Shawn
+  called the rival in traffic good enough for Phase 1.
+
 ## Six layouts, and whose crash it was (2026-09-22)
 
 Asked for: start on COUPLINGS' suspect list. The car ladder first (it held, `HANDLING.md`),

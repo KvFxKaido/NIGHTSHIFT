@@ -17,6 +17,17 @@ countersteering retains v3's response rates and steering limits. RWD anticipates
 recovery to limit opposite overshoot and softens resisting front scrub near full
 manual counter-lock; automatic steering remains off.
 
+**What the gate is (Shawn, 2026-09-23).** GDD §22 makes the car's handling the first
+quality gate. The rival in traffic is not part of it, and is good enough for Phase 1
+at `traffic-v8` / `driver-v2`: over six traffic layouts it meets traffic in about one
+race in ten, alone, and Shawn, racing it, "hardly noticed" traffic. From 2026-09-12,
+49 of 189 commits touched the rival or traffic (`rival.ts` alone 38), and a day of rule
+changes on six seeds ended in reshuffles rather than fewer incidents (`design/COUPLINGS.md`,
+"What was ruled out"). The car was not idle meanwhile: its physics has been
+`four-wheel-v6` since 09-13, and the launch, the burnout, the pedals and every car's
+tune came around it. Reopening the rival in traffic is a scope decision; when it
+reopens, it starts from the notes in COUPLINGS. Attention returns to the car.
+
 ## What drives the car
 
 At each fixed 1/60-second tick, read the rigid body's actual point velocity at
