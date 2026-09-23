@@ -10,6 +10,31 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Traffic a racer can knock (2026-09-23)
+
+Asked for: what should happen when a player or the rival hits traffic ("currently traffic
+wins full stop"); Shawn chose the MC3 feel. What was assumed and wrong:
+
+- That a knocked car could be left to Rapier's damping to slow down. Damping is the same in
+  every direction, so a wreck stopped as if its wheels had locked, and the car behind
+  ploughed on into it: 23.6 m/s lost against a wall's 15.9, the feature making contact
+  worse. A wreck now rolls on braking and only its slide is scrubbed away.
+- That a wreck should go back where it was hit. A rear-ended sedan rolls on 60 m and more,
+  and put back where it was hit it landed behind the car queued for it.
+- That a wreck going back needed room from racers. Fifteen metres of it deadlocked a race:
+  the wreck waited for the rival stopped beside it, the rival waited for a car whose
+  forecast crossed its path, and that car waited behind the wreck. gen-39 at seed 314159,
+  61 resets, no finish. A racer blocks only the spot it would overlap, and a wreck whose
+  spot is taken goes back further along its lane.
+- That a clipped sedan would spin. It turned a hundredth of a radian a second while the car
+  that hit it spun at 1.5. Not the sim: a bare Rapier scene with the same boxes did it, and
+  varying CCD, height and sleeping changed nothing. Friction did: at the traffic collider's
+  0.35 the struck car's rear face was dragged sideways by the striking car's swinging nose,
+  2.2 m behind its centre, which cancelled the push's 0.4 m lever. At a car's 0.15 it turns.
+- That a test of "no traffic drives through a wreck" tested it. At one car per 900 m of
+  lane nothing ever came along behind the wreck, and it passed with the rule removed. A car
+  is now put there, and the test fails without the rule for the right reason.
+
 ## Re-examining what was ruled out, and stopping (2026-09-22 to 09-23)
 
 Asked for: re-examine everything ruled out and look for a better solution, after the

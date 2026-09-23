@@ -276,9 +276,14 @@ fixtures outside the playable bundle, and old world links redirect.
   replayed and compared like a circuit lap (`src/sim/recorded-event.ts`,
   `recordings/README.md`). The career is sprints, and until this only the rival's
   side of one could be measured.
-- **Traffic.** About 260 kinematic vehicles with reserved junction
-  movements (`traffic.ts`); a solid hazard nothing can push, never a second
-  handling model. It yields to the player and rival (`TrafficRacer`): follows
+- **Traffic.** About 260 vehicles with reserved junction movements
+  (`traffic.ts`), never a second handling model. Kinematic, except that since
+  `traffic-v9` (2026-09-23, Shawn: the MC3 feel) a car near a racer is for that tick
+  a physics body of its kind's mass (`TRAFFIC_KINDS`), so a hit is shared by mass: the
+  Cinder clipping a sedan 12 m/s faster loses 4.1 m/s at the hit, where the wall cost it 9.4.
+  Knocked off its lane it is a wreck, rolls on braking to rest, is an obstacle traffic
+  queues behind, and goes back on its lane at rest out of the player's sight
+  (`TRAFFIC_KNOCK` in `sim.ts`). A box truck has no mass and is still a wall. It yields to the player and rival (`TrafficRacer`): follows
   one going its way and holds a junction for one crossing it. Brake lights and
   indicators show what it will do. Each car's turns are decided in advance and it shows the next one on
   amber indicators (`trafficSignal`). `forecastTraffic` drives that plan
@@ -587,6 +592,17 @@ fixtures outside the playable bundle, and old world links redirect.
   the first tick it decides differently, so one kind of incident removed is another met. A rule that changed almost
   nothing (2026-09-22) still moved contact on a line from 11 ticks to 19; read five distinct incidents in fifty as
   noise, and judge a change by what KIND of incident went and came (`pnpm rival:scene`), never by the totals alone.
+- A car near a racer is a physics body only for the tick, driven along its lane by velocity, and must change NOTHING
+  until something touches it: the racer's state the tick before contact is the wall's to the bit
+  (`tests/traffic-knock.test.ts`). A wreck is not a lane car: it is out of `occupancy`, an obstacle to traffic
+  (`TrafficRacer.obstacle`: queued behind whichever way it points, and a junction it sits in is not claimed) and
+  forecast still. It goes back where it RESTS, along its lane from where it was hit, and further along if that spot is
+  taken: put back where it was hit it landed behind the car queued for it, and waiting for its own spot waited for a
+  rival stopped beside it, which waited for that car (gen-39, seed 314159, 61 resets, no finish).
+- Rapier's damping is the same in every direction, and a wreck damped by it stopped as if its wheels had locked: the car
+  that hit it ploughed on and lost MORE than the wall had cost. A wreck is braked along its heading and scrubbed across
+  it by hand (`TRAFFIC_KNOCK.brake`, `.slide`, `.spin`). Traffic's collider friction is a car's (0.15): at 0.35 a car
+  clipped on a rear corner did not turn at all, friction on its rear face cancelling the push, in bare Rapier too.
 - Where a junction claim is judged against a racer, the car's time in the junction is what it will DRIVE, braking for
   its corner (`clearingTime`), never its distance over the speed it has: that came out at half the truth for a car
   that slows to turn, and traffic turned across a rival it could not have cleared. Traffic alone never reads it, so a

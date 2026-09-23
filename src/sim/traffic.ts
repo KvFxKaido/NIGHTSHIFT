@@ -53,7 +53,11 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // v8 (2026-09-22): a claim reckons how long the vehicle will hold its junction from
 // the corner it will take, not the speed it has (`clearingTime`), so it holds a
 // junction for a racer it would have turned across. Traffic alone is unchanged.
-export const TRAFFIC_REVISION = "traffic-v8";
+// v9 (2026-09-23): a racer can knock a car off its lane (`knockTraffic`, sim.ts): near a racer a car is a physics
+// body of its kind's mass for the tick, hit hard enough it is a wreck until it is put back out of sight
+// (`restoreTraffic`), and traffic queues behind a wreck and keeps out of a junction it sits in. Traffic alone is
+// unchanged.
+export const TRAFFIC_REVISION = "traffic-v9";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -63,7 +67,12 @@ export const TRAFFIC_REVISION = "traffic-v8";
  * about to cross. Blind, it shoved a rival slowed into a one-lane street for ten
  * seconds and turned a truck across a rival passing it at 100 mph.
  */
-export interface TrafficRacer { readonly x: number; readonly z: number; readonly heading: number; readonly speed: number }
+export interface TrafficRacer {
+  readonly x: number; readonly z: number; readonly heading: number; readonly speed: number;
+  /** A thing in the road rather than a car racing it: a wreck (`traffic-v9`). Queued behind whichever way it points,
+   *  and a junction it sits in is not claimed, moving or not. */
+  readonly obstacle?: boolean;
+}
 /** A racer's length, for gaps: the longest car a racer drives, with some to spare. */
 const RACER_LENGTH = 4.8;
 /** Metres either side of a lane a racer counts as in it: half a lane, and half a car. */
@@ -87,15 +96,20 @@ export interface TrafficKindSpec {
   readonly height: number;
   /** Cruise speed in m/s. All well under the car: traffic is an obstacle. */
   readonly cruise: number;
+  /** Kilograms it has when a racer hits it (`traffic-v9`); absent, nothing moves it. */
+  readonly mass?: number;
 }
 
 export const TRAFFIC_KINDS: Readonly<Record<TrafficKind, TrafficKindSpec>> = {
   // Nothing slower than 35 mph (2026-09-13): sedan 40, taxi 38, van 36, box truck
   // 35. At 25-35 mph the trucks and vans were what clogged a street for a racer.
-  sedan: { length: 4.4, width: 1.85, height: 1.42, cruise: 17.9 },
-  taxi: { length: 4.6, width: 1.88, height: 1.5, cruise: 17 },
-  suv: { length: 4.85, width: 1.98, height: 1.82, cruise: 17 },
-  van: { length: 5.4, width: 2, height: 2.25, cruise: 16.1 },
+  // Masses are the MC3 feel, not the kerb weights (Shawn, 2026-09-23): clipping a sedan
+  // should cost a second, not the race, against cars of 1,050 to 1,900 kg. A box
+  // truck is a wall.
+  sedan: { length: 4.4, width: 1.85, height: 1.42, cruise: 17.9, mass: 900 },
+  taxi: { length: 4.6, width: 1.88, height: 1.5, cruise: 17, mass: 950 },
+  suv: { length: 4.85, width: 1.98, height: 1.82, cruise: 17, mass: 1_200 },
+  van: { length: 5.4, width: 2, height: 2.25, cruise: 16.1, mass: 1_500 },
   "box-truck": { length: 7.2, width: 2.4, height: 3.1, cruise: 15.7 },
 };
 
@@ -218,6 +232,11 @@ export interface TrafficVehicleState {
    *  Absent is seed 0: the one traffic every run had to 2026-09-22. Carried on the vehicle, so a forecast and the
    *  indicators, which copy the vehicle, read the same plan the vehicle drives. */
   readonly seed?: number;
+  /** Knocked off its lane by a racer (`traffic-v9`): a physics body, sliding to rest, until it is put back out of the
+   *  player's sight. `still` counts the ticks it has been at rest. Absent on every car nobody has hit, so a run with
+   *  no knock is the traffic it was, to the byte. `lane` and `distance` stay where it was hit, which is where it is
+   *  put back. */
+  wreck?: { still: number };
 }
 
 export interface TrafficState {
@@ -230,6 +249,8 @@ export const TRAFFIC_SPACING = 900;
 const SPAWN_MARGIN = 9;
 /** Bumper gap a follower will not close. */
 const MIN_GAP = 7;
+/** Metres between the places along its lane a wreck is tried at when the one it rests at is taken (`restoreTraffic`). */
+const RESTORE_STEP = 8;
 /** Metres of gap per m/s of speed: the follower's headway. */
 const HEADWAY = 1.5;
 /** How far ahead a follower looks, including one lane hop. */
@@ -716,6 +737,8 @@ export function createTraffic(network: TrafficNetwork, spacing = TRAFFIC_SPACING
 function occupancy(state: TrafficState): Map<number, TrafficVehicleState[]> {
   const byLane = new Map<number, TrafficVehicleState[]>();
   for (const vehicle of state.vehicles) {
+    // A wreck has left its lane: it is an obstacle to the cars in it (`TrafficRacer`), not one of them.
+    if (vehicle.wreck) continue;
     const list = byLane.get(vehicle.lane);
     if (list) list.push(vehicle); else byLane.set(vehicle.lane, [vehicle]);
   }
@@ -809,7 +832,8 @@ function racerGap(network: TrafficNetwork, vehicle: TrafficVehicleState, racers:
     // it, or crossing its lane, waited on a rival that was waiting on it. Stopped
     // inside a junction for a crossing rival (seed 13), and stopped head-on to a
     // rival sitting on the centreline (seeds 2 and 5), neither moved.
-    if (Math.cos(racer.heading - pose.heading) <= 0.5) continue;
+    // A wreck is queued behind whichever way it points: spun across the lane it is still in it.
+    if (!racer.obstacle && Math.cos(racer.heading - pose.heading) <= 0.5) continue;
     best = Math.min(best, straight - (TRAFFIC_KINDS[vehicle.kind].length + RACER_LENGTH) / 2);
   }
   return best;
@@ -873,7 +897,8 @@ function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers
     // Only a racer on the move. One stopped or crawling at a junction is waiting
     // for traffic itself, and holding traffic for it made them wait on each other
     // (seeds 2 and 5): traffic goes, as it always did, and the racer goes after.
-    if (racer.speed < RACER_MOVING) continue;
+    // A wreck, though, is in the junction whether it moves or not.
+    if (racer.speed < RACER_MOVING && !racer.obstacle) continue;
     const vx = -Math.sin(racer.heading) * racer.speed, vz = -Math.cos(racer.heading) * racer.speed;
     const seconds = Math.min(RACER_HORIZON.max, Math.max(clearing, racer.speed / RACER_HORIZON.braking + RACER_HORIZON.reaction));
     for (const id of chain) {
@@ -893,6 +918,56 @@ function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers
     }
   }
   return false;
+}
+
+/**
+ * Knocked off its lane by a racer (`traffic-v9`): from here the sim drives it as a physics body until it is put back
+ * (`restoreTraffic`). It gives up every junction it held, since it will not drive through them; its lane and distance
+ * stay, as where it goes back.
+ */
+export function knockTraffic(vehicle: TrafficVehicleState): void {
+  vehicle.wreck = { still: 0 };
+  vehicle.holds = [];
+  vehicle.braking = true;
+}
+
+/**
+ * A wreck back on its lane where it has come to rest, stopped: its lane is where it was hit, and its distance along it
+ * is that place plus how far down the lane it slid (a rear-ended sedan rolls on 60 m and more; put back where it was hit
+ * it landed behind the car queued for it). Short of its line, since it no longer holds the junction. A spot is taken if
+ * a car or a racer would overlap it, or a car is ahead of it on the lane within a length and a gap; a car queued behind
+ * it is what it is going back to release. Taken, the next spot along the lane is tried, every `RESTORE_STEP` metres to
+ * the line, then back from the first: a wreck that waited for its own spot waited, at seed 314159, for the rival stopped
+ * beside it, which waited for the car queued behind the wreck, which waited for the wreck. The caller decides nobody is
+ * watching (sim.ts). Whether it went back.
+ */
+export function restoreTraffic(network: TrafficNetwork, state: TrafficState, vehicle: TrafficVehicleState, racers: readonly TrafficRacer[]): boolean {
+  const lane = network.lanes[vehicle.lane]!, spec = TRAFFIC_KINDS[vehicle.kind];
+  const hit = network.pose(vehicle.lane, vehicle.distance);
+  const slid = (vehicle.x - hit.x) * -Math.sin(hit.heading) + (vehicle.z - hit.z) * -Math.cos(hit.heading);
+  const last = lane.length - lane.entry - STOP_SHORT, rest = Math.max(0, Math.min(vehicle.distance + slid, last));
+  const free = (distance: number) => {
+    const at = network.pose(vehicle.lane, distance);
+    for (const other of state.vehicles) {
+      if (other === vehicle || other.wreck) continue;
+      const room = (spec.length + TRAFFIC_KINDS[other.kind].length) / 2;
+      if (Math.hypot(other.x - at.x, other.z - at.z) < room + 1) return false;
+      if (other.lane === vehicle.lane && other.distance > distance - room && other.distance - distance < room + MIN_GAP) return false;
+    }
+    return !racers.some(racer => Math.hypot(racer.x - at.x, racer.z - at.z) < (spec.length + RACER_LENGTH) / 2 + 1);
+  };
+  const spots = [rest];
+  for (let d = rest + RESTORE_STEP; d <= last; d += RESTORE_STEP) spots.push(d);
+  for (let d = rest - RESTORE_STEP; d >= 0; d -= RESTORE_STEP) spots.push(d);
+  const distance = spots.find(free);
+  if (distance === undefined) return false;
+  delete vehicle.wreck;
+  vehicle.distance = distance;
+  vehicle.speed = 0;
+  vehicle.holds = [];
+  vehicle.braking = true;
+  place(network, vehicle);
+  return true;
 }
 
 export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: number, racers: readonly TrafficRacer[] = []): void {
@@ -929,7 +1004,7 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
   const headOfQueue = (vehicle: TrafficVehicleState): boolean =>
     !(byLane.get(vehicle.lane) ?? []).some(other => other !== vehicle && other.distance > vehicle.distance);
   const waiting = state.vehicles
-    .filter(vehicle => !vehicle.holds.length && vehicle.movement >= 0 && toEntry(vehicle) <= CLAIM_RANGE
+    .filter(vehicle => !vehicle.wreck && !vehicle.holds.length && vehicle.movement >= 0 && toEntry(vehicle) <= CLAIM_RANGE
       && headOfQueue(vehicle))
     .sort((a, b) => toEntry(a) - toEntry(b) || a.id - b.id);
   for (const vehicle of waiting) {
@@ -951,6 +1026,8 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
   }
 
   for (const vehicle of state.vehicles) {
+    // A wreck is a physics body until it is put back (`traffic-v9`, sim.ts): nothing here drives it.
+    if (vehicle.wreck) continue;
     const spec = TRAFFIC_KINDS[vehicle.kind];
     let gap = Math.min(gapAhead(network, byLane, vehicle), racerGap(network, vehicle, racers));
     if (!vehicle.holds.length) {
@@ -1047,6 +1124,9 @@ export function forecastTrafficPath(network: TrafficNetwork, vehicle: Readonly<T
 }
 
 function driveGhost(network: TrafficNetwork, ghost: TrafficVehicleState, seconds: number, step: number, fine: number, accelerate = false): void {
+  // A wreck follows no lane: forecast where it is, stopped. It slides a second or two after the hit; a rival reading it
+  // as already still brakes for it a little early, never late.
+  if (ghost.wreck) { ghost.speed = 0; return; }
   let left = seconds;
   while (left > 1e-9) {
     // Coarse steps where the speed holds, the tick's own step where a corner is

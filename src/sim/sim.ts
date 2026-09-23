@@ -7,7 +7,7 @@ import { readStreetLine } from "./street-line.ts";
    Rapier integrates motion and contacts. Three.js only draws the result. */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
-import { createTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficState } from "./traffic.ts";
+import { createTraffic, knockTraffic, restoreTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficNetwork, type TrafficRacer, type TrafficState } from "./traffic.ts";
 import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState } from "./race.ts";
 import { CAR_TUNES, type CarTune } from "./car-handling.ts";
 
@@ -678,9 +678,12 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
     const trafficBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
       .setTranslation(vehicle.x, vehicle.y + spec.height * 0.5, vehicle.z)
       .setRotation(yawRotation(vehicle.heading)));
-    world.createCollider(RAPIER.ColliderDesc
-      .cuboid(spec.width * 0.5, spec.height * 0.5, spec.length * 0.5)
-      .setFriction(0.35).setRestitution(0.1), trafficBody);
+    // Friction as a car's own (0.15, traffic-v9). At 0.35, set when traffic was a wall, a car clipped on a rear corner did
+    // not turn at all: as the striking car's nose swung, friction along the struck car's rear face, 2.2 m behind its
+    // centre, cancelled the push's 0.4 m lever to the hundredth of a radian a second (bare Rapier, .probe/spin2.mjs).
+    const collider = RAPIER.ColliderDesc.cuboid(spec.width * 0.5, spec.height * 0.5, spec.length * 0.5).setFriction(0.15).setRestitution(0.1);
+    // Its kind's mass counts only while it is a physics body (`TRAFFIC_KNOCK`); a kind with none is never one.
+    world.createCollider(spec.mass === undefined ? collider : collider.setMass(spec.mass), trafficBody);
     return trafficBody;
   });
 
@@ -1207,22 +1210,21 @@ export function step(sim: Sim, rawInput: Input): void {
   }
   applyVehicleInput(sim, rawInput, true);
   if (rig && rival) applyVehicleInput(rig, rival.input);
+  let armed: ArmedTraffic[] = [], trafficRacers: readonly TrafficRacer[] = [];
   // Traffic advances before the solver runs, so the player's contact this tick
   // is against where the traffic actually is rather than where it was.
   if (sim.state.traffic && sim.roadWorld.traffic) {
     // Traffic yields to the cars it does not drive (TrafficRacer in traffic.ts).
     const racers = [sim.state.vehicle, ...(sim.state.rival ? [sim.state.rival.vehicle] : []),
       ...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.cruisers.map(c => c.vehicle), ...sim.state.parkedRivals.map(r => r.vehicle)];
-    stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT, racers);
-    sim.state.traffic.vehicles.forEach((vehicle, i) => {
-      const trafficBody = sim.trafficBodies[i]!;
-      const spec = TRAFFIC_KINDS[vehicle.kind];
-      trafficBody.setNextKinematicTranslation({
-        x: vehicle.x, y: vehicle.y + spec.height * 0.5, z: vehicle.z });
-      trafficBody.setNextKinematicRotation(yawRotation(vehicle.heading));
-    });
+    // A wreck is an obstacle traffic queues behind and keeps out of a junction for (`TrafficRacer.obstacle`).
+    const wrecks: TrafficRacer[] = sim.state.traffic.vehicles.filter(v => v.wreck).map(v => ({ x: v.x, z: v.z, heading: v.heading, speed: v.speed, obstacle: true }));
+    stepTraffic(sim.roadWorld.traffic, sim.state.traffic, DT, wrecks.length ? [...racers, ...wrecks] : racers);
+    armed = moveTrafficBodies(sim.roadWorld.traffic, sim.state.traffic, sim.trafficBodies, racers);
+    trafficRacers = racers;
   }
   sim.world.step();
+  if (sim.state.traffic && sim.roadWorld.traffic) settleTrafficBodies(sim.roadWorld.traffic, sim.state.traffic, sim.trafficBodies, armed, sim.state.vehicle, trafficRacers);
   finishVehicle(sim);
   if (rig) finishVehicle(rig);
   if (encounterRig) finishVehicle(encounterRig);
@@ -1261,6 +1263,106 @@ export function step(sim: Sim, rawInput: Input): void {
 export const RIVAL_RESET_TICKS = 12 * TICK_HZ;
 /** Metres from the last reset within which a second one counts as stuck at the same place. */
 const RESET_REPEAT = 30;
+
+/**
+ * Traffic a racer can knock (2026-09-23, `traffic-v9`, Shawn: the MC3 feel). Traffic used to be kinematic without
+ * exception, a wall of infinite mass that drove on: clipping a sedan at 30 mph stopped a car as hard as a bus would,
+ * and any contact ended a rival's race. Now a car near a racer is, for that tick, a physics body of its kind's mass
+ * (`TRAFFIC_KINDS`), driven along its lane by velocity, so a contact is resolved with both masses: what the racer
+ * loses depends on what it hit and what it drives. Knocked off its lane's motion by more than `speed` or `yaw`, it is
+ * a wreck (`knockTraffic`): it rolls on braking, its slide and spin dying away, traffic queues behind it, and once it has
+ * been still `rest` seconds out of the player's sight (`UNSEEN_RECOVERY.sight`) it is put back on its lane
+ * (`restoreTraffic`). A kind with no mass (the box truck) is never a body: still a wall. Bodies change type and are
+ * never added or removed, so a replay makes the same solver the same way. Traffic alone never meets a racer, and is
+ * what it was.
+ */
+export const TRAFFIC_KNOCK = {
+  /** Metres from a racer, plus `lead` seconds of both cars' speed, inside which a car is a body for the tick. */
+  reach: 9, lead: 0.15,
+  /** m/s off its lane's velocity, or rad/s off its lane's turn, after a tick as a body that knock it off its lane. */
+  speed: 1.2, yaw: 0.35,
+  /** A wreck rolls on and is braked (`brake`, m/s²), and its slide across its own heading and its spin die away (per
+   *  second). Damped the same way in every direction it stopped as if its wheels had locked, and the car that hit it
+   *  ploughed on into it: 24 m/s lost from 30 into a sedan, where the wall it replaced cost 16. */
+  brake: 4, slide: 4, spin: 1.2,
+  /** Seconds a wreck has been still before it may go back, and below what it counts as still (m/s, rad/s). */
+  rest: 2, still: 0.3, stillSpin: 0.2,
+} as const;
+
+interface ArmedTraffic { index: number; vx: number; vz: number; turn: number }
+
+function wrapAngle(angle: number): number { return Math.atan2(Math.sin(angle), Math.cos(angle)); }
+
+/** Before the solver: a wreck held on the ground, a car near a racer a body driven along its lane, the rest kinematic. */
+function moveTrafficBodies(network: TrafficNetwork, state: TrafficState, bodies: readonly RAPIER.RigidBody[], racers: readonly TrafficRacer[]): ArmedTraffic[] {
+  const armed: ArmedTraffic[] = [];
+  state.vehicles.forEach((vehicle, index) => {
+    const body = bodies[index]!, spec = TRAFFIC_KINDS[vehicle.kind];
+    if (vehicle.wreck) {
+      const at = body.translation(), velocity = body.linvel(), heading = headingFromRotation(body.rotation());
+      const fx = -Math.sin(heading), fz = -Math.cos(heading), along = velocity.x * fx + velocity.z * fz;
+      const rolling = Math.sign(along) * Math.max(0, Math.abs(along) - TRAFFIC_KNOCK.brake * DT), slide = Math.exp(-TRAFFIC_KNOCK.slide * DT);
+      body.setTranslation({ x: at.x, y: network.height(at.x, at.z) + spec.height * 0.5, z: at.z }, true);
+      body.setLinvel({ x: rolling * fx + (velocity.x - along * fx) * slide, y: 0, z: rolling * fz + (velocity.z - along * fz) * slide }, true);
+      body.setAngvel({ x: 0, y: body.angvel().y * Math.exp(-TRAFFIC_KNOCK.spin * DT), z: 0 }, true);
+      return;
+    }
+    const near = spec.mass !== undefined && racers.some(racer =>
+      Math.hypot(racer.x - vehicle.x, racer.z - vehicle.z) < TRAFFIC_KNOCK.reach + (racer.speed + vehicle.speed) * TRAFFIC_KNOCK.lead);
+    if (!near) {
+      if (body.bodyType() !== RAPIER.RigidBodyType.KinematicPositionBased) {
+        body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      }
+      body.setNextKinematicTranslation({ x: vehicle.x, y: vehicle.y + spec.height * 0.5, z: vehicle.z });
+      body.setNextKinematicRotation(yawRotation(vehicle.heading));
+      return;
+    }
+    if (body.bodyType() !== RAPIER.RigidBodyType.Dynamic) {
+      body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+      body.setEnabledTranslations(true, false, true, true);
+      body.setEnabledRotations(false, true, false, true);
+    }
+    // Driven to where its lane puts it this tick: unhit, a body lands exactly where kinematic traffic would.
+    const at = body.translation(), turn = wrapAngle(vehicle.heading - headingFromRotation(body.rotation())) / DT;
+    const vx = (vehicle.x - at.x) / DT, vz = (vehicle.z - at.z) / DT;
+    body.setTranslation({ x: at.x, y: vehicle.y + spec.height * 0.5, z: at.z }, true);
+    body.setLinvel({ x: vx, y: 0, z: vz }, true);
+    body.setAngvel({ x: 0, y: turn, z: 0 }, true);
+    armed.push({ index, vx, vz, turn });
+  });
+  return armed;
+}
+
+/** After the solver: a body knocked off its lane's motion is a wreck; a wreck's pose is its state; a still wreck out of
+ *  the player's sight goes back on its lane. */
+function settleTrafficBodies(network: TrafficNetwork, state: TrafficState, bodies: readonly RAPIER.RigidBody[], armed: readonly ArmedTraffic[],
+  player: Readonly<VehicleState>, racers: readonly TrafficRacer[]): void {
+  for (const { index, vx, vz, turn } of armed) {
+    const body = bodies[index]!, velocity = body.linvel();
+    if (Math.hypot(velocity.x - vx, velocity.z - vz) > TRAFFIC_KNOCK.speed || Math.abs(body.angvel().y - turn) > TRAFFIC_KNOCK.yaw) {
+      knockTraffic(state.vehicles[index]!);
+    }
+  }
+  state.vehicles.forEach((vehicle, index) => {
+    if (!vehicle.wreck) return;
+    const body = bodies[index]!, at = body.translation(), velocity = body.linvel();
+    vehicle.x = at.x; vehicle.z = at.z; vehicle.y = network.height(at.x, at.z);
+    vehicle.heading = headingFromRotation(body.rotation());
+    vehicle.speed = Math.hypot(velocity.x, velocity.z);
+    vehicle.wreck.still = vehicle.speed < TRAFFIC_KNOCK.still && Math.abs(body.angvel().y) < TRAFFIC_KNOCK.stillSpin ? vehicle.wreck.still + 1 : 0;
+    if (vehicle.wreck.still < TRAFFIC_KNOCK.rest * TICK_HZ) return;
+    if (Math.hypot(player.x - vehicle.x, player.z - vehicle.z) <= UNSEEN_RECOVERY.sight) return;
+    if (!restoreTraffic(network, state, vehicle, racers)) return;
+    const spec = TRAFFIC_KINDS[vehicle.kind];
+    body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    body.setTranslation({ x: vehicle.x, y: vehicle.y + spec.height * 0.5, z: vehicle.z }, true);
+    body.setRotation(yawRotation(vehicle.heading), true);
+  });
+}
 
 /**
  * Recovery out of the player's sight (2026-09-13). Where NightShift may lie for

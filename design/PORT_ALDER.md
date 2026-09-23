@@ -2867,6 +2867,69 @@ exactly; the six recorded in traffic were already refused, one for predating
 traffic revisions and five for the rival's. The golden master agrees: nine runs
 with no traffic in them are bit-identical, the five with traffic moved.
 
+## Traffic a racer can knock (2026-09-23, `traffic-v9`)
+
+"What should happen when a player or AI crashes into traffic? Currently traffic wins full
+stop." (Shawn.) It did: traffic was kinematic, a wall of infinite mass that drove on, so
+clipping a sedan stopped a car as hard as a bus, and any contact ended a rival's race. Shawn
+chose the MC3 feel, "that cost me a second", to be adjusted if it proves too easy.
+
+**How it works.** Bodies are never added or removed (a replay has to make the same solver
+the same way), so a traffic car changes type:
+
+- **Near a racer**, within `TRAFFIC_KNOCK.reach` (9 m) plus `lead` (0.15 s) of both cars'
+  speed, it is a physics body for the tick, of its kind's mass (`TRAFFIC_KINDS`: sedan 900 kg,
+  taxi 950, SUV 1,200, van 1,500), driven to where its lane puts it by velocity. Unhit it
+  lands exactly where kinematic traffic would, and a racer's state the tick before contact
+  is the wall's to the bit (`tests/traffic-knock.test.ts`). A contact is resolved with both
+  masses. The box truck has no mass and is never a body: still a wall.
+- **Knocked** off its lane's motion by more than 1.2 m/s or 0.35 rad/s, it is a wreck
+  (`knockTraffic`): it gives up its junctions, rolls on braking at 4 m/s² while its slide
+  across its heading and its spin die away, is an obstacle traffic queues behind whichever
+  way it points and keeps out of a junction it sits in (`TrafficRacer.obstacle`), and is
+  forecast still. Its pose is its state, so the renderer and the rival read it.
+- **Put back** (`restoreTraffic`) once still for 2 s and more than 120 m from the player
+  (`UNSEEN_RECOVERY.sight`): on its lane where it came to rest, short of its line, or further
+  along if a car or a racer would overlap that spot.
+
+Traffic alone never meets a racer and is unchanged. The masses are the MC3 feel, not kerb
+weights: the Cinder, 12 m/s faster than the car it hits, loses at the hit
+
+| It hits | Mass | Speed lost | As a wall |
+|---|---|---|---|
+| sedan | 900 kg | 4.1 m/s | 9.4 |
+| taxi | 950 kg | 4.3 m/s | 9.6 |
+| SUV | 1,200 kg | 4.9 m/s | 9.7 |
+| van | 1,500 kg | 5.6 m/s | 9.9 |
+| box truck | a wall | 10.3 m/s | |
+
+and the Breakwater's weight, "felt only in contact", now counts against traffic too. In the
+game, on the throttle at 33.6 m/s into a sedan, the Cinder came out at 26.5, and momentum
+says 26.8. A glancing hit turns both cars: the sedan 29 degrees, and the Cinder spun in its
+own smoke, which is the feel to judge at the pad.
+
+**What building it found.** Rapier's damping is the same every way, and a wreck damped by it
+stopped as if its wheels had locked: the car behind lost more than the wall had cost it. A
+clipped sedan did not turn (0.01 rad/s against the striking car's 1.5), in bare Rapier as
+well; the collider's friction, 0.35 from when traffic was a wall, was cancelling the push on
+its rear face, and at a car's 0.15 it turns. And a wreck put back where it was hit, with
+15 m kept clear of racers, deadlocked gen-39 at seed 314159 (the wreck waited for the rival
+beside it, the rival for a car whose forecast crossed its path, that car for the wreck: 61
+resets, no finish). It now goes back where it rests, clear of overlap only.
+
+| Six seeds, 498 races, the rival alone | Time | Did not finish | Resets | Off the pavement | Contact ticks | Races with contact | Distinct incidents |
+|---|---|---|---|---|---|---|---|
+| `traffic-v8` | 47,364 s | 0 | 55 | 824 | 640 | 66 | 53 |
+| **`traffic-v9`** | 47,365 s | 0 | 29 | 2 | 2,036 | 79 | 58 |
+
+Contact no longer ends anything, and it shows. Resets fall by half and the rival all but stops
+being thrown off the road, for the same time. Contact is up because it continues: the longest
+cases read as a rival grazing a turning van at 25 mph and carrying on, and shoving a heavier van
+aside at walking pace after braking to 2 mph for it, where the wall would have driven its turn
+through it (`pnpm rival:scene street-uptown --seed=314159`, `gen-82 --seed=1`). The gate's
+contact counts were built for a world where contact was failure; read its outcomes now.
+`pnpm golden`: the five runs where racers drive among traffic moved, nine bit-identical.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.
