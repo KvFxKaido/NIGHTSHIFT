@@ -26,7 +26,10 @@ changes on six seeds ended in reshuffles rather than fewer incidents (`design/CO
 "What was ruled out"). The car was not idle meanwhile: its physics has been
 `four-wheel-v6` since 09-13, and the launch, the burnout, the pedals and every car's
 tune came around it. Reopening the rival in traffic is a scope decision; when it
-reopens, it starts from the notes in COUPLINGS. Attention returns to the car.
+reopens, it starts from the notes in COUPLINGS. The handling itself has been in a good
+place for a while (Shawn, 2026-09-23), which is why the rival keeping up took the time
+it did; the open question is no longer the car but how far, and where, the rival may
+be helped, and that is a scope decision.
 
 ## What drives the car
 
