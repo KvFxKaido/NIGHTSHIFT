@@ -261,7 +261,9 @@ fixtures outside the playable bundle, and old world links redirect.
   kept generated races (`nightshift.playlist`), each raced with the rival or
   solo (`?solo=1`, circuits by `-solo`); Keep on a generated race's results;
   Draw a race here in free roam. Entries from another build stay listed,
-  unplayable (`design/PORT_ALDER.md`, "Race list").
+  unplayable (`design/PORT_ALDER.md`, "Race list"). Authored sprints are generated courses
+  pinned as data (`authored-sprints.ts`, `?race=sprint-jackson-mercer`, 2026-09-23): gen-wake-42 as
+  Shawn cut it, through Spruce Cut, so no change to the map or generator redraws it.
 - **Ridge Circuit** (working name) east of Madrona Ridge, off Pine East: one
   facility, three layouts (`arena.ts`), open edges, three-lap races with the
   rival on the centreline (`?race=arena-full|arena-east|arena-ridge`, `-solo`
@@ -428,7 +430,10 @@ fixtures outside the playable bundle, and old world links redirect.
   the generator's output, so a rebuild cannot orphan a hand-placed building.
 - Alleys are noded only among themselves, join at existing junctions, carry
   the `sea-alley-` prefix and displace pinned plots. Score one with
-  `--try`, draw one, measure again. Do not go crazy with them.
+  `--try`, draw one, measure again. Do not go crazy with them. Since the shoulders
+  a FULL `build-alder.py` re-places every generated plot and breaks the clearance
+  overlay: append the alley's road to the data and rebuild `--surfaces-only`, and retire
+  what its carriageway, shoulder and sidewalk cross in `alder-clearance.json` (Spruce Cut).
 - The rival gets its own forces, then ONE `world.step()` for both bodies.
   Never a second physics world. No catch-up, no rubber-banding, no grip
   change for AI, learned or not. The places it may be helped are out of the

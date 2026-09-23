@@ -10,6 +10,18 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Spruce Cut and an authored sprint (2026-09-23)
+
+Asked for: Shawn's cuts as official shortcuts, and the race he cut as an official race. What was assumed and wrong:
+
+- That an alley is added by adding it to `alleys.json` and running the builder, as Freight Cut was. Since the shoulders
+  the buildings are the old full build's, moved by a clearance overlay keyed by plot id; a full build re-places them
+  round the wider asphalt and the overlay stops matching. The road is appended to the data and the surfaces rebuilt.
+- That the critique's "displaces 1 building" was the count. It measures the carriageway; the alley's paved ribbon took
+  two, the shoulder-clearance test found the second.
+- That a generated race is a stable thing to call official. gen-wake-42 was two courses on one day and would have been a
+  third after the alley; it is pinned first and the alley spliced into the pinned route.
+
 ## The shoulder is road (2026-09-23)
 
 Asked for: the rival using the shoulders that had just been added. What was assumed and wrong:

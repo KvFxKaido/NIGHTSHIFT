@@ -36,7 +36,7 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 ## The ledger
 
 As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v5`,
-`street-line-v3`, `pass-v3`, on `alder-slice-v7` (the shoulders, `design/ROAD_EDGES.md`).
+`street-line-v3`, `pass-v3`, on `alder-slice-v8` (the shoulders, `design/ROAD_EDGES.md`, and Spruce Cut).
 
 | Number | Where | Set | Measured on | Changed under it since | Status |
 |---|---|---|---|---|---|

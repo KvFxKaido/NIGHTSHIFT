@@ -138,7 +138,7 @@ def sidewalk_surface():
 
 if existing is not None:
     sidewalk, lifts = sidewalk_surface()
-    existing.update(version='alder-slice-v7', pavementWidth=PAVEMENT_WIDTH, shoulderWidth=SHOULDER_WIDTH,
+    existing.update(version='alder-slice-v8', pavementWidth=PAVEMENT_WIDTH, shoulderWidth=SHOULDER_WIDTH,
         asphalt=triangles(asphalt), pavement=sidewalk, pavementLifts=lifts,
         ground=triangles(box(*existing['bounds']).difference(asphalt.union(pavement))))
     for park in existing['parks']:
@@ -211,7 +211,7 @@ for park in extension['parks']:
             trees.append({'x':x,'z':z,'width':1,'depth':1,'height':7+(row+col)%4,'rotation':0,'base':round(height(x,z),3)})
 
 sidewalk, lifts = sidewalk_surface()
-result = {'version':'alder-slice-v7', 'pavementWidth':PAVEMENT_WIDTH, 'shoulderWidth':SHOULDER_WIDTH, 'source':base['source'], 'retrieved':base['retrieved'],
+result = {'version':'alder-slice-v8', 'pavementWidth':PAVEMENT_WIDTH, 'shoulderWidth':SHOULDER_WIDTH, 'source':base['source'], 'retrieved':base['retrieved'],
           'expansion':'Authored east-hills-layout.json, 2026-09-11',
           'parks':parks, 'trees':trees, 'neighborhoods':extension['neighborhoods'],
           'roadEnvelopeKm2':round(box(*asphalt.bounds).area/1e6,4),

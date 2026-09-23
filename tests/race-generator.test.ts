@@ -43,17 +43,17 @@ test("a seed draws the same race every time, and different seeds draw different 
 // 2026-09-21 and all six fingerprints recomputed to the value already pinned, so
 // only the world moved here. Check that before repinning — six unchanged hashes
 // are the evidence the gate changed no race, and a changed one is the warning.
-const WORLD = "alder-slice-v7-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-707d7c1d";
+const WORLD = "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v3-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b";
 const FINGERPRINTED: Record<"plain" | "turf", Record<GeneratedKind, { revision: string; world: string; fingerprint: string }>> = {
   plain: {
     sprint: { revision: "generator-v1", world: WORLD, fingerprint: "2209b0e3" },
-    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "fc416fbe" },
+    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "40c6bb23" },
     unordered: { revision: "generator-v1", world: WORLD, fingerprint: "154c50e7" },
   },
   turf: {
-    sprint: { revision: "generator-v1", world: WORLD, fingerprint: "f0665574" },
-    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "1260d525" },
-    unordered: { revision: "generator-v1", world: WORLD, fingerprint: "60cc13d8" },
+    sprint: { revision: "generator-v1", world: WORLD, fingerprint: "1c1c87a4" },
+    circuit: { revision: "generator-v2", world: WORLD, fingerprint: "43756cf2" },
+    unordered: { revision: "generator-v1", world: WORLD, fingerprint: "2ecc657c" },
   },
 };
 function drawFingerprint(set: "plain" | "turf", kind: GeneratedKind): string {

@@ -19,6 +19,8 @@
  * `comparable` is false.
  */
 import { drawAlderCourse, fieldAlderRival } from "./alder-course.ts";
+import { authoredSprintFor, AUTHORED_SPRINT_REVISION } from "./authored-sprints.ts";
+import { layoutFingerprint } from "./building-layout.ts";
 import { circuitEvent } from "./circuits.ts";
 import type { LapTrack } from "./lap-recorder.ts";
 import type { RaceDefinition } from "./race.ts";
@@ -43,15 +45,31 @@ export interface RecordedEvent {
 }
 
 export const GENERATED_LAYOUT = "generated";
+export const AUTHORED_SPRINT_LAYOUT = "authored-sprint";
 
 /**
- * The event a race id names, or null for one that is not recorded (the drag strip, the drift yard, Sound to Sky).
+ * The event a race id names, or null for one that is not recorded (the drag strip, the drift yard, Sound to Sky). An
+ * authored sprint (`authored-sprints.ts`) is recorded as a generated sprint is, against the course it pins.
  * `start` is a generated race's flash, as its draw needs it; `solo` is a generated race's `?solo=1` (a circuit says
  * so in its id). Throws, as `drawAlderCourse` does, for a generated race that cannot be drawn.
  */
 export function recordedEvent(raceId: string, laps?: number, generated: { start?: string | null; solo?: boolean } = {}): RecordedEvent | null {
   const circuit = circuitEvent(raceId, laps);
   if (circuit) return { ...circuit, comparable: true };
+  const sprint = authoredSprintFor(raceId);
+  if (sprint) {
+    const solo = generated.solo ?? false, rival = fieldAlderRival(sprint.route);
+    return {
+      // What it is, pinned: the course names itself, so editing it refuses the sessions driven on the old one.
+      identity: `${AUTHORED_SPRINT_REVISION}.${layoutFingerprint([sprint.race, sprint.route, sprint.start])}`,
+      layout: AUTHORED_SPRINT_LAYOUT, solo, traffic: true,
+      race: solo ? withExits(sprint.race, rival) : sprint.race,
+      rival: solo ? null : rival,
+      track: { points: sprint.route.points, gatesPerLap: sprint.race.checkpoints.length },
+      start: sprint.start ?? undefined,
+      comparable: true,
+    };
+  }
   const id = parseGeneratedRaceId(raceId);
   if (!id) return null;
   const course = drawAlderCourse(raceId, generated.start ?? null), solo = generated.solo ?? false;

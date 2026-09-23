@@ -6,6 +6,12 @@
       "points": [[-9, 780], [215, 658]],
       "width": 8,
       "why": "Every generated race began at a dead spot: from the grid, the run up 1st Ave S had no alternative within 40% at all (Holgate to Harbor Access is 680 m without a cross street), so 300 of 300 first legs were no-choice. Measured 2026-09-11: draws made where nothing priced or even was ahead fell from 382 of 1167 to 59 of 1183 over 300 seeds, the priced-or-even share of the draw rose from 48% to 62%, and 196 of 300 first legs became priced or even. It displaces two warehouse plots."
+    },
+    {
+      "name": "Spruce Cut",
+      "points": [[940, -640], [800, -890]],
+      "width": 8,
+      "why": "Shawn's cut: racing gen-wake-42 on 2026-09-23 he left Pike Passage at 110 mph 20 m short of Spruce Lane and rejoined Pine East 37 m short of Olive Way, over bare ground, 233 m of his own for 522 m of the rival's route, and asked for it to be an official shortcut. It ends at that race's third gate. Scored before drawing (pnpm alder:critique --try=940,-640,800,-890): 287 m, 6.1 s, sight 79 m and 68 m at its ends; the arrivals at both junctions gain priced and even legs, and the draw over 300 seeds is as it was (priced-or-even 66% to 65%, dead spots 49 to 51 of about 1,180)."
     }
   ]
 }

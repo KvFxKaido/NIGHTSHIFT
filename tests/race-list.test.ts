@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ALDER_RACE } from "../src/sim/alder.ts";
 import { circuitEvent } from "../src/sim/circuits.ts";
+import { authoredSprintFor } from "../src/sim/authored-sprints.ts";
+import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { AUTHORED_RACES, generatedKind, raceListItems } from "../src/ui/race-list.ts";
 import { decodeProgress, type StageRace } from "../src/settings/progress.ts";
 import type { PlaylistEntry } from "../src/settings/playlist.ts";
@@ -18,12 +20,21 @@ const kept = (raceId: string, start: string | null, build = today): PlaylistEntr
 
 test("every authored entry starts a race the game knows, with the rival and solo", () => {
   assert.deepEqual(AUTHORED_RACES.map(item => item.title),
-    ["Sound to Sky", "Ridge Circuit / Full", "Ridge Circuit / East", "Ridge Circuit / Ridge", "Uptown Circuit", "Uptown Circuit / Clear"]);
+    ["Sound to Sky", "Ridge Circuit / Full", "Ridge Circuit / East", "Ridge Circuit / Ridge", "Uptown Circuit", "Uptown Circuit / Clear",
+      "Jackson East to Mercer East"]);
   for (const item of AUTHORED_RACES) {
     const race = item.race!, solo = item.solo!;
     if (race.raceId === ALDER_RACE.id) {
       assert.equal(race.solo, false);
       assert.deepEqual(solo, { raceId: ALDER_RACE.id, start: null, solo: true }, "Sound to Sky goes solo by the solo flag");
+      continue;
+    }
+    // An authored sprint (authored-sprints.ts) goes solo by the flag too, as a generated race does.
+    if (authoredSprintFor(race.raceId)) {
+      const withRival = recordedEvent(race.raceId)!, alone = recordedEvent(solo.raceId, undefined, { solo: solo.solo })!;
+      assert.equal(race.solo, false);
+      assert.deepEqual(solo, { raceId: race.raceId, start: null, solo: true }, `${item.title} goes solo by the solo flag`);
+      assert.ok(withRival.rival && !alone.rival && alone.solo);
       continue;
     }
     const withRival = circuitEvent(race.raceId), alone = circuitEvent(solo.raceId);

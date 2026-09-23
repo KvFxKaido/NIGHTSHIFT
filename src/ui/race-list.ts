@@ -1,6 +1,7 @@
 import { ALDER_RACE } from "../sim/alder.ts";
 import { arenaRaceId } from "../sim/arena-events.ts";
 import { streetCircuitRaceId } from "../sim/street-circuit.ts";
+import { authoredSprintFor, AUTHORED_SPRINT_IDS } from "../sim/authored-sprints.ts";
 import type { CareerProgress } from "../settings/progress.ts";
 import { BLACKLIST } from "../settings/blacklist.ts";
 import { raceBuildFor, sameRaceBuild, type RaceBuild, type RaceBuildFor } from "../settings/race-build.ts";
@@ -45,6 +46,9 @@ export const AUTHORED_RACES: readonly RaceListItem[] = [
     id(streetCircuitRaceId(true, false)), id(streetCircuitRaceId(true, true))),
   authored("street-uptown-clear", "Uptown Circuit / Clear", "Street circuit · 3 laps · clear streets",
     id(streetCircuitRaceId(false, false)), id(streetCircuitRaceId(false, true))),
+  // Generated courses pinned as data (authored-sprints.ts).
+  ...AUTHORED_SPRINT_IDS.map(raceId => { const sprint = authoredSprintFor(raceId)!;
+    return authored(raceId, sprint.name, `Sprint · ${sprint.race.checkpoints.length} gates · traffic`, id(raceId), id(raceId, true)); }),
 ];
 
 /** "gen-12-circuit" -> "Circuit". */

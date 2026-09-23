@@ -188,11 +188,15 @@ test("gen-72 passes cleanly and faster than the reactive driver", () => {
 // gen-35 was 55.3 s to driver-v1 and is 59.2 at driver-v2: it brakes for a taxi merging across its line at 96 mph, which
 // the will-be check (rival.ts) reads as 1.8 m from where it will be, and which in fact straightened. The bound is a
 // tripwire for resets and contact, not for that.
+// gen-40's traffic moved on 2026-09-23: Spruce Cut added lanes, and traffic is placed by the metre of lane, so every car
+// in the city starts elsewhere. The course is the same (4 gates, 3,257 m), but it now meets a car the planner passes,
+// cleanly and inside the bound, where the reactive driver needed none: 81.6 s against 79.3, a pass that costs 2.4 s.
+// gen-35 still meets nothing to pass. The tripwire is for contact, going off and resets, which neither has.
 test("clear passes and sharp bends retain the existing driver without new recovery incidents", () => {
-  for (const [id, limit] of [["gen-40", 82], ["gen-35", 60]] as const) {
+  for (const [id, limit, passes] of [["gen-40", 82, true], ["gen-35", 60, false]] as const) {
     const result = raceTraffic(id, true);
     assert.ok(result.finished && result.seconds < limit, id);
-    assert.equal(result.passing, 0, id);
+    assert.equal(result.passing > 0, passes, id);
     assert.equal(result.contact, 0, id);
     assert.equal(result.off, 0, id);
     assert.equal(result.resets, 0, id);

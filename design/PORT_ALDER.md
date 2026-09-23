@@ -471,6 +471,58 @@ and the rival driving a generated race through it in traffic. What remains:
 Harbor Access & 1st Ave S northbound (21 of the 59), which is the same SoDo
 funnel one junction on, and would need a released street split mid-block.
 
+**Spruce Cut** (2026-09-23, `sea-alley-1`, working name), 287 m from Pike Passage & Spruce Lane to Pine East & Olive
+Way: Shawn's cut. Racing gen-wake-42 he left Pike Passage at 110 mph 20 m short of Spruce Lane and rejoined Pine East
+37 m short of Olive Way over bare ground, 233 m of his own for 522 m of the rival's route, and asked for it to be an
+official shortcut: a street, so a rival's route may take it too, with traffic one lane each way. Scored first
+(`--try=940,-640,800,-890`): 6.1 s, sight 79 m and 68 m at its ends; the arrivals at both junctions gain priced and even
+legs, and the draw over 300 seeds is as it was (priced-or-even 66% to 65%, dead spots 49 to 51 of about 1,180). His two
+other cuts, from 12th Avenue across Thomas Street to Mercer East, leave and rejoin mid-block, 60 to 110 m from any
+junction, and wait until he has driven this one.
+
+It was added without the full builder. Since the shoulders the map's buildings are the old full build's, rebuilt
+`--surfaces-only`, with `alder-clearance.json` moving 466 of them by their original plot ids; a full build now re-places
+every generated plot round the wider asphalt, and the overlay no longer matches. So the alley is appended to the data's
+roads as the builder writes one (`sea-alley-1`, resampled at 30 m, byte-identical otherwise), the surfaces rebuilt, the
+world named `alder-slice-v8`, and the plots its paved ribbon crosses retired in the overlay: two, where the critique
+counted one, because it measures the carriageway and the ribbon is carriageway, shoulder and sidewalk. The generator's
+draws moved with the world (circuits and every turf kind; plain sprints and unordered races drew the same), and are
+re-pinned to it.
+
+Traffic moved with it too: it is placed by the metre of lane, and the alley is lane, so every car in the city starts
+somewhere else. `pnpm golden` moved every Port Alder run (8 of 14; the Blackglass fixtures are identical), and gen-40,
+the same course, now meets a car the pass planner passes cleanly where the reactive driver needed no pass, 81.6 s against
+79.3: a committed pass that costs 2.4 s, left open (`tests/traffic-pass.test.ts`).
+
+The gate is re-saved on it: the same courses meeting other traffic, and one course, gen-75, now through the alley. Against
+the shoulder baseline: distinct incidents 50 and 50, resets 30 to 35, off the pavement 48 to 14, contact in a pass 17 to
+34, and contact on a line 11 ticks to 278, of which 201 are gen-75 at seed 1 at the alley's own junction: coming down
+Spruce Lane to turn into it, an oncoming SUV claims the junction with the rival 6 m away at 16 mph and they tangle at
+walking pace for ten seconds, the line given back and taken again. That is the junction crossing parked on 2026-09-23,
+met at a junction that did not exist before; the alley made the place, not the kind. Jackson East to Mercer East makes
+the same turn and meets nothing there at any of the six seeds (88 to 102 s, contact at most 0.9 s, once a 0.1 s clip
+with a van inside the alley at 150 mph).
+
+## An authored sprint (2026-09-23)
+
+Shawn: "might want to make this an official race too." The race was gen-wake-42, and it was the second gen-wake-42 of
+the day: the shoulders had changed the world that morning and the seed drew another course, and Spruce Cut changes
+Wake's turf draws again. A seed is only as stable as everything its draw reads.
+
+So it is pinned as data (`src/sim/authored-sprints.json`, `authored-sprints.ts`): its race, its rival's route and
+its start, as gen-wake-42 drew on `alder-slice-v7`, the route taken through Spruce Cut from Pike Passage & Spruce Lane
+to the third gate, which the alley ends at. **Jackson East to Mercer East** (the generator's name, working), 4,307 m where
+the drawn route was 4,557, four gates, Wake in the Reign with her launch and her 0.96. `?race=sprint-jackson-mercer`,
+and in the race list after Uptown Circuit / Clear, with a solo button. It is built as a generated race is
+(`recordedEvent`): the street line drawn from the pinned route when it is fielded, so it follows the city while the
+course does not; traffic per attempt; recorded as one lap and compared gate by gate. Its identity is its pinned data
+(`authored-sprint-v1.<fingerprint>`), so editing the course refuses the sessions driven on the old one. The game draws
+its rival's car from its Blacklist name (`blacklist: "wake"`), as a generated race's id gives one.
+
+Wake alone on it: 84.3 s clear, 101.5 s in traffic at seed 0 and 95.0 s at 271828, no resets, nothing on bare ground,
+through Spruce Cut at 64 mph for the turn in and up to 152 along it. Shawn's own run on the unpinned course, cutting all
+three, was 1:29.55 against her 1:37.35.
+
 ## Generated races
 
 The flash draws a new race every time. `src/sim/race-generator.ts` takes the

@@ -49,6 +49,7 @@ import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
 import { generatedRaceId, parseGeneratedRaceId } from "./sim/race-id.ts";
+import { authoredSprintFor } from "./sim/authored-sprints.ts";
 import { alderCourseDraws } from "./sim/alder-course.ts";
 import { recordedEvent, type RecordedEvent } from "./sim/recorded-event.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
@@ -103,7 +104,7 @@ let rivalParts: CarView | null = null;
 let rivetParts: CarView | null = null;
 let sableParts: CarView | null = null;
 /** Who a race fields: Rivet's Hammer on the strip; a rival's own car when the race id names one; otherwise Moth's Kestrel. */
-const raceOpponentCar = () => (race?.kind === "drag" ? "hammer" : cruiserFor(race ? parseGeneratedRaceId(race.id)?.rival : null)?.car ?? "kestrel") as keyof typeof BLENDER_CARS;
+const raceOpponentCar = () => (race?.kind === "drag" ? "hammer" : cruiserFor(race ? parseGeneratedRaceId(race.id)?.rival ?? authoredSprintFor(race.id)?.blacklist : null)?.car ?? "kestrel") as keyof typeof BLENDER_CARS;
 /** The Blacklist names cruising their turfs in free roam, by id. */
 const cruiserParts = new Map<string, CarView>();
 let selectedCar = "cinder";
@@ -163,13 +164,15 @@ try {
   // the draw toward a rival's home ground (src/sim/alder-turf.ts).
   const generated = raceId ? parseGeneratedRaceId(raceId) : null;
   const circuitRace = raceId ? circuitEvent(raceId) : null;
-  if (raceId && !generated && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && !sableDriftFor(raceId)) throw new Error(`Unknown race '${raceId}'`);
+  // An authored sprint is a generated course pinned as data (src/sim/authored-sprints.ts), built as one is.
+  const authoredSprint = raceId ? authoredSprintFor(raceId) : null;
+  if (raceId && !generated && !authoredSprint && !circuitRace && raceId !== ALDER_RACE.id && raceId !== HARBOR_DRAG.id && !sableDriftFor(raceId)) throw new Error(`Unknown race '${raceId}'`);
   // A generated race starts where the flash was: ?start=x,z,heading, snapped
   // to its lane again here so the pose the URL carries is the pose driven.
   // The authored race starts on the grid its line was authored from.
   const startParam = params.get("start");
   if (startParam && !generated) { params.delete("start"); history.replaceState(history.state, "", url); }
-  if (generated) {
+  if (generated || authoredSprint) {
     // A course that cannot be drawn is not a broken asset: return to the garage
     // and say why, rather than an error screen that refreshing only repeats.
     try {
