@@ -5,6 +5,7 @@ import landmarks from "./alder-landmarks.json" with { type: "json" };
 import terrain from "./alder-terrain.json" with { type: "json" };
 import data from "./alder-data.json" with { type: "json" };
 import { sidewalkSampler } from "./sidewalk.ts";
+import { dressIntersections, intersectionPaintReserves } from "./intersection-dressing.ts";
 import clearance from "./alder-clearance.json" with { type: "json" };
 import { projectOntoPath, type Street } from "./street-path.ts";
 import { buildStreetTrafficNetwork } from "./street-traffic.ts";
@@ -269,6 +270,11 @@ export const ALDER_PAVEMENT = data.pavementWidth;
 export const ALDER_SHOULDER = data.shoulderWidth;
 /** Full paved ribbon outside the traffic lanes: asphalt shoulder plus sidewalk. */
 export const ALDER_PAVED_MARGIN = ALDER_SHOULDER + ALDER_PAVEMENT;
+const intersectionObstacles=[...ALDER_SOLIDS,...ALDER_PARKING_RESERVES,...groundsStreetAccess,ALDER_FORECOURT];
+export const ALDER_INTERSECTIONS=dressIntersections(ALDER_STREETS,ALDER_SHOULDER,(x,z)=>
+  alderSidewalkLift(x,z)>.1 && !intersectionObstacles.some(b=>pointFootprintDistance(b,x,z)<.8) &&
+  ![...ALDER_LAMP_POSES,...ALDER_BIN_POSES].some(p=>Math.hypot(p.x-x,p.z-z)<1.5));
+export const ALDER_INTERSECTION_PAINT=intersectionPaintReserves(ALDER_INTERSECTIONS,ALDER_SHOULDER);
 /** Paved ground that is not a street: drawn as asphalt, so it drives as asphalt. */
 const PAVED_AREAS = [...SITE_PAVING, DRIFT_YARD.bounds, DRIFT_YARD.driveway, {
   minX: ALDER_FORECOURT.x - ALDER_FORECOURT.width / 2, maxX: ALDER_FORECOURT.x + ALDER_FORECOURT.width / 2,

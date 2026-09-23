@@ -1,5 +1,6 @@
 import { laneMarkings, type LaneMarkingKind } from "../sim/lanes.ts";
 import { projectOntoPath, type Street } from "../sim/street-path.ts";
+import { insidePaintReserve, type PaintReserve } from "../sim/intersection-dressing.ts";
 
 export interface RoadPaint {
   ax: number; az: number; bx: number; bz: number;
@@ -51,7 +52,7 @@ function paintPath(street: Street, rank: number): PaintPoint[] {
 
 /** Continuous rails with measured dash spacing, clipped before any crossing
  * carriageway, including crossings in the middle of unsplit source roads. */
-export function roadMarkings(streets: readonly Street[], options: { shoulderWidth?: number } = {}): RoadPaint[] {
+export function roadMarkings(streets: readonly Street[], options: { shoulderWidth?: number; reserves?:readonly PaintReserve[] } = {}): RoadPaint[] {
   const shoulder = options.shoulderWidth ?? 0;
   const result: RoadPaint[] = [];
   const bounds = streets.map(street => ({ street,
@@ -98,6 +99,7 @@ export function roadMarkings(streets: readonly Street[], options: { shoulderWidt
           d = next;
           if (!visible) continue;
           const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+          if(options.reserves?.some(p=>insidePaintReserve(p,mx,mz,1.1)))continue;
           if (!clear(ax, az) || !clear(bx, bz) || !clear(mx, mz)) continue;
           // Tight inside corners can fold an offset back into its own road.
           // An edge inside another part of the same carriageway is not an edge.

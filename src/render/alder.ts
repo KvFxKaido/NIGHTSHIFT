@@ -22,6 +22,8 @@ import { addGarageExterior, addGarageForecourt } from "./garage.ts";
 import { roadMarkings } from "./road-markings.ts";
 import { asphaltMaterial } from "./asphalt.ts";
 import { concreteMaterial } from "./concrete.ts";
+import { addIntersectionDressing } from "./intersection-dressing.ts";
+import { ALDER_INTERSECTIONS, ALDER_INTERSECTION_PAINT } from "../sim/alder.ts";
 import { grassGroundMaterial } from "./grass-ground.ts";
 import { addNightBuildings, glowTexture, type FrontageReach, type NightDressing } from "./night.ts";
 import { buildingFrontage } from "../sim/frontage.ts";
@@ -132,6 +134,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   }
   surface("alder-asphalt",data.asphalt,night?0x46515b:0x62686b);
   surface("alder-pavement",data.pavement,night?0x777b7e:0xb3b0a6);
+  addIntersectionDressing(scene,ALDER_INTERSECTIONS,alderHeight,alderSidewalkLift,ALDER_SHOULDER);
   surface("alder-ground",data.ground,night?0x354733:0x526149);
   for (const park of data.parks) surface(park.id,park.surface,night?0x3d573a:0x608054,.012);
   const trunks=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x554239}),ALDER_TREES.length);
@@ -197,7 +200,7 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flatMap(([x,z])=>[x!,alderHeight(x!,z!)+.025,z!]),3));
     paint[color].push(geometry);
   }
-  for (const mark of roadMarkings(ALDER_STREETS,{shoulderWidth:ALDER_SHOULDER}))
+  for (const mark of roadMarkings(ALDER_STREETS,{shoulderWidth:ALDER_SHOULDER,reserves:ALDER_INTERSECTION_PAINT}))
     strip(mark.ax,mark.az,mark.bx,mark.bz,mark.kind==="edge"?.18:.13,mark.color);
   for (const color of ["yellow", "white"] as const) {
     const merged = paint[color].length ? mergeGeometries(paint[color]) : null;

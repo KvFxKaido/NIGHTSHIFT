@@ -27,10 +27,10 @@ try {
   for (const lighting of (process.argv.includes('--curb-only') ? ['blockout'] : ['blockout', 'night'])) {
     await page.goto(`${base}/?world=alder&scene=track&freeze=1&lighting=${lighting}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready', null, { timeout: 120000 });
-    await page.waitForFunction(() => !__ns.view.garageCutscene);
-    for (const framing of (process.argv.includes('--curb-only') ? ['curb'] : ['junction', 'market', 'chase', 'curb'])) {
+    await page.waitForFunction(() => window.__ns && !window.__ns.view.garageCutscene);
+    for (const framing of (process.argv.includes('--signals') ? ['signals','approach','stop'] : process.argv.includes('--curb-only') ? ['curb'] : ['junction', 'market', 'chase', 'curb'])) {
       const png = await page.evaluate(async ({ framing }) => {
-        const { alderHeight, ALDER_DATA } = await import('/src/sim/alder.ts');
+        const { alderHeight, ALDER_DATA, ALDER_INTERSECTIONS } = await import('/src/sim/alder.ts');
         const { sim, view } = __ns;
         view.garageCutscene = undefined;
         const x = framing === 'market' ? 786 : -218, z = framing === 'market' ? -915 : -628, y = alderHeight(x, z);
@@ -62,6 +62,30 @@ try {
           view.camera.lookAt(cx,cy+.1,cz);
           view.camera.fov=45;view.camera.updateProjectionMatrix();
         }
+        if(framing==='signals'||framing==='approach') {
+          const junction=ALDER_INTERSECTIONS.filter(j=>j.approaches.length===4&&j.approaches[0].control==='signal')
+            .sort((a,b)=>Math.hypot(a.x+215,a.z+610)-Math.hypot(b.x+215,b.z+610))[0];
+          const a=junction.approaches[0],rx=a.uz,rz=-a.ux;
+          sim.body.setTranslation({x:a.stopX+a.ux*15+rx*a.width/4,y:alderHeight(a.stopX,a.stopZ)+.5,z:a.stopZ+a.uz*15+rz*a.width/4},true);
+          __ns.tick(1);__ns.shot();
+          const {updateIntersectionSignals}=await import('/src/render/intersection-dressing.ts');
+          updateIntersectionSignals(view.scene,0);
+          if(framing==='signals') {
+            view.camera.position.set(junction.x+a.ux*58+rx*34,alderHeight(junction.x,junction.z)+32,junction.z+a.uz*58+rz*34);
+            view.camera.lookAt(junction.x,alderHeight(junction.x,junction.z),junction.z);
+          } else {
+            view.camera.position.set(a.stopX+a.ux*22+rx*a.width/4,alderHeight(a.stopX,a.stopZ)+2.5,a.stopZ+a.uz*22+rz*a.width/4);
+            view.camera.lookAt(a.stopX,alderHeight(a.stopX,a.stopZ)+3,a.stopZ);
+          }
+          view.camera.fov=55;view.camera.updateProjectionMatrix();
+        }
+        if(framing==='stop') {
+          const a=ALDER_INTERSECTIONS.flatMap(j=>j.approaches).filter(a=>a.control==='stop')
+            .sort((a,b)=>Math.hypot(a.poleX+215,a.poleZ+610)-Math.hypot(b.poleX+215,b.poleZ+610))[0];
+          view.camera.position.set(a.poleX+a.ux*6,alderHeight(a.poleX,a.poleZ)+2.4,a.poleZ+a.uz*6);
+          view.camera.lookAt(a.poleX,alderHeight(a.poleX,a.poleZ)+2.4,a.poleZ);
+          view.camera.fov=48;view.camera.updateProjectionMatrix();
+        }
         window.drawEdgeFrame(view.scene, view.camera);
         return view.renderer.domElement.toDataURL('image/png');
       }, { framing });
@@ -84,7 +108,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 900 });
   }
   assert.deepEqual(errors, []);
-  console.log(process.argv.includes('--curb-only')
+  console.log(process.argv.includes('--signals') ? 'Intersection signals, approaches and mobile captures passed; no page errors.' : process.argv.includes('--curb-only')
     ? 'Curb close-up and mobile captures passed; no page errors.'
     : 'Pike / 2nd, Market, chase, curb and mobile captures passed; no page errors.');
 } finally { await browser?.close(); await server.close(); }
