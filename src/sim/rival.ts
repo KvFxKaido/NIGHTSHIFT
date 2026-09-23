@@ -369,6 +369,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "driver-v1", "street-line-v1", "pass-v1" (rival-revision.ts) are full-line-v32, named by layer.
  * "driver-v2" (2026-09-22): a slower car ahead is slowed for where this car will be, at the rate it is moving across
  * the road, not only where it means to be (RIVAL_RACING.followWhereItIs). Shawn's second legit race against Wake.
+ * "driver-v3" was never shipped: the pass rules gated on 2026-09-22 (design/measurements/driver-v3.patch).
+ * "driver-v4" (2026-09-23): behind the player and out of their sight it drives the road as if it were empty
+ * (UNSEEN_ROAD in sim.ts, Shawn).
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 

@@ -10,6 +10,19 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## The road out of sight (2026-09-23)
+
+Asked for: the out-of-sight rule, behind only. What was assumed and wrong:
+
+- That giving traffic its own collision group changed nothing while every filter still
+  admitted it: the same pairs meet, so the same physics. Five of the golden master's fourteen
+  runs moved, free roam among them, where there is no rival to be a ghost. Rapier's results
+  depend on the group values. The group is set only while a ghost needs it.
+- That it would close Wake's gap. It closed 2.3 s of the race where Shawn got far away, and
+  nothing of the two close ones: in a close race what traffic costs her, it costs her in sight.
+  The rule is the rival you cannot shake, which is what it was asked to be; the rival that
+  wins a close race would be pace, and a different conversation.
+
 ## Traffic a racer can knock (2026-09-23)
 
 Asked for: what should happen when a player or the rival hits traffic ("currently traffic

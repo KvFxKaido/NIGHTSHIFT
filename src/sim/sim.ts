@@ -8,7 +8,7 @@ import { readStreetLine } from "./street-line.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { BLACKGLASS_WORLD, type RoadWorld } from "./road-world.ts";
 import { createTraffic, knockTraffic, restoreTraffic, stepTraffic, TRAFFIC_KINDS, type TrafficNetwork, type TrafficRacer, type TrafficState } from "./traffic.ts";
-import { createRace, raceHolding, stepRace, type RaceDefinition, type RaceState } from "./race.ts";
+import { createRace, raceHolding, racePosition, stepRace, type RaceDefinition, type RaceState } from "./race.ts";
 import { CAR_TUNES, type CarTune } from "./car-handling.ts";
 
 export const TICK_HZ = 60;
@@ -131,6 +131,9 @@ export interface RivalState {
   race: RaceState;
   driver: RivalDriver;
   input: Input;
+  /** Behind the player and out of their sight, driving the road as if it were empty (`UNSEEN_ROAD`). Absent otherwise,
+   *  so a race it never happens in is the state it was. */
+  ghost?: true;
 }
 interface VehicleRig {
   roadWorld: RoadWorld;
@@ -1186,10 +1189,13 @@ export function step(sim: Sim, rawInput: Input): void {
     // The player is the rival's opponent, not one more obstacle: it races them
     // (RIVAL_RACING in rival.ts) and slows only for traffic, or a stopped player.
     // A street line is taken a corner at a time, by what traffic's own forecast shows (street-line.ts).
-    if (sim.rivalDefinition.line && rival.race.countdown <= 0) readStreetLine(sim.rivalDefinition, rival.driver, rival.vehicle, rival.race.ticks, sim.roadWorld.traffic, sim.state.traffic?.vehicles ?? []);
+    ghostRival(sim);
+    // Out of sight and behind, the road it reads is empty (`UNSEEN_ROAD`).
+    const seen = rival.ghost ? [] : sim.state.traffic?.vehicles ?? [];
+    if (sim.rivalDefinition.line && rival.race.countdown <= 0) readStreetLine(sim.rivalDefinition, rival.driver, rival.vehicle, rival.race.ticks, sim.roadWorld.traffic, seen);
     rival.input = rivalInput(sim.rivalDefinition, rival,
-      (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
-      sim.state.vehicle, sim.roadWorld.traffic ? { network: sim.roadWorld.traffic, vehicles: sim.state.traffic?.vehicles ?? [],
+      seen.map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
+      sim.state.vehicle, sim.roadWorld.traffic ? { network: sim.roadWorld.traffic, vehicles: seen,
         tick: rival.race.ticks, ground: sim.roadWorld.ground, opponent: sim.state.vehicle } : undefined);
     // It launches as the player does, from its own skill: it holds the line for as
     // much of the countdown as its rank is worth, and lets go at the flag (`launch.ts`).
@@ -1215,7 +1221,8 @@ export function step(sim: Sim, rawInput: Input): void {
   // is against where the traffic actually is rather than where it was.
   if (sim.state.traffic && sim.roadWorld.traffic) {
     // Traffic yields to the cars it does not drive (TrafficRacer in traffic.ts).
-    const racers = [sim.state.vehicle, ...(sim.state.rival ? [sim.state.rival.vehicle] : []),
+    // A rival out of sight (`UNSEEN_ROAD`) is nothing traffic meets: it neither yields to it nor turns body for it.
+    const racers = [sim.state.vehicle, ...(sim.state.rival && !sim.state.rival.ghost ? [sim.state.rival.vehicle] : []),
       ...(sim.state.encounter ? [sim.state.encounter] : []), ...sim.state.cruisers.map(c => c.vehicle), ...sim.state.parkedRivals.map(r => r.vehicle)];
     // A wreck is an obstacle traffic queues behind and keeps out of a junction for (`TrafficRacer.obstacle`).
     const wrecks: TrafficRacer[] = sim.state.traffic.vehicles.filter(v => v.wreck).map(v => ({ x: v.x, z: v.z, heading: v.heading, speed: v.speed, obstacle: true }));
@@ -1362,6 +1369,46 @@ function settleTrafficBodies(network: TrafficNetwork, state: TrafficState, bodie
     body.setTranslation({ x: vehicle.x, y: vehicle.y + spec.height * 0.5, z: vehicle.z }, true);
     body.setRotation(yawRotation(vehicle.heading), true);
   });
+}
+
+/**
+ * The road out of sight (Shawn, 2026-09-23). Behind the player in the race (`racePosition`) and more than `ghostBeyond`
+ * metres from them, the rival drives the road as if it were empty: its collider meets no traffic, it reads none, and
+ * traffic neither yields to it nor turns body for it. It can never be faster than its own clear-road self, which is the
+ * same car, tyres and driver on an empty street, and never further along than that driving gets it; only what traffic
+ * would have cost it out of sight is given back. Within `solidWithin` metres, or ahead of the player, it is solid again,
+ * but only where no traffic car is within `clear` metres of it, so it never appears inside one. Behind only: it is the
+ * rival that cannot be shaken, never one that escapes through traffic the player is stuck in. Distance stands in for
+ * sight as it does for `UNSEEN_RECOVERY`: the sim cannot ask the camera, and a replay cannot either.
+ */
+export const UNSEEN_ROAD = { ghostBeyond: 140, solidWithin: 120, clear: 6 } as const;
+/**
+ * Collision groups, (memberships << 16) | filter: while the rival is a ghost, traffic is bit 2 and the ghost's filter
+ * leaves it out. Only then: traffic given its own membership for good, every filter still admitting it, moved five of
+ * the golden master's fourteen runs though the same pairs collide (2026-09-23). Rapier's results depend on the groups,
+ * not only on which pairs they allow.
+ */
+const TRAFFIC_GROUPS = 0x0002ffff, GHOST_GROUPS = 0xfffffffd, ALL_GROUPS = 0xffffffff;
+
+function ghostRival(sim: Sim): void {
+  const rival = sim.state.rival, body = sim.rivalBody;
+  if (!rival || !body || !sim.race || !sim.state.race || !sim.state.traffic) return;
+  const player = sim.state.vehicle, apart = Math.hypot(rival.vehicle.x - player.x, rival.vehicle.z - player.z);
+  const racing = rival.race.countdown <= 0 && !rival.race.finished;
+  const behind = racePosition(sim.race, { race: sim.state.race, x: player.x, z: player.z }, { race: rival.race, x: rival.vehicle.x, z: rival.vehicle.z }) === 1;
+  if (!rival.ghost) {
+    if (racing && behind && apart > UNSEEN_ROAD.ghostBeyond) {
+      rival.ghost = true;
+      body.collider(0).setCollisionGroups(GHOST_GROUPS);
+      for (const traffic of sim.trafficBodies) traffic.collider(0).setCollisionGroups(TRAFFIC_GROUPS);
+    }
+    return;
+  }
+  if (racing && behind && apart > UNSEEN_ROAD.solidWithin) return;
+  if (sim.state.traffic.vehicles.some(v => Math.hypot(v.x - rival.vehicle.x, v.z - rival.vehicle.z) < UNSEEN_ROAD.clear)) return;
+  delete rival.ghost;
+  body.collider(0).setCollisionGroups(ALL_GROUPS);
+  for (const traffic of sim.trafficBodies) traffic.collider(0).setCollisionGroups(ALL_GROUPS);
 }
 
 /**

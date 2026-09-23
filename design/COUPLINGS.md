@@ -35,7 +35,7 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 
 ## The ledger
 
-As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v2`,
+As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v4`,
 `street-line-v1`, `pass-v1`.
 
 | Number | Where | Set | Measured on | Changed under it since | Status |
@@ -57,6 +57,7 @@ As of 2026-09-23: `four-wheel-v6`, `traffic-v9` with seeds, `driver-v2`,
 | What a hit on traffic costs: masses (sedan 900 kg to van 1,500, the box truck none) and `TRAFFIC_KNOCK` (knock at 1.2 m/s or 0.35 rad/s, a wreck braked at 4 m/s², back 2 s after rest out of sight), collider friction 0.15 | `TRAFFIC_KINDS`, `sim.ts` | 09-23 (Shawn: the MC3 feel) | the one-tick cost of a hit 12 m/s faster (sedan 4.1 m/s, the wall 9.4); a sedan clipped on a corner turning 29 degrees; the six-seed gate | nothing | **current by feel**: Shawn drove it on 2026-09-23, "This feels great"; glancing hits fine, a head-on clip could be stiffer (left for now). Tuned at the pad if it proves too easy |
 | How long a junction claim reckons it will hold (`clearingTime`) | `traffic.ts` | 09-22 | 5,300 claims, traffic alone, seeds 0, 42, 271828: held / reckoned median 0.94 to 0.95 by seed, p10 to p90 0.85 to 1.00, none held 2 s past it (the old reckoning: 1.36 to 1.40, 0.63 to 1.74, a third of them) | nothing | **current**; pinned by `traffic-intent.test.ts` |
 | Out-of-sight recovery, 2.5 s beyond 120 m | `UNSEEN_RECOVERY` | 09-13 (Shawn) | a rule, not a measurement | nothing | **current** |
+| The road out of sight: a ghost beyond 140 m behind the player, solid within 120 m, 6 m clear | `UNSEEN_ROAD` | 09-23 (Shawn) | a rule, bounded by measurement: a ghost is its clear-road self to the bit (`rival-unseen.test.ts`); on Shawn's three Wake races, 2.3 s given back where he got 362 m away, nothing in the two close ones | nothing | **current**. Its distances are a guess at night-time sight: shorter would help her more and risk being seen |
 
 ## What was ruled out, and on what
 

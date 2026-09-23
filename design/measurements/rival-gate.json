@@ -3,15 +3,15 @@
  "revisions": {
   "physics": "four-wheel-v6",
   "traffic": "traffic-v9",
-  "driver": "driver-v2",
+  "driver": "driver-v4",
   "streetLine": "street-line-v1",
   "pass": "pass-v1"
  },
  "method": "scripts/street-line-batch.ts --line --trace per traffic seed, four processes a seed, the player parked at Wharf Garage. A distinct incident is one (time, route metres) pair.",
  "sourceHashes": {
   "src/sim/traffic.ts": "a44519bd51957ff7982d7d54f18aea741c4b2293a1bba5ace5d8b56998556022",
-  "src/sim/rival.ts": "f8bf4123f352320e7bee454848da5a9557e76f06e25da11885808ebca5a65a3f",
-  "src/sim/sim.ts": "07e93384627e7f50234b3f1a48590592138a37edcd11ac81e730a9ee2daa5796",
+  "src/sim/rival.ts": "9138352b668e7faa9960af7d0f33cde2ca9022ec11a1548da38fb144f57818e4",
+  "src/sim/sim.ts": "03685b116c058093e45d36fc2a025323ef0f3f5159ca94911e029daf8e7b0981",
   "src/sim/traffic-pass.ts": "d36720e8bf1a4ba4a32ac2f1d13259b99608c23530b49a9ae6426bd6f2a4736f",
   "src/sim/street-line.ts": "cfd63ca87755a4088d3c8ab76d0d2c3b7730a6119f891e58592e48dec3a42bbb",
   "src/sim/car-handling.ts": "1e930c57b03add272bf82c3ae3480fb7594d106f7e2e76b1cae53d008303bf4a",

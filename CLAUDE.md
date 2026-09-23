@@ -173,7 +173,10 @@ fixtures outside the playable bundle, and old world links redirect.
 - **Rival.** One AI driver in the same physics world, routed line, no
   rubber-banding, reversing recovery and a local reset after 12 s stuck, or
   after 2.5 s out of the player's sight (`UNSEEN_RECOVERY`), never further along
-  (only a second 12 s reset where the last one put it may go past a blockage). It
+  (only a second 12 s reset where the last one put it may go past a blockage).
+  Behind the player and more than 140 m away it drives the road as if it were
+  empty (`UNSEEN_ROAD`, `driver-v4`, 2026-09-23): it cannot be shaken, and it is
+  never faster than its own clear-road self. It
   races the player rather than yielding: passes, holds its line, blocks and
   does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
   it rests half-way into the inner lane going its way (`RIVAL_LANE`) and drives
@@ -427,11 +430,14 @@ fixtures outside the playable bundle, and old world links redirect.
   `--try`, draw one, measure again. Do not go crazy with them.
 - The rival gets its own forces, then ONE `world.step()` for both bodies.
   Never a second physics world. No catch-up, no rubber-banding, no grip
-  change for AI, learned or not. The one place it may be helped (Shawn,
-  2026-09-13): recovery out of the player's sight. A stuck rival may be put
-  back on its line at its own route position, sooner than the 12 s reset,
-  when the player is far enough away not to see it. Never further along,
-  never faster, never a different car. The handling is what is sacred.
+  change for AI, learned or not. The places it may be helped are out of the
+  player's sight, and both are Shawn's: recovery (2026-09-13), a stuck rival put
+  back on its line at its own route position, sooner than the 12 s reset, when
+  the player is far enough away not to see it; and the road (2026-09-23,
+  `UNSEEN_ROAD`), behind the player and more than 140 m away it drives as if the
+  road were empty. Never further along than driving gets it, never faster than
+  its own clear-road self (to the bit, `tests/rival-unseen.test.ts`), never
+  ahead of the player, never a different car. The handling is what is sacred.
 - `SimOptions.encounter` is a handbraked vehicle with no race state; never
   add race clock or checkpoint progress to it. Moth is `encounter` and the other
   cruising names are `cruisers`: keep her there, since tests and harnesses read
@@ -603,6 +609,10 @@ fixtures outside the playable bundle, and old world links redirect.
   that hit it ploughed on and lost MORE than the wall had cost. A wreck is braked along its heading and scrubbed across
   it by hand (`TRAFFIC_KNOCK.brake`, `.slide`, `.spin`). Traffic's collider friction is a car's (0.15): at 0.35 a car
   clipped on a rear corner did not turn at all, friction on its rear face cancelling the push, in bare Rapier too.
+- Rapier's results depend on collision groups, not only on which pairs they let meet: giving traffic its own membership,
+  every filter still admitting it, moved five of the golden master's fourteen runs (2026-09-23). A group is set only
+  while it is needed, as the road out of sight sets traffic's while the rival is a ghost and clears it after, so a race
+  it never happens in is the race it was.
 - Where a junction claim is judged against a racer, the car's time in the junction is what it will DRIVE, braking for
   its corner (`clearingTime`), never its distance over the speed it has: that came out at half the truth for a car
   that slows to turn, and traffic turned across a rival it could not have cleared. Traffic alone never reads it, so a

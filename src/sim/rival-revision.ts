@@ -19,14 +19,14 @@
 import { layoutFingerprint } from "./building-layout.ts";
 import { RIVAL_LAUNCH_SKILL } from "./launch.ts";
 import { RIVAL_TABLES, RIVAL_STREET_LINE, type RivalDefinition } from "./rival.ts";
-import { handlingFor, RIVAL_RESET_TICKS, UNSEEN_RECOVERY } from "./sim.ts";
+import { handlingFor, RIVAL_RESET_TICKS, UNSEEN_RECOVERY, UNSEEN_ROAD } from "./sim.ts";
 import { STREET_LINE } from "./street-line.ts";
 import { TRAFFIC_PASS } from "./traffic-pass.ts";
 
 /** Bump a layer when its CODE changes how a rival drives. Its tables and a route's own numbers name themselves. */
 export const RIVAL_REVISIONS = {
   /** `rivalInput`, the launch and recovery: steering, the speed plan, reading traffic, racing the player. */
-  driver: "driver-v2",
+  driver: "driver-v4",
   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
   streetLine: "street-line-v1",
   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */
@@ -50,7 +50,7 @@ export const NO_RIVAL = "none";
 /** The parts of a rival's identity, in the order they are written. */
 export function rivalRevisionParts(route: RivalDefinition): string[] {
   const handling = handlingFor(route), parts: string[] = [];
-  parts.push(`${RIVAL_REVISIONS.driver}.${layoutFingerprint({ ...RIVAL_TABLES, RIVAL_RESET_TICKS, UNSEEN_RECOVERY, RIVAL_LAUNCH_SKILL })}`);
+  parts.push(`${RIVAL_REVISIONS.driver}.${layoutFingerprint({ ...RIVAL_TABLES, RIVAL_RESET_TICKS, UNSEEN_RECOVERY, UNSEEN_ROAD, RIVAL_LAUNCH_SKILL })}`);
   parts.push(`${route.car ?? `shared-${handling.drivetrain}`}-r${handling.revision}`);
   if (route.launch !== undefined) parts.push(`launch-${route.launch}`);
   if (route.cornering !== undefined) parts.push(`cornering-${route.cornering}`);

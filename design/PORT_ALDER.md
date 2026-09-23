@@ -2933,6 +2933,47 @@ head-on clip could be stiffer, left for now. That would be a head-on hit costing
 masses alone say (the closing speeds add, and a knock shares them out), not heavier traffic.
 `pnpm golden`: the five runs where racers drive among traffic moved, nine bit-identical.
 
+## The road out of sight (2026-09-23, `driver-v4`)
+
+Shawn's call, and the second place the rival may be helped, both out of the player's sight
+(`CLAUDE.md`). MC3's racers felt ruthless because they could not be shaken: lose one and it was
+in the mirror again. This rival stuck behind a van where nobody could see it and never came back.
+
+**The rule** (`UNSEEN_ROAD` in `sim.ts`). Behind the player in the race (`racePosition`, what the
+HUD shows) and more than 140 m from them, the rival is a ghost: its collider meets no traffic,
+its driver reads none, and traffic neither yields to it nor turns body for it. It still meets
+the world and the player. Within 120 m, or ahead of the player, it is solid again, but only where
+no traffic car is within 6 m of it, so it never appears inside one. Behind only: a rival that
+escaped through traffic the player is stuck in would be the part of MC3 that felt unfair.
+
+**The bound holds by construction and by measurement.** A ghost drives the same car on the same
+tyres with the same driver as it does on an empty street, so it can never be faster than that.
+Measured: the same race with the player parked at the first gate, in traffic and with none, and the
+rival is its clear-road self to the bit for the whole time it is a ghost (2,037 ticks on gen-7,
+1,276 on gen-28, at traffic seeds 0 and 271828; `tests/rival-unseen.test.ts` holds it).
+
+**What it does, on Shawn's three recorded races against Wake**, his inputs replayed (his times
+reproduce to the hundredth):
+
+| Race | Shawn | Wake without | Wake with | Wake a ghost for |
+|---|---|---|---|---|
+| Through the open ground | 70.68 s | 81.27 s (362 m back at worst) | 78.97 s | 20.0 s |
+| Streets | 77.45 s | 80.33 s | 80.40 s | 11.7 s |
+| Streets | 77.07 s | 81.37 s | 81.37 s | 18.1 s |
+
+It does what it is for and no more. Get away from her and she comes back: 2.3 s closer when he
+cut through the open ground. In a close race it changes nothing, because what traffic costs her
+there it costs her within 120 m of him, in sight, where the rule stops. Her street deficit is about
+1.6 s of pace and 2.4 s of traffic, both decided in sight; this is the rival that cannot be shaken,
+not the rival that wins.
+
+**What building it found.** Giving traffic's colliders their own collision group, every filter
+still admitting them, moved five of the golden master's fourteen runs, the free roam one among them
+where no rival exists. Rapier's results depend on the groups themselves, not only on which pairs
+they allow. Traffic's group is now set only while the rival is a ghost, and cleared after: `pnpm
+golden` is 14 of 14 bit-identical, and the gate, whose player is parked behind the rival from the
+flag, never makes one.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.
