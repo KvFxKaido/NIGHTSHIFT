@@ -2928,7 +2928,9 @@ cases read as a rival grazing a turning van at 25 mph and carrying on, and shovi
 aside at walking pace after braking to 2 mph for it, where the wall would have driven its turn
 through it (`pnpm rival:scene street-uptown --seed=314159`, `gen-82 --seed=1`). The gate's
 contact counts were built for a world where contact was failure; read its outcomes now.
-Shawn drove it the same day: "This feels great."
+Shawn drove it the same day: "This feels great." The glancing hit that spins the Cinder is fine; a
+head-on clip could be stiffer, left for now. That would be a head-on hit costing more than the
+masses alone say (the closing speeds add, and a knock shares them out), not heavier traffic.
 `pnpm golden`: the five runs where racers drive among traffic moved, nine bit-identical.
 
 ## Corner dressing trial (2026-09-21)
