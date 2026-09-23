@@ -10,6 +10,26 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## A player catching her in a pass (2026-09-23)
+
+Asked for: fix the rival slowing when passing, and her hand-off from ghost to solid. What was
+assumed and wrong:
+
+- That the brake was the pass's emergency check on the car being passed, since she was off her
+  path and looking 85 m ahead. That was part of it, 99 mph to 73. Relaxing it and replaying his
+  race still braked her to 53; tracing every limit tick by tick showed the pass's own speed cap
+  falling to zero because of Shawn, closing from behind, whose straight-line forecast ran through
+  her corridor. Trace the limit that is actually binding before changing one.
+- That judging "who arrives from behind" where the forecasts first overlap was precise. Each sample
+  carries a quarter-second of slack, which puts a player closing at 118 mph 13 m ahead of where he
+  is. Judged now instead.
+- That the hand-off cost her 6 s. The same stretch cost 6 s blind, reading traffic from 200 m, and
+  solid throughout. A ghost that reads traffic is just a solid rival you can drive through.
+- That a replay measures a rival that races differently. His inputs do not know where she is: the
+  first version put her level with him and his replay crashed at 50 s. Read the replay only up to
+  where the player's path first differs from the recorded run's: his position every quarter
+  second, diffed.
+
 ## The road out of sight (2026-09-23)
 
 Asked for: the out-of-sight rule, behind only. What was assumed and wrong:

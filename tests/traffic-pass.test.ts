@@ -92,6 +92,27 @@ test("the player occupies a passing corridor, and an overhead vehicle does not",
   assert.equal(planTrafficPass(route, bridgeDriver, car, { ...context, vehicles: [{ ...lead, y: 10 }] }), undefined);
 });
 
+test("a player catching the rival from behind is not in its pass's way: it neither changes the side nor slows the pass", () => {
+  // Shawn at 120 mph coming up behind Wake at 98 as she pulled out round a sedan (gen-wake-42, 2026-09-23): his forecast,
+  // a straight line at his speed, ran through her corridor, and the pass braked her to 45 mph so he went by.
+  const closing = { x: laneRest(20), z: 30, y: 0, heading: 0, speed: 40 };
+  const plan = (opponent?: typeof closing, tick = 0, pass?: TrafficPass) => {
+    const driver = createRivalDriver(); driver.avoidance = laneRest(20);
+    if (pass) driver.trafficPass = { ...pass };
+    return planTrafficPass(route, driver, car, { network, vehicles: [vehicle(25)], tick, opponent })?.pass;
+  };
+  const open = plan()!;
+  assert.ok(open);
+  const behind = plan({ ...closing, x: open.offset });
+  assert.equal(behind?.offset, open.offset, "a closing player must not move the pass to the other side");
+  // Committed: a re-read with the player closing in the corridor keeps the pass's speed.
+  const alone = plan(undefined, open.nextRead, open)!, caught = plan({ ...closing, x: open.offset, z: 12 }, open.nextRead, open)!;
+  assert.equal(caught.speed, alone.speed, "a closing player must not cap the pass's speed");
+  // The same player ahead of it, slower, still is (the test above has one parked).
+  const ahead = plan({ ...closing, x: open.offset, z: -60, speed: 5 });
+  assert.notEqual(ahead?.offset, open.offset);
+});
+
 test("empty traffic leaves driving inputs unchanged and an active corner line keeps ownership", () => {
   const original = { vehicle: car, driver: createRivalDriver(), race: null };
   const passing = structuredClone(original);

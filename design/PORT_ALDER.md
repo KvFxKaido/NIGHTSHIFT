@@ -2974,6 +2974,48 @@ they allow. Traffic's group is now set only while the rival is a ghost, and clea
 golden` is 14 of 14 bit-identical, and the gate, whose player is parked behind the rival from the
 flag, never makes one.
 
+## A player catching her in a pass (2026-09-23, `pass-v2`)
+
+Shawn, racing Wake (gen-wake-42, traffic seed 715877619): "The AI slows down when passing huh?"
+He had been restarting for a fair race and saw it more than once.
+
+**What it was.** At 1,690 m she pulled out round a sedan doing 6 mph and braked from 98 mph to 45
+doing it, and he went by. The pass planner (`traffic-pass.ts`) reads the player as well as traffic,
+forecast as a straight line at the player's speed, so as not to commit a pass through a player in
+its corridor. He was 60 m behind her at 120 mph, on her line. His straight line ran through her
+corridor, the planner read that as occupied, and it capped her speed to stop short of where he would
+hit her: from 136 mph to 54, 31, 18 and 0 over a second. The contact it braked to avoid was his,
+from behind, and braking brought it sooner. The planner's test put the player parked ahead, and the
+gate parks the player across town, so a player catching her had never been run.
+
+**The rule.** The player is in a pass's way only while ahead of her, judged now: the boundary
+`RIVAL_RACING` already draws, which blocks a player catching her, holds its line alongside, and
+yields to nothing but a player in front. The first version judged it where the forecast first met her
+path, and that failed on the same race: each sample carries a quarter-second of slack, which put
+a player closing at 118 mph 13 m further on, ahead of her where they met, and she braked from 104 to
+83 as he drew level. The flip side is deliberate: she now pulls out in front of a player who is
+catching her, which is a block, as she did already on an open road.
+
+**What it is worth.** On his race, his inputs replayed: through 1,700 to 1,900 m she was 49 m behind
+him and is now 24 m ahead, about 1.5 s. After 55.75 s the replay is no longer his race, since he is
+catching her at 130 mph on inputs that do not know she is there, so the finish cannot be measured.
+`tests/traffic-pass.test.ts` holds it: without the rule, the side of the pass moves and a committed
+pass is capped at 0.4 m/s with a player closing behind.
+
+**What is left of the brake, and why it stays.** She still slows from 99 to 73 there, because she
+is more than 1 m off the pass's path (`PASS_ASTRAY`) and so looks 85 m ahead for the car being passed:
+the pass began from where she was headed, not where she was, and she drifted the other way first.
+That look-ahead is what stops the gen-46 crash (91 mph into a sedan from 2.2 m off the path).
+Relaxing it for the car being passed was the first fix tried here, on the diagnosis that it was the
+whole brake; the race still braked to 53, because most of it was the player. It stays.
+
+**The hand-off that looked like a cause.** Later in the same race she turned solid 119 m behind him at
+109 mph with a 40 mph sedan 46 m ahead and lost 6 s. Measured three ways, it is not the hand-off:
+blind as raced, 149 mph down to 37 through 2,888 to 3,160 m; a ghost that read traffic from 200 m,
+down to 29; and solid throughout (with this rule she stays ahead of him and never ghosts), 121 down
+to 29. That stretch stops her however she arrives. It is the rival in traffic, which is good enough
+for Phase 1 (`design/HANDLING.md`), and the ghost is unchanged.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

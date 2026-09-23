@@ -161,7 +161,15 @@ export function planTrafficPass(route: RivalDefinition, driver: RivalDriver, car
   const forecasts: Forecast[] = nearby.flatMap(vehicle => [false, true].map(accelerate => ({ vehicle,
     path: forecastTrafficPath(context.network, vehicle, TRAFFIC_PASS.horizon + TRAFFIC_PASS.settle + .25, .25, accelerate) })));
   const opponent = context.opponent;
-  if (opponent && sameRoad(opponent) && Math.hypot(opponent.x - car.x, opponent.z - car.z) < 280) {
+  // The player is in a pass's way only while they are ahead of this car (2026-09-23). Behind or alongside they are the
+  // one closing, and this car races them as it does everywhere else (RIVAL_RACING: blocks a player catching it, holds
+  // its line alongside, never brakes for them). Their forecast is a straight line at their speed, so a player catching
+  // this car ran through it in the forecast and the pass capped its speed to stop short of where they would hit it:
+  // Wake braked from 98 mph to 45 pulling out round a sedan with Shawn coming up behind her at 120, and he went by
+  // (gen-wake-42). Judged now, not at the forecast's overlap: a sample's quarter-second of slack puts a player closing
+  // at 118 mph 13 m further on, ahead of her where they meet, and she braked from 104 to 83 as he drew level.
+  if (opponent && sameRoad(opponent) && Math.hypot(opponent.x - car.x, opponent.z - car.z) < 280
+    && (opponent.x - car.x) * here.ux + (opponent.z - car.z) * here.uz > 0) {
     forecasts.push({ vehicle: { id: -1, kind: "sedan" }, path: Array.from({ length: 34 }, (_, k) => ({
       x: opponent.x - Math.sin(opponent.heading) * opponent.speed * k * .25,
       z: opponent.z - Math.cos(opponent.heading) * opponent.speed * k * .25,

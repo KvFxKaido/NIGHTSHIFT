@@ -372,6 +372,8 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "driver-v3" was never shipped: the pass rules gated on 2026-09-22 (design/measurements/driver-v3.patch).
  * "driver-v4" (2026-09-23): behind the player and out of their sight it drives the road as if it were empty
  * (UNSEEN_ROAD in sim.ts, Shawn).
+ * "pass-v2" (2026-09-23): the player is in a pass's way only while ahead of it (planTrafficPass); a player catching
+ * it from behind had braked it to let them by. Shawn's race against Wake that morning.
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 

@@ -497,8 +497,10 @@ fixtures outside the playable bundle, and old world links redirect.
   baseline: contact on a line or in a pass is zero at seed 0 and not across six (11 and 27 ticks at `traffic-v8`), so a
   change must not add to it. Read total contact as incidents per race, never ticks: which races touch traffic is a lottery.
 - That batch parks the player, so it gates the rival ALONE and cannot see what only happens in a race: Wake sat beside
-  a sedan at its speed for 5 s against Shawn, and the batch is identical to the tick with and without the fix. A
-  recorded race and `pnpm laps:compare` are the other half. Several seeds share a course's first kilometres, so one
+  a sedan at its speed for 5 s against Shawn, and the batch is identical to the tick with and without the fix. And the
+  pass planner read a player catching her from behind as in its corridor and braked her to let him by (`pass-v2`: the
+  player counts only while ahead of her). A recorded race and `pnpm laps:compare` are the other half; a replayed
+  player does not know where a changed rival is, so read one only up to where the player's own path first moves. Several seeds share a course's first kilometres, so one
   incident can be four rows, and a regression in it may be an OLD crash ending somewhere new: check the baseline's
   events at the same place before blaming the change (`gen-78`).
 - The rival's steering feedforward is the wheel a steady turn takes (`steadyWheelAngleFor` in `sim.ts`), which restates

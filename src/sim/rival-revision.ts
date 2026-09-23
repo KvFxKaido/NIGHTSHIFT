@@ -30,7 +30,7 @@ export const RIVAL_REVISIONS = {
   /** Taking a street line a corner at a time on traffic's forecast (`readStreetLine`, and the blend in `rivalInput`). */
   streetLine: "street-line-v1",
   /** Committed traffic passes (traffic-pass.ts, and the pass branches of `rivalInput`). */
-  pass: "pass-v1",
+  pass: "pass-v2",
 } as const;
 
 /**
