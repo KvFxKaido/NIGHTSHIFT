@@ -3,7 +3,8 @@ import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import type { CarView } from "./car.ts";
 
 /**
- * The cars are drawn: `cel`, the default since 2026-09-18. At night the
+ * The cars are drawn: `cel`, the default from 2026-09-18 until `cel-city` (the
+ * buildings drawn too, below) replaced it on 2026-09-24. At night the
  * undrawn cars read as dark shapes with two tail lights; banded and inked they
  * read as cars again. Two comparisons stay reachable and are never saved:
  * `?look=plain` draws the cars as they were, and `?look=fx` is Driving Rogue's
@@ -38,10 +39,12 @@ import type { CarView } from "./car.ts";
  * shared with the cars today. Cost, same spot and tick: 5 draw calls and 7,392
  * triangles, 1.7% of the frame.
  *
- * `?look=cel-city` is a fourth (2026-09-24), undecided and never saved: `cel`,
- * with the buildings drawn too, the cars' ink on every footprint and the bands on
- * the facades and roofs at levels of their own (render/drawn-buildings.ts, which
- * holds what the frames showed). Traffic stays undrawn under it.
+ * `cel-city` is `cel` with the buildings drawn too, the cars' ink on every
+ * footprint and the bands on the facades and roofs at levels of their own
+ * (render/drawn-buildings.ts, which holds what the frames showed). Tried as a
+ * comparison and made the default the same day, 2026-09-24 (Shawn); `?look=cel`
+ * keeps the city undrawn to compare. Traffic stays undrawn under it, and
+ * `cel-traffic` draws traffic with the city undrawn: the two do not combine.
  */
 export type Look = "fx" | "cel" | "cel-traffic" | "cel-city";
 export const LOOKS: readonly Look[] = ["fx", "cel", "cel-traffic", "cel-city"];

@@ -3,7 +3,7 @@
 Design note, 2026-09-16. **Adopted the same day:** Shawn chose the night shift,
 sodium lamps, keeping amber, and dry streets; on 2026-09-17, Capitol Hill for
 the strip and neighbourhood polygons for district identity; on 2026-09-18,
-drawn cars.
+drawn cars; on 2026-09-24, drawn buildings.
 
 The rival portraits have a look in one sentence and rules that exclude
 (`design/CHARACTERS.md`); the city they are lit by did not. GDD §15.1 listed
@@ -43,6 +43,15 @@ morning; the city of the people who work nights, not the people who go out.
   three flat bands of their own colour, with an ink outline, one hard highlight
   shape on the paint and the race's cyan on the flanks (`src/render/cel.ts`).
   Traffic is not drawn, which keeps it in the city rather than the race.
+- **The buildings are drawn with the cars' pen** (2026-09-24,
+  `src/render/drawn-buildings.ts`). The same ink outline on every footprint, and
+  the facades and roofs cut into flat bands: a block's shade side, its lit side,
+  and a headlight's pool as a hard-edged shape. The bands keep the light's hue,
+  so the night stays blue, and they lift the lit sides off black on purpose: as
+  rendered before, a wall sat at a few percent of the range against a sky only a
+  little lighter, and neither a band nor a line had any value to work with. No
+  stripe and no cyan: those are a named car's. Tower relief, fitted fronts,
+  brick corners and the garage keep their own materials for now.
 - **Tyre smoke is drawn the same way** (`src/render/smoke.ts`, after NFS
   Unbound's, 2026-09-18). Lumps of mid warm grey that billow into one cloud
   with one thin ink edge, lit like the portraits: sodium along the top, cyan

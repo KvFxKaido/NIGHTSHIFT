@@ -7,7 +7,8 @@ import { CEL_INK, CEL_UNIFORMS, celMaterial, setLook, buildingsDrawn } from "../
 import { BUILDING_CEL_UNIFORMS, BUILDING_INK, buildingInk, drawnBuilding } from "../src/render/drawn-buildings.ts";
 import { CHUNKED_SCENERY } from "../src/render/city-chunks.ts";
 
-test("buildings are undrawn unless ?look=cel-city asks for it", () => {
+// cel-city is the default look (2026-09-24); every other look leaves the city as it was.
+test("buildings are drawn under cel-city and under no other look", () => {
   for (const look of [null, "cel", "cel-traffic"] as const) {
     setLook(look);
     try {

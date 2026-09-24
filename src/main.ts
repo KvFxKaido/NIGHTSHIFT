@@ -203,11 +203,11 @@ try {
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
-  // The cars are drawn (render/cel.ts), set before any body loads. ?look=plain
-  // shows them undrawn, ?look=fx undrawn with the drawn smoke,
-  // ?look=cel-traffic drawn with traffic drawn too and ?look=cel-city with the
-  // buildings drawn too, to compare.
-  const look = params.get("look") ?? "cel";
+  // The cars and the buildings are drawn (render/cel.ts, render/drawn-buildings.ts),
+  // set before any body loads. To compare: ?look=cel draws the cars alone,
+  // ?look=cel-traffic the cars and traffic, ?look=fx undrawn cars with the drawn
+  // smoke, and ?look=plain nothing drawn.
+  const look = params.get("look") ?? "cel-city";
   if (look !== "plain" && !LOOKS.some(known => known === look)) throw new Error(`Unknown look '${look}'`);
   setLook(look === "plain" ? null : look as Look);
   // Draw between ticks (render/interpolate.ts); ?smooth=0 draws the last tick, to compare.
