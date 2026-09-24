@@ -546,6 +546,9 @@ function renderCarSelection(): void {
   equipCar.hidden = carLoading || !owned || isEquippedCar(previewCar);
   document.querySelector<HTMLButtonElement>("[data-open-livery]")!.disabled = carLoading || previewCar !== selectedCar;
   document.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
+  // The livery's Design row is built above, not from the customization list, so it is locked here by name: on a car
+  // only being browsed it would switch that car's saved design (design/MENUS.md: every customization row locks).
+  document.querySelectorAll<HTMLButtonElement>("[data-livery-row] button").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
   document.querySelectorAll<HTMLElement>("[data-cinder-parts]").forEach(section => {
     section.hidden = previewCar !== "cinder";
     section.querySelectorAll<HTMLButtonElement>("button").forEach(button => {
@@ -1032,6 +1035,9 @@ function frame(now: number): void {
     if (advanceGarageCutscene(view.garageCutscene, frameDelta)) finishGarageShot();
     else document.body.style.setProperty("--garage-shot-fade", String(1 - easeShot(shotProgress(view.garageCutscene) / .16)));
   }
+  // After this frame's commands, so a menu they opened takes directions from the next key or frame on, and a
+  // direction still held from driving into it counts once let go (input.ts, setMenuActive).
+  input.setMenuActive(!menu.isGameplayActive() && !view.garageCutscene);
   const gameplayActive = menu.isGameplayActive() && !view.garageCutscene;
   const garageActive = menu.isGarageActive() && !view.garageCutscene;
   if (gameplayActive && commands.includes("flash")) flashHeadlights();

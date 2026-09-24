@@ -210,7 +210,7 @@ test("left stick and D-pad map to horizontal menu navigation", () => {
 
 /** A controller on a fake pad and fake keyboard, with the menu repeat's clock in the test's hands. */
 function menuHarness(run: (h: { controller: ReturnType<typeof createInputController>; setPad(pad: Gamepad): void;
-  key(code: string, repeat?: boolean): void; at(ms: number): string[] }) => void): void {
+  key(code: string, repeat?: boolean): void; release(code: string): void; at(ms: number): string[] }) => void): void {
   const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
   const originalListener = Object.getOwnPropertyDescriptor(globalThis, "addEventListener");
   const listeners = new Map<string, (event: KeyboardEvent) => void>();
@@ -223,6 +223,7 @@ function menuHarness(run: (h: { controller: ReturnType<typeof createInputControl
       controller,
       setPad: next => { pad = next; },
       key: (code, repeat = false) => listeners.get("keydown")!({ code, repeat, preventDefault() {}, target: null } as unknown as KeyboardEvent),
+      release: code => listeners.get("keyup")!({ code } as KeyboardEvent),
       at: ms => { clock = ms; controller.update(); return controller.consumeMenuCommands(); },
     });
   } finally {
@@ -247,6 +248,33 @@ test("a held menu direction moves once, then repeats after the delay at the inte
     setPad(gamepad([0.9, 0])); assert.deepEqual(at(2001), ["right"]);
     setPad(gamepad([0.9, -0.9])); assert.deepEqual(at(2002), ["up"], "a second direction starts its own hold");
     assert.deepEqual(at(2001 + MENU_REPEAT.delay), ["right"], "the first keeps its own clock");
+  });
+});
+
+// Steering is the menu's directions (the stick, and the arrows on a keyboard), so a direction held hard over when a
+// menu comes up, pausing mid-corner or pulling into the garage, used to walk that menu at once: the repeat's clock had
+// been running since the corner. It counts once it has been let go (Push review on #13).
+test("a direction held from driving does not walk a menu that opens under it until it is let go", () => {
+  menuHarness(({ controller, setPad, key, release, at }) => {
+    controller.setMenuActive(false);
+    at(0);
+    setPad(gamepad([-0.9, 0]));
+    assert.deepEqual(at(10), [], "full lock is steering, not a menu direction");
+    assert.deepEqual(at(10 + MENU_REPEAT.delay * 2), []);
+    controller.setMenuActive(true);
+    assert.deepEqual(at(2000), [], "held into the menu, it does not move it");
+    assert.deepEqual(at(2000 + MENU_REPEAT.delay * 3), [], "nor repeat");
+    setPad(gamepad([0, 0])); assert.deepEqual(at(3000), []);
+    setPad(gamepad([-0.9, 0])); assert.deepEqual(at(3010), ["left"], "let go and pushed again, it moves");
+    assert.deepEqual(at(3010 + MENU_REPEAT.delay), ["left"], "and repeats");
+    setPad(gamepad([0, 0])); at(4000);
+    // The keyboard's own repeat: an arrow held from driving walks nothing; one pressed in the menu walks it.
+    controller.setMenuActive(false);
+    key("ArrowLeft"); assert.deepEqual(at(4100), []);
+    controller.setMenuActive(true);
+    key("ArrowLeft", true); key("ArrowLeft", true); assert.deepEqual(at(4200), [], "held from driving");
+    release("ArrowLeft"); key("ArrowLeft"); key("ArrowLeft", true);
+    assert.deepEqual(at(4300), ["left", "left"], "pressed in the menu");
   });
 });
 

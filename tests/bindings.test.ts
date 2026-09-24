@@ -105,6 +105,25 @@ test("the map cannot take X, Y or a shoulder, and a save that has it there moves
   assert.equal(kept.gamepad.flash, 8);
 });
 
+// The keyboard's menu keys are the same commands (bindings.ts, MENU_KEYS): Q and E the shoulders, X and Y the face
+// buttons. Review found the map could still be bound to one the day they arrived, and X in the garage then drove out
+// and opened the map at once. A driving action may still share one, as E enters the garage.
+test("the map cannot take Q, E, X or Y either, and a save that has it there moves only the map", () => {
+  for (const key of ["KeyQ", "KeyE", "KeyX", "KeyY"]) {
+    assert.throws(() => rebind(copyBindings(), "keyboard", "map", key), /menu keys/);
+    const keyboard: Record<string, string> = { ...copyBindings().keyboard, interact: "KeyG", map: key };
+    const decoded = decodeBindings(JSON.stringify({ version: 1, ...copyBindings(), keyboard }));
+    assert.equal(decoded.keyboard.map, "KeyM", `map on ${key} moves to M, which is free`);
+    for (const [action, value] of Object.entries(keyboard)) {
+      if (action !== "map") assert.equal(decoded.keyboard[action as keyof typeof decoded.keyboard], value, `${action} lost its remap`);
+    }
+  }
+  // With M taken, the first free letter that is not a menu key.
+  const taken = decodeBindings(JSON.stringify({ version: 1, ...copyBindings(), keyboard: { ...copyBindings().keyboard, telemetry: "KeyM", map: "KeyX" } }));
+  assert.equal(taken.keyboard.map, "KeyB");
+  assert.equal(rebind(copyBindings(), "keyboard", "reset", "KeyX").keyboard.reset, "KeyX", "a driving action may share a menu key");
+});
+
 test("adding map controls preserves legacy bindings already using M or Select", () => {
   const legacy=JSON.parse(JSON.stringify({version:1,...copyBindings()}));
   delete legacy.keyboard.map;delete legacy.gamepad.map;

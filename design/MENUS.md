@@ -30,13 +30,16 @@ panel 1,552 px tall in a 667 px window. A mouse never noticed. A pad did.
    so a mouse or a finger has every action a pad has; it is not a stop.
 5. **Holding a direction repeats**: once on the press, then after 380 ms every
    95 ms (`MENU_REPEAT`). A held arrow key repeats at the keyboard's own rate.
+   Only a direction pressed in a menu: the stick and the arrows steer, so one still
+   held from driving when a menu comes up (pausing mid-corner, pulling into the
+   garage) counts once it has been let go (`setMenuActive` in `input/input.ts`).
 6. **Back lands where you left.** Focus is remembered per screen and per section.
 7. **Nothing needs a keyboard.** No typed values a pad cannot enter, no required
    text fields.
 
 The pad's menu buttons are fixed, like A and B always were: X and Y are a screen's
 own actions, LB and RB its sections (`MENU_PAD_BUTTONS`, `MENU_KEYS` in
-`input/input.ts`). Driving bindings may share them, because the two never run on
+`input/bindings.ts`). Driving bindings may share them, because the two never run on
 the same screen; E is both Enter Wharf Garage on the street and next section in a
 menu, and the street takes it first.
 
@@ -66,7 +69,8 @@ sections of rows:
 | Livery | Design (on / off); Edit livery | |
 
 X drives out, B backs out, the right stick turns the car. Cinder-only rows hide on
-other bodies. On a car you do not own every customization row is locked, and a
+other bodies. On a car you do not own every customization row is locked, the
+Livery's Design switch with them, and a
 section with nothing to land on drops focus rather than leave it on a hidden row.
 On a screen 560 px or shorter (a phone held to race is 390) the heading goes, rows
 tighten, and the hint bar stays pinned in view.
@@ -81,6 +85,8 @@ button: since phase 1 it is kept off X, Y and the shoulders as it always was off
 B (`bindings.ts`). A controls save that already had it there moves the map to a free
 button; with all five it may take in use (the default layout fills them), it stays
 put and shares the button, because refusing the save would throw away every remap.
+The keyboard's map is kept off Q, E, X and Y the same way, and a save with it there
+moves it to M, or the first free letter; a keyboard always has one.
 
 **Phase 3:** the livery editor with no keyboard. Colours as a palette row plus hue and
 brightness rows instead of hex; panels, graphics and layers as rows; placement on the
