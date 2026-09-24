@@ -1,0 +1,210 @@
+{
+ "provenance": "Claude, 2026-09-24, traffic-v9 (419151b) against traffic-v10 (stop and dwell, design/INTERSECTIONS.md), driver-v5, street-line-v3, pass-v3, alder-slice-v8.",
+ "method": "Soak: scripts/traffic-soak.ts <seed> --json, traffic alone ten minutes a seed, standing below 0.5 m/s. 'widest' is v10 with step 1's first amber axis (the widest single arm), which stopped the through road at 12 T-junctions; 'v10' is the axis as shipped (the straight-through pair). Gate kinds: every gate race with contact replayed by rival:scene, its contacts classified by the traffic car's heading against the rival's and de-duplicated by (seed, time, route metres); 'crossing, claimed' is a car crossing that claimed its junction within 15 s before.",
+ "soak": {
+  "v9": {
+   "0": {
+    "overAMinute": 4,
+    "stillStanding": 1,
+    "longestSeconds": 146
+   },
+   "1": {
+    "overAMinute": 3,
+    "stillStanding": 0,
+    "longestSeconds": 79
+   },
+   "2": {
+    "overAMinute": 14,
+    "stillStanding": 3,
+    "longestSeconds": 192
+   },
+   "7": {
+    "overAMinute": 6,
+    "stillStanding": 1,
+    "longestSeconds": 174
+   },
+   "42": {
+    "overAMinute": 10,
+    "stillStanding": 2,
+    "longestSeconds": 104
+   },
+   "99": {
+    "overAMinute": 8,
+    "stillStanding": 0,
+    "longestSeconds": 104
+   },
+   "1000": {
+    "overAMinute": 17,
+    "stillStanding": 2,
+    "longestSeconds": 185
+   },
+   "123456": {
+    "overAMinute": 1,
+    "stillStanding": 0,
+    "longestSeconds": 68
+   },
+   "271828": {
+    "overAMinute": 20,
+    "stillStanding": 2,
+    "longestSeconds": 198
+   },
+   "314159": {
+    "overAMinute": 15,
+    "stillStanding": 7,
+    "longestSeconds": 237
+   },
+   "2147483647": {
+    "overAMinute": 24,
+    "stillStanding": 3,
+    "longestSeconds": 427
+   },
+   "3735928559": {
+    "overAMinute": 28,
+    "stillStanding": 10,
+    "longestSeconds": 107
+   }
+  },
+  "widest": {
+   "0": {
+    "overAMinute": 1,
+    "stillStanding": 0,
+    "longestSeconds": 74
+   },
+   "1": {
+    "overAMinute": 2,
+    "stillStanding": 1,
+    "longestSeconds": 65
+   },
+   "2": {
+    "overAMinute": 12,
+    "stillStanding": 1,
+    "longestSeconds": 217
+   },
+   "7": {
+    "overAMinute": 8,
+    "stillStanding": 0,
+    "longestSeconds": 141
+   },
+   "42": {
+    "overAMinute": 6,
+    "stillStanding": 0,
+    "longestSeconds": 149
+   },
+   "99": {
+    "overAMinute": 10,
+    "stillStanding": 0,
+    "longestSeconds": 78
+   },
+   "1000": {
+    "overAMinute": 7,
+    "stillStanding": 1,
+    "longestSeconds": 185
+   },
+   "123456": {
+    "overAMinute": 6,
+    "stillStanding": 0,
+    "longestSeconds": 92
+   },
+   "271828": {
+    "overAMinute": 12,
+    "stillStanding": 0,
+    "longestSeconds": 218
+   },
+   "314159": {
+    "overAMinute": 7,
+    "stillStanding": 1,
+    "longestSeconds": 120
+   },
+   "2147483647": {
+    "overAMinute": 14,
+    "stillStanding": 0,
+    "longestSeconds": 153
+   },
+   "3735928559": {
+    "overAMinute": 8,
+    "stillStanding": 1,
+    "longestSeconds": 116
+   }
+  },
+  "v10": {
+   "0": {
+    "overAMinute": 1,
+    "stillStanding": 0,
+    "longestSeconds": 73
+   },
+   "1": {
+    "overAMinute": 2,
+    "stillStanding": 0,
+    "longestSeconds": 84
+   },
+   "2": {
+    "overAMinute": 11,
+    "stillStanding": 0,
+    "longestSeconds": 209
+   },
+   "7": {
+    "overAMinute": 6,
+    "stillStanding": 0,
+    "longestSeconds": 175
+   },
+   "42": {
+    "overAMinute": 4,
+    "stillStanding": 1,
+    "longestSeconds": 106
+   },
+   "99": {
+    "overAMinute": 10,
+    "stillStanding": 1,
+    "longestSeconds": 100
+   },
+   "1000": {
+    "overAMinute": 11,
+    "stillStanding": 3,
+    "longestSeconds": 224
+   },
+   "123456": {
+    "overAMinute": 0,
+    "stillStanding": 0,
+    "longestSeconds": 54
+   },
+   "271828": {
+    "overAMinute": 10,
+    "stillStanding": 0,
+    "longestSeconds": 352
+   },
+   "314159": {
+    "overAMinute": 9,
+    "stillStanding": 4,
+    "longestSeconds": 157
+   },
+   "2147483647": {
+    "overAMinute": 22,
+    "stillStanding": 2,
+    "longestSeconds": 308
+   },
+   "3735928559": {
+    "overAMinute": 14,
+    "stillStanding": 7,
+    "longestSeconds": 131
+   }
+  }
+ },
+ "soakFinding": "Every car still standing after ten minutes, in v9 and v10 alike, is in one undressed cluster around (-650, -1080), about 300 m across (lanes 262 to 554); its lock (a car holding its chain and unable to move, a queue behind) is v9's. The longest stand is a lottery: its lane differs in every version.",
+ "gateKinds": {
+  "v9": {
+   "distinct": 46,
+   "oncoming": 25,
+   "crossing, claimed": 9,
+   "into the back": 11,
+   "from behind": 1
+  },
+  "v10": {
+   "distinct": 51,
+   "oncoming": 31,
+   "from behind": 4,
+   "crossing, claimed": 8,
+   "into the back": 8
+  }
+ },
+ "gateFinding": "v9's 9 crossing incidents were all claimed from undressed approaches; v10's 8 are 6 undressed, one priority (claimed on the move from 34 m, rule 1) and one from a stop bar after the dwell, with the rival crawling 7 m away at 6 mph, under RACER_MOVING. 59 of the map's 172 junctions of three or more arms are undressed (56 withheld whole because one approach could not fit paint or a pole, 3 acute merges), so the rule does not reach where the gate's crossings are. gen-54 at seed 271828 (off the pavement 70 ticks, 9.5 s slower) is a van claiming at an undressed junction from 30 m, the rival 263 m away: the old reckoning, met at another moment."
+}

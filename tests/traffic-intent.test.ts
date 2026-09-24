@@ -218,17 +218,19 @@ test("traffic does not claim a junction a racer at 123 mph could not stop short 
 test("a claim reckons the hold the car will drive", () => {
   for (const seed of SEEDS) {
     const traffic = createTraffic(network, undefined, seed);
-    const open = new Map<number, { tick: number; reckoned: number; stood: boolean }>(), ratios: number[] = [];
+    const open = new Map<number, { tick: number; reckoned: number; going: boolean; stood: boolean }>(), ratios: number[] = [];
     let late = 0;
     for (let tick = 0; tick < 60 * 60; tick++) {
       const had = new Map(traffic.vehicles.map(v => [v.id, v.holds.length]));
       stepTraffic(network, traffic, DT);
       for (const v of traffic.vehicles) {
         const lane = network.lanes[v.lane]!;
-        if (!had.get(v.id) && v.holds.length) open.set(v.id, { tick, reckoned: clearingTime(network, v, v.holds, lane.length - lane.entry - v.distance), stood: false });
+        if (!had.get(v.id) && v.holds.length) open.set(v.id, { tick, reckoned: clearingTime(network, v, v.holds, lane.length - lane.entry - v.distance), going: false, stood: false });
         const claim = open.get(v.id);
         if (!claim) continue;
-        if (v.speed < 0.5) claim.stood = true;
+        // Stood once it had got going: since traffic-v10 a claim from a stop bar is made standing, and is the reckoning's
+        // to get right like any other (about half of all claims).
+        if (v.speed > 2) claim.going = true; else if (claim.going && v.speed < 0.5) claim.stood = true;
         if (had.get(v.id) && !v.holds.length) {
           open.delete(v.id);
           const held = (tick - claim.tick) * DT;

@@ -57,7 +57,11 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // body of its kind's mass for the tick, hit hard enough it is a wreck until it is put back out of sight
 // (`restoreTraffic`), and traffic queues behind a wreck and keeps out of a junction it sits in. Traffic alone is
 // unchanged.
-export const TRAFFIC_REVISION = "traffic-v9";
+// v10 (2026-09-24): a car on a red-flash or stop-sign approach (design/INTERSECTIONS.md) stops with its front at the painted
+// bar and stands there `STOP_DWELL` before it may claim, where it used to claim from 34 m out on the move; the forecast
+// holds it there too. Amber approaches and undressed junctions are driven as before. A claim's reckoning near racers
+// (`clearingTime`) floors a corner at traffic's own crawl, 2 m/s, where it floored it at a racer's 3.
+export const TRAFFIC_REVISION = "traffic-v10";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -122,6 +126,31 @@ export interface TrafficLane {
   readonly movements: readonly number[];
   /** Metres before the end of this lane at which its junction begins. */
   readonly entry: number;
+  /** How its junction is controlled (design/INTERSECTIONS.md, step 2), where step 1 dressed it. Absent is as before. */
+  readonly control?: TrafficControl;
+}
+
+/**
+ * A lane's junction control (`traffic-v10`, 2026-09-24). `stop`: a red flash or a stop sign, where a car stops with
+ * its front at the painted bar, `stopAt` metres along the lane, and stands there `STOP_DWELL` before it may claim the
+ * junction at all. `priority`: an amber flash, driven as every lane was before. A lane with none is driven as before.
+ */
+export interface TrafficControl {
+  readonly rule: "stop" | "priority";
+  readonly stopAt: number;
+}
+/** Seconds a car stands at its bar before it may claim (Shawn, 2026-09-24: a full stop, which reads). */
+export const STOP_DWELL = 0.8;
+/** Metres short of its bar a car's front counts as at it, and the speed under which it is standing. */
+const AT_BAR = 1.5, STANDING = 0.3;
+/** Where a car on a stop lane that has not yet reached it stops: its front at the bar, or the junction's entry line where
+ *  the bar is inside it (12 lanes). Null on any other lane, and for a car already past the point, which is driven as
+ *  it was before the bars. */
+function stopPoint(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>): number | null {
+  const lane = network.lanes[vehicle.lane]!, control = lane.control;
+  if (control?.rule !== "stop") return null;
+  const at = Math.min(control.stopAt, lane.length - lane.entry);
+  return vehicle.distance <= at + 0.5 ? at : null;
 }
 
 /**
@@ -203,6 +232,8 @@ export interface TrafficVehicleState {
   speed: number;
   /** The movement this vehicle will take at the end of its current lane. */
   movement: number;
+  /** Seconds stood at its bar on a stop lane, holding nothing (`traffic-v10`). Absent until it has stood. */
+  stood?: number;
   /**
    * The movements it currently occupies, in the order it will drive them.
    *
@@ -878,7 +909,9 @@ export function clearingTime(network: TrafficNetwork, vehicle: Readonly<TrafficV
     const corner = cornerOf(network, id);
     if (corner) taken = Math.min(taken, corner.speed);
   }
-  taken = Math.max(RACER_MOVING, taken);
+  // The car's own floor, the corner it crawls (`traffic-v10`): floored at `RACER_MOVING`, a racer's threshold, a 2 m/s
+  // hairpin was reckoned at 3 and held 2.2 s past its reckoning (lane 1063, seeds 0 and 271828).
+  taken = Math.max(CORNER.crawl, taken);
   const step = 0.1;
   let speed = vehicle.speed, covered = 0, seconds = 0;
   while (covered < toEntry + through && seconds < RACER_HORIZON.max) {
@@ -1003,8 +1036,13 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
   // conflicts then waits on a crossing nobody is making.
   const headOfQueue = (vehicle: TrafficVehicleState): boolean =>
     !(byLane.get(vehicle.lane) ?? []).some(other => other !== vehicle && other.distance > vehicle.distance);
+  // On a stop lane, before its bar, only a car that has stood there (`traffic-v10`): from standstill at the paint, where
+  // a racer can see it waiting, and not from 34 m out on the move, forecasting the racer. Its hold is reckoned from
+  // standing (`clearingTime`), which is the honest one. Past its bar, or on any other lane, the range as before.
+  const mayClaim = (vehicle: TrafficVehicleState): boolean =>
+    stopPoint(network, vehicle) === null ? toEntry(vehicle) <= CLAIM_RANGE : (vehicle.stood ?? 0) >= STOP_DWELL;
   const waiting = state.vehicles
-    .filter(vehicle => !vehicle.wreck && !vehicle.holds.length && vehicle.movement >= 0 && toEntry(vehicle) <= CLAIM_RANGE
+    .filter(vehicle => !vehicle.wreck && !vehicle.holds.length && vehicle.movement >= 0 && mayClaim(vehicle)
       && headOfQueue(vehicle))
     .sort((a, b) => toEntry(a) - toEntry(b) || a.id - b.id);
   for (const vehicle of waiting) {
@@ -1030,10 +1068,11 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     if (vehicle.wreck) continue;
     const spec = TRAFFIC_KINDS[vehicle.kind];
     let gap = Math.min(gapAhead(network, byLane, vehicle), racerGap(network, vehicle, racers));
+    const stop = stopPoint(network, vehicle);
     if (!vehicle.holds.length) {
       // Aim to stop short of the line rather than on it: a vehicle with no
-      // claim has no right to any part of the junction.
-      gap = Math.min(gap, Math.max(0, toEntry(vehicle) - STOP_SHORT) + MIN_GAP);
+      // claim has no right to any part of the junction. On a stop lane the line is the bar, and the front stops at it.
+      gap = Math.min(gap, stop !== null ? Math.max(0, stop - vehicle.distance) + MIN_GAP : Math.max(0, toEntry(vehicle) - STOP_SHORT) + MIN_GAP);
     }
     // Linear follower: full cruise at a comfortable gap, stopped at the bumper,
     // and no faster than the corner it is in or coming to is taken.
@@ -1047,9 +1086,13 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     // The entry line is a hard barrier, not a target to aim at. Everything here
     // rests on the invariant that no vehicle is ever past it without holding the
     // movement beyond, so it is where a vehicle holding nothing stops being driven.
+    // On a stop lane the bar is that barrier, until the car holds the junction.
     const line = network.lanes[vehicle.lane]!.length - network.lanes[vehicle.lane]!.entry;
-    let ground = advance(network, vehicle, vehicle.speed * dt, vehicle.holds.length ? Infinity : Math.max(vehicle.distance, line));
+    let ground = advance(network, vehicle, vehicle.speed * dt, vehicle.holds.length ? Infinity : Math.max(vehicle.distance, stop ?? line));
     if (!vehicle.holds.length && ground > 1e-9) vehicle.speed = 0;
+    // Standing at the bar, holding nothing: counted towards the dwell. Anything else starts it again.
+    if (stop !== null && !vehicle.holds.length && stop - vehicle.distance <= AT_BAR && vehicle.speed < STANDING) vehicle.stood = (vehicle.stood ?? 0) + dt;
+    else if (vehicle.stood !== undefined) delete vehicle.stood;
 
     let current = network.lanes[vehicle.lane]!;
     // `while`, not `if`: a short connector can be crossed inside one tick.
@@ -1137,7 +1180,7 @@ function driveGhost(network: TrafficNetwork, ghost: TrafficVehicleState, seconds
     const dt = limit < ghost.speed + 1 ? Math.min(fine, coarse) : coarse;
     left -= dt;
     ghost.speed = Math.min(ghost.speed + (accelerate ? ACCELERATION * dt : 0), limit, accelerate ? TRAFFIC_KINDS[ghost.kind].cruise : Infinity);
-    const line = network.lanes[ghost.lane]!.length - network.lanes[ghost.lane]!.entry;
+    const line = stopPoint(network, ghost) ?? network.lanes[ghost.lane]!.length - network.lanes[ghost.lane]!.entry;
     let ground = advance(network, ghost, ghost.speed * dt, ghost.holds.length || ghost.distance > line ? Infinity : line);
     let current = network.lanes[ghost.lane]!;
     while (ghost.distance >= current.length && ghost.holds.length) {
@@ -1149,7 +1192,7 @@ function driveGhost(network: TrafficNetwork, ghost: TrafficVehicleState, seconds
       if (ghost.holds.length > 1) ghost.holds.shift();
       else ghost.holds = [];
       ghost.movement = ghost.holds.length ? ghost.holds[0]! : chooseMovement(network, ghost);
-      ground = advance(network, ghost, ground, ghost.holds.length ? Infinity : Math.max(0, current.length - current.entry));
+      ground = advance(network, ghost, ground, ghost.holds.length ? Infinity : Math.max(0, stopPoint(network, ghost) ?? current.length - current.entry));
     }
     if (ghost.distance >= current.length) ghost.distance = current.length;
     place(network, ghost);

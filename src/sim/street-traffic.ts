@@ -65,8 +65,16 @@ function laneExitJunction(street: Street, lane: Lane): string {
   return lane.direction === 1 ? street.to : street.from;
 }
 
+/** A dressed junction's approach, as the network needs it (`JunctionApproach` in intersection-dressing.ts). */
+export interface ApproachControl {
+  readonly junctionId: string; readonly streetId: string;
+  readonly x: number; readonly z: number; readonly ux: number; readonly uz: number;
+  readonly stopX: number; readonly stopZ: number;
+  readonly control: "signal" | "stop"; readonly flash: "amber" | "red";
+}
+
 export function buildStreetTrafficNetwork(streets: readonly Street[],
-  heightAt: (x: number, z: number) => number): TrafficNetwork {
+  heightAt: (x: number, z: number) => number, approaches: readonly ApproachControl[] = []): TrafficNetwork {
   const entries: LaneEntry[] = streets.flatMap(street =>
     lanes(street.kind).map(lane => ({ street, lane, junction: laneExitJunction(street, lane) })));
   const idOf = new Map<string, number>();
@@ -300,8 +308,23 @@ export function buildStreetTrafficNetwork(streets: readonly Street[],
       lane, from: span.from - SWEEP_STEP, to: span.to + SWEEP_STEP }));
   });
 
+  // Each lane arriving at a dressed junction takes its approach's control (design/INTERSECTIONS.md, step 2): a stop sign
+  // or a red flash is a stop, an amber flash priority, and the painted bar is where on this lane a stopping car's front
+  // is: the last point before the lane's end that is still the bar's distance or more from the junction along the arm.
+  const approachOf = new Map(approaches.map(a => [`${a.junctionId}|${a.streetId}`, a]));
+  const controlOf = (id: number): TrafficLane["control"] => {
+    const { street, junction } = entries[id]!, approach = approachOf.get(`${junction}|${street.id}`);
+    if (!approach) return undefined;
+    const bar = (approach.stopX - approach.x) * approach.ux + (approach.stopZ - approach.z) * approach.uz;
+    let stopAt = 0;
+    for (let d = lengths[id]!; d >= 0; d -= 0.25) {
+      const p = flatPose(id, d);
+      if ((p.x - approach.x) * approach.ux + (p.z - approach.z) * approach.uz >= bar) { stopAt = d; break; }
+    }
+    return { rule: approach.control === "stop" || approach.flash === "red" ? "stop" : "priority", stopAt };
+  };
   const trafficLanes: TrafficLane[] = entries.map((_, id) => ({
-    id, length: lengths[id]!, movements: laneMovements[id]!,
+    id, length: lengths[id]!, movements: laneMovements[id]!, ...(approachOf.size && controlOf(id) ? { control: controlOf(id)! } : {}),
     // The entry line covers both the crossings of movements leaving this lane
     // and any tarmac the lane itself shares near its end.
     // Matching the far side: the reservation begins where this lane starts

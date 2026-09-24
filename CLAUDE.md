@@ -306,6 +306,12 @@ fixtures outside the playable bundle, and old world links redirect.
   A car claims its junction only if no moving racer will cross it before the car is clear, and
   since `traffic-v8` it reckons that as it will drive it, slowing for its corner (`clearingTime`):
   reckoned from its speed, it turned across the rival in 26 races on one seed ("Six layouts").
+  113 junctions are dressed with flashing signals or stop signs (`ALDER_INTERSECTIONS`,
+  `design/INTERSECTIONS.md`), amber along the road that goes straight through. Since `traffic-v10`
+  (2026-09-24) traffic obeys them: on a red flash or a stop sign a car stops with its front at the
+  painted bar and stands 0.8 s (`STOP_DWELL`) before it may claim, where it claimed from 34 m out on
+  the move; amber lanes and the 59 undressed junctions are as before, and racers still get the
+  junction (Shawn: MC3). The gate's crossing incidents are nearly all at the undressed ones.
 - **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), the
   neighbourhood's name as you cross into it in free roam (`district-banner.ts`,
   after 1.2 s so a border street never flickers), a city map overlay (M) naming
@@ -326,6 +332,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | District machinery: footprints, surface, aprons, lanes, kerb props | `src/sim/district.ts`, `street-*.ts`, `building-*.ts`, `lanes.ts`, `kerb-props.ts` | `design/DISTRICT.md` |
 | Route choice, race generation, race ids, turfs, race start, race rules | `route-choice.ts`, `race-generator.ts`, `race-id.ts`, `alder-turf.ts`, `race-start.ts`, `race.ts`, `events.ts` | `design/PORT_ALDER.md`, `design/PROCEDURAL_RACES.md` |
 | Rival, encounter, cruisers, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `alder-cruisers.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
+| Junctions: signals, stop signs, bars, and where traffic stops for them | `intersection-dressing.ts`, `street-traffic.ts` (`control`), `render/intersection-dressing.ts` | `design/INTERSECTIONS.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
 | The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
@@ -605,6 +612,10 @@ fixtures outside the playable bundle, and old world links redirect.
   a race handed to `createSim` with no rival and no exits has no arrows.
 - Changing how traffic drives means bumping `TRAFFIC_REVISION`: sessions
   recorded in traffic name it, and replay refuses another.
+- The junction inventory (`dressIntersections`) is traffic's since `traffic-v10`, not just paint: which arm flashes
+  amber, where a bar sits and which junctions are dressed decide where traffic stops, so a change to it is a
+  `TRAFFIC_REVISION` bump. Its amber axis is the straight-through pair; the widest single arm it used first made the
+  stem of a T amber and stopped the through road at 12 junctions, which nobody saw while the lights were only lights.
 - Seed 0 is the traffic every traffic fix was soaked on and every rival gate was measured on, and it is the cleanest
   of twelve seeds measured (2026-09-22): under the others traffic starves a long chain through a junction cluster for
   up to 6.6 minutes, and the rival meets three times the distinct incidents, including the first contact on a line and

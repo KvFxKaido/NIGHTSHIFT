@@ -355,7 +355,8 @@ export function createAlderWorld(racing = false, from: RoadWorld["start"] = star
     project: projectOntoAlder,
     surface: (x,z)=>{const road=projectOntoAlder(x,z);return {...road,height:road.height+alderSidewalkLift(x,z)};},
     curb: alderSidewalkLift, ground: alderGround, grade: alderGrade,
-    get traffic() { return network ??= buildStreetTrafficNetwork(ALDER_STREETS, alderHeight); } };
+    // Traffic reads step 1's junctions (design/INTERSECTIONS.md): where its lanes stop, and for what.
+    get traffic() { return network ??= buildStreetTrafficNetwork(ALDER_STREETS, alderHeight, ALDER_INTERSECTIONS.flatMap(j => j.approaches)); } };
 }
 
 const gateAt = (name: string, index: number) => {
