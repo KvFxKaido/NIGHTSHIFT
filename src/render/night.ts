@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { RoadSolid } from "../sim/road-world.ts";
 import { FACADE_BASE, type BuildingPalette } from "./building-palette.ts";
+import { drawnBuilding } from "./drawn-buildings.ts";
 
 /**
  * Night dressing: the emissive layer that turns a grey blockout into a district
@@ -284,12 +285,12 @@ export function addNightBuildings(scene: THREE.Scene, sites: readonly BuildingSi
   groundAt: (x: number, z: number) => number = () => 0, reach: FrontageReach = CENTRELINE_REACH): void {
   const facadeMaterial = (kind: WindowKind) => {
     const { map, emissiveMap } = facadeTextures(kind);
-    return new THREE.MeshStandardMaterial({
+    return drawnBuilding(new THREE.MeshStandardMaterial({
       color: map ? 0xffffff : FACADE_BASE, map, emissiveMap, vertexColors:true,
       emissive: emissiveMap ? 0xffffff : 0x000000, emissiveIntensity: 1.35, roughness: 0.82,
-    });
+    }));
   };
-  const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors:true, roughness: 1 });
+  const roofMaterial = drawnBuilding(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors:true, roughness: 1 }));
   // One mesh per kind of window, so each is one material and one draw a chunk.
   const facades = new Map<WindowKind, THREE.BufferGeometry[]>();
   const roofs: THREE.BufferGeometry[] = [];

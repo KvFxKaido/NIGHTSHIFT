@@ -37,16 +37,23 @@ import type { CarView } from "./car.ts";
  * the flare is missed, traffic's band levels are the knob, and they are uniforms
  * shared with the cars today. Cost, same spot and tick: 5 draw calls and 7,392
  * triangles, 1.7% of the frame.
+ *
+ * `?look=cel-city` is a fourth (2026-09-24), undecided and never saved: `cel`,
+ * with the buildings drawn too, the cars' ink on every footprint and the bands on
+ * the facades and roofs at levels of their own (render/drawn-buildings.ts, which
+ * holds what the frames showed). Traffic stays undrawn under it.
  */
-export type Look = "fx" | "cel" | "cel-traffic";
-export const LOOKS: readonly Look[] = ["fx", "cel", "cel-traffic"];
+export type Look = "fx" | "cel" | "cel-traffic" | "cel-city";
+export const LOOKS: readonly Look[] = ["fx", "cel", "cel-traffic", "cel-city"];
 let look: Look | null = null;
 let celOn = false;
-export function setLook(value: Look | null): void { look = value; celOn = value === "cel" || value === "cel-traffic"; }
+export function setLook(value: Look | null): void { look = value; celOn = value === "cel" || value === "cel-traffic" || value === "cel-city"; }
 /** Whether any drawn effects are on. */
 export function drawnEffects(): boolean { return look !== null; }
 /** Whether traffic is drawn too: only under `?look=cel-traffic`. */
 export function trafficDrawn(): boolean { return look === "cel-traffic"; }
+/** Whether the buildings are drawn, inked and banded: only under `?look=cel-city` (render/drawn-buildings.ts). */
+export function buildingsDrawn(): boolean { return look === "cel-city"; }
 
 /** Shared by every patched material, so a value changed here changes every car. */
 export const CEL_UNIFORMS = {
@@ -82,7 +89,13 @@ const CEL_LIGHT = /* glsl */ `
   const vec3 celLuma = vec3(0.2126, 0.7152, 0.0722);
   float celLight = dot(totalDiffuse, celLuma) / max(dot(material.diffuseColor, celLuma), 1e-4);
   float celBand = celLight < celThresholds.x ? celBands.x : (celLight < celThresholds.y ? celBands.y : celBands.z);
+#ifdef CEL_KEEP_HUE
+  // The light's own colour at the band's brightness: a wall at night is blue
+  // because the moon and the sky are, and banded to its albedo alone it went grey.
+  vec3 celColor = totalDiffuse * (celBand / max(celLight, 1e-4));
+#else
   vec3 celColor = diffuseColor.rgb * celBand;
+#endif
 #ifndef CEL_BANDS_ONLY
   celColor += step(celSpecular, dot(totalSpecular, celLuma)) * celStripe;
   // The rim is an edge on the flanks. A roof seen from the chase camera is at a
@@ -98,19 +111,26 @@ const SUM_OF_LIGHT = "vec3 outgoingLight = totalDiffuse + totalSpecular + totalE
 /**
  * Band a material when the cars are drawn; a no-op otherwise. `accents` are the
  * highlight stripe and the cyan rim, a named car's; traffic is banded without.
+ * `uniforms` is the set of levels it bands to: the cars' by default, and the
+ * buildings their own (render/drawn-buildings.ts), because a wall at night is
+ * lit a tenth as hard as paint in a headlight and would sit in one band whole.
+ * `keepHue` bands the light's brightness and keeps its colour, where the cars
+ * band to their paint's own colour whatever lights it.
  */
-export function celMaterial<T extends THREE.MeshStandardMaterial>(material: T, accents = true): T {
+export function celMaterial<T extends THREE.MeshStandardMaterial>(material: T, accents = true,
+  uniforms: typeof CEL_UNIFORMS = CEL_UNIFORMS, keepHue = false): T {
   if (!celOn || material.userData.cel) return material;
   // The shared uniforms, reachable from any car mesh for tuning in the browser.
-  material.userData.cel = CEL_UNIFORMS;
+  material.userData.cel = uniforms;
   material.onBeforeCompile = shader => {
     if (!shader.fragmentShader.includes(SUM_OF_LIGHT)) throw new Error("The standard shader no longer sums light the way the cel patch expects");
-    Object.assign(shader.uniforms, CEL_UNIFORMS);
+    Object.assign(shader.uniforms, uniforms);
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${accents ? "" : "#define CEL_BANDS_ONLY\n"}${CEL_PARS}`)
+      .replace("#include <common>", `#include <common>\n${accents ? "" : "#define CEL_BANDS_ONLY\n"}${keepHue ? "#define CEL_KEEP_HUE\n" : ""}${CEL_PARS}`)
       .replace(SUM_OF_LIGHT, CEL_LIGHT);
   };
-  material.customProgramCacheKey = () => accents ? "cel" : "cel-bands";
+  const key = `${accents ? "cel" : "cel-bands"}${uniforms === CEL_UNIFORMS ? "" : "-own"}${keepHue ? "-hue" : ""}`;
+  material.customProgramCacheKey = () => key;
   material.needsUpdate = true;
   return material;
 }

@@ -18,6 +18,8 @@ import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
 import { addArena } from "./arena.ts";
 import { ARENA_BOUNDS } from "../sim/arena.ts";
 import { chunkAlderScenery } from "./city-chunks.ts";
+import { buildingInk } from "./drawn-buildings.ts";
+import { buildingsDrawn } from "./cel.ts";
 import { addGarageExterior, addGarageForecourt } from "./garage.ts";
 import { roadMarkings } from "./road-markings.ts";
 import { asphaltMaterial } from "./asphalt.ts";
@@ -169,6 +171,8 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight, ALDER_GROUNDS_FRONT_IDS);
   addSiteGrounds(scene, ALDER_SITE_GROUNDS, alderHeight);
   addGarageExterior(scene,ALDER_GARAGE.building);
+  // ?look=cel-city: the cars' ink on every building, the garage's included.
+  if(buildingsDrawn())scene.add(buildingInk(ALDER_BLOCKS));
   addGarageForecourt(scene,ALDER_GARAGE.building,ALDER_FORECOURT);
   if(night){
     const frontage=buildingFrontage(buildings,ALDER_STREETS,ALDER_REACH.signs);

@@ -204,8 +204,9 @@ try {
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
   // The cars are drawn (render/cel.ts), set before any body loads. ?look=plain
-  // shows them undrawn, ?look=fx undrawn with the drawn smoke and
-  // ?look=cel-traffic drawn with traffic drawn too, to compare.
+  // shows them undrawn, ?look=fx undrawn with the drawn smoke,
+  // ?look=cel-traffic drawn with traffic drawn too and ?look=cel-city with the
+  // buildings drawn too, to compare.
   const look = params.get("look") ?? "cel";
   if (look !== "plain" && !LOOKS.some(known => known === look)) throw new Error(`Unknown look '${look}'`);
   setLook(look === "plain" ? null : look as Look);

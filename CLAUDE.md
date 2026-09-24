@@ -690,7 +690,12 @@ The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
 `src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`
 undrawn with the drawn smoke, for comparison, never saved. `?look=cel-traffic`
 (2026-09-20) draws traffic too, bands and ink without the stripe or the cyan
-rim: an undecided comparison, not the look. A burnout (e-brake
+rim: an undecided comparison, not the look. `?look=cel-city` (2026-09-24) draws
+the buildings instead, the cars' ink on every footprint and bands on the facades
+at their own levels, which lift the lit sides off black (`src/render/drawn-buildings.ts`);
+also undecided. A frozen page (`?freeze=1`, `__ns.freeze()`) runs no ticks, so a
+pad on it does nothing while the HUD still reads LIVE: never hand one over to be
+driven (Shawn's triggers "did not work" on one, 2026-09-24). A burnout (e-brake
 and gas at a standstill) smokes anywhere, which is the quick way to look at it;
 Wharf Garage's apron is walled, so line up with the street before letting go.
 Live play draws each car between its last two ticks (`src/render/interpolate.ts`),
