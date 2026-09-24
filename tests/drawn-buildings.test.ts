@@ -3,17 +3,19 @@ import test from "node:test";
 import * as THREE from "three";
 import { ALDER_BLOCKS } from "../src/sim/alder.ts";
 import { blockCorners, type BuildingBlock } from "../src/sim/building-footprint.ts";
-import { CEL_INK, CEL_UNIFORMS, celMaterial, setLook, buildingsDrawn } from "../src/render/cel.ts";
+import { CEL_INK, CEL_UNIFORMS, celMaterial, LOOKS, setLook, buildingsDrawn } from "../src/render/cel.ts";
 import { BUILDING_CEL_UNIFORMS, BUILDING_INK, buildingInk, drawnBuilding } from "../src/render/drawn-buildings.ts";
 import { CHUNKED_SCENERY } from "../src/render/city-chunks.ts";
 
-// cel-city is the default look (2026-09-24); every other look leaves the city as it was.
+// cel-city is the default look (2026-09-24); every other look leaves the city as it was. The looks are read from
+// LOOKS, so one added later is held to it too.
 test("buildings are drawn under cel-city and under no other look", () => {
-  for (const look of [null, "cel", "cel-traffic"] as const) {
+  for (const look of [null, ...LOOKS]) {
     setLook(look);
     try {
-      assert.equal(buildingsDrawn(), false, `${look} draws the buildings`);
-      assert.equal(drawnBuilding(new THREE.MeshStandardMaterial()).userData.cel, undefined);
+      const drawn = look === "cel-city";
+      assert.equal(buildingsDrawn(), drawn, `${look} ${drawn ? "leaves the buildings undrawn" : "draws the buildings"}`);
+      assert.equal(drawnBuilding(new THREE.MeshStandardMaterial()).userData.cel, drawn ? BUILDING_CEL_UNIFORMS : undefined);
     } finally { setLook(null); }
   }
 });
