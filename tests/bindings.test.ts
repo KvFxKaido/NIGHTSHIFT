@@ -76,7 +76,33 @@ test("map rebinding and saved maps reject fixed menu buttons without restricting
   }
   assert.equal(rebind(bindings, "gamepad", "handbrake", 0).gamepad.handbrake, 0);
   assert.equal(rebind(bindings, "gamepad", "handbrake", 1).gamepad.handbrake, 1);
-  assert.throws(() => rebind(copyBindings(), "gamepad", "map", 5), /Already assigned/);
+  assert.throws(() => rebind(copyBindings(), "gamepad", "map", 6), /Already assigned/);
+});
+
+// X, Y and the shoulders became menu buttons on 2026-09-24 (design/MENUS.md): a
+// screen's own actions and its sections. The map cannot sit on one, for the reason
+// it never could on A or B, and a save that already put it there keeps every other
+// remap: the map alone moves to a free button, as a missing binding would.
+test("the map cannot take X, Y or a shoulder, and a save that has it there moves only the map", () => {
+  for (const button of [2, 3, 4, 5]) {
+    assert.throws(() => rebind(copyBindings(), "gamepad", "map", button), /Menu/);
+    // A save from before: the map on this button, its default owner moved to B, which
+    // is free, and Select left free for the map to move to.
+    const gamepad: Record<string, number> = { ...copyBindings().gamepad };
+    const owner = Object.entries(gamepad).find(([action, value]) => action !== "map" && value === button)![0];
+    gamepad[owner] = 1; gamepad.map = button;
+    const decoded = decodeBindings(JSON.stringify({ version: 1, ...copyBindings(), gamepad }));
+    assert.ok(![0, 1, 2, 3, 4, 5, 9, 12, 13, 14, 15].includes(decoded.gamepad.map), `map on ${button} stayed on a menu button`);
+    for (const [action, value] of Object.entries(gamepad)) {
+      if (action !== "map") assert.equal(decoded.gamepad[action as keyof typeof decoded.gamepad], value, `${action} lost its remap`);
+    }
+  }
+  // With every button the map may take in use, it stays put rather than the save being
+  // refused, which would have thrown away every other remap with it.
+  const full: Record<string, number> = { ...copyBindings().gamepad, flash: 8, map: 2 };
+  const kept = decodeBindings(JSON.stringify({ version: 1, ...copyBindings(), gamepad: full }));
+  assert.equal(kept.gamepad.map, 2);
+  assert.equal(kept.gamepad.flash, 8);
 });
 
 test("adding map controls preserves legacy bindings already using M or Select", () => {
@@ -89,7 +115,7 @@ test("adding map controls preserves legacy bindings already using M or Select", 
   assert.equal(migrated.gamepad.camera,8);
   assert.notEqual(migrated.keyboard.map,"KeyM");
   assert.notEqual(migrated.gamepad.map,8);
-  assert.ok(![0, 1, 9, 12, 13, 14, 15].includes(migrated.gamepad.map), "migration must leave menu buttons fixed");
+  assert.ok(![0, 1, 2, 3, 4, 5, 9, 12, 13, 14, 15].includes(migrated.gamepad.map), "migration must leave menu buttons fixed");
   assert.deepEqual(decodeBindings(JSON.stringify({version:1,...migrated})),migrated);
 });
 
@@ -147,7 +173,9 @@ test("capture consumes input, waits for controller release, and keeps menu confi
     assert.equal(input.consumeTrackSkip(), 0, "the left stick is steering and menu right, never a skip");
     current = pad(); input.update(); input.consumeMenuCommands();
     key("KeyF"); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
-    current = pad({2:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["flash"]);
+    // X is also a menu's own action since 2026-09-24 (design/MENUS.md); the street
+    // reads only the flash and a menu only the action, so the two never meet.
+    current = pad({2:1}); input.update(); assert.deepEqual(input.consumeMenuCommands(), ["flash", "action-x"]);
     input.update(); assert.deepEqual(input.consumeMenuCommands(), [], "held headlights must not retrigger");
     current = pad(); input.update();
     let captured: string | number | null = null;

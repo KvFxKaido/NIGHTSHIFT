@@ -66,6 +66,7 @@ import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
+import { createOptionRow } from "./ui/menu-rows.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
@@ -328,6 +329,13 @@ const liveryEditor = createLiveryEditor({ car: () => view,
   editing: active => { view.garageLiveryEditing = active; },
   facePanel: panel => { view.garageYaw = ({ hood: -Math.PI / 4, roof: -Math.PI / 4, left: -Math.PI * .75, right: Math.PI / 4, rear: Math.PI * .75 }[panel]); },
 });
+// The Livery section's switch: the design on or off without opening the editor.
+document.querySelector("[data-livery-row]")!.append(createOptionRow({
+  id: "livery", label: "Design",
+  options: () => [{ id: "on", label: "On" }, { id: "off", label: "Off" }],
+  value: () => liveryEditor.enabled() ? "on" : "off",
+  choose: id => liveryEditor.setEnabled(id === "on"),
+}).element);
 
 // Audio is presentation, so it lives beside the renderer and reads state after
 // the ticks are done. Browsers refuse an AudioContext without a gesture, so the
@@ -511,18 +519,31 @@ function restoreEquippedCar(): void {
   renderCarSelection();
 }
 const carNote = document.querySelector<HTMLElement>("[data-car-status]")!;
+const carName = (id: string) => BLACKLIST.find(name => name.car === id)?.carName ?? (id === "bulwark" ? "Bulwark" : "Cinder");
+// The car is a row like any other setting (design/MENUS.md): left / right browse,
+// and confirm is the Car section's own hint, Drive this car, when it can act.
+const carRow = createOptionRow({
+  id: "car", label: "Car", confirm: "hint",
+  options: () => PLAYER_CAR_IDS.map(id => ({ id, label: carName(id) })),
+  value: () => previewCar,
+  choose: id => { void previewGarageCar(id as typeof selectedCar); },
+});
+// Kept for the browser checks that browse and read the car by the old selector's hooks.
+carRow.element.querySelectorAll<HTMLElement>("[data-row-step]").forEach(step => { step.dataset.carCycle = step.dataset.rowStep; });
+carRow.value.querySelector("span")!.dataset.carName = "";
+document.querySelector("[data-car-row]")!.append(carRow.element);
 function renderCarSelection(): void {
   renderCarStats(document.querySelector<HTMLElement>("[data-car-stats]")!, previewCar);
   const career = progress.get();
   const current = progress.current();
   const owner = BLACKLIST.find(name => name.car === previewCar);
   const owned = ownsCar(career, previewCar);
-  document.querySelector<HTMLElement>("[data-car-name]")!.textContent = owner?.carName ?? (previewCar === "bulwark" ? "Bulwark" : "Cinder");
+  carRow.render();
   document.querySelector<HTMLElement>("[data-car-meta]")!.textContent = `${(PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar) + 1} / ${PLAYER_CAR_IDS.length} · ${drivetrainFor(previewCar).toUpperCase()}`;
   document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (isEquippedCar(previewCar) ? "Equipped" : "Owned")
     : owner ? `Win the pink slip · #${owner.rank} ${owner.name}` : "For sale · $1,500";
-  equipCar.disabled = carLoading || !owned || isEquippedCar(previewCar);
-  equipCar.textContent = isEquippedCar(previewCar) ? "Equipped" : owned ? "Drive this car" : "Locked";
+  // A hint, so it is there only when it can act; the ownership line above says why not.
+  equipCar.hidden = carLoading || !owned || isEquippedCar(previewCar);
   document.querySelector<HTMLButtonElement>("[data-open-livery]")!.disabled = carLoading || previewCar !== selectedCar;
   document.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => { button.disabled = carLoading || previewCar !== selectedCar; });
   document.querySelectorAll<HTMLElement>("[data-cinder-parts]").forEach(section => {
@@ -574,12 +595,6 @@ function selectCar(): void {
 }
 renderCarSelection();
 equipCar.addEventListener("click", selectCar);
-document.querySelectorAll<HTMLButtonElement>("[data-car-cycle]").forEach(button => {
-  button.addEventListener("click", () => {
-    const index = (PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar);
-    void previewGarageCar(PLAYER_CAR_IDS[(index + Number(button.dataset.carCycle) + PLAYER_CAR_IDS.length) % PLAYER_CAR_IDS.length]!);
-  });
-});
 document.querySelector<HTMLButtonElement>("[data-buy-bulwark]")!.addEventListener("click", () => {
   const outcome = progress.buyBulwark();
   carNote.textContent = outcome === "purchased" ? "Bulwark purchased. Choose Drive this car to equip it."
@@ -619,7 +634,7 @@ function finishGarageShot(): void {
   input.consumeMenuCommands();
   previousPoses = null;
   input.armDrivingInputGate();
-  if (view.mode === "garage") document.querySelector<HTMLButtonElement>('[data-menu-screen="garage"] button:not(:disabled)')?.focus();
+  if (view.mode === "garage") menu.restoreFocus();
   else view.renderer.domElement.focus({ preventScroll: true });
 }
 function beginGarageShot(kind: "enter" | "exit"): void {

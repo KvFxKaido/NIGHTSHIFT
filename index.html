@@ -124,123 +124,57 @@
         <section class="menu-screen garage-menu" data-menu-screen="garage" aria-labelledby="garage-menu-title" hidden>
           <p class="menu-kicker">Wharf Garage / Bay 01</p>
           <h2 id="garage-menu-title" class="menu-heading">Street build</h2>
-          <p class="menu-meta garage-car-label">Project car / Visual setup</p>
 
-          <button class="menu-button" data-open-livery>Livery</button>
           <div id="garage-build">
-          <div class="garage-controls">
-            <fieldset class="garage-control">
-              <legend>Car</legend>
-              <div class="car-selector" data-car-selector role="group" aria-label="Browse cars">
-                <button class="garage-option car-cycle" data-car-cycle="-1" aria-label="Previous car">‹</button>
-                <div class="car-identity" aria-live="polite"><strong data-car-name>Cinder</strong><span data-car-meta></span></div>
-                <button class="garage-option car-cycle" data-car-cycle="1" aria-label="Next car">›</button>
-                <div class="car-stats" data-car-stats aria-label="Measured performance"></div>
-              </div>
+          <!-- Rows, not tiles (design/MENUS.md): each setting is one row changed with left / right, and the
+               shoulders page the four sections. The rows are built from the catalog in ui/menu.ts. -->
+          <div class="menu-sections" data-menu-sections>
+            <div class="menu-section-tabs" role="tablist" aria-label="Garage sections">
+              <button class="menu-section-step" data-section-step="-1" data-pointer-only tabindex="-1" aria-label="Previous section"><kbd data-hint-glyph="section-prev"></kbd></button>
+              <button class="menu-section-tab" role="tab" data-section-tab="car" data-pointer-only tabindex="-1">Car</button>
+              <button class="menu-section-tab" role="tab" data-section-tab="paint" data-pointer-only tabindex="-1">Paint</button>
+              <button class="menu-section-tab" role="tab" data-section-tab="body" data-pointer-only tabindex="-1">Body</button>
+              <button class="menu-section-tab" role="tab" data-section-tab="livery" data-pointer-only tabindex="-1">Livery</button>
+              <button class="menu-section-step" data-section-step="1" data-pointer-only tabindex="-1" aria-label="Next section"><kbd data-hint-glyph="section-next"></kbd></button>
+            </div>
+
+            <div class="menu-section" data-section="car" role="tabpanel">
+              <div class="menu-rows" data-car-row></div>
+              <p class="car-meta" data-car-meta></p>
+              <div class="car-stats" data-car-stats aria-label="Measured performance"></div>
               <p class="handling-note" data-car-ownership></p>
-              <button class="menu-button" data-equip-car>Drive this car</button>
               <p class="handling-note" data-car-status role="status" aria-live="polite"></p>
-              <p class="handling-note">← / → on the selector to browse · Confirm to equip</p>
               <p class="handling-note" data-career-status role="status"></p>
-              <button class="garage-option" data-replace-stage-race hidden>Replace outdated course</button>
+              <button class="menu-button" data-replace-stage-race hidden>Replace outdated course</button>
               <p class="handling-note" data-cash role="status">Cash · $0</p>
-              <button class="garage-option" data-buy-bulwark disabled>Buy Bulwark · $1,500</button>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Paint</legend>
-              <div class="garage-options paint-options">
-                <button class="garage-option paint-option" style="--option-color: #a80d2f" data-customization="paint" data-option="signal" aria-label="Signal Red paint" aria-pressed="true"><span>Signal</span></button>
-                <button class="garage-option paint-option" style="--option-color: #111722" data-customization="paint" data-option="blackglass" aria-label="Blackglass paint" aria-pressed="false"><span>Black</span></button>
-                <button class="garage-option paint-option" style="--option-color: #c47a18" data-customization="paint" data-option="sodium" aria-label="Sodium Gold paint" aria-pressed="false"><span>Gold</span></button>
-                <button class="garage-option paint-option" style="--option-color: #d8dde2" data-customization="paint" data-option="ice" aria-label="Ice White paint" aria-pressed="false"><span>Ice</span></button>
-                <button class="garage-option paint-option" style="--option-color: #4a2378" data-customization="paint" data-option="ultraviolet" aria-label="Ultraviolet paint" aria-pressed="false"><span>Ultra</span></button>
-              </div>
-            </fieldset>
+            </div>
 
-            <fieldset class="garage-control">
-              <legend>Wheel finish</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="wheels" data-option="graphite" aria-pressed="true">Graphite</button>
-                <button class="garage-option" data-customization="wheels" data-option="alloy" aria-pressed="false">Alloy</button>
-                <button class="garage-option" data-customization="wheels" data-option="white" aria-pressed="false">White</button>
-              </div>
-            </fieldset>
+            <div class="menu-section" data-section="paint" role="tabpanel" hidden>
+              <div class="menu-rows" data-customization-rows="paint wheels"></div>
+              <div class="menu-rows" data-customization-rows="tint" data-cinder-parts></div>
+            </div>
 
-            <fieldset class="garage-control">
-              <legend>Ride height <span>visual</span></legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="stance" data-option="street" aria-pressed="true">Street</button>
-                <button class="garage-option" data-customization="stance" data-option="low" aria-pressed="false">Low</button>
-                <button class="garage-option" data-customization="stance" data-option="slammed" aria-pressed="false">Slammed</button>
-              </div>
-            </fieldset>
+            <div class="menu-section" data-section="body" role="tabpanel" hidden>
+              <div class="menu-rows" data-customization-rows="bodyKit front skirts rear spoiler wheelDesign" data-cinder-parts></div>
+              <div class="menu-rows" data-customization-rows="stance"></div>
+              <p class="handling-note" data-body-preset-note data-cinder-parts>Kits match front, sides, rear and spoiler.</p>
+            </div>
+
+            <div class="menu-section" data-section="livery" role="tabpanel" hidden>
+              <div class="menu-rows" data-livery-row></div>
+              <button class="menu-button" data-open-livery>Edit livery</button>
+              <p class="handling-note">Base paint, panels and graphics, saved for each car on this browser.</p>
+            </div>
           </div>
 
-          <div class="garage-controls" data-cinder-parts>
-            <fieldset class="garage-control">
-              <legend>Cinder kit <span>visual</span></legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="bodyKit" data-option="stock" aria-pressed="true">Stock</button>
-                <button class="garage-option" data-customization="bodyKit" data-option="street" aria-pressed="false">Street kit</button>
-                <button class="garage-option" data-customization="bodyKit" data-option="race" aria-pressed="false">Race kit</button>
-              </div>
-              <p class="handling-note" data-body-preset-note>Kits match front, sides, rear and spoiler.</p>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Wheel design</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="wheelDesign" data-option="stock" aria-pressed="true">Factory five</button>
-                <button class="garage-option" data-customization="wheelDesign" data-option="six" aria-pressed="false">Six spoke</button>
-                <button class="garage-option" data-customization="wheelDesign" data-option="mesh" aria-pressed="false">Split ten</button>
-              </div>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Front lip</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="front" data-option="stock" aria-pressed="true">Stock</button>
-                <button class="garage-option" data-customization="front" data-option="street" aria-pressed="false">Street</button>
-                <button class="garage-option" data-customization="front" data-option="race" aria-pressed="false">Race</button>
-              </div>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Side skirts</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="skirts" data-option="stock" aria-pressed="true">Stock</button>
-                <button class="garage-option" data-customization="skirts" data-option="street" aria-pressed="false">Street</button>
-                <button class="garage-option" data-customization="skirts" data-option="race" aria-pressed="false">Race</button>
-              </div>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Rear valance</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="rear" data-option="stock" aria-pressed="true">Stock</button>
-                <button class="garage-option" data-customization="rear" data-option="street" aria-pressed="false">Street</button>
-                <button class="garage-option" data-customization="rear" data-option="race" aria-pressed="false">Race</button>
-              </div>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Spoiler</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="spoiler" data-option="none" aria-pressed="false">None</button>
-                <button class="garage-option" data-customization="spoiler" data-option="stock" aria-pressed="true">Factory</button>
-                <button class="garage-option" data-customization="spoiler" data-option="street" aria-pressed="false">Ducktail</button>
-                <button class="garage-option" data-customization="spoiler" data-option="wing" aria-pressed="false">Wing</button>
-              </div>
-            </fieldset>
-            <fieldset class="garage-control">
-              <legend>Window tint</legend>
-              <div class="garage-options text-options">
-                <button class="garage-option" data-customization="tint" data-option="stock" aria-pressed="true">Factory</button>
-                <button class="garage-option" data-customization="tint" data-option="smoke" aria-pressed="false">Smoke</button>
-                <button class="garage-option" data-customization="tint" data-option="dark" aria-pressed="false">Midnight</button>
-              </div>
-            </fieldset>
-          </div>
-          <nav class="menu-actions garage-actions" aria-label="Garage actions">
-            <button class="menu-button" data-menu-action="start">Drive out</button>
-            <button class="menu-button primary" data-menu-action="back">Back</button>
+          <nav class="menu-hints" data-menu-hints aria-label="Garage controls">
+            <button class="menu-hint" data-hint="confirm" data-hint-section="car" data-equip-car data-pointer-only tabindex="-1" hidden><kbd data-hint-glyph="confirm"></kbd><span data-hint-label>Drive this car</span></button>
+            <button class="menu-hint" data-hint="action-y" data-hint-section="car" data-buy-bulwark data-pointer-only tabindex="-1" hidden><kbd data-hint-glyph="action-y"></kbd><span data-hint-label>Buy Bulwark · $1,500</span></button>
+            <span class="menu-hint" data-hint="change"><kbd data-hint-glyph="change"></kbd>Change</span>
+            <span class="menu-hint" data-hint="turn" data-hint-pad><kbd data-hint-glyph="turn"></kbd>Turn car</span>
+            <button class="menu-hint" data-hint="action-x" data-menu-action="start" data-pointer-only tabindex="-1"><kbd data-hint-glyph="action-x"></kbd><span data-hint-label>Drive out</span></button>
+            <button class="menu-hint" data-hint="back" data-menu-action="back" data-pointer-only tabindex="-1"><kbd data-hint-glyph="back"></kbd><span data-hint-label>Back</span></button>
           </nav>
-          <p class="menu-footer">Right stick turns the platform · <span data-camera-binding>R3 / C</span> resets · changes carry to the street</p>
           <p class="settings-status" data-settings-status role="status" aria-live="polite"></p>
           </div>
           <div id="livery-editor" hidden></div>
@@ -332,8 +266,10 @@
           </table>
           <p class="controls-fixed">Right stick: camera orbit / garage platform. D-pad Up changes camera while driving;
             D-pad Left / Right skip to the previous / next track. Arrow keys also drive.<br />
-            Menu controls stay fixed: Esc / Menu pauses or backs out; arrows, D-pad or left stick navigate;
-            Enter / A / Cross selects; B / Circle goes back. Enter also enters the garage.</p>
+            Menu controls stay fixed: Esc / Menu pauses or backs out; arrows, D-pad or left stick navigate
+            and hold to repeat, and left / right change a row; Enter / A / Cross selects; B / Circle goes back;
+            Q / E or LB / RB (L1 / R1) change section; X and Y (Square and Triangle) do what a screen's hints say.
+            Enter also enters the garage.</p>
           <p class="controls-status" data-controls-status role="status" aria-live="polite"></p>
           <nav class="controls-actions" aria-label="Control settings">
             <button class="menu-button" data-cancel-binding disabled>Cancel remap</button>

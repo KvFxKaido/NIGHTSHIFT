@@ -32,11 +32,15 @@ export function keyLabel(code: string): string {
 function validKey(value: unknown): value is string {
   return typeof value === "string" && /^(Key[A-Z]|Digit[0-9]|Space|Shift(Left|Right)|Control(Left|Right)|Numpad[0-9]|Comma|Period|Slash|Semicolon|Quote|BracketLeft|BracketRight|Backslash|Minus|Equal)$/.test(value);
 }
+/** The pad's fixed menu buttons (design/MENUS.md): A and B, and since 2026-09-24 X, Y
+ *  and the shoulders, which are a screen's own actions and its sections. */
+export const MENU_PAD_BUTTONS = { confirm: 0, back: 1, actionX: 2, actionY: 3, sectionPrev: 4, sectionNext: 5 } as const;
+const MENU_FIXED: readonly number[] = Object.values(MENU_PAD_BUTTONS);
 function validPadButton(action: string, value: unknown): value is number {
-  // Driving actions can share A/B with menus because they run on separate screens.
-  // Map toggles run in both contexts, so sharing confirm/back would emit two commands.
+  // Driving actions can share the menu buttons because they run on separate screens.
+  // Map toggles run in both contexts, so sharing one would emit two commands.
   return typeof value === "number" && Object.hasOwn(PAD_LABELS, value)
-    && (action !== "map" || (value !== 0 && value !== 1));
+    && (action !== "map" || !MENU_FIXED.includes(value));
 }
 /** Reject collisions rather than silently removing another action's binding. */
 export function rebind(bindings: Bindings, device: BindingDevice, action: Action, value: string | number): Bindings {
@@ -44,7 +48,7 @@ export function rebind(bindings: Bindings, device: BindingDevice, action: Action
   if (!Object.hasOwn(map, action)) throw new Error("That control uses a fixed stick or menu binding.");
   if (device === "keyboard" ? !validKey(value) : !validPadButton(action, value)) {
     throw new Error(device === "keyboard" ? "Choose a letter, number, modifier, Space or punctuation. Menu keys stay fixed."
-      : action === "map" ? "Menu buttons (A / Cross, B / Circle, Menu / Options and D-pad) cannot open the map. Choose another button."
+      : action === "map" ? "Menu buttons (A, B, X, Y, LB, RB, Menu / Options and D-pad) cannot open the map. Choose another button."
       : "Menu / Options and D-pad navigation stay fixed. Choose another button.");
   }
   const conflict = Object.entries(map).find(([other, binding]) => other !== action && binding === value);
@@ -64,6 +68,20 @@ export function decodeBindings(raw: string | null): Bindings {
     const seen = new Set();
     for (const action of Object.keys(result[device])) {
       let value = data[device]?.[action];
+      // A map saved on X, Y or a shoulder was valid until those became menu buttons (2026-09-24).
+      // It moves to a free button, as a missing action is given one. If every button the map may
+      // take is in use (there are five, and the default layout fills them), it stays where the
+      // player put it, sharing the button as it did before: that costs a menu one doubled press,
+      // where refusing the save would throw away every remap in it. A and B were never allowed, so
+      // a map on one of them is still an invalid save below.
+      let tolerated = false;
+      if (device === "gamepad" && action === "map" && MENU_FIXED.includes(value)
+        && value !== MENU_PAD_BUTTONS.confirm && value !== MENU_PAD_BUTTONS.back) {
+        const used = [...Object.values(data.gamepad ?? {}), ...seen];
+        const free = Object.keys(PAD_LABELS).map(Number).find(candidate => !used.includes(candidate) && validPadButton(action, candidate));
+        if (free === undefined) tolerated = true;
+        else value = free;
+      }
       // Older saves predate flash, map, manual shifts or the camera cycle. Preserve their remaps and
       // give the new action an unused control instead of resetting the player's entire setup.
       if ((["flash", "map", "shiftUp", "shiftDown", "cameraView"].includes(action)) && value === undefined) {
@@ -73,7 +91,7 @@ export function decodeBindings(raw: string | null): Bindings {
         value = choices.find(candidate => !used.includes(candidate)
           && (device === "keyboard" ? validKey(candidate) : validPadButton(action, candidate)));
       }
-      if (seen.has(value) || (device === "keyboard" ? !validKey(value) : !validPadButton(action, value))) {
+      if (seen.has(value) || (device === "keyboard" ? !validKey(value) : !(tolerated || validPadButton(action, value)))) {
         throw new Error("Invalid controls save");
       }
       seen.add(value);

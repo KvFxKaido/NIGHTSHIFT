@@ -54,8 +54,13 @@ try {
   await capture('enter');
   await finished();
   assert.equal(await pose(), before);
-  await page.locator('[data-customization="bodyKit"][data-option="race"]').click();
-  await page.locator('[data-customization="wheelDesign"][data-option="mesh"]').click();
+  // Parts are rows in the Body section now (design/MENUS.md): step each row to its part.
+  await page.locator('[data-section-tab="body"]').click();
+  for (const [slot, id] of [['bodyKit', 'race'], ['wheelDesign', 'mesh']]) {
+    const row = page.locator(`[data-row="${slot}"]`);
+    for (let step = 0; step < 8 && await row.getAttribute('data-value') !== id; step++) await row.locator('[data-row-step="1"]').click();
+    assert.equal(await row.getAttribute('data-value'), id, `${slot} never reached ${id}`);
+  }
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   assert.equal(await page.evaluate(() => __ns.view.garageCutscene.kind), 'exit');
   const exitPose = await pose();

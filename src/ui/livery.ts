@@ -137,10 +137,13 @@ export function createLiveryEditor(options: { car(): CarView; restorePaint(): vo
       model=current;history=new LiveryHistory(load(model));
       selected=history.current.layers[0]?.id ?? -1;panel=history.current.layers[0]?.panel ?? 'hood';
     }
-    open.textContent='Livery';
+    open.textContent='Edit livery';
     apply();render();
   }
   refresh();
   return { refresh, close, handleBack(commands: readonly MenuCommand[]) {if(!root.hidden&&commands.some(c=>c==='back'||c==='pause')){close();return true;}return false;},
-    useFactoryPaint() {if(history.current.enabled){const d=copyLivery(history.current);d.enabled=false;history.commit(d);save();}} };
+    useFactoryPaint() {if(history.current.enabled){const d=copyLivery(history.current);d.enabled=false;history.commit(d);save();}},
+    /** The garage's Design row (main.ts): the same switch as the editor's own toggle. */
+    enabled: () => history.current.enabled,
+    setEnabled(on: boolean) {if(history.current.enabled!==on){const d=copyLivery(history.current);d.enabled=on;history.commit(d);save();}} };
 }

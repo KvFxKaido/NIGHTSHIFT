@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { createInitialMenuState, transitionMenu } from "../src/ui/menu-state.ts";
 import { MENU_ITEM_SELECTOR } from "../src/ui/menu.ts";
+import { CUSTOMIZATION_CATEGORIES } from "../src/customization/customization.ts";
 
 // Track selection is gone: the district is the game and free roam is how you
 // meet it, so Drive goes straight from the title into the world.
@@ -80,6 +81,14 @@ test("every interactive control in the menu markup is reachable by navigation", 
 
   const reachable = (tag: string, attributes: string): boolean => {
     if (/\bdisabled\b/.test(attributes)) return true;
+    // Pointer-only controls are never stops, and are allowed only where the pad
+    // already has a button for the same thing: a section tab or step (the
+    // shoulders), a hint (its face button). Anything else would be a control a
+    // pad cannot reach at all (design/MENUS.md).
+    if (/\bdata-pointer-only\b/.test(attributes)) {
+      return tag === "button" && /\btabindex="-1"/.test(attributes)
+        && /\bdata-(section-tab|section-step|hint)\b/.test(attributes) && MENU_ITEM_SELECTOR.includes(":not([data-pointer-only])");
+    }
     if (tag === "button") return MENU_ITEM_SELECTOR.includes("button");
     const type = attributes.match(/\btype="([^"]+)"/)?.[1] ?? "text";
     return MENU_ITEM_SELECTOR.includes(`input[type="${type}"]`);
@@ -103,4 +112,23 @@ test("sliders are navigable and confirming on one cannot activate a button", () 
   assert.match(MENU_ITEM_SELECTOR, /button/);
   // Both halves must exclude disabled controls, or navigation lands on dead items.
   assert.equal(MENU_ITEM_SELECTOR.match(/:not\(\[disabled\]\)/g)?.length, 3);
+});
+
+// Rows, not tiles (design/MENUS.md, 2026-09-24). The garage laid its options out
+// as grids, and a pad walked every tile one press at a time. Hold the markup to
+// the rule: no option tiles on the garage screen, and every customization
+// category built as exactly one row.
+test("the garage is rows in sections, with no tiles of options", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const garage = html.match(/<section[^>]*data-menu-screen="garage"[\s\S]*?<\/section>/)![0];
+  assert.doesNotMatch(garage, /data-option=/, "a customization option is a tile again; make it a row");
+  assert.doesNotMatch(garage, /class="garage-options/, "an option grid is back in the garage");
+  const slots = [...garage.matchAll(/data-customization-rows="([^"]+)"/g)].flatMap(match => match[1]!.split(" "));
+  assert.deepEqual([...slots].sort(), [...CUSTOMIZATION_CATEGORIES].sort(), "every customization category has exactly one row");
+  const sections = [...garage.matchAll(/data-section="([^"]+)"/g)].map(match => match[1]);
+  const tabs = [...garage.matchAll(/data-section-tab="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(tabs, sections, "each section has its tab, in the same order");
+  // The pad's actions on this screen are its hints, and the browser checks drive
+  // the same buttons by their menu actions.
+  for (const action of ["start", "back"]) assert.match(garage, new RegExp(`data-hint="[^"]+"[^>]*data-menu-action="${action}"`));
 });

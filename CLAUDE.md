@@ -338,6 +338,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Jumps, drift and the drawn body: what the car does now, a crest census, proposals | — | `design/JUMPS_AND_DRIFT.md` (undecided; Shawn liked the drawn body and crests) |
 | Race list: playlist store, list model and screen | `src/settings/playlist.ts`, `race-build.ts`, `src/ui/race-list.ts`, `race-list-panel.ts` | `design/PORT_ALDER.md` |
 | HUD, menus, map, saves, controls, livery UI | `src/ui/`, `src/settings/`, `src/input/`, `src/customization/` | `README.md`; `design/EDITOR.md` for the workshop |
+| Menu rules: rows not tiles, shoulder sections, hint bars, hold-to-repeat, focus memory | `src/ui/menu.ts`, `menu-rows.ts`, `prompts.ts`, `src/input/input.ts` | `design/MENUS.md` (read it before adding any menu or option) |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
 | MC3 / MCLA rosters, unlocks, REP economy (research data, csv) | `design/reference/midnight-club/` | its `README.md`, then `digest.md` |
