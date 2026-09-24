@@ -91,7 +91,10 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   a working port on the night shift, with sodium lamps and dry streets; its
   rules, and the check anything new passes first, are `design/LOOK.md`. The cars
   are drawn like the rival portraits: three flat bands of their own colour, an
-  ink outline, the race's cyan on the rim (`src/render/cel.ts`).
+  ink outline, the race's cyan on the rim (`src/render/cel.ts`). Since
+  2026-09-24 the buildings are too: the same ink on every footprint, and bands on
+  the facades that keep the night's blue and lift the lit sides off black
+  (`src/render/drawn-buildings.ts`). Traffic is not drawn.
 - Preserve the current handling in Three.js/Rapier. PC prototype first;
   RedMagic 10 Pro is the eventual device, port and testing later. Capacitor
   is an option, not a decision. The Godot workshop in `godot-prototype/` is
@@ -697,14 +700,13 @@ It is a preview like the rest: nothing is written, the garage still reads Locked
 and a slot saved while driving one records the Cinder. `pnpm test:cinder` pins
 both the fallback and that the unlock grants nothing. Browser harnesses:
 `scripts/check-track-browser.js`, `scripts/check-controls-browser.js`.
-The cars and their tyre smoke are drawn by default (`src/render/cel.ts`,
-`src/render/smoke.ts`); `?look=plain` shows the cars undrawn and `?look=fx`
-undrawn with the drawn smoke, for comparison, never saved. `?look=cel-traffic`
-(2026-09-20) draws traffic too, bands and ink without the stripe or the cyan
-rim: an undecided comparison, not the look. `?look=cel-city` (2026-09-24) draws
-the buildings instead, the cars' ink on every footprint and bands on the facades
-at their own levels, which lift the lit sides off black (`src/render/drawn-buildings.ts`);
-also undecided. A frozen page (`?freeze=1`, `__ns.freeze()`) runs no ticks, so a
+The cars, their tyre smoke and the buildings are drawn by default, the look
+`cel-city` (`src/render/cel.ts`, `src/render/smoke.ts`,
+`src/render/drawn-buildings.ts`). For comparison, never saved: `?look=cel`
+draws the cars alone (the default until 2026-09-24), `?look=plain` shows the
+cars undrawn and `?look=fx` undrawn with the drawn smoke. `?look=cel-traffic`
+(2026-09-20) draws the cars and traffic, bands and ink without the stripe or the
+cyan rim, with the city undrawn: an undecided comparison, not the look. A frozen page (`?freeze=1`, `__ns.freeze()`) runs no ticks, so a
 pad on it does nothing while the HUD still reads LIVE: never hand one over to be
 driven (Shawn's triggers "did not work" on one, 2026-09-24). A burnout (e-brake
 and gas at a standstill) smokes anywhere, which is the quick way to look at it;

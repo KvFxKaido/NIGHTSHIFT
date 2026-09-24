@@ -3,10 +3,11 @@ import type { BuildingBlock } from "../sim/building-footprint.ts";
 import { buildingsDrawn, CEL_INK, CEL_UNIFORMS, celMaterial } from "./cel.ts";
 
 /**
- * The buildings drawn the way the cars are: `?look=cel-city`, a comparison,
- * never saved (render/cel.ts). The thesis is that the cars read as drawn and the
- * city as blockout, and the cars' own two tools, bands and ink, are the cheapest
- * way to stitch them. Both are here.
+ * The buildings drawn the way the cars are: the `cel-city` look, the default
+ * since 2026-09-24 (Shawn); `?look=cel` draws the city undrawn to compare
+ * (render/cel.ts). The thesis is that the cars read as drawn and the city as
+ * blockout, and the cars' own two tools, bands and ink, are the cheapest way to
+ * stitch them. Both are here.
  *
  * The bands: a facade's light cut into three flat levels, the traffic's way
  * (no stripe, no cyan rim; those are a named car's). The ink below found that a
