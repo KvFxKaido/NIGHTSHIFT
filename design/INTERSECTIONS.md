@@ -97,7 +97,7 @@ master moves wherever traffic runs.
 4. Only then, if the forecast is not enough: the rival reading priority itself. It already reads traffic's own forecast
    (`forecastTrafficPath`), which will include a car stopping at its bar, so it may need nothing.
 
-**Questions for Shawn.**
+**Questions for Shawn** (all three answered yes, 2026-09-24: racers keep the junction on a red, a full stop, at the painted bar).
 
 - Should traffic on the amber axis keep giving a junction to a racer who runs the red across it? Recommended yes for
   now (arcade), and revisited when police exist.
