@@ -421,10 +421,6 @@ body[data-garage-cinematic] #garage-shot-shade {
   gap: 7px;
 }
 
-.paint-options {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
 .text-options {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -458,31 +454,6 @@ body[data-garage-cinematic] #garage-shot-shade {
   border-color: var(--menu-cyan);
   background: rgba(89, 216, 255, 0.1);
   box-shadow: inset 0 -2px 0 var(--menu-cyan), 0 0 16px rgba(89, 216, 255, 0.08);
-}
-
-.paint-option {
-  min-height: 48px;
-  padding-top: 27px;
-}
-
-.paint-option::before {
-  content: "";
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  left: 7px;
-  height: 15px;
-  background: var(--option-color);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15), 0 3px 12px color-mix(in srgb, var(--option-color) 34%, transparent);
-}
-
-.garage-actions {
-  width: 100%;
-  margin-top: 16px;
-}
-
-.garage-actions .menu-button {
-  min-height: 40px;
 }
 
 .handling-comparison {
@@ -764,7 +735,7 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
   #garage-entry, #rival-challenge { bottom: 150px; font-size: 11px; }
 }
 
-[data-open-livery] { width: 100%; margin: 0 0 16px; }
+[data-open-livery] { width: 100%; margin: 14px 0 0; }
 #livery-editor { display: grid; gap: 16px; }
 #livery-editor[hidden], #garage-build[hidden] { display: none; }
 .livery-toolbar, .livery-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
@@ -788,21 +759,97 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
 #livery-editor > .livery-toolbar:first-child { position: sticky; top: 0; z-index: 2; padding: 6px 0; background: var(--ui-panel); }
 #livery-editor button:disabled { opacity: .4; cursor: default; }
 
-/* One live body on the platform; the selector stays compact beside it. */
-.car-selector { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
-.car-cycle { min-height: 48px; font-size: 28px; }
-.car-identity { display: grid; gap: 6px; text-align: center; }
-.car-identity strong { font-size: 22px; letter-spacing: .04em; }
-.car-identity span { color: var(--menu-muted); font-size: 11px; letter-spacing: .12em; }
-.car-stats { grid-column: 1 / -1; display: grid; gap: 8px; }
+/* One live body on the platform; its row, meta line and stats stay compact beside it. */
+.car-meta { margin: 6px 0 12px; color: var(--menu-muted); font: 700 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .14em; text-align: right; }
+.car-stats { display: grid; gap: 8px; }
 .car-stats[hidden] { display: none; }
 .car-stat { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 11px; }
 .car-stat-value { color: var(--menu-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .car-stat-bar { grid-column: 1 / -1; height: 6px; background: var(--ui-border); }
 .car-stat-bar::before { content: ""; display: block; width: var(--stat-fill); height: 100%; background: var(--ui-navigation); }
-[data-equip-car] { width: 100%; margin-top: 12px; }
 .garage-menu button:disabled { opacity: .45; cursor: default; }
 
 @media (max-width: 720px) {
   .menu-root[data-screen="garage"] .menu-screen { max-height: 55dvh; }
+}
+
+/* Rows, sections and hints (design/MENUS.md). No tiles: one setting is one row,
+   changed with left / right, and a screen longer than a screenful is paged by
+   the shoulders rather than scrolled. */
+.menu-section-tabs { display: flex; align-items: center; gap: 4px; margin: 14px 0 12px; }
+.menu-section-tab, .menu-section-step {
+  padding: 6px 7px; border: 0; border-bottom: 2px solid transparent; background: none;
+  color: var(--menu-muted); font: 800 11px/1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
+}
+.menu-section-tab { flex: 1; }
+.menu-section-tab[aria-selected="true"] { color: var(--menu-ink); border-bottom-color: var(--menu-cyan); }
+.menu-section-step kbd { display: inline-block; min-width: 26px; }
+.menu-section[hidden] { display: none; }
+.menu-rows { display: grid; }
+
+.menu-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 22px minmax(0, auto) 22px; align-items: center; gap: 2px;
+  min-height: 40px; padding: 0 4px 0 10px; border: 1px solid transparent; border-left: 2px solid transparent;
+  border-bottom-color: rgba(255, 255, 255, .06);
+}
+.menu-row:focus-within {
+  border-color: rgba(89, 216, 255, .46); border-left-color: var(--menu-cyan);
+  background: linear-gradient(90deg, rgba(89, 216, 255, .12), rgba(7, 10, 18, .82));
+}
+.menu-row-label { color: rgba(242, 238, 227, .6); font: 800 11px/1.2 "Arial Narrow", "Roboto Condensed", Arial, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.menu-row:focus-within .menu-row-label { color: var(--menu-ink); }
+.menu-row-value {
+  display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 34px; padding: 0 4px;
+  border: 0; background: none; color: var(--menu-ink); font: 800 12px/1.1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+}
+.menu-row-value:focus, .menu-row-value:focus-visible { outline: none; }
+.menu-row-value span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-row-swatch { flex: none; width: 14px; height: 14px; background: var(--swatch); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
+.menu-row-swatch[hidden] { display: none; }
+.menu-row-step {
+  min-height: 34px; padding: 0; border: 0; background: none; color: var(--menu-cyan);
+  font: 700 20px/1 Arial, sans-serif; opacity: .35; cursor: pointer;
+}
+.menu-row:focus-within .menu-row-step, .menu-row:hover .menu-row-step { opacity: 1; }
+.menu-row:has(.menu-row-value:disabled) { opacity: .45; }
+.menu-row:has(.menu-row-value:disabled) .menu-row-step { visibility: hidden; }
+
+.menu-hints {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+.menu-hint {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none;
+  color: rgba(242, 238, 227, .72); font: 800 10px/1.2 "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+button.menu-hint { cursor: pointer; }
+button.menu-hint:hover { color: var(--menu-ink); }
+.menu-hint[hidden], .menu-hint[data-hint-off] { display: none; }
+body:not([data-input-device="pad"]) [data-hint-pad] { display: none; }
+.menu-hints kbd, .menu-section-step kbd {
+  padding: 3px 5px; border: 1px solid rgba(89, 216, 255, .45); color: var(--menu-cyan);
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .04em;
+}
+
+/* Short screens (a phone held for racing is 390 px tall): the panel sheds its
+   heading, which the section tabs already say, and some row height, so a section
+   and its hints fit. */
+@media (max-height: 560px) {
+  .menu-root[data-screen="garage"] .menu-kicker,
+  .menu-root[data-screen="garage"] .menu-heading { display: none; }
+  .menu-section-tabs { margin: 6px 0 4px; }
+  .menu-row { min-height: 30px; }
+  .menu-row-value, .menu-row-step { min-height: 28px; }
+  .menu-hints { margin-top: 8px; padding-top: 8px; }
+  /* What the buttons do stays in view when the Car section's notes run long. */
+  .menu-root[data-screen="garage"] .menu-hints { position: sticky; bottom: -18px; padding-bottom: 8px; background: rgb(5, 8, 15); }
+  /* And a row brought into view by focus stops above them, not under them. */
+  .menu-root[data-screen="garage"] .menu-screen { scroll-padding-bottom: 56px; }
+}
+@media (max-width: 720px) {
+  .menu-root[data-screen="garage"] .menu-screen { max-height: 64dvh; }
+  .menu-root[data-screen="garage"] .menu-heading { font-size: 28px; }
 }

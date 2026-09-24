@@ -1,5 +1,5 @@
 import type { MenuCommand } from "../input/input.ts";
-import { customizationOption, bodyPresetIsMixed, type CarCustomization, type CustomizationCategory } from "../customization/customization.ts";
+import { customizationOption, bodyPresetIsMixed, CUSTOMIZATION_OPTIONS, type CarCustomization, type CustomizationCategory } from "../customization/customization.ts";
 import type { AudioLevels } from "../audio/audio-mix.ts";
 import {
   createInitialMenuState,
@@ -8,6 +8,7 @@ import {
   type MenuScreen,
   type MenuState,
 } from "./menu-state.ts";
+import { createOptionRow, rowAt } from "./menu-rows.ts";
 
 type MenuItem = HTMLButtonElement | HTMLInputElement;
 
@@ -15,9 +16,22 @@ type MenuItem = HTMLButtonElement | HTMLInputElement;
  * Everything a player can land on with a pad or the arrow keys. Exported so a
  * test can hold it against the real markup: a control the menu cannot focus is
  * not merely unreachable, it makes navigation skip past onto something else.
+ *
+ * `data-pointer-only` controls are for a pointer or a finger and are never stops,
+ * because each one repeats something the pad already has a button for: a row's
+ * ‹ › (left / right), a section tab (the shoulders), a hint (its face button).
  */
 export const MENU_ITEM_SELECTOR =
-  "button:not([disabled]):not([hidden]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden])";
+  "button:not([disabled]):not([hidden]):not([data-pointer-only]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden])";
+
+/** What each customization row is called (design/MENUS.md: one setting, one row). */
+const CUSTOMIZATION_LABELS: Record<CustomizationCategory, string> = {
+  paint: "Paint", wheels: "Wheel finish", stance: "Ride height", bodyKit: "Kit", wheelDesign: "Wheel design",
+  front: "Front lip", skirts: "Side skirts", rear: "Rear valance", spoiler: "Spoiler", tint: "Window tint",
+};
+
+/** The hint whose face button a command presses, for the commands a hint bar can carry. */
+const HINT_COMMANDS: Partial<Record<MenuCommand, string>> = { "action-x": "action-x", "action-y": "action-y" };
 
 interface MenuCallbacks {
   enterMenu(): void;
@@ -45,6 +59,8 @@ export interface MenuController {
   pause(): void;
   enterGarage(): void;
   finishRace(title: string, detail: string): void;
+  /** Focus where the player last was on this screen and section, or its first stop. */
+  restoreFocus(): void;
 }
 
 const actionEvents: Record<string, MenuEvent> = {
@@ -134,6 +150,122 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       : [];
   }
 
+  // Sections (design/MENUS.md): a screen with more than a screenful is split into
+  // panels the shoulders page through, each short enough not to scroll.
+  const activeSections = new Map<MenuScreen, string>();
+  function sectionsOf(screen: MenuScreen): HTMLElement | null {
+    return screens.get(screen)?.querySelector<HTMLElement>("[data-menu-sections]") ?? null;
+  }
+  function sectionNames(container: HTMLElement): string[] {
+    return Array.from(container.querySelectorAll<HTMLElement>("[data-section]")).map(panel => panel.dataset.section!);
+  }
+  function activeSection(): string | null {
+    const container = sectionsOf(state.screen);
+    return container ? activeSections.get(state.screen) ?? sectionNames(container)[0] ?? null : null;
+  }
+  function showSection(screen: MenuScreen, name: string): void {
+    const container = sectionsOf(screen);
+    if (!container) return;
+    activeSections.set(screen, name);
+    container.querySelectorAll<HTMLElement>("[data-section]").forEach(panel => { panel.hidden = panel.dataset.section !== name; });
+    container.querySelectorAll<HTMLElement>("[data-section-tab]").forEach(tab => {
+      tab.setAttribute("aria-selected", String(tab.dataset.sectionTab === name));
+    });
+  }
+  function stepSection(direction: -1 | 1): void {
+    const container = sectionsOf(state.screen);
+    // A sub-panel over the sections (the livery editor over the garage build)
+    // hides them; the shoulders do nothing there rather than page underneath it.
+    if (!container || container.closest("[hidden]")) return;
+    const names = sectionNames(container);
+    const current = names.indexOf(activeSection() ?? "");
+    showSection(state.screen, names[(current + direction + names.length) % names.length]!);
+    restoreFocus();
+    renderHints();
+  }
+
+  // Where the player was, per screen and per section, so backing out of a screen
+  // or paging away and back lands where they left rather than at the top.
+  const lastFocus = new Map<string, MenuItem>();
+  const focusKey = () => `${state.screen}:${activeSection() ?? ""}`;
+  function focused(item: MenuItem): void {
+    if (visibleItems().includes(item)) lastFocus.set(focusKey(), item);
+    // Cheap, and it keeps rows honest about values changed elsewhere (the
+    // livery editor's own switch, a body's own design after browsing cars).
+    renderCustomization();
+    renderHints();
+  }
+  /** The menu's own moves: recorded here and not only by `focusin`, which an
+   *  unfocused window never fires, and a hint bar must not wait for one. */
+  function focusItem(item: MenuItem | undefined): void {
+    if (!item) return;
+    item.focus();
+    focused(item);
+  }
+  // A pointer or a finger moves focus too, and that arrives only as the event.
+  root.addEventListener("focusin", event => focused(event.target as MenuItem));
+  // Pointer-only controls are not stops, so pressing one must not take focus:
+  // it would leave the pad on nothing, and it hid the "change" hint on the press,
+  // which reflowed the hint bar and slid Drive out from under the pointer before
+  // the release, so the click landed on the bar and nothing happened.
+  root.addEventListener("mousedown", event => {
+    if ((event.target as Element).closest?.("[data-pointer-only]")) event.preventDefault();
+  });
+  function restoreFocus(): void {
+    const items = visibleItems();
+    const remembered = lastFocus.get(focusKey());
+    // A section with nothing to land on (every row locked on a car that is not
+    // yours) must not leave focus on the page before it: left and right would
+    // go on changing a row the player can no longer see.
+    if (items.length === 0 && root.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+    focusItem(remembered && items.includes(remembered) ? remembered : items[0]);
+    renderHints();
+  }
+
+  // Each screen's hint bar names what its buttons do, in the pad's own labels
+  // (ui/prompts.ts fills the glyphs). Some hints belong to one section, and
+  // "change" only shows while something with a value to change has focus.
+  function hints(): HTMLElement | null {
+    return screens.get(state.screen)?.querySelector<HTMLElement>("[data-menu-hints]") ?? null;
+  }
+  function renderHints(): void {
+    const bar = hints();
+    if (!bar) return;
+    const section = activeSection();
+    const changing = !!rowAt(document.activeElement) || !!focusedSlider();
+    bar.querySelectorAll<HTMLElement>("[data-hint]").forEach(hint => {
+      const off = (hint.dataset.hintSection !== undefined && hint.dataset.hintSection !== section)
+        || (hint.dataset.hint === "change" && !changing);
+      hint.toggleAttribute("data-hint-off", off);
+    });
+  }
+  /** The hint a face button presses on this screen, if it is showing and can act. */
+  function liveHint(command: string): HTMLButtonElement | null {
+    const hint = hints()?.querySelector<HTMLButtonElement>(`button[data-hint="${command}"]:not([data-hint-off]):not([disabled])`);
+    return hint && !hint.closest("[hidden]") ? hint : null;
+  }
+
+  // The garage's customization rows, built from the catalog rather than kept as
+  // a second copy of it in the markup.
+  root.querySelectorAll<HTMLElement>("[data-customization-rows]").forEach(list => {
+    for (const category of list.dataset.customizationRows!.split(" ") as CustomizationCategory[]) {
+      const row = createOptionRow({
+        id: category, label: CUSTOMIZATION_LABELS[category],
+        options: () => CUSTOMIZATION_OPTIONS[category].map(option => ({ id: option.id, label: option.name,
+          swatch: "color" in option && category === "paint" ? `#${option.color.toString(16).padStart(6, "0")}` : undefined })),
+        value: () => {
+          const customization = callbacks.getCustomization();
+          return category === "bodyKit" && bodyPresetIsMixed(customization) ? "mixed" : customizationOption(customization, category);
+        },
+        valueLabel: () => "Custom mix",
+        choose: id => { callbacks.customize(category, id); renderCustomization(); },
+      });
+      // main.ts disables these while a car that is not yours is on the platform.
+      row.element.querySelectorAll("button").forEach(button => { button.dataset.customization = category; });
+      list.append(row.element);
+    }
+  });
+
   function focusedSlider(): HTMLInputElement | null {
     const active = document.activeElement;
     return active instanceof HTMLInputElement && active.type === "range" ? active : null;
@@ -151,17 +283,15 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
 
   function renderCustomization(): void {
     const customization = callbacks.getCustomization();
-    root.querySelectorAll<HTMLButtonElement>("[data-customization]").forEach(button => {
-      const category = button.dataset.customization as CustomizationCategory;
-      const selected = category === "bodyKit" && bodyPresetIsMixed(customization) ? "mixed" : customizationOption(customization, category);
-      button.setAttribute("aria-pressed", String(button.dataset.option === selected));
-    });
+    // Every row, the ones main.ts builds (the car, the livery) included: a paint
+    // change turns the livery off, and a kit rewrites four other rows.
+    root.querySelectorAll("[data-row]").forEach(element => rowAt(element)?.render());
     const note = root.querySelector<HTMLElement>("[data-body-preset-note]");
     if (note) note.textContent = bodyPresetIsMixed(customization) ? "Custom mix · choose a kit to match all bodywork." : "Kits match front, sides, rear and spoiler.";
   }
 
   function focusFirstItem(): void {
-    requestAnimationFrame(() => awaitingStart ? startButton.focus() : visibleItems()[0]?.focus());
+    requestAnimationFrame(() => awaitingStart ? startButton.focus() : restoreFocus());
   }
 
   function renderState(previousScreen?: MenuScreen): void {
@@ -171,11 +301,14 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     root.hidden = state.screen === "playing";
     root.setAttribute("aria-hidden", String(state.screen === "playing"));
     root.dataset.screen = state.screen;
-    const garageBack = root.querySelector('[data-menu-screen="garage"] [data-menu-action="back"]');
+    const garageBack = root.querySelector('[data-menu-screen="garage"] [data-menu-action="back"] [data-hint-label]');
     if (garageBack) garageBack.textContent = state.returnTo === "playing" ? "Return to street" : "Back";
     screens.forEach((element, screen) => {
       element.hidden = screen !== state.screen;
     });
+    const section = activeSection();
+    if (section) showSection(state.screen, section);
+    renderHints();
     callbacks.screenChanged(state.screen, state);
 
     if (state.screen === "playing") {
@@ -211,15 +344,20 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     if (items.length === 0) return;
     const current = items.indexOf(document.activeElement as MenuItem);
     const next = current < 0 ? 0 : (current + direction + items.length) % items.length;
-    items[next]!.focus();
+    focusItem(items[next]);
   }
 
   function confirmFocused(): void {
     // Confirming on a slider must do nothing. Falling through to items[0] here
     // would resume the run from under a player who was only setting a volume.
     if (focusedSlider()) return;
-    if (state.screen === "garage" && document.activeElement?.closest("[data-car-selector]")) {
-      root.querySelector<HTMLButtonElement>("[data-equip-car]")?.click();
+    // On a row, confirm is the screen's confirm hint where the row defers to it
+    // (the car row: drive this car), and otherwise moves the row on one. Either
+    // way it never falls through to another item.
+    const row = rowAt(document.activeElement);
+    if (row) {
+      if (row.spec.confirm === "hint") liveHint("confirm")?.click();
+      else row.step(1);
       return;
     }
     const items = visibleItems();
@@ -250,13 +388,17 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       } else if (state.screen !== "playing" && command === "down") {
         moveFocus(1);
       } else if (state.screen !== "playing" && (command === "left" || command === "right")) {
-        // On a slider, sideways is the value; everywhere else it still moves.
+        // On a row or a slider, sideways is the value; everywhere else it still moves.
         const direction = command === "left" ? -1 : 1;
         const slider = focusedSlider();
+        const row = rowAt(document.activeElement);
         if (slider) adjustSlider(slider, direction);
-        else if (state.screen === "garage" && document.activeElement?.closest("[data-car-selector]")) {
-          root.querySelector<HTMLButtonElement>(`[data-car-cycle="${direction}"]`)?.click();
-        } else moveFocus(direction);
+        else if (row) row.step(direction);
+        else moveFocus(direction);
+      } else if (state.screen !== "playing" && (command === "section-prev" || command === "section-next")) {
+        stepSection(command === "section-prev" ? -1 : 1);
+      } else if (state.screen !== "playing" && HINT_COMMANDS[command]) {
+        liveHint(HINT_COMMANDS[command]!)?.click();
       } else if (state.screen !== "playing" && command === "confirm") {
         confirmFocused();
       } else if (state.screen !== "playing" && command === "back") {
@@ -283,16 +425,13 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       }
       return;
     }
-    const button = event.target.closest<HTMLButtonElement>("[data-menu-action]");
-    const customizationButton = event.target.closest<HTMLButtonElement>("[data-customization]");
-    if (customizationButton) {
-      const category = customizationButton.dataset.customization as CustomizationCategory;
-      const optionId = customizationButton.dataset.option;
-      if (!optionId) return;
-      callbacks.customize(category, optionId);
-      renderCustomization();
+    const sectionControl = event.target.closest<HTMLButtonElement>("[data-section-tab], [data-section-step]");
+    if (sectionControl) {
+      if (sectionControl.dataset.sectionStep) stepSection(Number(sectionControl.dataset.sectionStep) as -1 | 1);
+      else { showSection(state.screen, sectionControl.dataset.sectionTab!); restoreFocus(); renderHints(); }
       return;
     }
+    const button = event.target.closest<HTMLButtonElement>("[data-menu-action]");
     if (!button) return;
     if (button.dataset.menuAction === "saves") callbacks.openSaves(button.dataset.saveMode === "save" ? "save" : "load");
     const menuEvent = actionEvents[button.dataset.menuAction ?? ""];
@@ -309,6 +448,7 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       dispatch("race-finished");
     },
     refreshAudio: renderAudio,
+    restoreFocus,
     enterGarage: () => { if (state.screen === "playing") dispatch("open-garage"); },
     isGameplayActive: () => state.screen === "playing",
     isGarageActive: () => state.screen === "garage",

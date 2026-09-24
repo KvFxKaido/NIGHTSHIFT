@@ -14,7 +14,7 @@ async page => {
   if (await page.locator('[data-car-name]').textContent() !== 'Bulwark') throw Error('Next failed');
   await cycle(1);
   if (await page.evaluate(() => __ns.view.car.userData.model !== 'ns-kestrel')) throw Error('Locked preview missing');
-  if (!await page.locator('[data-equip-car]').isDisabled()) throw Error('Locked car equip enabled');
+  if (await page.locator('[data-equip-car]').isVisible()) throw Error('Locked car offers Drive this car');
   if (await page.evaluate(before => JSON.stringify(__ns.sim.state) !== before.sim || localStorage.getItem('nightshift.settings') !== before.saved, baseline)) throw Error('Browsing changed drive/save');
   await page.screenshot({path:'artifacts/garage-cycle-desktop.png'});
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();

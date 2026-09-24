@@ -49,7 +49,17 @@ try {
     await page.evaluate(() => document.getElementById('parts-capture').remove());
     console.log(`Captured ${name}`);
   };
-  const option = (slot, id) => page.locator(`[data-customization="${slot}"][data-option="${id}"]`);
+  // The garage is rows in sections (design/MENUS.md): a part is chosen the way a
+  // player does, by opening its row's section and stepping the row until it reads
+  // the part, not by clicking a tile that no longer exists.
+  const row = slot => page.locator(`[data-row="${slot}"]`);
+  const value = slot => row(slot).getAttribute('data-value');
+  const openSection = name => page.locator(`[data-section-tab="${name}"]`).click();
+  const choose = async (slot, id) => {
+    await openSection(await row(slot).evaluate(element => element.closest('[data-section]').dataset.section));
+    for (let step = 0; step < 8 && await value(slot) !== id; step++) await row(slot).locator('[data-row-step="1"]').click();
+    assert.equal(await value(slot), id, `${slot} never reached ${id}`);
+  };
   const equipped = () => page.evaluate(() => {
     const variants = [];
     __ns.view.carVisual.traverse(object => {
@@ -61,35 +71,35 @@ try {
   await ready();
   assert.equal(await page.evaluate(() => __ns.view.car.userData.model), 'ns-cinder');
   await capture('stock');
-  await option('bodyKit', 'street').click();
-  await option('wheelDesign', 'six').click();
-  await option('wheels', 'alloy').click();
+  await choose('bodyKit', 'street');
+  await choose('wheelDesign', 'six');
+  await choose('wheels', 'alloy');
   await capture('street');
   assert.deepEqual((await equipped()).sort(), [...['front','skirts','rear','spoiler'].map(s => `cinder-${s}-street`), ...['front-left','front-right','rear-left','rear-right'].map(c => `cinder-wheel-six-${c}`)].sort());
-  await option('bodyKit', 'race').click();
-  await option('wheelDesign', 'mesh').click();
-  await option('tint', 'dark').click();
-  await option('paint', 'ice').click();
+  await choose('bodyKit', 'race');
+  await choose('wheelDesign', 'mesh');
+  await choose('tint', 'dark');
+  await choose('paint', 'ice');
   await capture('race');
   assert.ok((await equipped()).includes('cinder-spoiler-wing'));
   await page.evaluate(() => { __ns.view.garageYaw = Math.PI; });
   await capture('race-rear');
-  await option('front', 'street').click();
-  await option('spoiler', 'none').click();
+  await choose('front', 'street');
+  await choose('spoiler', 'none');
   assert.ok((await equipped()).includes('cinder-front-street'));
   assert.ok((await equipped()).includes('cinder-rear-race'));
   assert.ok((await equipped()).includes('cinder-spoiler-none'));
-  assert.equal(await page.locator('[data-customization="bodyKit"][aria-pressed="true"]').count(), 0);
+  assert.equal(await value('bodyKit'), 'mixed', 'a kit mixed from parts reads as its own state');
   await page.reload();
   await ready();
-  assert.equal(await option('front', 'street').getAttribute('aria-pressed'), 'true');
-  assert.equal(await option('spoiler', 'none').getAttribute('aria-pressed'), 'true');
-  assert.equal(await option('tint', 'dark').getAttribute('aria-pressed'), 'true');
+  assert.equal(await value('front'), 'street');
+  assert.equal(await value('spoiler'), 'none');
+  assert.equal(await value('tint'), 'dark');
   assert.ok((await equipped()).includes('cinder-rear-race'));
   await capture('mixed');
-  await option('bodyKit', 'race').click();
-  assert.equal(await option('front', 'race').getAttribute('aria-pressed'), 'true');
-  assert.equal(await option('spoiler', 'wing').getAttribute('aria-pressed'), 'true');
+  await choose('bodyKit', 'race');
+  assert.equal(await value('front'), 'race');
+  assert.equal(await value('spoiler'), 'wing');
   await page.evaluate(() => { __ns.view.garageYaw = Math.PI; });
   await capture('race-restored');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
@@ -99,9 +109,9 @@ try {
   await capture('race-drive');
   await page.evaluate(() => __ns.go('garage'));
   await page.setViewportSize({ width: 390, height: 844 });
-  await option('bodyKit', 'stock').click();
-  await option('wheelDesign', 'stock').click();
-  await page.waitForFunction(() => document.querySelector('[data-customization="wheelDesign"][data-option="stock"]').getAttribute('aria-pressed') === 'true');
+  await choose('bodyKit', 'stock');
+  await choose('wheelDesign', 'stock');
+  await page.waitForFunction(() => document.querySelector('[data-row="wheelDesign"]').dataset.value === 'stock');
   assert.ok((await equipped()).includes('cinder-front-stock'));
   assert.ok((await equipped()).includes('cinder-rear-stock'));
   assert.ok(!(await equipped()).includes('cinder-spoiler-wing'));
@@ -109,9 +119,10 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   // Unowned URL overrides intentionally fall back to Cinder. Browse a real
   // garage preview to check that Cinder-only slots disappear on other bodies.
+  await openSection('car');
   await page.locator('[data-car-cycle="1"]').click();
   await page.waitForFunction(() => __ns.view.car.userData.model !== 'ns-cinder');
-  assert.equal(await page.locator('[data-cinder-parts]').isVisible(), false);
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll('[data-cinder-parts]')].every(element => element.hidden)), 'a Cinder-only row showed on another body');
   // ?unlock=1 drives a car the career has not won, for pad testing a tune. It is
   // a preview and must stay one: the car loads and drives, and the garage still
   // reads Locked because ownership is `ownsCar` and nothing wrote it.

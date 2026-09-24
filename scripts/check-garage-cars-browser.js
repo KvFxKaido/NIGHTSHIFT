@@ -15,8 +15,9 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   };
   const choose = async id => {
     await preview(id);
+    // A hint since the garage became rows: shown only when it can act.
     const equip = page.locator('[data-equip-car]');
-    if (await equip.isEnabled()) await equip.click();
+    if (await equip.isVisible()) await equip.click();
   };
   await page.setViewportSize({width:1440,height:900});
   await page.goto(base + '?scene=garage&freeze=1'); await ready();
@@ -63,7 +64,7 @@ async (page, base = 'http://127.0.0.1:5173/') => {
   if (await page.evaluate(() => __ns.state().carModel !== 'ns-cinder' || JSON.parse(localStorage.getItem('nightshift.settings')).car !== 'bulwark')) throw Error('Preview corrupted saved car');
   // The URL-previewed body is already selected in memory, but still needs an
   // explicit confirm to persist it. Confirm from the cycle selector itself.
-  if (!await page.locator('[data-equip-car]').isEnabled()) throw Error('URL preview cannot be equipped');
+  if (!await page.locator('[data-equip-car]').isVisible()) throw Error('URL preview cannot be equipped');
   await page.locator('[data-car-cycle="1"]').focus();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('nightshift.settings')).car === 'cinder'

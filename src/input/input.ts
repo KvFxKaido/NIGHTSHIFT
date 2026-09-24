@@ -1,5 +1,5 @@
 import {
-  CAMERA_VIEW_PAD_BUTTON, copyBindings, DEFAULT_BINDINGS, NEXT_TRACK_PAD_BUTTON, PREVIOUS_TRACK_PAD_BUTTON,
+  CAMERA_VIEW_PAD_BUTTON, copyBindings, DEFAULT_BINDINGS, MENU_KEYS, MENU_PAD_BUTTONS, NEXT_TRACK_PAD_BUTTON, PREVIOUS_TRACK_PAD_BUTTON,
   type Bindings, type BindingDevice,
 } from "./bindings.ts";
 import type { Input } from "../sim/sim.ts";
@@ -9,7 +9,17 @@ export interface CameraLook {
   y: number;
 }
 
-export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause" | "interact" | "flash" | "map";
+export type MenuCommand = "up" | "down" | "left" | "right" | "confirm" | "back" | "pause" | "interact" | "flash" | "map"
+  // Fixed in menus like A and B (design/MENUS.md): the shoulders page a screen's
+  // sections, and X / Y are a screen's own face actions, named in its hint bar.
+  | "section-prev" | "section-next" | "action-x" | "action-y";
+
+/** Menu buttons that never move: the pad's face buttons and shoulders, and their keys (bindings.ts, which keeps the
+ *  map off both). */
+export { MENU_KEYS, MENU_PAD_BUTTONS };
+
+/** Holding a direction in a menu repeats it: after the delay, then at the interval (ms). */
+export const MENU_REPEAT = { delay: 380, interval: 95 } as const;
 
 export interface InputController {
   update(): void;
@@ -20,6 +30,13 @@ export interface InputController {
   sample(): Input;
   cameraLook(): CameraLook;
   consumeMenuCommands(): MenuCommand[];
+  /**
+   * Whether a menu is up to take directions, said by the game after each frame's commands. While it is not, the
+   * stick and arrows are steering and make no menu directions; one still held when a menu comes up counts once it
+   * has been let go, so steering into a pause or a garage never walks its rows. A page with no driving never says,
+   * and its menu always takes them.
+   */
+  setMenuActive(active: boolean): void;
   armDrivingInputGate(): void;
   /** True while driving input is still being swallowed waiting for neutral. */
   isDrivingGated(): boolean;
@@ -132,7 +149,9 @@ export function mapMenuHorizontal(gamepad: Gamepad | null): -1 | 0 | 1 {
   return axis < -0.65 ? -1 : axis > 0.65 ? 1 : 0;
 }
 
-export function createInputController(initialBindings = DEFAULT_BINDINGS): InputController {
+/** `now` is the menu repeat's clock and nothing else's: driving input is counted in
+ *  ticks (see the driving gate above), and menus never reach the sim. */
+export function createInputController(initialBindings = DEFAULT_BINDINGS, now = () => performance.now()): InputController {
   let bindings = copyBindings(initialBindings);
   let capture: { device: BindingDevice; ready: boolean; done: (value: string | number | null) => void } | null = null;
   const held = new Set<string>();
@@ -146,6 +165,13 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
   let previousButtons: readonly boolean[] = [];
   let previousMenuVertical: -1 | 0 | 1 = 0;
   let previousMenuHorizontal: -1 | 0 | 1 = 0;
+  // When each held direction began and last repeated, for MENU_REPEAT.
+  const menuHeld = { vertical: { since: 0, last: 0 }, horizontal: { since: 0, last: 0 } };
+  // setMenuActive: whether a menu takes directions, which pad axes were held when one came up and wait for neutral,
+  // and which arrows were pressed while one was up (the only ones the keyboard's own repeat may walk it with).
+  let menuActive = true;
+  const menuGated = { vertical: false, horizontal: false };
+  const repeatableArrows = new Set<string>();
   let drivingInputGated = true;
   let drivingGateSamples = 0;
   const menuCommands: MenuCommand[] = [];
@@ -183,7 +209,21 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
       event.preventDefault();
     }
     held.add(event.code);
-    if (event.repeat) return;
+    const direction = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" } as const)[event.code as "ArrowUp"];
+    if (event.repeat) {
+      // A held arrow walks a menu at the keyboard's own repeat rate; nothing else repeats, and only an arrow pressed
+      // in a menu: one held from driving is still steering (setMenuActive).
+      if (direction && repeatableArrows.has(event.code)) menuCommands.push(direction);
+      return;
+    }
+    if (direction) {
+      if (menuActive) { repeatableArrows.add(event.code); menuCommands.push(direction); }
+      else repeatableArrows.delete(event.code);
+    }
+    if (event.code === MENU_KEYS.sectionPrev) menuCommands.push("section-prev");
+    if (event.code === MENU_KEYS.sectionNext) menuCommands.push("section-next");
+    if (event.code === MENU_KEYS.actionX) menuCommands.push("action-x");
+    if (event.code === MENU_KEYS.actionY) menuCommands.push("action-y");
     if (event.code === bindings.keyboard.shiftUp) shiftUpRequested = true;
     if (event.code === bindings.keyboard.shiftDown) shiftDownRequested = true;
     if (event.code === "Escape") menuCommands.push("pause");
@@ -191,17 +231,13 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     if (event.code === bindings.keyboard.flash) menuCommands.push("flash");
     if (event.code === bindings.keyboard.interact) menuCommands.push("interact");
     if (event.code === "Enter" || event.code === "NumpadEnter") menuCommands.push("confirm");
-    if (event.code === "ArrowUp") menuCommands.push("up");
-    if (event.code === "ArrowDown") menuCommands.push("down");
-    if (event.code === "ArrowLeft") menuCommands.push("left");
-    if (event.code === "ArrowRight") menuCommands.push("right");
     if (event.code === bindings.keyboard.reset) resetRequested = true;
     if (event.code === bindings.keyboard.camera) cameraResetRequested = true;
     if (event.code === bindings.keyboard.cameraView) cameraCycleRequested = true;
     if (event.code === bindings.keyboard.telemetry) debugToggleRequested = true;
   });
-  addEventListener("keyup", (event) => held.delete(event.code));
-  addEventListener("blur", () => { held.clear(); shiftUpRequested = shiftDownRequested = false; if (capture) finishCapture(null); });
+  addEventListener("keyup", (event) => { held.delete(event.code); repeatableArrows.delete(event.code); });
+  addEventListener("blur", () => { held.clear(); repeatableArrows.clear(); shiftUpRequested = shiftDownRequested = false; if (capture) finishCapture(null); });
 
   function update(): void {
     gamepad = navigator.getGamepads().find(
@@ -239,19 +275,32 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     if (justPressed(bindings.gamepad.map)) menuCommands.push("map");
     if (justPressed(bindings.gamepad.flash)) menuCommands.push("flash");
     if (justPressed(9)) menuCommands.push("pause");    // Menu / Options
-    if (justPressed(0)) menuCommands.push("confirm"); // A / Cross
-    if (justPressed(1)) menuCommands.push("back");    // B / Circle
+    if (justPressed(MENU_PAD_BUTTONS.confirm)) menuCommands.push("confirm");         // A / Cross
+    if (justPressed(MENU_PAD_BUTTONS.back)) menuCommands.push("back");               // B / Circle
+    if (justPressed(MENU_PAD_BUTTONS.actionX)) menuCommands.push("action-x");        // X / Square
+    if (justPressed(MENU_PAD_BUTTONS.actionY)) menuCommands.push("action-y");        // Y / Triangle
+    if (justPressed(MENU_PAD_BUTTONS.sectionPrev)) menuCommands.push("section-prev"); // LB / L1
+    if (justPressed(MENU_PAD_BUTTONS.sectionNext)) menuCommands.push("section-next"); // RB / R1
 
+    // A direction fires on the press, then repeats while it is held: a long list
+    // or a row of options is walked by holding, not by tapping each stop.
+    const t = now();
+    // Out of a menu the stick steers and makes no directions; into one, a direction still held waits for neutral.
+    const walk = (value: -1 | 0 | 1, previous: -1 | 0 | 1, axis: "vertical" | "horizontal", less: MenuCommand, more: MenuCommand) => {
+      if (menuGated[axis]) { if (value !== 0) return; menuGated[axis] = false; }
+      if (value === 0 || !menuActive) return;
+      const clock = menuHeld[axis];
+      if (value !== previous) { clock.since = clock.last = t; menuCommands.push(value < 0 ? less : more); return; }
+      if (t - clock.since >= MENU_REPEAT.delay && t - clock.last >= MENU_REPEAT.interval) {
+        clock.last = t; menuCommands.push(value < 0 ? less : more);
+      }
+    };
     const menuVertical = mapMenuVertical(gamepad);
-    if (menuVertical !== 0 && previousMenuVertical === 0) {
-      menuCommands.push(menuVertical < 0 ? "up" : "down");
-    }
+    walk(menuVertical, previousMenuVertical, "vertical", "up", "down");
     previousMenuVertical = menuVertical;
 
     const menuHorizontal = mapMenuHorizontal(gamepad);
-    if (menuHorizontal !== 0 && previousMenuHorizontal === 0) {
-      menuCommands.push(menuHorizontal < 0 ? "left" : "right");
-    }
+    walk(menuHorizontal, previousMenuHorizontal, "horizontal", "left", "right");
     previousMenuHorizontal = menuHorizontal;
     previousButtons = currentButtons;
   }
@@ -323,6 +372,11 @@ export function createInputController(initialBindings = DEFAULT_BINDINGS): Input
     sample,
     cameraLook: () => mapCameraGamepad(gamepad),
     consumeMenuCommands: () => menuCommands.splice(0),
+    setMenuActive: active => {
+      if (active && !menuActive) { menuGated.vertical = previousMenuVertical !== 0; menuGated.horizontal = previousMenuHorizontal !== 0; }
+      if (!active) repeatableArrows.clear();
+      menuActive = active;
+    },
     armDrivingInputGate: () => { shiftUpRequested = shiftDownRequested = false; drivingInputGated = true; drivingGateSamples = 0; },
     isDrivingGated: () => drivingInputGated,
     consumeReset: () => consume("reset"),

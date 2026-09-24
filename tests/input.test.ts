@@ -9,6 +9,9 @@ import {
   TRIGGER_KNEE,
   mapMenuHorizontal,
   mapMenuVertical,
+  MENU_KEYS,
+  MENU_PAD_BUTTONS,
+  MENU_REPEAT,
 } from "../src/input/input.ts";
 
 function gamepad(axes: number[] = [0], values: Record<number, number> = {}): Gamepad {
@@ -203,6 +206,96 @@ test("left stick and D-pad map to horizontal menu navigation", () => {
   assert.equal(mapMenuHorizontal(gamepad([0.8, 0])), 1);
   assert.equal(mapMenuHorizontal(gamepad([0, 0], { 14: 1 })), -1);
   assert.equal(mapMenuHorizontal(gamepad([0, 0], { 15: 1 })), 1);
+});
+
+/** A controller on a fake pad and fake keyboard, with the menu repeat's clock in the test's hands. */
+function menuHarness(run: (h: { controller: ReturnType<typeof createInputController>; setPad(pad: Gamepad): void;
+  key(code: string, repeat?: boolean): void; release(code: string): void; at(ms: number): string[] }) => void): void {
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalListener = Object.getOwnPropertyDescriptor(globalThis, "addEventListener");
+  const listeners = new Map<string, (event: KeyboardEvent) => void>();
+  let pad = gamepad([0, 0]), clock = 0;
+  Object.defineProperty(globalThis, "navigator", { configurable: true, value: { getGamepads: () => [{ ...pad, id: "Xbox Controller", connected: true, mapping: "standard" }] } });
+  Object.defineProperty(globalThis, "addEventListener", { configurable: true, value: (name: string, fn: (event: KeyboardEvent) => void) => listeners.set(name, fn) });
+  try {
+    const controller = createInputController(undefined, () => clock);
+    run({
+      controller,
+      setPad: next => { pad = next; },
+      key: (code, repeat = false) => listeners.get("keydown")!({ code, repeat, preventDefault() {}, target: null } as unknown as KeyboardEvent),
+      release: code => listeners.get("keyup")!({ code } as KeyboardEvent),
+      at: ms => { clock = ms; controller.update(); return controller.consumeMenuCommands(); },
+    });
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator); else Reflect.deleteProperty(globalThis, "navigator");
+    if (originalListener) Object.defineProperty(globalThis, "addEventListener", originalListener); else Reflect.deleteProperty(globalThis, "addEventListener");
+  }
+}
+
+// design/MENUS.md: a list or a row of options is walked by holding, not by
+// tapping every stop. The press moves at once; the hold repeats after a delay.
+test("a held menu direction moves once, then repeats after the delay at the interval", () => {
+  menuHarness(({ setPad, at }) => {
+    at(0);
+    setPad(gamepad([0, 0], { 13: 1 }));
+    assert.deepEqual(at(1000), ["down"], "the press moves at once");
+    assert.deepEqual(at(1000 + MENU_REPEAT.delay - 1), [], "nothing before the delay");
+    assert.deepEqual(at(1000 + MENU_REPEAT.delay), ["down"], "the first repeat is at the delay");
+    assert.deepEqual(at(1000 + MENU_REPEAT.delay + MENU_REPEAT.interval - 1), []);
+    assert.deepEqual(at(1000 + MENU_REPEAT.delay + MENU_REPEAT.interval), ["down"], "then one every interval");
+    setPad(gamepad([0, 0])); assert.deepEqual(at(2000), [], "releasing sends nothing");
+    // The stick counts the same as the D-pad, and sideways has its own clock.
+    setPad(gamepad([0.9, 0])); assert.deepEqual(at(2001), ["right"]);
+    setPad(gamepad([0.9, -0.9])); assert.deepEqual(at(2002), ["up"], "a second direction starts its own hold");
+    assert.deepEqual(at(2001 + MENU_REPEAT.delay), ["right"], "the first keeps its own clock");
+  });
+});
+
+// Steering is the menu's directions (the stick, and the arrows on a keyboard), so a direction held hard over when a
+// menu comes up, pausing mid-corner or pulling into the garage, used to walk that menu at once: the repeat's clock had
+// been running since the corner. It counts once it has been let go (Push review on #13).
+test("a direction held from driving does not walk a menu that opens under it until it is let go", () => {
+  menuHarness(({ controller, setPad, key, release, at }) => {
+    controller.setMenuActive(false);
+    at(0);
+    setPad(gamepad([-0.9, 0]));
+    assert.deepEqual(at(10), [], "full lock is steering, not a menu direction");
+    assert.deepEqual(at(10 + MENU_REPEAT.delay * 2), []);
+    controller.setMenuActive(true);
+    assert.deepEqual(at(2000), [], "held into the menu, it does not move it");
+    assert.deepEqual(at(2000 + MENU_REPEAT.delay * 3), [], "nor repeat");
+    setPad(gamepad([0, 0])); assert.deepEqual(at(3000), []);
+    setPad(gamepad([-0.9, 0])); assert.deepEqual(at(3010), ["left"], "let go and pushed again, it moves");
+    assert.deepEqual(at(3010 + MENU_REPEAT.delay), ["left"], "and repeats");
+    setPad(gamepad([0, 0])); at(4000);
+    // The keyboard's own repeat: an arrow held from driving walks nothing; one pressed in the menu walks it.
+    controller.setMenuActive(false);
+    key("ArrowLeft"); assert.deepEqual(at(4100), []);
+    controller.setMenuActive(true);
+    key("ArrowLeft", true); key("ArrowLeft", true); assert.deepEqual(at(4200), [], "held from driving");
+    release("ArrowLeft"); key("ArrowLeft"); key("ArrowLeft", true);
+    assert.deepEqual(at(4300), ["left", "left"], "pressed in the menu");
+  });
+});
+
+test("the face buttons and shoulders are fixed menu commands, and so are their keys", () => {
+  menuHarness(({ setPad, key, at }) => {
+    at(0);
+    for (const [button, command] of [[MENU_PAD_BUTTONS.actionX, "action-x"], [MENU_PAD_BUTTONS.actionY, "action-y"],
+      [MENU_PAD_BUTTONS.sectionPrev, "section-prev"], [MENU_PAD_BUTTONS.sectionNext, "section-next"]] as const) {
+      setPad(gamepad([0, 0], { [button]: 1 }));
+      assert.ok(at(10).includes(command), `pad button ${button} is ${command}`);
+      setPad(gamepad([0, 0])); at(20);
+    }
+    key(MENU_KEYS.sectionPrev); key(MENU_KEYS.actionX); key(MENU_KEYS.actionY);
+    assert.deepEqual(at(30), ["section-prev", "action-x", "action-y"]);
+    // E is also Enter Wharf Garage on the street; in a menu it is the next section.
+    key(MENU_KEYS.sectionNext);
+    assert.deepEqual(at(40).sort(), ["interact", "section-next"]);
+    // The keyboard's own repeat walks a menu with a held arrow, and only an arrow.
+    key("ArrowDown"); key("ArrowDown", true); key("ArrowDown", true); key(MENU_KEYS.actionX, true);
+    assert.deepEqual(at(50), ["down", "down", "down"]);
+  });
 });
 
 // A pad whose triggers rest slightly above zero used to jam the driving gate
