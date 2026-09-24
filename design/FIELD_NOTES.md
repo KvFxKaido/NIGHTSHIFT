@@ -10,6 +10,23 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Traffic stops at the bars (2026-09-24)
+
+Asked for: step 2's first rule, stop and dwell, once Shawn had answered the sketch's three questions (`design/INTERSECTIONS.md`).
+What was assumed and wrong:
+
+- That step 1's lights already said who gives way. They were chosen by the widest single arm, which at 12 T-junctions
+  was the stem: the through road flashed red. Nobody could see it while the lights were only lights; the first soak of
+  the rule stopped 1st Ave S for a side street. The axis is the straight-through pair now, and the inventory is traffic's.
+- That a painted bar is always short of the lane's entry line. On 12 lanes it is inside the junction; the first version
+  quietly fell back to the old rule there, so those cars claimed on the move. They stop at the line and stand.
+- That the incidents the rule was for are where the rule is. The gate's crossings by a car that had claimed its junction
+  went 9 to 8, and replaying every one showed why: v9's nine were all at junctions step 1 did not dress, and 59 of 172 are
+  undressed. The rule works (4,869 contact ticks to 1,515, resets 35 to 22, 157 s quicker, traffic starving less); it
+  is not yet where the crossings happen.
+- That the worst stand in a soak says what a rule did. 427, 218 and 352 s across three versions, each at a different
+  lane; every car still standing at the end, before and after, is in one undressed cluster, stuck the same way.
+
 ## Spruce Cut and an authored sprint (2026-09-23)
 
 Asked for: Shawn's cuts as official shortcuts, and the race he cut as an official race. What was assumed and wrong:

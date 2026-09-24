@@ -175,8 +175,12 @@ function raceTraffic(id: string, trafficPassing: boolean) {
 // lets both finish cleanly, but the planned pass still commits and saves time.
 // (Most of what a planned pass bought at v30 was cover for
 // steering that ran wide and a frame that misread bends: over those 17 it is now worth 4 s in total and 6 ticks.)
-test("gen-72 passes cleanly and faster than the reactive driver", () => {
-  const before = raceTraffic("gen-72", false), after = raceTraffic("gen-72", true);
+// traffic-v10 (2026-09-24, stop and dwell) moved every car's timing: gen-72 still commits its pass cleanly but ties the
+// reactive driver to the tick (69.30 s). Of the 17 races that commit a pass at v10 the planner is worth 9.7 s net and no
+// contact, where the reactive driver has 84 ticks; gen-68 is the old fixture's shape: the reactive driver touches the
+// car it goes round (59 ticks), is reset, and is 4.5 s slower.
+test("gen-68 passes cleanly and faster than the reactive driver", () => {
+  const before = raceTraffic("gen-68", false), after = raceTraffic("gen-68", true);
   assert.ok(before.finished, "the reactive comparison must finish the same fixed course");
   assert.ok(after.finished && after.passing > 0);
   assert.equal(after.contact, 0);
@@ -192,8 +196,10 @@ test("gen-72 passes cleanly and faster than the reactive driver", () => {
 // in the city starts elsewhere. The course is the same (4 gates, 3,257 m), but it now meets a car the planner passes,
 // cleanly and inside the bound, where the reactive driver needed none: 81.6 s against 79.3, a pass that costs 2.4 s.
 // gen-35 still meets nothing to pass. The tripwire is for contact, going off and resets, which neither has.
+// At traffic-v10 gen-40 meets nothing to pass either (79.5 s, both drivers), so the pass here is gen-42's: two, clean,
+// 109.3 s against the reactive driver's 111.6.
 test("clear passes and sharp bends retain the existing driver without new recovery incidents", () => {
-  for (const [id, limit, passes] of [["gen-40", 82, true], ["gen-35", 60, false]] as const) {
+  for (const [id, limit, passes] of [["gen-42", 111, true], ["gen-35", 60, false]] as const) {
     const result = raceTraffic(id, true);
     assert.ok(result.finished && result.seconds < limit, id);
     assert.equal(result.passing > 0, passes, id);

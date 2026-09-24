@@ -18,7 +18,8 @@ export function intersectionPaintReserves(junctions:readonly DressedJunction[],s
     ux:a.ux,uz:a.uz,halfWidth:a.width/2+shoulder,halfDepth:Math.hypot(a.stopX-j.x,a.stopZ-j.z)/2+1})));
 }
 
-/** Cosmetic inventory, deliberately independent of traffic reservations or AI.
+/** The junctions' inventory. Drawn first (step 1); since traffic-v10 traffic reads it too (design/INTERSECTIONS.md):
+ * a red flash or a stop sign stops a car at its bar, so a change here moves traffic, and every rival raced in it.
  * Endpoints use the traffic graph's junction identities. Degree-two bends and
  * alley-only connections are not promoted into signalized intersections. */
 export function dressIntersections(streets:readonly Street[],shoulder:number,
@@ -46,7 +47,13 @@ export function dressIntersections(streets:readonly Street[],shoulder:number,
     // Do not duplicate near-identical arms or dress complex acute merges.
     if(arms.some((a,i)=>arms.slice(i+1).some(b=>a.ux*b.ux+a.uz*b.uz>.92)))continue;
     const major=arms.filter(a=>a.width>=16).length>=3;
-    const primary=[...arms].sort((a,b)=>b.width-a.width||a.street.id.localeCompare(b.street.id))[0]!;
+    // The amber axis is the road that goes straight through, the widest such pair, since traffic stops on red
+    // (design/INTERSECTIONS.md, step 2): the widest single arm made the stem of a T the priority and stopped the
+    // through road at 12 junctions. With no straight pair, the widest arm.
+    const byWidth=(a:Arm,b:Arm)=>b.width-a.width||a.street.id.localeCompare(b.street.id);
+    const through=arms.flatMap((a,i)=>arms.slice(i+1).filter(b=>a.ux*b.ux+a.uz*b.uz<-.85).map(b=>[a,b].sort(byWidth) as [Arm,Arm]))
+      .sort(([a,b],[c,d])=>Math.min(c.width,d.width)-Math.min(a.width,b.width)||(c.width+d.width)-(a.width+b.width)||byWidth(a,c));
+    const primary=through[0]?.[0]??[...arms].sort(byWidth)[0]!;
     const approaches:JunctionApproach[]=[];
     for(const arm of arms) {
       const nearby=streets.filter(s=>s.id!==arm.street.id && s.points.some(p=>Math.hypot(p.x-arm.x,p.z-arm.z)<110));
