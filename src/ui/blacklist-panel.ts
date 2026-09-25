@@ -74,6 +74,7 @@ export function createBlacklistPanel(options: BlacklistPanelOptions) {
       item.toggleAttribute("data-focus-first", row.standing === "current");
       item.dataset.standing = row.standing;
       item.dataset.blacklistName = row.id;
+      item.dataset.entryKey = row.id;
       item.setAttribute("aria-label", `#${row.rank} ${row.name}, ${row.carName}. ${row.status}. ${row.standing === "beaten" ? "Retired" : `Pays ${row.reward}`}.`);
       const rank = document.createElement("span");
       rank.className = "blacklist-rank";

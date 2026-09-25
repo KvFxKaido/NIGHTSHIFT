@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { createInitialMenuState, transitionMenu } from "../src/ui/menu-state.ts";
-import { MENU_ITEM_SELECTOR } from "../src/ui/menu.ts";
+import { entryActions, hintOff, MENU_ITEM_SELECTOR, rememberedItem } from "../src/ui/menu.ts";
 import { CUSTOMIZATION_CATEGORIES } from "../src/customization/customization.ts";
 
 // Track selection is gone: the district is the game and free roam is how you
@@ -117,20 +117,57 @@ test("sliders are navigable and confirming on one cannot activate a button", () 
 // Phase 2 (design/MENUS.md, 2026-09-25): the race list and the Blacklist are entries,
 // one stop each, and Back is the B hint rather than one more stop at the bottom of a
 // long list. The race's actions are entry hints, shown only on a race that has them.
+/** The opening tag in `html` that carries `attribute`, whatever order its attributes are written in. */
+const tagWith = (html: string, attribute: string) => [...html.matchAll(/<[a-z]+\b[^>]*>/g)].map(match => match[0]).find(tag => tag.includes(attribute));
+
 test("the race list and the Blacklist are entries with hint bars, and Back is a hint", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const name of ["races", "blacklist"]) {
     const screen = html.match(new RegExp(`<section[^>]*data-menu-screen="${name}"[\\s\\S]*?</section>`))![0];
     assert.match(screen, /data-menu-hints/, `${name} has no hint bar`);
-    assert.match(screen, /data-hint="back"[^>]*data-menu-action="back"/, `${name}'s Back is not its B hint`);
-    assert.doesNotMatch(screen, /class="menu-button"[^>]*data-menu-action="back"/, `${name} has Back as a stop again`);
+    assert.ok(tagWith(screen, 'data-hint="back"')?.includes('data-menu-action="back"'), `${name}'s Back is not its B hint`);
+    const backStop = [...screen.matchAll(/<[a-z]+\b[^>]*>/g)].map(match => match[0])
+      .find(tag => tag.includes('data-menu-action="back"') && /class="[^"]*\bmenu-button\b/.test(tag));
+    assert.equal(backStop, undefined, `${name} has Back as a stop again`);
     assert.match(screen, /class="[^"]*menu-list-screen/, `${name} does not fill a short screen`);
   }
   const races = html.match(/<section[^>]*data-menu-screen="races"[\s\S]*?<\/section>/)![0];
   for (const [hint, action] of [["confirm", "race"], ["action-x", "solo"], ["action-y", "remove"]]) {
-    assert.match(races, new RegExp(`data-hint="${hint}" data-hint-entry data-race-hint="${action}"`), `${action} is not an entry hint on ${hint}`);
+    const tag = tagWith(races, `data-race-hint="${action}"`);
+    assert.ok(tag?.includes(`data-hint="${hint}"`) && tag.includes("data-hint-entry"), `${action} is not an entry hint on ${hint}`);
   }
   assert.match(MENU_ITEM_SELECTOR, /\[data-menu-item\]/, "entries are not stops");
+});
+
+// The rules that decide what a face button does on a list (Push review, #14), tested without a page: an entry's hint
+// shows only on an entry that can take it, so a pad cannot remove an authored race or race a Blacklist name.
+test("an entry's hints show only where the entry can take them", () => {
+  const entry = (can: string) => ({ closest: () => ({ dataset: { can } }) }) as unknown as Element;
+  assert.deepEqual(entryActions(entry("confirm action-x")), ["confirm", "action-x"]);
+  assert.deepEqual(entryActions(entry("")), [], "a Blacklist name takes nothing");
+  assert.deepEqual(entryActions({ closest: () => null } as unknown as Element), [], "not an entry");
+  assert.deepEqual(entryActions(null), []);
+  const on = (can: string[], section: string | null = null, changing = false) => ({ section, changing, can });
+  const remove = { name: "action-y", entry: true }, race = { name: "confirm", entry: true };
+  assert.equal(hintOff(remove, on(["confirm", "action-x"])), true, "Remove shows on an authored race");
+  assert.equal(hintOff(remove, on(["confirm", "action-x", "action-y"])), false, "Remove hidden on a kept race");
+  assert.equal(hintOff(race, on([])), true, "Race shows on a Blacklist name");
+  assert.equal(hintOff({ name: "back", entry: false }, on([])), false, "Back is not an entry's, and always shows");
+  assert.equal(hintOff({ name: "change", entry: false }, on([])), true, "Change shows with nothing to change");
+  assert.equal(hintOff({ name: "change", entry: false }, on([], null, true)), false);
+  assert.equal(hintOff({ name: "confirm", section: "car", entry: false }, on([], "paint")), true, "another section's hint shows");
+});
+
+// A list drawn again replaces its entries, so the element remembered is detached: the entry drawn in its place, found by
+// its key, is where you come back to (Codex review, #14). Before, both lists came back at the top or the current name.
+test("coming back to a list lands on the entry you left, though the list was drawn again", () => {
+  const item = (key?: string) => ({ dataset: key === undefined ? {} : { entryKey: key } }) as { dataset: DOMStringMap };
+  const left = item("gen-42"), drawnAgain = [item("sound-to-sky"), item("gen-7"), item("gen-42")];
+  assert.equal(rememberedItem(drawnAgain, left, "gen-42"), drawnAgain[2], "found by its key");
+  const kept = [item("a"), left];
+  assert.equal(rememberedItem(kept, left, "gen-42"), left, "the same element, when it is still there");
+  assert.equal(rememberedItem(drawnAgain, item("gone"), "gone"), undefined, "a removed entry leaves nowhere to go back to");
+  assert.equal(rememberedItem(drawnAgain, item(), undefined), undefined, "a row with no key is found only as itself");
 });
 
 // Rows, not tiles (design/MENUS.md, 2026-09-24). The garage laid its options out

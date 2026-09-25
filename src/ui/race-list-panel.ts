@@ -64,6 +64,7 @@ export function createRaceListPanel(options: RaceListPanelOptions) {
     row.setAttribute("role", "listitem");
     row.dataset.menuItem = "";
     row.dataset.raceEntry = item.key;
+    row.dataset.entryKey = item.key;
     row.dataset.playable = String(item.race !== null);
     row.dataset.can = raceActions(item).join(" ");
     const title = document.createElement("strong"), detail = document.createElement("span");
@@ -87,10 +88,18 @@ export function createRaceListPanel(options: RaceListPanelOptions) {
     const kept = options.playlist.list();
     status.textContent = kept === null ? "Your kept races could not be read. They have been left untouched." : "";
     const items = raceListItems(options.career(), kept ?? [], options.build);
-    let group: RaceListItem["group"] | null = null;
+    // A list per group, its heading before it: a heading inside a list is not one of its items, and a screen reader
+    // counts a list by its items (Push review, #14).
+    let group: RaceListItem["group"] | null = null, members: HTMLElement | null = null;
     for (const item of items) {
-      if (item.group !== group) { group = item.group; list.append(heading(GROUP_TITLES[group])); }
-      list.append(entry(item));
+      if (item.group !== group || !members) {
+        group = item.group;
+        members = document.createElement("div");
+        members.className = "race-group-list";
+        members.setAttribute("role", "list");
+        list.append(heading(GROUP_TITLES[group]), members);
+      }
+      members.append(entry(item));
     }
     if (group !== "kept" && kept !== null) {
       list.append(heading(GROUP_TITLES.kept));

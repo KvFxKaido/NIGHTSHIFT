@@ -628,6 +628,7 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
 .race-list { display: grid; gap: 6px; margin: 16px 0; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
 .race-group { margin: 12px 0 2px; color: var(--menu-muted); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
 .race-group:first-child { margin-top: 0; }
+.race-group-list { display: grid; gap: 6px; }
 /* One stop per race (design/MENUS.md): the row is the entry, its actions are the hints. */
 .race-row { padding: 10px 12px; border: 1px solid transparent; border-left: 2px solid rgba(255, 255, 255, .16);
   background: rgba(7, 10, 18, .72); cursor: pointer; }
