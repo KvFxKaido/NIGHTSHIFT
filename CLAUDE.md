@@ -578,7 +578,9 @@ fixtures outside the playable bundle, and old world links redirect.
   reads that car where it will be when the rival is alongside (`there`, `driver-v7`), for the gate, the sides and the
   no-side slow: read where it was, a box truck finishing its turn came 1.2 m across in the last second, 3.8 m off to 2.5,
   at 117 mph (Uptown, seed 1000). What no reading mends is the rival reaching its line above 120 mph: 0.9 m short of it
-  in gen-1 at seed 1000, 1.8 m wide in gen-19.
+  in gen-1 at seed 1000, 1.8 m wide in gen-19. Its reach across is measured (`PORT_ALDER.md`, "A car beside its line");
+  slowing it to arrive no sooner than that reach clears the car fixed gen-1 and added nine incidents, slow ones among
+  traffic (`driver-v8`, not shipped): a rival braked towards a car's speed stays among traffic longer.
 - A route's `width` is the carriageway traffic drives; Port Alder's asphalt runs `shoulder` (5.6 m) past it each side
   (2026-09-23). Anything in the rival bounded by the width adds `route.shoulder`, or on the shoulder it is lost (held
   to 22 mph), makes no progress toward a reset, and a pass onto it is clamped back: `lost`, the progress mark, `edge`,

@@ -3267,6 +3267,21 @@ aim when it drew level, with the SUV's nose turned 7 degrees into its flank. Tha
 rival not reaching its own line above 120 mph, which no reading of traffic mends. The gate also dithers at its own
 edge: at exactly 3.2 m it lets the line go and takes it back the next tick, which holds it to 0.07 m.
 
+Slowing for the reach, tried and not shipped (the same day). How fast the rival gets across when its dodge steps the
+aim was measured: the Cinder on its own controller, a straight 22 m road, the aim stepped 2.2 m, a car in its way at
+its own speed. It does not move at all for a while, then goes at a steady rate, both slower the faster it is going:
+0.5, 1, 1.5 and 2 m across in 0.77, 0.98, 1.18 and 1.38 s at 54 mph; 1.03, 1.33, 1.62 and 1.88 s at 125; 1.07, 1.38,
+1.67 and 1.93 s at 136. Fitted, in m/s of speed: a wait of 0.42 + 0.0059 v seconds, then 0.30 + 0.0045 v seconds a
+metre, within 0.02 s of every point. The will-be check's credit of 2 m/s^2 is optimistic at speed by that much.
+`driver-v8` slowed the rival, going round a car in its way, to arrive no sooner than that reach took it clear (both
+half-widths, the other car's nose turned across it, 0.4 m). gen-1 at seed 1000 went round the merging SUV without
+contact, braking from 120 mph to 65 and then passing, and the gate against `driver-v7` lost: distinct incidents 40 to
+49, 57 s slower, resets 26 to 28, and a contact in a pass (gen-75 at seed 271828, a race whose timing moved; the rule
+does not run in a pass). The new incidents are slow ones among traffic: creeping into a standing SUV at 3 mph after
+braking from 100 (gen-15, seed 1000), into the back of a box truck at 3 mph (gen-58, seed 314159), side-swiped by a box
+truck at 52 mph (gen-46, seed 1). As the gap closes the cap falls towards the other car's speed, and a rival held there
+spends longer among traffic than one that went by. The reach is measured and right; speed is not the lever for it.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.
