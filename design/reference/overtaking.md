@@ -129,7 +129,8 @@ the source itself for this note; the rest is from two research passes that read 
 - **Planned slower than every re-read** (gen-81: 35 mph at the commit, 86+ from 0.2 s later). Where commit
   and re-check disagree, they are scoring different things. Ours share the plan but not the first sample:
   the first curvature sample in `evaluatePass` sits at the car and reads a point 6 m behind it. berniw
-  treats exactly that join point specially. First step is to measure it.
+  treats exactly that join point specially. Measured the same day: it was that, fixed in `pass-v5`, and the rest
+  of gen-81's loss was the in-pass emergency check reading the car's yawed body frame (`PORT_ALDER.md`).
 - **A car standing at a bar just off the line.** Apollo, Autoware and simplix all give a stopped car its own
   class: one that may move (queued, or at a signal), looked for further ahead, with a wider hard margin. Ours
   will move, after `STOP_DWELL`, and the player can see the sign and its indicators. The pass planner's

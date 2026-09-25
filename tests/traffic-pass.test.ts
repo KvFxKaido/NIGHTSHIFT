@@ -5,7 +5,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { carHandling, createSim, step, type VehicleState } from "../src/sim/sim.ts";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { fieldAlderRival } from "../src/sim/alder-course.ts";
-import { createRivalDriver, rivalInput, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
 import { laneRest } from "../src/sim/street-line.ts";
 import { evaluatePass, passingOffset, passingOverlap, planTrafficPass, type TrafficPass } from "../src/sim/traffic-pass.ts";
 import { forecastTrafficPath, TRAFFIC_KINDS, type TrafficNetwork, type TrafficVehicleState } from "../src/sim/traffic.ts";
@@ -82,6 +82,28 @@ test("a pass that is past its lead early rejoins over the length its speed now a
   const now = driver.trafficPass!;
   assert.equal(now.back, driver.along, "past its lead, it comes back in from here");
   assert.ok(now.to - now.back >= 45 * 1.4 - 1e-9, `rejoined over ${(now.to - now.back).toFixed(1)} m at 45 m/s`);
+});
+
+// A pass's speed plan reads no road behind the car (pass-v5, 2026-09-25). Its curvature at each sample came from points
+// 6 m either side, and the first sample is the car: committed just out of a corner, the point behind lay on the arc it
+// had left, read a 27 m radius and capped the plan at 35 mph from 46, where every re-read from 4 m on allowed 78 and
+// more (gen-81 at seed 0).
+test("a pass committed just out of a corner is not capped by the corner behind it", () => {
+  const width = 14;
+  const corner: RivalDefinition = { id: "pass-after-corner", start: { x: -100, y: 0, z: 0, heading: -Math.PI / 2, pitch: 0 },
+    points: [[-100, 0], [0, 0], [0, -400]].map(([x, z]) => ({ x: x!, y: 0, z: z!, width, zone: "freight" })), along: [0, 100, 500], gates: [500] };
+  // The driving path rounds the corner from 86.5 m to 113.5 m along; straight from there.
+  const arcEnd = 113.5;
+  const committed = (from: number) => {
+    const at = sampleDrivingPath(corner, from);
+    const pass: TrafficPass = { target: 1, from, out: from + 28, back: from + 100, to: from + 128,
+      initial: laneRest(width), offset: laneRest(width) - .6, nextRead: 0, speed: 20 };
+    return evaluatePass(corner, pass, { ...car, x: at.x, z: at.z, speed: 20, forwardSpeed: 20 }, from, []).speed;
+  };
+  // Within 2%: the samples fall at another phase of the pull-out's curve from each start. Reading the arc it was 28%.
+  const clear = committed(arcEnd + 10);
+  for (const past of [0, 2, 4]) assert.ok(committed(arcEnd + past) >= clear * .98,
+    `${past} m past the arc: ${(committed(arcEnd + past) * 2.237).toFixed(0)} mph against ${(clear * 2.237).toFixed(0)} well clear of it`);
 });
 
 test("a pass may use a shoulder, and no more than the shoulder", () => {

@@ -3154,7 +3154,7 @@ else came is the same kind: gen-38 at seed 1 spun onto the verge by an oncoming 
 pavement 23 ticks, its aim never left the lane), and a 5 to 9 mph nudge on gen-66 counted as on a line for 7 ticks.
 The junction's crossing car is the problem parked on 2026-09-23; this change neither caused it nor fixes it.
 
-## What a committed pass costs (2026-09-25, `pass-v4`, `traffic-v12`)
+## What a committed pass costs (2026-09-25, `pass-v4`, `pass-v5`, `traffic-v12`)
 
 At `traffic-v11` the pass planner came out 9.7 s behind the reactive driver over the 12 seed-0 races that commit a pass,
 where at v10 it had been 9.7 s ahead over 17. Read pass by pass (each race's time over its own pass, planned against
@@ -3183,7 +3183,8 @@ v11's timing took those away. What the passes themselves showed:
   mph throughout). Then the in-pass emergency check (the body-relative one inside `if (pass)` in `rivalInput`) held
   it at the van's speed plus its margin, 34 to 35 mph, for 0.6 s more: in the road's frame the van was 4.0 to 2.9 m
   across, the gap the pass was planned with, but the car was still yawed from the corner, and in its body frame the
-  van was 2.0 to 2.6 m across, inside the check's 2.6. It let go at the tick that read 2.64. Not fixed yet.
+  van was 2.0 to 2.6 m across, inside the check's 2.6. It let go at the tick that read 2.64. The first is fixed in
+  `pass-v5` (below); the second is not.
 
 `pass-v4` on the six-seed gate against `traffic-v12`: 449 of 498 races identical, time level (46,457 to 46,458 s),
 distinct incidents 55 to 55, contact in a pass still none, off the pavement 293 to 206 ticks, resets 34 to 32. Two races
@@ -3191,6 +3192,17 @@ moved much: gen-75 at seed 1000 10.9 s quicker and back on the pavement, and gen
 hit by an oncoming taxi 390 m after its pass while it sat 1.3 m left of centre going round a van standing at a bar. That
 last is the driver's, not the pass's: a car standing at a bar just off its line, which it reads as clear, as it read the
 SUV at 110 mph in the v11 gate.
+
+`pass-v5` (the same day): a pass's speed plan reads no road behind the car. The point behind each sample stops at the
+car (`evaluatePass`); three points on a path give its circle at any spacing, so the first sample has no limit of its own
+and the rest read only road ahead. On the six-seed gate against `pass-v4`: 455 of 498 races identical, 17 s quicker
+(46,458 to 46,441), distinct incidents 55 to 56, contact in a pass still none, off the pavement 206 to 153 ticks, resets
+32 to 32. gen-81 itself is only 0.2 s quicker: the cap at the commit cost it one re-read of hard braking, and its 0.6 s
+at the van's speed is the emergency check's, the second cause above. The two races that moved much went back to what
+they did at `traffic-v12`, before `pass-v4`: gen-15 at seed 271828 18.0 s quicker and back on the pavement, with v12's
+contact again (the oncoming taxi at 3889 m, 106 mph, braking from 128); gen-51 at seed 314159 6.5 s slower, with v12's
+two recoveries out of sight. In all three versions each race's pass is the same pass, at the same tick with the same
+stations; what follows it is the gate's noise band. The one new incident is gen-15's, which v12 had.
 
 ## Corner dressing trial (2026-09-21)
 
