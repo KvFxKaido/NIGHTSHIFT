@@ -72,6 +72,11 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   updated by whoever changes the system; this file is not the place to
   narrate a session. Put the story in `design/FIELD_NOTES.md` and the
   trap, in one line, under Traps below.
+- **Branches.** `main` is the default (named `master` until 2026-09-25). `visuals`
+  is permanent, not stale: the home of the work on the look and the menus
+  (`design/LOOK.md`, `design/MENUS.md`), which reaches `main` by pull request so CI
+  checks it. Never delete it in a branch cleanup; after a squash merge into `main`,
+  merge `main` back into it before the next piece.
 
 ## Product direction
 
