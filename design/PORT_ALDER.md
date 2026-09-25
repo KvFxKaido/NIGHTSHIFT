@@ -3184,7 +3184,8 @@ v11's timing took those away. What the passes themselves showed:
   it at the van's speed plus its margin, 34 to 35 mph, for 0.6 s more: in the road's frame the van was 4.0 to 2.9 m
   across, the gap the pass was planned with, but the car was still yawed from the corner, and in its body frame the
   van was 2.0 to 2.6 m across, inside the check's 2.6. It let go at the tick that read 2.64. The first is fixed in
-  `pass-v5` (below); the second is not.
+  `pass-v5` (below). The second was not a misreading, as it turned out, and a change of frame for it was built,
+  measured and not shipped (below).
 
 `pass-v4` on the six-seed gate against `traffic-v12`: 449 of 498 races identical, time level (46,457 to 46,458 s),
 distinct incidents 55 to 55, contact in a pass still none, off the pavement 293 to 206 ticks, resets 34 to 32. Two races
@@ -3203,6 +3204,20 @@ they did at `traffic-v12`, before `pass-v4`: gen-15 at seed 271828 18.0 s quicke
 contact again (the oncoming taxi at 3889 m, 106 mph, braking from 128); gen-51 at seed 314159 6.5 s slower, with v12's
 two recoveries out of sight. In all three versions each race's pass is the same pass, at the same tick with the same
 stations; what follows it is the gate's noise band. The one new incident is gen-15's, which v12 had.
+
+The emergency check's frame, tried and not shipped (the same day). Two readings of another car were built in place of
+the nose for a car on its pass path. Against the path alone: a car lagging its rejoin by up to 0.9 m on an oncoming
+taxi's side read the taxi 3.2 m across when it was 2.3 from where the car would be, and met it at 115 mph (gen-71, seed
+42, the gate's only contact in a pass). Against the path plus the car's present error from it: no contact in a pass,
+but the gate went the wrong way (35 s slower, distinct incidents 56 to 59, all of them outside passes), and measured
+pass by pass, each race run with both checks, over the 64 passes that began identically at seeds 0 and 1 it held the
+car below its speed for 2,142 ticks against the nose's 1,868 and took 265.6 s to the passes' ends against 260.8. Of the
+25 that differ, 24 were slower, gen-81 among them. The nose had not misread gen-81: coming out of the corner the car was
+closing on its path, towards the van, at 2.2 m/s across, and it went by 2.56 m from the van's centre, inside the check's
+2.6. A car lags a path that swings, so reading it where it will be if it keeps its error puts it on the passed car's
+side through every pull-out, where the nose already points out. What gen-81 shows instead is a pass planned 2.9 m from
+the car it passes, a check that lets it alone only past 2.6, and a van drifting 0.3 m into that accelerating out of a
+corner.
 
 ## Corner dressing trial (2026-09-21)
 

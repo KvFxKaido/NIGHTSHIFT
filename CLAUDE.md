@@ -577,6 +577,10 @@ fixtures outside the playable bundle, and old world links redirect.
   baseline on the new world before judging a change on it.
 - A committed pass is clear of a car that is ON its path, and looks only 26 m ahead at 105 mph because of it. More
   than `PASS_ASTRAY` off that path the car looks as far as it would with no pass; a tracked pass must not change.
+  That check reads other cars along the car's NOSE, and the nose is right more often than it looks: a car lags a path
+  that swings, so read against the pass path plus its error it sat on the passed car's side through every pull-out
+  (2,142 held ticks to 1,868 over 64 passes), and against the path alone it met an oncoming taxi at 115 mph (gen-71).
+  Measure a frame for it pass by pass, both checks on the same races, not on the gate's totals (`PORT_ALDER.md`).
 - A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,
   `BLACKLIST_LAUNCH`), never its position in the race. The share is `RivalDefinition.skill` and reaches a LINE's
   corners only: `cornering` would move the lane's corners too, where the limit is tracking (past about 0.82 a lane
