@@ -56,7 +56,7 @@ import { authoredSprintFor } from "./sim/authored-sprints.ts";
 import { alderCourseDraws } from "./sim/alder-course.ts";
 import { recordedEvent, type RecordedEvent } from "./sim/recorded-event.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
-import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
+import { circuitEvent, circuitVenue, type CircuitEvent } from "./sim/circuits.ts";
 import { withExits } from "./sim/rival.ts";
 import { NO_RIVAL, rivalRevision } from "./sim/rival-revision.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
@@ -68,6 +68,7 @@ import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
 import { STADIUM, STADIUM_GATES, STADIUM_WALL_LINES, createStadiumWorld, stadiumGate, stadiumGateAt, type StadiumGate } from "./sim/stadium.ts";
 import { addStadium, addStadiumMarkers } from "./render/stadium.ts";
+import { STADIUM_LAYOUT_IDS, stadiumLap } from "./sim/stadium-circuits.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createOptionRow, rowAt } from "./ui/menu-rows.ts";
@@ -212,12 +213,12 @@ try {
     if (solo) { race = withExits(race!, rival!); rival = null; }
     else { params.delete("solo"); history.replaceState(history.state, "", url); }
   }
-  // The venue: its free drive by name, Sable's drift because that is where it runs. Nothing else races there yet,
-  // so a street race drops a stray ?venue=, and a gate that is not one is dropped too.
-  if (params.has("venue") && (params.get("venue") !== STADIUM.id || (race && race.kind !== "drift"))) params.delete("venue");
+  // The venue: its free drive by name; Sable's drift and the stadium circuits because that is where they run. Its
+  // races say so themselves, so any race drops a stray ?venue=, and a gate that is not one is dropped too.
+  if (params.has("venue") && (params.get("venue") !== STADIUM.id || race)) params.delete("venue");
   if (params.has("gate") && (!stadiumGate(params.get("gate")) || race)) params.delete("gate");
   history.replaceState(history.state, "", url);
-  venue = race ? race.kind === "drift" : params.get("venue") === STADIUM.id;
+  venue = race ? race.kind === "drift" || (circuit !== null && circuitVenue(circuit) === "stadium") : params.get("venue") === STADIUM.id;
   arrivedBy = stadiumGate(params.get("gate"));
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
@@ -340,7 +341,9 @@ document.body.dataset.world = venue ? STADIUM.id : "alder";
 document.title = venue ? `NIGHTSHIFT — ${STADIUM.name}` : "NIGHTSHIFT — Port Alder";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / PORT ALDER";
 const placeName = venue ? STADIUM.name : "Port Alder";
-document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? `${placeName} / ${race.name}` : venue ? `${placeName} / Free drive` : "Port Alder / Free roam";
+// A venue's races carry its name already ("Wharf Arena / Full"), and are not given it twice.
+document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race
+  ? (race.name.startsWith(`${placeName} /`) ? race.name : `${placeName} / ${race.name}`) : venue ? `${placeName} / Free drive` : "Port Alder / Free roam";
 // A reset puts the car back where the drive began, which after a gate is that gate.
 document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : venue || cityArrival ? "Back to the gate" : "Return to garage";
 const gameMap = createGameMap(sim);
@@ -351,7 +354,9 @@ const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
 const performanceOverlay = createPerformanceOverlay();
 // In the venue the minimap draws its walls rather than the streets beyond them, and there is no garage to point at.
-const hudPolylines: HudPolyline[] = venue ? STADIUM_WALL_LINES.slice(0, 2).map(line => ({ points: line }))
+const hudPolylines: HudPolyline[] = venue
+  ? [...STADIUM_WALL_LINES.slice(0, 2).map(line => ({ points: line })),
+    ...STADIUM_LAYOUT_IDS.map(id => ({ points: [...stadiumLap(id).points, stadiumLap(id).points[0]!] }))]
   : ALDER_STREETS.map(street => ({ points: street.points }));
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 if (!venue) for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });

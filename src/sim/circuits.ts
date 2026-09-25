@@ -1,15 +1,16 @@
 /**
- * The lapped circuits whose laps are recorded: Ridge Circuit's layouts and the
- * street circuit. One place that turns a race id into its event, for the game,
- * the replay check and the tools.
+ * The lapped circuits whose laps are recorded: Ridge Circuit's layouts, the
+ * street circuit and the stadium's. One place that turns a race id into its
+ * event, for the game, the replay check and the tools.
  */
 import { arenaEvent, arenaRaceFor, ARENA_LAPS, type ArenaEvent } from "./arena-events.ts";
 import { streetCircuitEvent, streetCircuitRaceFor, STREET_CIRCUIT_LAPS, type StreetCircuitEvent } from "./street-circuit.ts";
+import { stadiumEvent, stadiumRaceFor, STADIUM_LAPS, type StadiumEvent } from "./stadium-events.ts";
 
-export type CircuitEvent = ArenaEvent | StreetCircuitEvent;
+export type CircuitEvent = ArenaEvent | StreetCircuitEvent | StadiumEvent;
 
 export function isCircuitRace(raceId: string): boolean {
-  return !!arenaRaceFor(raceId) || !!streetCircuitRaceFor(raceId);
+  return !!arenaRaceFor(raceId) || !!streetCircuitRaceFor(raceId) || !!stadiumRaceFor(raceId);
 }
 
 /** The event a circuit race id names, with its default laps unless given; null for any other race. */
@@ -18,5 +19,10 @@ export function circuitEvent(raceId: string, laps?: number): CircuitEvent | null
   if (arena) return arenaEvent(arena.layout, laps ?? ARENA_LAPS, arena.solo);
   const street = streetCircuitRaceFor(raceId);
   if (street) return streetCircuitEvent(laps ?? STREET_CIRCUIT_LAPS, street.traffic, street.solo);
+  const stadium = stadiumRaceFor(raceId);
+  if (stadium) return stadiumEvent(stadium.layout, laps ?? STADIUM_LAPS, stadium.solo);
   return null;
 }
+
+/** The venue a circuit runs in, when it is not Port Alder. */
+export const circuitVenue = (event: CircuitEvent): "stadium" | null => "venue" in event ? event.venue : null;

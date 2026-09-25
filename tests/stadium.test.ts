@@ -100,10 +100,12 @@ test("a car driven flat out at either restored gate wall stays in the venue", ()
   }
 });
 
-test("the floor is dirt, but for Sable's apron, and no world here has traffic", () => {
+test("the floor is dirt, but for Sable's apron and the circuits, and no world here has traffic", () => {
   const world = createStadiumWorld();
   assert.equal(world.traffic, undefined);
-  for (const gate of STADIUM_GATES) assert.equal(world.ground!(gate.venue.arrive.x, gate.venue.arrive.z), true, `${gate.id}'s arrival is paved`);
+  // The east gate arrives on dirt and the west infield is dirt; the north gate arrives on the circuits' north run
+  // (tests/stadium-circuits.test.ts holds the circuits' paving).
+  for (const p of [STADIUM_GATES[0].venue.arrive, { x: -900, z: 1029 }]) assert.equal(world.ground!(p.x, p.z), true, `${p.x}, ${p.z} is paved`);
   for (const p of [DRIFT_YARD.start, SABLE.start, ...DRIFT_ZONES, ...YARD_LINE]) {
     assert.equal(world.ground!(p.x, p.z), false, `Sable's line is on dirt at ${p.x}, ${p.z}`);
     assert.ok(onStadiumPad(p.x, p.z));
@@ -195,7 +197,7 @@ test("nothing the venue is built from reaches the city", () => {
 // What a car drives on and into here, named. A change to the shell, the pad or the yard's solids changes
 // this; bump STADIUM.revision in the same commit and repin, so anything that names the venue refuses the old one.
 test("the venue's identity is pinned", () => {
-  assert.equal(STADIUM_VERSION, "stadium-v2-7662b672");
+  assert.equal(STADIUM_VERSION, "stadium-v3-84732353");
 });
 
 test("the continuous stadium GLB and collision contain exactly the same triangles", async () => {

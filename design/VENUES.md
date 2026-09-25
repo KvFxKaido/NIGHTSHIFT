@@ -51,9 +51,9 @@ map, so Sable's yard, line and zones are the same numbers in both.
   The page does still load the city today, because `main.ts` imports it statically; a venue page that skips the 24 MB
   is a later change to `main.ts`, which this makes possible rather than does.
 - **Named by what a car drives on and into**: `STADIUM_VERSION` is `stadium-v<revision>-<hash>`, the hash over the
-  shell, the pad and the yard's solids, written with `toFixed` so a browser and Node agree. Pinned by test;
-  a change bumps `STADIUM.revision` and repins. The restored shell is `stadium-v2-7662b672`;
-  the city still uses its original cut shell and unchanged world identity.
+  shell, the pad, the circuits' asphalt and the yard's solids, written with `toFixed` so a browser and Node agree.
+  Pinned by test; a change bumps `STADIUM.revision` and repins. The restored shell was `stadium-v2-7662b672`; with
+  the circuits paved it is `stadium-v3-84732353`. The city still uses its original cut shell and unchanged identity.
 - **The gates, both ways** (`STADIUM_GATES`). Each has a marker on each side: stop within 7 m of it, under 2 m/s, and
   the garage shutter's prompt offers the other side. City side: the east gate on Harbor Way and the north driveway.
   Venue side: inside each restored wall. Crossing loads the other world with `?gate=<id>`; you arrive at that gate's other
@@ -71,6 +71,7 @@ map, so Sable's yard, line and zones are the same numbers in both.
 
 Stage A, built: the venue world, its drawing, its gates on both sides, Sable's drift in it, free drive with Sable
 parked. The city's world is unchanged: its identity did not move, so no recording or stored course is refused.
+Then the circuits, built the same day: Full and Short, raced and recorded (below).
 
 Not yet, in the order proposed:
 
@@ -78,10 +79,10 @@ Not yet, in the order proposed:
    arena's cuts on the map, move Sable's parked car out to the east gate, and let her flash load the venue. Today the
    city's arena is still open, Sable is still parked inside it, and her flash already loads the venue because every
    race is a page load. Closing the map is what refuses recordings and pending career courses, so it happens once.
-2. **The stadium circuits**, drawn 2026-09-25 (below), with Ridge's machinery: corners rounded to a radius, gates,
-   a racing line. Then generated stadium circuits over the same named corners.
+2. **Generated stadium circuits** over the same named corners, and the pink slips that race them.
 3. **Off-road**: the generator for unordered gates over the floor, and the gates placed so no cut pays an AWD car.
-4. The venue page without the city's data.
+4. **Light** along the circuits: only Sable's apron has floods, and the west half is dark but for headlights.
+5. The venue page without the city's data.
 
 ### Continuous-shell validation (2026-09-25)
 
@@ -98,19 +99,30 @@ Not yet, in the order proposed:
   `STADIUM_URL`. Use `?venue=stadium&scene=track` for live driving (the harness itself freezes captures).
 - Port Alder's collision, shell asset and world identity files are unchanged. Its later closure remains Stage B.
 
-### The circuits, as drawn
+### The circuits (built 2026-09-25)
 
-12 m wide with 1.5 m shoulders, corners of 18 to 25 m, clockwise. Checked against the walls and solids at every metre
-on 2026-09-25: the nearest wall 10.5 m past the shoulder, the nearest solid (a floodlight pole) 7.2 m.
+`src/sim/stadium-circuits.ts`, `stadium-events.ts`, `render/stadium.ts` (`addStadiumCircuits`),
+`tests/stadium-circuits.test.ts`. Built on Ridge Circuit's construction, which moved out of `arena.ts` into
+`circuit-plan.ts` unchanged: Ridge's three laps serialize bit for bit as they did, and its drawing, moved into
+`render/track-strips.ts`, is the same mesh for mesh and vertex for vertex.
 
-- **Full**, 1,914 m, 12 turns, start at (-830, 1003) under race control, running east: (-722, 1003) r20, (-645, 893)
+12 m wide with 1.5 m shoulders, corners of 18 to 25 m, clockwise, both layouts laid in the venue whichever is raced:
+their asphalt is paved to the sim (`onStadiumCircuit`) and dirt starts past the shoulder. A test holds every sample 5 m
+or more past the shoulder from the wall and 3 m from every solid.
+
+- **Full**, 1,913.7 m, 12 turns, start at (-830, 1003) under race control, running east: (-722, 1003) r20, (-645, 893)
   r25, (-455, 890) r22, (-455, 985) r18, (-215, 985) r22, (-215, 1062) r22, (-440, 1062) r18, (-440, 1115) r18,
   (-665, 1115) r20, (-665, 1055) r18, (-1020, 1055) r22, (-1020, 1003) r22.
-- **Short**, 1,258 m, 8 turns, start at (-560, 890): (-645, 893) r22 (Full takes it at r25), then Full's seven corners
-  from (-455, 890) to (-665, 1115) at the same radii, closing north up x -665.
+- **Short**, 1,258.2 m, 8 turns, start at (-560, 891.7): (-645, 893) r22 (Full takes it at r25), then Full's seven
+  corners from (-455, 890) to (-665, 1115) at the same radii, closing north up x -665.
 
-Four runs cross the bowl's middle, weaving past the warehouse and container; Full adds the west half. A 20 m corner
-is about 30 mph at 1 g (arithmetic, not a driven number).
+A gate at every turn, at the middle of its arc, 10 m across, as on Uptown Circuit: the runs lie 60 to 95 m apart over
+dirt an AWD car does not pay for and Sable's asphalt nobody pays for. `?race=stadium-full|stadium-short[-solo]`,
+three laps, in the race list as Wharf Arena / Full and Short. The rival is Moth's Kestrel on a racing line, as on
+Ridge. Measured 2026-09-25, alone: Full 69.3 s a flying lap (62 mph average, 113 mph top), Short 47.9 s, no resets
+or recoveries, not a tick on the dirt, never more than 6.0 m off the centreline. Laps are recorded; a recording names
+`stadium-circuits-v1` and the venue's world, and `pnpm laps --verify` rebuilds the venue for it (`recordedWorld`).
+Sable's drift is still identical to the city's with the circuits paved (it runs on her apron).
 
 ## The track (Ridge Circuit)
 

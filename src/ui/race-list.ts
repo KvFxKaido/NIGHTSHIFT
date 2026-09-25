@@ -1,6 +1,8 @@
 import { ALDER_RACE } from "../sim/alder.ts";
 import { arenaRaceId } from "../sim/arena-events.ts";
 import { streetCircuitRaceId } from "../sim/street-circuit.ts";
+import { stadiumRaceId } from "../sim/stadium-events.ts";
+import { STADIUM } from "../sim/stadium.ts";
 import { authoredSprintFor, AUTHORED_SPRINT_IDS } from "../sim/authored-sprints.ts";
 import type { CareerProgress } from "../settings/progress.ts";
 import { BLACKLIST } from "../settings/blacklist.ts";
@@ -42,6 +44,9 @@ export const AUTHORED_RACES: readonly RaceListItem[] = [
   authored("arena-full", "Ridge Circuit / Full", "Circuit · 3 laps", id(arenaRaceId("full")), id(arenaRaceId("full", true))),
   authored("arena-east", "Ridge Circuit / East", "Circuit · 3 laps", id(arenaRaceId("east")), id(arenaRaceId("east", true))),
   authored("arena-ridge", "Ridge Circuit / Ridge", "Circuit · 3 laps", id(arenaRaceId("ridge")), id(arenaRaceId("ridge", true))),
+  // The stadium venue's circuits (design/VENUES.md): the race loads the venue.
+  authored("stadium-full", `${STADIUM.name} / Full`, "Stadium circuit · 3 laps", id(stadiumRaceId("full")), id(stadiumRaceId("full", true))),
+  authored("stadium-short", `${STADIUM.name} / Short`, "Stadium circuit · 3 laps", id(stadiumRaceId("short")), id(stadiumRaceId("short", true))),
   authored("street-uptown", "Uptown Circuit", "Street circuit · 3 laps · traffic",
     id(streetCircuitRaceId(true, false)), id(streetCircuitRaceId(true, true))),
   authored("street-uptown-clear", "Uptown Circuit / Clear", "Street circuit · 3 laps · clear streets",

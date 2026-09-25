@@ -21,7 +21,8 @@ const kept = (raceId: string, start: string | null, build = today): PlaylistEntr
 
 test("every authored entry starts a race the game knows, with the rival and solo", () => {
   assert.deepEqual(AUTHORED_RACES.map(item => item.title),
-    ["Sound to Sky", "Ridge Circuit / Full", "Ridge Circuit / East", "Ridge Circuit / Ridge", "Uptown Circuit", "Uptown Circuit / Clear",
+    ["Sound to Sky", "Ridge Circuit / Full", "Ridge Circuit / East", "Ridge Circuit / Ridge", "Wharf Arena / Full", "Wharf Arena / Short",
+      "Uptown Circuit", "Uptown Circuit / Clear",
       "Jackson East to Mercer East"]);
   for (const item of AUTHORED_RACES) {
     const race = item.race!, solo = item.solo!;

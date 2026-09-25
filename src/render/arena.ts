@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { frames, merged, strip as stripOn, type Frame, type Plan } from "./track-strips.ts";
 import { ARENA, ARENA_LAYOUT_IDS, arenaLap } from "../sim/arena.ts";
 import { ARENA_ROADS, alderHeight } from "../sim/alder.ts";
 import { projectOntoPath } from "../sim/street-path.ts";
@@ -11,73 +12,13 @@ export const ARENA_KERB_RADIUS = 60;
 /** Metres between lamps along a path; one lamp stands for any other within `LAMP_SHARE`. */
 const LAMP_SPACING = 55, LAMP_SHARE = 30;
 
-type Plan = { x: number; z: number };
-interface Frame { x: number; z: number; nx: number; nz: number; miter: number }
-
-/** Unit normals (to the right of travel) at each sample, mitred where the path bends. */
-function frames(points: readonly Plan[], closed: boolean): Frame[] {
-  const n = points.length;
-  const at = (i: number) => points[closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i))]!;
-  return points.map((p, i) => {
-    const prev = at(i - 1), next = at(i + 1);
-    const tl = Math.hypot(next.x - prev.x, next.z - prev.z) || 1;
-    const tx = (next.x - prev.x) / tl, tz = (next.z - prev.z) / tl;
-    // Right of travel in x-east, z-south plan is (-uz, ux).
-    const nx = -tz, nz = tx;
-    const out = i < n - 1 || closed ? at(i + 1) : p, from = i < n - 1 || closed ? p : at(i - 1);
-    const ol = Math.hypot(out.x - from.x, out.z - from.z) || 1;
-    // Stretch the offset by the half-angle so an edge keeps its width through a bend.
-    const miter = 1 / Math.max(0.5, nx * -(out.z - from.z) / ol + nz * (out.x - from.x) / ol);
-    return { x: p.x, z: p.z, nx, nz, miter };
-  });
-}
-
-/** A strip between two offsets from the path, following the terrain. */
-function strip(frame: readonly Frame[], closed: boolean, inner: number, outer: number, lift: number,
-  keep: (i: number) => boolean = () => true): THREE.BufferGeometry | null {
-  const positions: number[] = [];
-  const at = (f: Frame, offset: number) => {
-    const x = f.x + f.nx * offset * f.miter, z = f.z + f.nz * offset * f.miter;
-    return [x, alderHeight(x, z) + lift, z];
-  };
-  const count = closed ? frame.length : frame.length - 1;
-  for (let i = 0; i < count; i++) {
-    if (!keep(i)) continue;
-    const a = frame[i]!, b = frame[(i + 1) % frame.length]!;
-    const a0 = at(a, inner), a1 = at(a, outer), b0 = at(b, inner), b1 = at(b, outer);
-    positions.push(...a0, ...b0, ...a1, ...a1, ...b0, ...b1);
-  }
-  if (!positions.length) return null;
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  // Wound for an upward face on a path running either way round.
-  geometry.computeVertexNormals();
-  const normal = geometry.getAttribute("normal");
-  if (normal.count && normal.getY(0) < 0) {
-    for (let i = 0; i < positions.length; i += 9) {
-      for (let k = 0; k < 3; k++) { const t = positions[i + 3 + k]!; positions[i + 3 + k] = positions[i + 6 + k]!; positions[i + 6 + k] = t; }
-    }
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    geometry.computeVertexNormals();
-  }
-  return geometry;
-}
+/** A strip between two offsets from the path, following the terrain (track-strips.ts, on Port Alder's ground). */
+const strip = (frame: readonly Frame[], closed: boolean, inner: number, outer: number, lift: number,
+  keep: (i: number) => boolean = () => true) => stripOn(frame, closed, inner, outer, lift, keep, alderHeight);
 
 /** Is a plan point on some other path's racing surface? Edge paint and kerbs stop at junction mouths. */
 function onOtherRoad(x: number, z: number, self: string): boolean {
   return ARENA_ROADS.some(road => road.id !== self && projectOntoPath(road.points, x, z).distance < road.points[0]!.width / 2 - 0.3);
-}
-
-function merged(name: string, parts: (THREE.BufferGeometry | null)[], material: THREE.Material): THREE.Mesh | null {
-  const present = parts.filter((part): part is THREE.BufferGeometry => !!part);
-  if (!present.length) return null;
-  const geometry = mergeGeometries(present);
-  present.forEach(part => part.dispose());
-  if (!geometry) return null;
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.name = name;
-  mesh.receiveShadow = true;
-  return mesh;
 }
 
 /**

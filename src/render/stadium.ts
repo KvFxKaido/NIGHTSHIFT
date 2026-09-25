@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { addNightSky, ALDER_SKY } from "./sky.ts";
 import { STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER } from "../sim/stadium.ts";
+import { STADIUM_CIRCUIT, STADIUM_LAYOUT_IDS, stadiumLap } from "../sim/stadium-circuits.ts";
+import { frames, merged, strip } from "./track-strips.ts";
 import type { DistrictLighting } from "./scene.ts";
 
 /**
  * The stadium venue's world, drawn (src/sim/stadium.ts): the night, the bowl's dirt floor, a dark apron beyond the
- * shell so nothing is void over the rim, the two gate markers. The shell itself and Sable's yard
+ * shell so nothing is void over the rim, the two gates' markers and doors, the circuits. The shell itself and Sable's yard
  * are added by main.ts as they are for the city (`addWharfArena`, `addDriftYard` with its venue floor).
  */
 export function addStadium(scene: THREE.Scene, lighting: DistrictLighting): void {
@@ -29,6 +31,82 @@ export function addStadium(scene: THREE.Scene, lighting: DistrictLighting): void
 
   addStadiumMarkers(scene, "venue");
   addStadiumDoors(scene, night);
+  addStadiumCircuits(scene, night);
+}
+
+/** Kerbs go on every turn's arc and this far either side of it: every stadium turn is tight. */
+const KERB_RUN = 6;
+
+/**
+ * The stadium's circuits, drawn as Ridge Circuit is (render/arena.ts): asphalt to the shoulder, white edge lines, red
+ * and white kerbs on the turns, a chequered line at each layout's start. Both layouts are laid whichever is raced,
+ * as the sim paves both (`onStadiumCircuit`). Where one crosses Sable's apron its asphalt lies under the apron's and
+ * its lines and kerbs over it. Nothing drawn here decides anything.
+ */
+export function addStadiumCircuits(scene: THREE.Scene, night: boolean): THREE.Group {
+  const group = new THREE.Group(); group.name = "stadium-circuits"; scene.add(group);
+  const floor = () => STADIUM.base;
+  const paved = new THREE.MeshStandardMaterial({ color: night ? 0x232d35 : 0x3d474d, roughness: .7, metalness: .06,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const paint = (color: number) => new THREE.MeshBasicMaterial({ color, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  const half = STADIUM_CIRCUIT.width / 2, reach = half + STADIUM_CIRCUIT.shoulder;
+  const asphalt: (THREE.BufferGeometry | null)[] = [], lines: (THREE.BufferGeometry | null)[] = [];
+  const red: (THREE.BufferGeometry | null)[] = [], white: (THREE.BufferGeometry | null)[] = [];
+  const laps = STADIUM_LAYOUT_IDS.map(id => stadiumLap(id));
+  /** Is a plan point on another layout's racing surface? Edge paint and kerbs stop at the mouths where they meet. */
+  const onOther = (x: number, z: number, self: number) => laps.some((lap, index) => index !== self && lap.points.some((a, i) => {
+    const b = lap.points[(i + 1) % lap.points.length]!, dx = b.x - a.x, dz = b.z - a.z;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+    return Math.hypot(a.x + dx * t - x, a.z + dz * t - z) < half - .3;
+  }));
+  laps.forEach((lap, index) => {
+    const frame = frames(lap.points, true);
+    // Overlapping layouts are the same asphalt; a few millimetres keeps coplanar copies from shimmering.
+    asphalt.push(strip(frame, true, -reach, reach, .025 + index * .004, () => true, floor));
+    for (const side of [-1, 1]) {
+      const edge = (half - .15) * side;
+      lines.push(strip(frame, true, edge - .125, edge + .125, .06, i => {
+        const f = frame[i]!, g = frame[(i + 1) % frame.length]!;
+        return !onOther((f.x + g.x) / 2 + f.nx * edge, (f.z + g.z) / 2 + f.nz * edge, index);
+      }, floor));
+    }
+    for (const corner of lap.corners) {
+      const within = (i: number) => lap.along[i]! >= corner.from - KERB_RUN && lap.along[i]! <= corner.to + KERB_RUN;
+      const kerbOnOther = (i: number, side: number) => {
+        const f = frame[i]!;
+        return onOther(f.x + f.nx * (half + .5) * side, f.z + f.nz * (half + .5) * side, index);
+      };
+      for (const side of [-1, 1]) {
+        // A side that crosses the other layout anywhere is a junction mouth: no kerb on it at all.
+        if (frame.some((_, i) => within(i) && lap.along[i]! >= corner.from && lap.along[i]! <= corner.to && kerbOnOther(i, side))) continue;
+        for (const colour of [0, 1]) {
+          (colour ? white : red).push(strip(frame, true, (half + .05) * side, (half + 1.05) * side, .07,
+            i => within(i) && i % 2 === colour && !kerbOnOther(i, side), floor));
+        }
+      }
+    }
+  });
+  for (const mesh of [merged("stadium-circuit-asphalt", asphalt, paved), merged("stadium-circuit-edge-lines", lines, paint(0xe8e4d8)),
+    merged("stadium-circuit-kerbs-red", red, paint(0xb73a2e)), merged("stadium-circuit-kerbs-white", white, paint(0xe8e4d8))]) if (mesh) group.add(mesh);
+
+  // A chequered band across the track at each layout's start line.
+  const checks: THREE.BufferGeometry[][] = [[], []];
+  for (const lap of laps) {
+    const a = lap.points[0]!, b = lap.points[1]!, l = Math.hypot(b.x - a.x, b.z - a.z), ux = (b.x - a.x) / l, uz = (b.z - a.z) / l;
+    const cells = 12, size = STADIUM_CIRCUIT.width / cells;
+    for (let row = 0; row < 2; row++) for (let cell = 0; cell < cells; cell++) {
+      const right = -STADIUM_CIRCUIT.width / 2 + (cell + .5) * size, back = (row - .5) * size;
+      const x = a.x - ux * back - uz * right, z = a.z - uz * back + ux * right;
+      const tile = new THREE.PlaneGeometry(size, size); tile.rotateX(-Math.PI / 2); tile.rotateY(Math.atan2(-ux, -uz));
+      tile.translate(x, STADIUM.base + .075, z);
+      checks[(row + cell) % 2]!.push(tile);
+    }
+  }
+  for (const [i, colour] of [[0, 0xe8e4d8], [1, 0x14181c]] as const) {
+    const mesh = merged(`stadium-circuit-start-${i ? "dark" : "light"}`, checks[i]!, paint(colour));
+    if (mesh) group.add(mesh);
+  }
+  return group;
 }
 
 /** The barrier wall's top where the gates were: the shell's vertices there stand at 1.86 and 6.95 m (measured

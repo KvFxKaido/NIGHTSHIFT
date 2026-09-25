@@ -6,8 +6,9 @@
  *
  * - The shell is baked before the city's two entrance cuts (`STADIUM_SHELL_MESH`): its original continuous
  *   wall profile is restored, and the visible triangles are the collision. The city is not on the other side.
- * - The floor is dirt, except Sable's apron (`DRIFT_YARD.bounds`), which is asphalt. Since physics v6 dirt costs a
- *   2WD car grip and pace and spares AWD, which is the point of it here (design/CHAOS.md, "Three grounds").
+ * - The floor is dirt, except Sable's apron (`DRIFT_YARD.bounds`) and the circuits' asphalt (`stadium-circuits.ts`).
+ *   Since physics v6 dirt costs a 2WD car grip and pace and spares AWD, which is the point of it here
+ *   (design/CHAOS.md, "Three grounds").
  * - No streets, no traffic, and nothing of the city's data: a test holds this module's import closure to that, so
  *   the venue can one day load without the 24 MB city.
  *
@@ -15,6 +16,7 @@
  */
 import { STADIUM_SHELL_MESH } from "./stadium-shell.ts";
 import { DRIFT_YARD, YARD_STRUCTURES } from "./drift-yard.ts";
+import { STADIUM_CIRCUIT, STADIUM_LAYOUT_IDS, onStadiumCircuit, stadiumLap } from "./stadium-circuits.ts";
 import type { RoadWorld } from "./road-world.ts";
 import type { CourseProjection } from "./track.ts";
 
@@ -25,7 +27,7 @@ export const STADIUM = {
   id: "stadium",
   name: "Wharf Arena",
   /** Anything that moves what a car drives on or into here bumps it: the shell, the floor, the solids. */
-  revision: 2,
+  revision: 3,
   base: DRIFT_YARD.base,
 } as const;
 
@@ -33,7 +35,7 @@ export const STADIUM = {
 const facing = (x: number, z: number, dx: number, dz: number): Pose =>
   ({ x, y: STADIUM.base, z, heading: Math.atan2(-dx, -dz), pitch: 0 });
 
-/** Sable's apron: the one paved ground in the venue. */
+/** Sable's apron: the venue's paved yard. The circuits are its other asphalt (`onStadiumCircuit`). */
 export const STADIUM_PAD = DRIFT_YARD.bounds;
 
 export function onStadiumPad(x: number, z: number): boolean {
@@ -130,7 +132,7 @@ function projectOntoStadium(_x: number, _z: number): CourseProjection {
 }
 
 /**
- * What a car here drives on and into, as a string: the shell, the pad, the solids. Hashed, it names the
+ * What a car here drives on and into, as a string: the shell, the pad, the circuits, the solids. Hashed, it names the
  * venue for anything that must refuse another one (a recording, a stored course), without a token someone has to
  * remember to bump (design/CHAOS.md: paving had none, and the yard's re-surfacing could not have been caught).
  * Numbers go through `toFixed`, which the language fixes exactly, so a browser and Node name it alike.
@@ -139,6 +141,9 @@ function stadiumFingerprint(): string {
   const parts = [
     STADIUM_SHELL_MESH.vertices.map(n => n.toFixed(2)).join(","), STADIUM_SHELL_MESH.indices.join(","),
     JSON.stringify(STADIUM_PAD), JSON.stringify(YARD_STRUCTURES.map(s => [s.x, s.z, s.width, s.depth, s.height, s.base])),
+    // The circuits' asphalt: where the floor stops being dirt.
+    `${STADIUM_CIRCUIT.width},${STADIUM_CIRCUIT.shoulder}`,
+    ...STADIUM_LAYOUT_IDS.map(id => stadiumLap(id).points.map(p => `${p.x.toFixed(2)},${p.z.toFixed(2)}`).join(";")),
   ];
   let hash = 2166136261;
   for (const part of parts) for (let i = 0; i < part.length; i++) hash = Math.imul(hash ^ part.charCodeAt(i), 16777619);
@@ -155,7 +160,7 @@ export function createStadiumWorld(from: Pose = STADIUM_GATES[0].venue.arrive): 
     solids: YARD_STRUCTURES,
     meshes: [STADIUM_SHELL_MESH],
     project: projectOntoStadium,
-    ground: (x, z) => !onStadiumPad(x, z),
+    ground: (x, z) => !onStadiumPad(x, z) && !onStadiumCircuit(x, z),
     grade: () => ({ gradeX: 0, gradeZ: 0 }),
   };
 }
