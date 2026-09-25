@@ -5,6 +5,7 @@ import { circuitEvent } from "../src/sim/circuits.ts";
 import { authoredSprintFor } from "../src/sim/authored-sprints.ts";
 import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { AUTHORED_RACES, generatedKind, raceListItems } from "../src/ui/race-list.ts";
+import { raceActions } from "../src/ui/race-list-panel.ts";
 import { decodeProgress, type StageRace } from "../src/settings/progress.ts";
 import type { PlaylistEntry } from "../src/settings/playlist.ts";
 
@@ -86,6 +87,26 @@ test("a course from another build is listed but cannot be started, kept or caree
   assert.equal(raceListItems(career(3, []), [], today).filter(i => i.group === "blacklist").length, 0);
   // An unversioned stage (build null) is never today's.
   assert.equal(raceListItems(career(1, [{ raceId: "gen-15", start: null, build: null }]), [], today).find(i => i.group === "blacklist")!.race, null);
+});
+
+// One stop per race (design/MENUS.md, 2026-09-25): a race's Race, Solo and Remove are
+// face buttons, and its hints show only the ones it has. Nothing may offer a race that
+// cannot start, or a removal the list will refuse.
+test("a race offers A, X and Y only for what it can do", () => {
+  const stages = [{ raceId: "gen-15", start: null, build: today }];
+  const items = raceListItems(career(1, stages), [kept("gen-99", null), kept("gen-40", null, older)], today);
+  const actions = (group: string, playable = true) =>
+    raceActions(items.find(item => item.group === group && (item.race !== null) === playable)!);
+  assert.deepEqual(actions("authored"), ["confirm", "action-x"], "a course: race and solo, never removed");
+  assert.deepEqual(actions("blacklist"), ["confirm", "action-x"], "career history is not the player's to delete");
+  assert.deepEqual(actions("kept"), ["confirm", "action-x", "action-y"], "a kept race: all three");
+  assert.deepEqual(actions("kept", false), ["action-y"], "a kept race from another build: only removed");
+  for (const item of items) {
+    const can = raceActions(item);
+    assert.equal(can.includes("confirm"), item.race !== null, `${item.title}: A must race exactly when it can`);
+    assert.equal(can.includes("action-x"), item.solo !== null, `${item.title}: X must race solo exactly when it can`);
+    assert.equal(can.includes("action-y"), item.removable !== null, `${item.title}: Y must remove exactly when it can`);
+  }
 });
 
 test("every name's won generated stages list in ladder order under the name that raced them", () => {

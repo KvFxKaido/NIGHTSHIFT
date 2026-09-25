@@ -10,7 +10,7 @@ import {
 } from "./menu-state.ts";
 import { createOptionRow, rowAt } from "./menu-rows.ts";
 
-type MenuItem = HTMLButtonElement | HTMLInputElement;
+type MenuItem = HTMLElement;
 
 /**
  * Everything a player can land on with a pad or the arrow keys. Exported so a
@@ -20,9 +20,43 @@ type MenuItem = HTMLButtonElement | HTMLInputElement;
  * `data-pointer-only` controls are for a pointer or a finger and are never stops,
  * because each one repeats something the pad already has a button for: a row's
  * ‹ › (left / right), a section tab (the shoulders), a hint (its face button).
+ *
+ * `data-menu-item` is an entry (design/MENUS.md): a thing in a list, a race or a
+ * name, focusable so a pad can reach and scroll to it, acted on only through the
+ * screen's hints, which it names in `data-can`. One with no `data-can` is read,
+ * not acted on.
  */
 export const MENU_ITEM_SELECTOR =
-  "button:not([disabled]):not([hidden]):not([data-pointer-only]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden])";
+  "button:not([disabled]):not([hidden]):not([data-pointer-only]), input[type=\"range\"]:not([disabled]):not([hidden]), input[type=\"text\"]:not([disabled]):not([hidden]), [data-menu-item]:not([hidden])";
+
+/** The face actions an entry offers, from its `data-can`; none for anything that is not an entry. */
+export function entryActions(element: Element | null): string[] {
+  return element?.closest<HTMLElement>("[data-menu-item]")?.dataset.can?.split(" ").filter(Boolean) ?? [];
+}
+
+/**
+ * Whether a hint is off: another section's, "change" with nothing to change, or an entry's action the focused entry
+ * cannot take (Remove on an authored race, Race on a Blacklist name). Pure, so the rule that keeps a pad from pressing
+ * the wrong thing is tested without a page.
+ */
+export function hintOff(hint: { name: string; section?: string; entry: boolean },
+  focus: { section: string | null; changing: boolean; can: readonly string[] }): boolean {
+  return (hint.section !== undefined && hint.section !== focus.section)
+    || (hint.name === "change" && !focus.changing)
+    || (hint.entry && !focus.can.includes(hint.name));
+}
+
+/**
+ * Where to land on a screen you are coming back to: the item you left, or, when the screen was drawn again since and
+ * that element is gone, the item drawn in its place, found by its entry key (`data-entry-key`). The race list and the
+ * Blacklist draw their entries anew each time they open, so the element remembered was always detached, and both came
+ * back at the top or the current name (Codex review, #14).
+ */
+export function rememberedItem<T extends { dataset: DOMStringMap }>(items: readonly T[], remembered: T | undefined,
+  key: string | undefined): T | undefined {
+  if (remembered && items.includes(remembered)) return remembered;
+  return key === undefined ? undefined : items.find(item => item.dataset.entryKey === key);
+}
 
 /** What each customization row is called (design/MENUS.md: one setting, one row). */
 const CUSTOMIZATION_LABELS: Record<CustomizationCategory, string> = {
@@ -187,9 +221,15 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   // Where the player was, per screen and per section, so backing out of a screen
   // or paging away and back lands where they left rather than at the top.
   const lastFocus = new Map<string, MenuItem>();
+  // And an entry's key, since a list drawn again replaces the element (rememberedItem).
+  const lastKey = new Map<string, string>();
   const focusKey = () => `${state.screen}:${activeSection() ?? ""}`;
   function focused(item: MenuItem): void {
-    if (visibleItems().includes(item)) lastFocus.set(focusKey(), item);
+    if (visibleItems().includes(item)) {
+      lastFocus.set(focusKey(), item);
+      if (item.dataset.entryKey !== undefined) lastKey.set(focusKey(), item.dataset.entryKey);
+      else lastKey.delete(focusKey());
+    }
     // Cheap, and it keeps rows honest about values changed elsewhere (the
     // livery editor's own switch, a body's own design after browsing cars).
     renderCustomization();
@@ -213,12 +253,14 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
   });
   function restoreFocus(): void {
     const items = visibleItems();
-    const remembered = lastFocus.get(focusKey());
+    const remembered = rememberedItem(items, lastFocus.get(focusKey()), lastKey.get(focusKey()));
     // A section with nothing to land on (every row locked on a car that is not
     // yours) must not leave focus on the page before it: left and right would
     // go on changing a row the player can no longer see.
     if (items.length === 0 && root.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
-    focusItem(remembered && items.includes(remembered) ? remembered : items[0]);
+    // With nowhere remembered, a screen may say where to start: the Blacklist opens
+    // on the name you are on, not on #1 at the top.
+    focusItem(remembered ?? items.find(item => item.hasAttribute("data-focus-first")) ?? items[0]);
     renderHints();
   }
 
@@ -233,14 +275,19 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
     if (!bar) return;
     const section = activeSection();
     const changing = !!rowAt(document.activeElement) || !!focusedSlider();
+    // An entry's hints show only on an entry that can take them: Remove on a kept
+    // race, not on an authored one.
+    const can = entryActions(document.activeElement);
     bar.querySelectorAll<HTMLElement>("[data-hint]").forEach(hint => {
-      const off = (hint.dataset.hintSection !== undefined && hint.dataset.hintSection !== section)
-        || (hint.dataset.hint === "change" && !changing);
-      hint.toggleAttribute("data-hint-off", off);
+      hint.toggleAttribute("data-hint-off", hintOff({ name: hint.dataset.hint!, section: hint.dataset.hintSection,
+        entry: hint.hasAttribute("data-hint-entry") }, { section, changing, can }));
     });
   }
   /** The hint a face button presses on this screen, if it is showing and can act. */
   function liveHint(command: string): HTMLButtonElement | null {
+    // Read the bar as it stands for what has focus now, not as it was last drawn:
+    // a panel moves focus itself (after a removal) and that need not have redrawn it.
+    renderHints();
     const hint = hints()?.querySelector<HTMLButtonElement>(`button[data-hint="${command}"]:not([data-hint-off]):not([disabled])`);
     return hint && !hint.closest("[hidden]") ? hint : null;
   }
@@ -360,6 +407,12 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
       else row.step(1);
       return;
     }
+    // An entry is acted on through its hints: confirm is its A hint, when it has
+    // one (a race: Race), and nothing when it has none (a name on the Blacklist).
+    if (document.activeElement?.closest("[data-menu-item]")) {
+      if (entryActions(document.activeElement).includes("confirm")) liveHint("confirm")?.click();
+      return;
+    }
     const items = visibleItems();
     const focused = document.activeElement;
     const target = items.includes(focused as MenuItem) ? focused : items[0];
@@ -405,6 +458,9 @@ export function createMenuController(callbacks: MenuCallbacks): MenuController {
         dispatch("back");
       }
     }
+    // A command may have moved focus by way of a panel (a removed race hands it to
+    // the next one) rather than through the menu; the bar follows either way.
+    if (commands.length && state.screen !== "playing") renderHints();
   }
 
   root.addEventListener("input", (event) => {
