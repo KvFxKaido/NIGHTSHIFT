@@ -15,8 +15,9 @@ export function padGlyph(button: 0 | 1 | 2 | 3 | 4 | 5, name: string | null): st
 /** Each hint glyph (`data-hint-glyph`, design/MENUS.md), for a pad or, with none, the keyboard. */
 export function hintGlyph(hint: string, pad: string | null): string {
   const padButton = ({ confirm: 0, back: 1, "action-x": 2, "action-y": 3, "section-prev": 4, "section-next": 5 } as const)[hint as "confirm"];
-  if (pad) return padButton !== undefined ? padGlyph(padButton, pad) : hint === "change" ? "◀ ▶" : hint === "turn" ? "R-stick" : "";
-  return ({ confirm: "Enter", back: "Esc", "action-x": "X", "action-y": "Y", "section-prev": "Q", "section-next": "E", change: "← →" } as Record<string, string>)[hint] ?? "";
+  if (pad) return padButton !== undefined ? padGlyph(padButton, pad)
+    : ({ change: "◀ ▶", scroll: "▲ ▼", turn: "R-stick" } as Record<string, string>)[hint] ?? "";
+  return ({ confirm: "Enter", back: "Esc", "action-x": "X", "action-y": "Y", "section-prev": "Q", "section-next": "E", change: "← →", scroll: "↑ ↓" } as Record<string, string>)[hint] ?? "";
 }
 
 let previousHints = "";

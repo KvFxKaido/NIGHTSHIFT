@@ -628,17 +628,12 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
 .race-list { display: grid; gap: 6px; margin: 16px 0; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
 .race-group { margin: 12px 0 2px; color: var(--menu-muted); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
 .race-group:first-child { margin-top: 0; }
-.race-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px;
-  border-left: 2px solid rgba(255, 255, 255, .16); background: rgba(7, 10, 18, .72); }
+/* One stop per race (design/MENUS.md): the row is the entry, its actions are the hints. */
+.race-row { padding: 10px 12px; border: 1px solid transparent; border-left: 2px solid rgba(255, 255, 255, .16);
+  background: rgba(7, 10, 18, .72); cursor: pointer; }
 .race-row[data-playable="false"] { opacity: .62; }
 .race-row strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
 .race-row span { display: block; margin-top: 4px; font-size: 10px; line-height: 1.5; color: rgba(242, 238, 227, .7); }
-.race-row-actions { display: flex; gap: 6px; }
-.race-row-actions .menu-button { min-height: 36px; min-width: 76px; padding: 0 26px 0 10px; font-size: 11px; }
-@media (max-width: 520px) {
-  .race-row { grid-template-columns: 1fr; }
-  .race-row-actions .menu-button { flex: 1; }
-}
 .blacklist-menu { max-width: 640px; }
 .blacklist { display: grid; gap: 6px; margin: 16px 0; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
 .blacklist-row { display: grid; grid-template-columns: 34px 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px;
@@ -651,6 +646,11 @@ body[data-game-screen="saves"] #hud { opacity: 0; }
 .blacklist-row strong { display: block; font-size: 13px; }
 .blacklist-row div span { display: block; margin-top: 3px; font-size: 10px; line-height: 1.5; color: rgba(242, 238, 227, .7); }
 .blacklist-reward { font-size: 11px; color: var(--menu-ink); text-align: right; }
+/* An entry with focus, race or name: the garage row's cyan edge, so every list reads as one menu. */
+.race-row:focus, .blacklist-row:focus { outline: none; border-color: rgba(89, 216, 255, .46); border-left-color: var(--menu-cyan);
+  background: linear-gradient(90deg, rgba(89, 216, 255, .12), rgba(7, 10, 18, .82)); }
+.blacklist-row { border: 1px solid transparent; border-left: 2px solid rgba(255, 255, 255, .16); }
+.blacklist-row[data-standing="current"] { border-left-color: var(--menu-cyan); }
 @media (max-width: 520px) {
   .blacklist-row { grid-template-columns: 30px 40px minmax(0, 1fr); }
   .blacklist-face { width: 40px; height: 40px; }
@@ -871,4 +871,18 @@ body:not([data-input-device="pad"]) [data-hint-pad] { display: none; }
 @media (max-width: 720px) {
   .menu-root[data-screen="garage"] .menu-screen { max-height: 64dvh; }
   .menu-root[data-screen="garage"] .menu-heading { font-size: 28px; }
+}
+
+/* List screens (the race list, the Blacklist) on a short screen, a phone held to race: the screen
+   fills the height and the list is the one thing that scrolls, with the hints held at the bottom.
+   Otherwise the list scrolled inside a page that scrolled too, and the hints sat below the fold. */
+@media (max-height: 560px) {
+  .menu-root:is([data-screen="races"], [data-screen="blacklist"]) { padding-block: 10px; align-items: stretch; }
+  .menu-list-screen { display: flex; flex-direction: column; height: calc(100dvh - 20px); }
+  .menu-list-screen .menu-kicker, .menu-list-screen > .handling-note, .menu-list-screen .race-draw .handling-note { display: none; }
+  .menu-list-screen .menu-heading { font-size: 24px; margin-bottom: 4px; }
+  .menu-list-screen .race-draw { margin: 4px 0 0; }
+  .menu-list-screen .race-draw .menu-button { min-height: 36px; }
+  .menu-list-screen :is(.race-list, .blacklist) { flex: 1 1 auto; min-height: 0; max-height: none; margin: 8px 0 0; }
+  .menu-list-screen .menu-hints { margin-top: 6px; padding-top: 6px; }
 }

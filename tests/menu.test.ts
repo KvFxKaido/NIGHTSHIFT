@@ -114,6 +114,25 @@ test("sliders are navigable and confirming on one cannot activate a button", () 
   assert.equal(MENU_ITEM_SELECTOR.match(/:not\(\[disabled\]\)/g)?.length, 3);
 });
 
+// Phase 2 (design/MENUS.md, 2026-09-25): the race list and the Blacklist are entries,
+// one stop each, and Back is the B hint rather than one more stop at the bottom of a
+// long list. The race's actions are entry hints, shown only on a race that has them.
+test("the race list and the Blacklist are entries with hint bars, and Back is a hint", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  for (const name of ["races", "blacklist"]) {
+    const screen = html.match(new RegExp(`<section[^>]*data-menu-screen="${name}"[\\s\\S]*?</section>`))![0];
+    assert.match(screen, /data-menu-hints/, `${name} has no hint bar`);
+    assert.match(screen, /data-hint="back"[^>]*data-menu-action="back"/, `${name}'s Back is not its B hint`);
+    assert.doesNotMatch(screen, /class="menu-button"[^>]*data-menu-action="back"/, `${name} has Back as a stop again`);
+    assert.match(screen, /class="[^"]*menu-list-screen/, `${name} does not fill a short screen`);
+  }
+  const races = html.match(/<section[^>]*data-menu-screen="races"[\s\S]*?<\/section>/)![0];
+  for (const [hint, action] of [["confirm", "race"], ["action-x", "solo"], ["action-y", "remove"]]) {
+    assert.match(races, new RegExp(`data-hint="${hint}" data-hint-entry data-race-hint="${action}"`), `${action} is not an entry hint on ${hint}`);
+  }
+  assert.match(MENU_ITEM_SELECTOR, /\[data-menu-item\]/, "entries are not stops");
+});
+
 // Rows, not tiles (design/MENUS.md, 2026-09-24). The garage laid its options out
 // as grids, and a pad walked every tile one press at a time. Hold the markup to
 // the rule: no option tiles on the garage screen, and every customization

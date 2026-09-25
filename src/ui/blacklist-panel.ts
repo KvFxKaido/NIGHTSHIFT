@@ -62,10 +62,19 @@ export function createBlacklistPanel(options: BlacklistPanelOptions) {
     status.textContent = options.unavailable() ? "Career progress could not be read. Existing data has been left untouched." : "";
     for (const row of blacklistRows(options.career())) {
       const card = options.card(row.id);
+      // An entry with nothing to do but be read (design/MENUS.md): a stop all the
+      // same, because the ladder is taller than its box and a pad scrolls by focus.
+      // Until 2026-09-25 the only stop on this screen was Back, so a pad could not
+      // reach the names below the fold at all. It opens on the name you are on.
       const item = document.createElement("div");
       item.className = "blacklist-row";
+      item.tabIndex = 0;
+      item.setAttribute("role", "listitem");
+      item.dataset.menuItem = "";
+      item.toggleAttribute("data-focus-first", row.standing === "current");
       item.dataset.standing = row.standing;
       item.dataset.blacklistName = row.id;
+      item.setAttribute("aria-label", `#${row.rank} ${row.name}, ${row.carName}. ${row.status}. ${row.standing === "beaten" ? "Retired" : `Pays ${row.reward}`}.`);
       const rank = document.createElement("span");
       rank.className = "blacklist-rank";
       rank.textContent = `#${row.rank}`;

@@ -235,7 +235,7 @@
           <button class="menu-button" data-menu-action="back">Back</button>
         </section>
 
-        <section class="menu-screen races-menu" data-menu-screen="races" aria-labelledby="races-title" hidden>
+        <section class="menu-screen races-menu menu-list-screen" data-menu-screen="races" aria-labelledby="races-title" hidden>
           <p class="menu-kicker">Port Alder / Race list</p>
           <h2 id="races-title" class="menu-heading">Race list</h2>
           <p class="handling-note">Race any course against the rival or solo. Keep a generated race from its results to find it here.</p>
@@ -243,18 +243,29 @@
             <button class="menu-button primary" data-draw-race disabled>Draw a race here</button>
             <p class="handling-note" data-draw-note></p>
           </div>
-          <div class="race-list" data-race-list></div>
+          <!-- One stop per race, acted on by its hints (design/MENUS.md): the hints show only what the focused race
+               can do, and a click on one acts on the race that has focus. -->
+          <div class="race-list" data-race-list role="list"></div>
           <p class="settings-status" data-race-list-status role="status" aria-live="polite"></p>
-          <button class="menu-button" data-menu-action="back">Back</button>
+          <nav class="menu-hints" data-menu-hints aria-label="Race list controls">
+            <button class="menu-hint" data-hint="confirm" data-hint-entry data-race-hint="race" data-pointer-only tabindex="-1"><kbd data-hint-glyph="confirm"></kbd><span data-hint-label>Race</span></button>
+            <button class="menu-hint" data-hint="action-x" data-hint-entry data-race-hint="solo" data-pointer-only tabindex="-1"><kbd data-hint-glyph="action-x"></kbd><span data-hint-label>Solo</span></button>
+            <button class="menu-hint" data-hint="action-y" data-hint-entry data-race-hint="remove" data-pointer-only tabindex="-1"><kbd data-hint-glyph="action-y"></kbd><span data-hint-label>Remove</span></button>
+            <button class="menu-hint" data-hint="back" data-menu-action="back" data-pointer-only tabindex="-1"><kbd data-hint-glyph="back"></kbd><span data-hint-label>Back</span></button>
+          </nav>
         </section>
 
-        <section class="menu-screen blacklist-menu" data-menu-screen="blacklist" aria-labelledby="blacklist-title" hidden>
+        <section class="menu-screen blacklist-menu menu-list-screen" data-menu-screen="blacklist" aria-labelledby="blacklist-title" hidden>
           <p class="menu-kicker">Port Alder / The Blacklist</p>
           <h2 id="blacklist-title" class="menu-heading">Blacklist</h2>
           <p class="handling-note">Ten names, climbed from #10. Flash the next name to race for a stage: two wins, then the pink slip for their car. Anyone higher races you for nothing.</p>
-          <div class="blacklist" data-blacklist></div>
+          <!-- Every name is a stop, so a pad can walk and scroll the ladder; it opens on the name you are on. -->
+          <div class="blacklist" data-blacklist role="list"></div>
           <p class="settings-status" data-blacklist-status role="status" aria-live="polite"></p>
-          <button class="menu-button" data-menu-action="back">Back</button>
+          <nav class="menu-hints" data-menu-hints aria-label="Blacklist controls">
+            <span class="menu-hint" data-hint="scroll"><kbd data-hint-glyph="scroll"></kbd>Names</span>
+            <button class="menu-hint" data-hint="back" data-menu-action="back" data-pointer-only tabindex="-1"><kbd data-hint-glyph="back"></kbd><span data-hint-label>Back</span></button>
+          </nav>
         </section>
 
         <section class="menu-screen controls-menu" data-menu-screen="controls" aria-labelledby="controls-title" hidden>
