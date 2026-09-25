@@ -79,6 +79,14 @@ jobs:
   # Those timings are not the local ones scaled -- `rest` runs 81 files with real
   # parallelism between them, `critique` only six -- so balance by measuring here.
   #
+  # A shard runs three files at a time, so its anchor holds one worker to the end
+  # and the rest share two. On the last normal run before 2026-09-25 that left
+  # room beside both anchors (228 s beside 196 of other files in `generator`, 219
+  # beside 338 in `critique`) while `rest` was the floor, so its two heaviest moved
+  # out: street-line (82 s) to `generator`, recorded-event (57 s) to `critique`.
+  # Per-file time comes from summing a file's top-level durations in the job log;
+  # the TAP output names tests, not files.
+  #
   # `rest` stays defined by EXCLUSION so a new test file joins it without being
   # listed anywhere. The pattern anchors on `.test.ts$` because the names are
   # prefixes of each other: a bare `rival` would swallow rival-racing,
@@ -96,11 +104,11 @@ jobs:
       matrix:
         include:
           - shard: generator
-            files: tests/race-generator.test.ts tests/night.test.ts tests/rival.test.ts tests/traffic-intent.test.ts
+            files: tests/race-generator.test.ts tests/night.test.ts tests/rival.test.ts tests/traffic-intent.test.ts tests/street-line.test.ts
           - shard: critique
-            files: tests/critique-alder.test.ts tests/arena.test.ts tests/district.test.ts tests/encounter.test.ts tests/cruisers.test.ts tests/street-circuit.test.ts
+            files: tests/critique-alder.test.ts tests/arena.test.ts tests/district.test.ts tests/encounter.test.ts tests/cruisers.test.ts tests/street-circuit.test.ts tests/recorded-event.test.ts
           - shard: rest
-            files: $(ls tests/*.test.ts | grep -vE 'tests/(race-generator|critique-alder|night|rival|arena|traffic-intent|district|encounter|cruisers|street-circuit)\.test\.ts$')
+            files: $(ls tests/*.test.ts | grep -vE 'tests/(race-generator|critique-alder|night|rival|arena|traffic-intent|street-line|district|encounter|cruisers|street-circuit|recorded-event)\.test\.ts$')
     name: tests (${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v4
