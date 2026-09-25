@@ -3219,7 +3219,7 @@ side through every pull-out, where the nose already points out. What gen-81 show
 the car it passes, a check that lets it alone only past 2.6, and a van drifting 0.3 m into that accelerating out of a
 corner.
 
-## A car beside its line (2026-09-25, `driver-v6`)
+## A car beside its line (2026-09-25, `driver-v6`, `driver-v7`)
 
 The car standing at a bar just off the rival's line, which the v11 gate met at 110 mph (gen-19, seed 1000,
 `design/INTERSECTIONS.md`), was not misread. An SUV stood at a bar in the outer lane, 5.6 m across the road, and the
@@ -3252,8 +3252,20 @@ likely still finishing its turn onto the road (traffic changes no lanes). When t
 from where the rival meant to be, past the gap, and it was left alone; at arrival it would be 2.5 m, inside it. The
 dodge reads a car where it IS, `offRoute`, for whether it is in the way and for which sides it offers, where the
 will-be check reads it where it will be, `sideAtArrival`. The same reading chose sides before `driver-v6` too: the one
-it offered here, 3.2 m right of where the truck was, was 1.9 m from where it would be. The next change is there, both
-the gate and the sides read at arrival, gated like this one and on the rear-end test.
+it offered here, 3.2 m right of where the truck was, was 1.9 m from where it would be.
+
+`driver-v7` (the same day): the dodge reads a car going its way where it will be when the rival is alongside (`there`,
+as far on as `alongside`'s 4 s), for whether it is in the way, the sides it offers and whether there is none, as the
+crossing branch always has. Uptown at seed 1000 goes clean. On the gate against `driver-v6`: 164 of 498 races moved,
+42 s quicker, distinct incidents 41 to 40, resets 28 to 26, contact on a line 43 to 31 ticks, none in a pass; contact
+1,083 to 1,497 ticks, most of it one pile-up on the grid at seed 271828 at 9 mph, shared by 16 races, that moved by a
+second; off the pavement 328 to 391 (gen-78 at seed 42, which already had its reset). Gone at speed: Uptown's 117 and
+105 mph, gen-51 at 89, gen-70 at 90, gen-75 at 89. New at speed: three oncoming vans and box trucks at 70 to 90 mph, a
+branch this does not touch, and gen-1 at seed 1000, clipped at 128 mph by an SUV merging across at 37 mph. The reading
+put that SUV within 0.1 m of where it came, the dodge aimed 3.2 m clear of it, and the car was still 0.9 m short of its
+aim when it drew level, with the SUV's nose turned 7 degrees into its flank. That and gen-19 running 1.8 m wide are the
+rival not reaching its own line above 120 mph, which no reading of traffic mends. The gate also dithers at its own
+edge: at exactly 3.2 m it lets the line go and takes it back the next tick, which holds it to 0.07 m.
 
 ## Corner dressing trial (2026-09-21)
 

@@ -575,8 +575,10 @@ fixtures outside the playable bundle, and old world links redirect.
 - The same-direction dodge aims 3.2 m (`PASS.gap`) from a car only when that car is nearer where the rival means to be
   than that (`driver-v6`). Taken for any car within 5 m, it moved the rival TOWARDS cars already clear of it, and ran it
   into an SUV standing at a bar at 110 mph (gen-19, seed 1000); undone, the gate lost 15 of 56 distinct incidents. It
-  still reads that car where it IS (`offRoute`), for the gate and the sides, not where it will be (`sideAtArrival`): a
-  box truck finishing its turn came 1.2 m across in the last second, from 3.8 m off to 2.5, at 117 mph (Uptown, 1000).
+  reads that car where it will be when the rival is alongside (`there`, `driver-v7`), for the gate, the sides and the
+  no-side slow: read where it was, a box truck finishing its turn came 1.2 m across in the last second, 3.8 m off to 2.5,
+  at 117 mph (Uptown, seed 1000). What no reading mends is the rival reaching its line above 120 mph: 0.9 m short of it
+  in gen-1 at seed 1000, 1.8 m wide in gen-19.
 - A route's `width` is the carriageway traffic drives; Port Alder's asphalt runs `shoulder` (5.6 m) past it each side
   (2026-09-23). Anything in the rival bounded by the width adds `route.shoulder`, or on the shoulder it is lost (held
   to 22 mph), makes no progress toward a reset, and a pass onto it is clamped back: `lost`, the progress mark, `edge`,
