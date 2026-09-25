@@ -162,7 +162,16 @@
    "oncoming": 28,
    "crossing, claimed": 3,
    "crossing": 2
+  },
+  "v12": {
+   "distinct": 55,
+   "into the back": 15,
+   "from behind": 7,
+   "oncoming": 29,
+   "crossing": 2,
+   "crossing, claimed": 2
   }
  },
- "gateFinding": "Crossings by a car that had claimed its junction 8 to 3: one a chain out of the cluster claimed with the rival 400 m off (beyond the 8 s racer horizon), two at walking pace. Rear-ends rose (into the back 8 to 14, from behind 4 to 8); of the four checked, three are at junctions v11 did not change (the timing lottery) and one is new: gen-19 at seed 1000 hit an SUV standing at a new bar at 110 mph, having read it 1.5 to 1.9 m to its right as out of its path while drifting towards it. Off the pavement 70 to 293 ticks is gen-54 at seed 42 (the same still-bare junction as v10's gen-54 at seed 271828) and gen-75 at seed 1000 (a spin after being hit from behind at 97 mph)."
+ "gateFinding": "Crossings by a car that had claimed its junction 8 to 3: one a chain out of the cluster claimed with the rival 400 m off (beyond the 8 s racer horizon), two at walking pace. Rear-ends rose (into the back 8 to 14, from behind 4 to 8); of the four checked, three are at junctions v11 did not change (the timing lottery) and one is new: gen-19 at seed 1000 hit an SUV standing at a new bar at 110 mph, having read it 1.5 to 1.9 m to its right as out of its path while drifting towards it. Off the pavement 70 to 293 ticks is gen-54 at seed 42 (the same still-bare junction as v10's gen-54 at seed 271828) and gen-75 at seed 1000 (a spin after being hit from behind at 97 mph).",
+ "v12": "traffic-v12 (2026-09-25): a chain judged movement by movement (chainWindows). 460 of 498 gate races identical to v11; the fast claimed crossing v11 left (gen-28, seed 0, 51 mph, a chain out of the cluster) is gone; one new at 26 mph is a single-movement claim, judged as before, met at another moment. The taxi that led here (gen-24) still claims: its junction was 96 m off the rival's straight line, round a bend, and traffic reads racers only by where they are going now."
 }

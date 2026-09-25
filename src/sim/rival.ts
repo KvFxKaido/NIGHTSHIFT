@@ -380,6 +380,7 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * it from behind had braked it to let them by. Shawn's race against Wake that morning.
  * "driver-v5", "pass-v3", "street-line-v3" (2026-09-23): the shoulders Port Alder gained that day are road to a race
  * rival (`shoulder`): its edge, its passes, its bends' arcs, and where it is lost or making progress.
+ * "pass-v4" (2026-09-25): a pass past its lead early rejoins over the length its speed then asks for (traffic-pass.ts).
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 

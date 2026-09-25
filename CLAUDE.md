@@ -660,7 +660,11 @@ fixtures outside the playable bundle, and old world links redirect.
 - Where a junction claim is judged against a racer, the car's time in the junction is what it will DRIVE, braking for
   its corner (`clearingTime`), never its distance over the speed it has: that came out at half the truth for a car
   that slows to turn, and traffic turned across a rival it could not have cleared. Traffic alone never reads it, so a
-  soak cannot see a change to it; the gate and `pnpm golden`'s free roam run can.
+  soak cannot see a change to it; the gate and `pnpm golden`'s free roam run can. A chain is judged movement by movement,
+  each over when the car will be in it (`chainWindows`, `traffic-v12`), since a chain through a cluster can take 11 s to
+  reach its last junction and the look ran 8 s over all of them alike. It still reads a racer as a straight line at the
+  speed it has, deliberately, since traffic must treat the player as it treats the rival: a junction round a bend 11 s
+  ahead of a racer that is accelerating is out of its sight (gen-24, 96 m off the line), and no window changes that.
 - A traffic seed keeps the vehicle count and each id's kind, and must: the renderer sizes one instanced mesh per kind
   once, at load (`render/traffic.ts`), and a restart onto another seed draws into the same slots. Starts move by a phase
   along the one ruler, never by adding or dropping a car. Seed 0's vehicles carry no `seed` field, because the golden

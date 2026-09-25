@@ -185,6 +185,18 @@ What it did (`design/measurements/junction-dressing.json`, against v10):
 
 25 junctions stay bare: 3 acute merges, and 22 whose arms still find no spot (the ones around 99 and 246 among them).
 
+**Chains judged movement by movement (`traffic-v12`, 2026-09-25).** Looking into the pass planner's lost time found a
+taxi that had stood at a v11 bar claim three junctions at once with the rival 450 m off, and hold the one on the rival's
+road 11.5 s before it got there (gen-24, seed 0). The racer look ran the first 8 s over every movement of a chain alike.
+It now takes each movement over when the car will be in it (`chainWindows`): the first as before, a later one from 0.85 of
+its reckoned entry (a hold comes out as short as that, p10) to a second after its exit, out to 20 s. It did not stop that
+taxi: at the claim its junction was 96 m off the rival's straight line, round a bend, and the rival was accelerating from
+66 mph to 106. Traffic reads a racer only by where it is going now, as it must to treat the player and the rival alike.
+What it did stop is the fast claimed crossing v11 left, a chain out of the cluster (gen-28, seed 0, 51 mph). The gate:
+460 of 498 races identical, distinct incidents 55 to 55, contact 1,538 to 1,461 ticks, claimed crossings 3 to 2 (one
+gone at speed and one at walking pace, one new at 26 mph, a single-movement claim judged as before, met at another
+moment); resets 30 to 34 and reversals 1 to 4, all in races the timing moved.
+
 **Questions for Shawn** (all three answered yes, 2026-09-24: racers keep the junction on a red, a full stop, at the painted bar).
 
 - Should traffic on the amber axis keep giving a junction to a racer who runs the red across it? Recommended yes for
