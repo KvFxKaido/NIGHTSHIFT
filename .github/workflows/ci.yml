@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Typecheck and production build: what CI ran alone until 2026-09-19.
   build:
     runs-on: ubuntu-latest
     steps:
@@ -24,26 +25,43 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  # The browser checks, one job each (2026-09-25). Each starts its own dev server and drives the real page, so none
+  # needs the build or another's result, and one after another in the build job they were 8.6 of its 9.7 minutes
+  # (facade 5.0, Cinder 2.5, garage shots 1.1). All three use the SwiftShader launch, without which a runner with no
+  # GPU stalls (PR #11).
+  #  - facade: the Wharf Garage facade menu.
+  #  - cinder: the Cinder's body kits, wheels, spoilers and paint picker.
+  #  - garage-shots: the garage cutscenes: each ends, can be skipped on every input, and freezes the sim behind it.
+  browser:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: facade
+            captures: artifacts/facade-*.png
+          - check: cinder
+            captures: artifacts/cinder-*.png
+          - check: garage-shots
+            captures: artifacts/garage-shot-*.png
+    name: browser (${{ matrix.check }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:facade
-        timeout-minutes: 15
-      # The Cinder's body kits, wheels and spoilers, checked in a browser the way
-      # the facade menu is: both start their own dev server and drive the real page.
-      - run: pnpm test:cinder
-        timeout-minutes: 15
-      # The garage cutscenes: that each one ends, that it can be skipped on every
-      # input, and that the sim is frozen behind it. Same SwiftShader launch as
-      # the two above, without which a runner with no GPU stalls (PR #11).
-      - run: pnpm test:garage-shots
+      - run: pnpm test:${{ matrix.check }}
         timeout-minutes: 15
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-captures
-          path: |
-            artifacts/facade-*.png
-            artifacts/cinder-*.png
-            artifacts/garage-shot-*.png
+          name: browser-captures-${{ matrix.check }}
+          path: ${{ matrix.captures }}
 
   # The deterministic simulation suite: every handling gate, the replay checks and
   # the revision pins. It is the project's real gate (CLAUDE.md, "Commands"), and
@@ -66,8 +84,8 @@ jobs:
   # prefixes of each other: a bare `rival` would swallow rival-racing,
   # rival-speed, rival-card and rival-height.
   #
-  # Below about 420 s there is nothing here to win: the build job, with its three
-  # browser checks, is the floor.
+  # Below about 420 s there is nothing here to win: the facade check, in its own
+  # job since 2026-09-25, is the floor.
   tests:
     runs-on: ubuntu-latest
     strategy:
