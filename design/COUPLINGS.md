@@ -32,7 +32,24 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 | The rival driver | `rival.ts` | `RIVAL_REVISIONS.driver` and its tables | every rival race; **the car cards' street pace and AI laps**, which are the rival's planner driving each car (`pnpm cars --streets`, `--laps`), so the ladder the cars were tuned against moves with the driver | `pnpm rival:gate`, `pnpm cars --laps --streets`, the rival tests |
 | Street lines | `street-line.ts`, `racing-line.ts` | `RIVAL_REVISIONS.streetLine`, the drawn line's fingerprint | generated races and Uptown in traffic; Uptown / Clear and Ridge Circuit draw their own lines (`racing-line.ts`) | `pnpm rival:gate`; the Uptown / Clear pace test |
 | Committed passes | `traffic-pass.ts` | `RIVAL_REVISIONS.pass` | the same races | `pnpm rival:gate` |
+| The stadium venue world | `stadium.ts`, `stadium-shell.ts` (continuous shell, floor, the circuits' paving, solids, which are none since the props left, `stadium-v4`) | `STADIUM_VERSION`, hashed from them | Sable's drift event and its score targets, which run there since 2026-09-25 (the robot run is identical to the millimetre to the city's arena's, `design/VENUES.md`), and which are **suspect for a driver** since her warehouse and container are gone; every stadium circuit race and recording | `tests/stadium.test.ts`, `tests/stadium-circuits.test.ts`, `tests/drift.test.ts`; a driven run of her event |
+| The stadium circuits | `stadium-circuits.ts` on `circuit-plan.ts` | `STADIUM_CIRCUIT_IDENTITY` (`stadium-circuits-v1`) | the stadium races, their gates and the rival's line through them; the rival's lap limits in the test (Full 69.3 s, Short 47.9 s flying, Moth's Kestrel, 2026-09-25) | `tests/stadium-circuits.test.ts` |
 | The generator, route choice, `PACE` | `race-generator.ts`, `route-choice.ts` | `GENERATOR_REVISIONS` | which races exist; stored career courses; **the batch itself**, whose 82 generated races are generator draws, so a generator change changes what the batch runs and a before/after comparison across it compares different races | the generator fingerprints; a fresh `pnpm rival:gate --save` |
+
+## Stadium venue revisions — 2026-09-25
+
+The venue is `stadium-v4-8da8b985`, and each step to it changed only the venue: the city's shell, the city's world
+identity and tyre tuning did not move at any of them.
+
+- v1 sealed the city's cut shell with slabs across the two gates.
+- v2 (`stadium-v2-7662b672`) replaced them with the original continuous wall profile, the floor following the
+  unbroken inner perimeter. V1's enclosure measurements are superseded.
+- v3 (`stadium-v3-84732353`) paved the two circuits.
+- v4 (`stadium-v4-8da8b985`) removed the yard's props: nothing stands on the floor. Sable's authored line and
+  targets are unchanged as numbers, but the targets are suspect for a driver (the ledger's venue row above).
+
+The enclosure, render/collision equality, marker reachability, the circuits and the drift run are held by
+`tests/stadium.test.ts` and `tests/stadium-circuits.test.ts`; results are recorded in `design/VENUES.md`.
 
 ## Wharf arena world change — 2026-09-23
 

@@ -42,6 +42,8 @@ export interface RecordedEvent {
   readonly start: RoadWorld["start"] | undefined;
   /** Whether the player and the rival can be compared gate by gate along `track`: a circuit or a sprint. */
   readonly comparable: boolean;
+  /** The venue it runs in (the stadium's circuits); absent is Port Alder. The replay builds that world. */
+  readonly venue?: "stadium";
 }
 
 export const GENERATED_LAYOUT = "generated";

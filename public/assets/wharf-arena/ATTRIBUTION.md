@@ -19,3 +19,9 @@ original creator. The original title identifies the source asset only.
 Rebuild with `node scripts/inspect-yard-shell.mjs` followed by
 `node scripts/build-yard-arena.mjs` when the source is installed in the ignored
 `inspiration/tron-light-cycle-arena/` folder.
+
+The stadium venue variant, `closed-shell.glb` and `assets/wharf-arena/closed-collision.json`,
+uses the same cleaned/scaled source before the entrance cuts, retaining the original continuous
+perimeter. Both are covered by the attribution and license above. Generate them with
+`node scripts/build-yard-arena.mjs --closed`; `--source=<path>` accepts an alternate local
+`shell-preview.glb` path. The city outputs remain separate.
