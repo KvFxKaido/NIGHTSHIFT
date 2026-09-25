@@ -84,8 +84,11 @@ jobs:
   # prefixes of each other: a bare `rival` would swallow rival-racing,
   # rival-speed, rival-card and rival-height.
   #
-  # Below about 420 s there is nothing here to win: the facade check, in its own
-  # job since 2026-09-25, is the floor.
+  # Since the browser checks got their own jobs (2026-09-25), the floor is whichever of
+  # `rest` and the facade check runs longer. Two runs are all there is: `rest` took 5.0
+  # and 8.7 minutes, the facade check 5.0 and 2.7, and the 8.7 was a runner that took
+  # 1.2 to 2.7 times as long over every one of its tests (median 1.75) with no code
+  # changed. Read one run's timings as one runner's.
   tests:
     runs-on: ubuntu-latest
     strategy:
