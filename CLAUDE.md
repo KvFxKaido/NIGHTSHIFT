@@ -343,7 +343,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Junctions: signals, stop signs, bars, and where traffic stops for them | `intersection-dressing.ts`, `street-traffic.ts` (`control`), `render/intersection-dressing.ts` | `design/INTERSECTIONS.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
-| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
+| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
 | Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
