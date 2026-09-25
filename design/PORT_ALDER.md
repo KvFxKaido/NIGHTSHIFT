@@ -3241,11 +3241,19 @@ change: a traffic car 3.2 to 5 m off no longer cancels a block of the player (`b
 player parked, cannot see; a race against the player can.
 
 What the same race shows after the fix, not fixed: the rival still runs 1.8 m wide of its aim there at 100 to 112 mph,
-and clears the SUV by 2.6 m centre to centre. Uptown Circuit at seed 1000 has the same shape with a box truck in the
-left lane at 117 mph, in a right-hand bend: the dodge moves the aim away, the car runs wide towards the truck, and the
-will-be check, crediting it with moving back to its aim, never brakes. The next change is there: when the car is moving
-away from where it means to be, carry that motion on with the deceleration `followAcross` allows (Codex's proposal),
-gated like this one and on the rear-end test.
+and clears the SUV by 2.6 m centre to centre, where the will-be check credits a car past its aim with moving back to
+it. Carrying its outward motion on with `followAcross`'s 2 m/s^2 (Codex's proposal) brakes it for 0.2 s at 100 mph there:
+it reads the car 3.40 m across where it stopped at 2.95, since the car took the drift out at about 3 m/s^2. So it is
+0.45 m pessimistic, against a rule honest to 0.2, on a pass that cleared; not shipped.
+
+Uptown Circuit at seed 1000, the new 117 mph contact, is not the rival running wide (a first reading of it said so): the
+rival drifted 0.35 m, and a box truck in the left lane came 1.2 m across the road towards it in the last second, most
+likely still finishing its turn onto the road (traffic changes no lanes). When the dodge judged it, the truck was 3.8 m
+from where the rival meant to be, past the gap, and it was left alone; at arrival it would be 2.5 m, inside it. The
+dodge reads a car where it IS, `offRoute`, for whether it is in the way and for which sides it offers, where the
+will-be check reads it where it will be, `sideAtArrival`. The same reading chose sides before `driver-v6` too: the one
+it offered here, 3.2 m right of where the truck was, was 1.9 m from where it would be. The next change is there, both
+the gate and the sides read at arrival, gated like this one and on the rear-end test.
 
 ## Corner dressing trial (2026-09-21)
 

@@ -570,11 +570,13 @@ fixtures outside the playable bundle, and old world links redirect.
   three that had bitten this loop already: say which frame every number is in, and read it where the thing is. The
   rule is honest to about 0.2 m and its margin is 0.3: a pass driver-v1 made at 2.2 m it may brake for, and a value
   that separates that from a 2.3 m pass does not exist. Measure a change to it on the batch AND the rear-end test.
-  It never credits a car PAST where it means to be with moving further out, which a car at 100+ mph in a bend does by
-  1 to 2 m (Uptown at seed 1000, into a box truck at 117 mph): the open item after `driver-v6`.
+  It credits a car past where it means to be with moving back, where at 100+ mph it runs on 1 to 2 m; carrying that on at
+  `followAcross`'s 2 m/s^2 read gen-19's 0.45 m pessimistic (the car took it out at about 3) and braked a pass that cleared.
 - The same-direction dodge aims 3.2 m (`PASS.gap`) from a car only when that car is nearer where the rival means to be
   than that (`driver-v6`). Taken for any car within 5 m, it moved the rival TOWARDS cars already clear of it, and ran it
-  into an SUV standing at a bar at 110 mph (gen-19, seed 1000); undone, the gate lost 15 of 56 distinct incidents.
+  into an SUV standing at a bar at 110 mph (gen-19, seed 1000); undone, the gate lost 15 of 56 distinct incidents. It
+  still reads that car where it IS (`offRoute`), for the gate and the sides, not where it will be (`sideAtArrival`): a
+  box truck finishing its turn came 1.2 m across in the last second, from 3.8 m off to 2.5, at 117 mph (Uptown, 1000).
 - A route's `width` is the carriageway traffic drives; Port Alder's asphalt runs `shoulder` (5.6 m) past it each side
   (2026-09-23). Anything in the rival bounded by the width adds `route.shoulder`, or on the shoulder it is lost (held
   to 22 mph), makes no progress toward a reset, and a pass onto it is clamped back: `lost`, the progress mark, `edge`,
