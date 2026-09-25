@@ -10,9 +10,10 @@ import { NodeIO } from "@gltf-transform/core";
 import * as THREE from "three";
 import { YARD_STRUCTURES } from "../src/sim/drift-yard.ts";
 import { nearbyChallenge } from "../src/sim/encounter.ts";
-import { addStadiumDoors } from "../src/render/stadium.ts";
+import { addStadiumDoors, addStadiumLights } from "../src/render/stadium.ts";
+import { addDriftYard } from "../src/render/drift-yard.ts";
 import {
-  STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER, STADIUM_VERSION,
+  STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER, STADIUM_SOLIDS, STADIUM_VERSION,
   createStadiumWorld, inStadium, onStadiumPad, stadiumGate, stadiumGateAt,
 } from "../src/sim/stadium.ts";
 
@@ -197,7 +198,7 @@ test("nothing the venue is built from reaches the city", () => {
 // What a car drives on and into here, named. A change to the shell, the pad or the yard's solids changes
 // this; bump STADIUM.revision in the same commit and repin, so anything that names the venue refuses the old one.
 test("the venue's identity is pinned", () => {
-  assert.equal(STADIUM_VERSION, "stadium-v3-84732353");
+  assert.equal(STADIUM_VERSION, "stadium-v4-8da8b985");
 });
 
 test("the continuous stadium GLB and collision contain exactly the same triangles", async () => {
@@ -219,16 +220,37 @@ test("the continuous stadium GLB and collision contain exactly the same triangle
 });
 
 
-test("retained yard props do not clip the restored stadium shell", () => {
-  const { vertices, indices } = STADIUM_SHELL_MESH;
-  for (const s of YARD_STRUCTURES) {
-    const box = new THREE.Box3(new THREE.Vector3(s.x - s.width / 2, s.base, s.z - s.depth / 2),
-      new THREE.Vector3(s.x + s.width / 2, s.base + s.height, s.z + s.depth / 2));
-    for (let i = 0; i < indices.length; i += 3) {
-      const [a, b, c] = indices.slice(i, i + 3).map(v => new THREE.Vector3().fromArray(vertices, v * 3));
-      assert.ok(!box.intersectsTriangle(new THREE.Triangle(a!, b!, c!)), `${s.id} clips shell triangle ${i / 3}`);
+// Shawn, 2026-09-25: "remove all props ... for more real estate". The venue's floor is room to race; what stands on it
+// comes back through generation. The city's yard keeps its warehouse, container and masts (tests/drift.test.ts).
+test("the venue holds no props: nothing solid on its floor, and none drawn", () => {
+  assert.deepEqual(createStadiumWorld().solids, []);
+  assert.deepEqual(STADIUM_SOLIDS, []);
+  const named = (scene: THREE.Scene, prefix: string) => {
+    let found = 0;
+    scene.traverse(object => { if (object.name.startsWith(prefix)) found++; });
+    return found;
+  };
+  for (const markings of [false, true]) {
+    const scene = new THREE.Scene();
+    addDriftYard(scene, true, true, markings);
+    for (const s of YARD_STRUCTURES) assert.equal(named(scene, `yard-${s.id}`), 0, `the venue draws ${s.id}`);
+    for (const prop of ["warehouse-", "container-rib", "yard-floodlight-head", "yard-gate", "gate-", "arena-entry-guide"]) {
+      assert.equal(named(scene, prop), 0, `the venue draws ${prop}`);
     }
+    // Sable's marks are paint, drawn for her event alone.
+    assert.equal(named(scene, "drift-zone-") > 0, markings);
+    assert.equal(named(scene, "yard-direction-arrow") > 0, markings);
+    let lights = 0;
+    scene.traverse(object => { if ((object as THREE.PointLight).isPointLight) lights++; });
+    assert.equal(lights, 0, "a light stands on the venue's floor");
   }
+  // The bowl is lit from its rim instead, where nothing takes floor.
+  const scene = new THREE.Scene();
+  addStadiumLights(scene);
+  const floods: THREE.Object3D[] = [];
+  scene.traverse(object => { if (object.name === "stadium-rim-light") floods.push(object); });
+  assert.ok(floods.length >= 6);
+  for (const flood of floods) assert.ok(flood.position.y > STADIUM.base + 20, `a rim light hangs at ${flood.position.y.toFixed(1)} m`);
 });
 
 

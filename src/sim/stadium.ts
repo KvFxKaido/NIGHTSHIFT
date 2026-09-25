@@ -9,15 +9,18 @@
  * - The floor is dirt, except Sable's apron (`DRIFT_YARD.bounds`) and the circuits' asphalt (`stadium-circuits.ts`).
  *   Since physics v6 dirt costs a 2WD car grip and pace and spares AWD, which is the point of it here
  *   (design/CHAOS.md, "Three grounds").
+ * - Nothing stands on the floor (Shawn, 2026-09-25: "remove all props ... for more real estate"). Sable's yard in the
+ *   city keeps its warehouse, container and floodlight masts; the venue does not, so the whole bowl is room to race,
+ *   and what stands in it later comes from generation (`STADIUM_SOLIDS`).
  * - No streets, no traffic, and nothing of the city's data: a test holds this module's import closure to that, so
  *   the venue can one day load without the 24 MB city.
  *
  * design/VENUES.md has the plan this is the first stage of.
  */
 import { STADIUM_SHELL_MESH } from "./stadium-shell.ts";
-import { DRIFT_YARD, YARD_STRUCTURES } from "./drift-yard.ts";
+import { DRIFT_YARD } from "./drift-yard.ts";
 import { STADIUM_CIRCUIT, STADIUM_LAYOUT_IDS, onStadiumCircuit, stadiumLap } from "./stadium-circuits.ts";
-import type { RoadWorld } from "./road-world.ts";
+import type { RoadSolid, RoadWorld } from "./road-world.ts";
 import type { CourseProjection } from "./track.ts";
 
 type Point = { readonly x: number; readonly z: number };
@@ -27,13 +30,16 @@ export const STADIUM = {
   id: "stadium",
   name: "Wharf Arena",
   /** Anything that moves what a car drives on or into here bumps it: the shell, the floor, the solids. */
-  revision: 3,
+  revision: 4,
   base: DRIFT_YARD.base,
 } as const;
 
 /** The pose that faces along (dx, dz): the sim's forward is (-sin heading, -cos heading). */
 const facing = (x: number, z: number, dx: number, dz: number): Pose =>
   ({ x, y: STADIUM.base, z, heading: Math.atan2(-dx, -dz), pitch: 0 });
+
+/** What stands on the venue's floor: nothing, for now. Generated props will be listed here, and named by the venue. */
+export const STADIUM_SOLIDS: readonly RoadSolid[] = [];
 
 /** Sable's apron: the venue's paved yard. The circuits are its other asphalt (`onStadiumCircuit`). */
 export const STADIUM_PAD = DRIFT_YARD.bounds;
@@ -140,7 +146,7 @@ function projectOntoStadium(_x: number, _z: number): CourseProjection {
 function stadiumFingerprint(): string {
   const parts = [
     STADIUM_SHELL_MESH.vertices.map(n => n.toFixed(2)).join(","), STADIUM_SHELL_MESH.indices.join(","),
-    JSON.stringify(STADIUM_PAD), JSON.stringify(YARD_STRUCTURES.map(s => [s.x, s.z, s.width, s.depth, s.height, s.base])),
+    JSON.stringify(STADIUM_PAD), JSON.stringify(STADIUM_SOLIDS.map(s => [s.x, s.z, s.width, s.depth, s.height, s.base, s.rotation ?? 0])),
     // The circuits' asphalt: where the floor stops being dirt.
     `${STADIUM_CIRCUIT.width},${STADIUM_CIRCUIT.shoulder}`,
     ...STADIUM_LAYOUT_IDS.map(id => stadiumLap(id).points.map(p => `${p.x.toFixed(2)},${p.z.toFixed(2)}`).join(";")),
@@ -157,7 +163,7 @@ export function createStadiumWorld(from: Pose = STADIUM_GATES[0].venue.arrive): 
     id: STADIUM_VERSION,
     start: from,
     walls: [],
-    solids: YARD_STRUCTURES,
+    solids: STADIUM_SOLIDS,
     meshes: [STADIUM_SHELL_MESH],
     project: projectOntoStadium,
     ground: (x, z) => !onStadiumPad(x, z) && !onStadiumCircuit(x, z),

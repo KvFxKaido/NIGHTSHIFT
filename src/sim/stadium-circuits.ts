@@ -1,7 +1,8 @@
 /**
  * The stadium's circuits (2026-09-25, design/VENUES.md, "The circuits, as drawn"): two layouts over one set of named
  * corners, tight where Ridge Circuit is fast. 12 m wide with 1.5 m shoulders, corners of 18 to 25 m, four runs across
- * the bowl's middle weaving past Sable's warehouse and container. Built with Ridge's construction (circuit-plan.ts).
+ * the bowl's middle, where Sable's warehouse and container stand in the city's yard and nothing stands in the venue.
+ * Built with Ridge's construction (circuit-plan.ts).
  *
  * A gate at every turn, as on Uptown Circuit: the runs lie 60 to 95 m apart across dirt that an AWD car does not pay
  * for, and across Sable's asphalt that nobody pays for, so fewer gates would make a cut the quicker lap.

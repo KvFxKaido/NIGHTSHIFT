@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { YARD_STRUCTURES, SABLE } from "../src/sim/drift-yard.ts";
+import { SABLE } from "../src/sim/drift-yard.ts";
 import { circuitEvent, circuitVenue } from "../src/sim/circuits.ts";
 import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { createRace } from "../src/sim/race.ts";
@@ -11,7 +11,7 @@ import { recordedWorld, replayLapSession } from "../src/sim/lap-replay.ts";
 import { createRivalDriver, rivalInput, sampleRivalPath, withExits } from "../src/sim/rival.ts";
 import { NO_RIVAL } from "../src/sim/rival-revision.ts";
 import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
-import { STADIUM, STADIUM_FLOOR, STADIUM_VERSION, createStadiumWorld, inStadium, onStadiumPad } from "../src/sim/stadium.ts";
+import { STADIUM, STADIUM_FLOOR, STADIUM_SOLIDS, STADIUM_VERSION, createStadiumWorld, inStadium, onStadiumPad } from "../src/sim/stadium.ts";
 import { STADIUM_CIRCUIT, STADIUM_CIRCUIT_IDENTITY, STADIUM_LAYOUT_IDS, onStadiumCircuit, stadiumLap, type StadiumLayoutId } from "../src/sim/stadium-circuits.ts";
 import { STADIUM_LAPS, stadiumEvent, stadiumRaceFor, stadiumRaceId } from "../src/sim/stadium-events.ts";
 
@@ -47,9 +47,10 @@ test("each layout closes, keeps its length, and has a gate at every turn in orde
   assert.equal(STADIUM_CIRCUIT_IDENTITY, "stadium-circuits-v1");
 });
 
-test("the circuits clear the arena's walls by 5 m and every solid by 3 m past the shoulder", () => {
+test("the circuits clear the arena's walls by 5 m and anything standing by 3 m past the shoulder", () => {
   const reach = STADIUM_CIRCUIT.width / 2 + STADIUM_CIRCUIT.shoulder;
-  const solids = [...YARD_STRUCTURES, { id: "sable", x: SABLE.start.x, z: SABLE.start.z, width: 5, depth: 5 }];
+  // The venue holds no props (STADIUM_SOLIDS); Sable's parked car is what stands on its floor in free drive.
+  const solids = [...STADIUM_SOLIDS.map((s, i) => ({ id: `solid-${i}`, ...s })), { id: "sable", x: SABLE.start.x, z: SABLE.start.z, width: 5, depth: 5 }];
   for (const id of STADIUM_LAYOUT_IDS) for (const p of stadiumLap(id).points) {
     assert.ok(inStadium(p.x, p.z), `${id} leaves the bowl at ${p.x.toFixed(0)}, ${p.z.toFixed(0)}`);
     assert.ok(distanceToWall(p.x, p.z) - reach >= 5, `${id} is ${(distanceToWall(p.x, p.z) - reach).toFixed(1)} m from the wall at ${p.x.toFixed(0)}, ${p.z.toFixed(0)}`);

@@ -332,7 +332,8 @@ if (sableParts) {
   // It was teal only so it could not be mistaken for the car the player drove.
   setParkedRivalCar(view, SABLE.id, sableParts);
 }
-const driftYardView = addDriftYard(view.scene, lighting === "night", venue);
+// In the venue her marks are painted for her event only: its free drive and circuits race on a clear floor.
+const driftYardView = addDriftYard(view.scene, lighting === "night", venue, !venue || race?.kind === "drift");
 await addWharfArena(view.scene, venue ? "closed" : "open");
 // The city's side of the venue's gates: where to stop to go in.
 if (!venue) addStadiumMarkers(view.scene, "city");

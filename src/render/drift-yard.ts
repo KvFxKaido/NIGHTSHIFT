@@ -3,9 +3,10 @@ import { asphaltMaterial } from "./asphalt.ts";
 import { SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
-/** `venue`: the yard as the stadium venue holds it (src/sim/stadium.ts), where only Sable's apron is paved and the
- *  Harbor Way gate, its approach and the driveway are on the city's side of its unbroken wall. */
-export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) {
+/** `venue`: the yard as the stadium venue holds it (src/sim/stadium.ts): Sable's apron paved and nothing standing on
+ *  it, since the venue holds no props, and the Harbor Way gate, its approach and the driveway on the city's side of
+ *  its unbroken wall. `markings`: her line's arrows and numbered zones, which the venue paints only for her event. */
+export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false, markings = true) {
   const group = new THREE.Group(); group.name = "south-wharf-drift-yard"; scene.add(group);
   const material = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: .85 });
   function box(name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: THREE.Material) {
@@ -36,7 +37,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) 
   const dark = material(0x26333d), trim = material(0x7c929b);
   const yellow = new THREE.MeshBasicMaterial({ color: 0xe7b15a });
   const teal = new THREE.MeshBasicMaterial({ color: 0x73e7d0 });
-  for (const s of YARD_STRUCTURES) {
+  for (const s of venue ? [] : YARD_STRUCTURES) {
     box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
     if (s.id === "warehouse") {
       box("warehouse-roof", s.x, 14.15, s.z, s.width + 1, .3, s.depth + 1, dark);
@@ -97,7 +98,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) 
   }
 
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.
-  for (let i = 1; i < YARD_LINE.length; i++) {
+  for (let i = 1; markings && i < YARD_LINE.length; i++) {
     const a = YARD_LINE[i - 1]!, p = YARD_LINE[i]!;
     const dx = p.x - a.x, dz = p.z - a.z, length = Math.hypot(dx, dz);
     for (let distance = 12; distance < length; distance += 22) {
@@ -109,7 +110,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) 
     }
   }
   // Numbered ground targets remain visible for free-roam practice.
-  const rings = DRIFT_ZONES.map((zone, index) => {
+  const rings = (markings ? DRIFT_ZONES : []).map((zone, index) => {
     const mat = new THREE.MeshBasicMaterial({ color: 0x69c9bf, transparent: true, opacity: .35, depthWrite: false });
     const ring = new THREE.Mesh(new THREE.RingGeometry(zone.radius - .45, zone.radius, 48), mat);
     ring.name = `drift-zone-${zone.id}`; ring.rotation.x = -Math.PI / 2; ring.position.set(zone.x, 2.075, zone.z); group.add(ring);
@@ -126,7 +127,8 @@ export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) 
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
     mesh.name = `yard-sign-${text}`; mesh.position.set(x, y, z); if (flat) mesh.rotation.set(-Math.PI / 2, 0, Math.PI); else mesh.rotation.y = yaw; group.add(mesh);
   }
-  label("SABLE / CLIP. LINK. BANK.", -515, 11, 1019.8, 48, 5);
+  // On the warehouse's face, so only where the warehouse stands.
+  if (!venue) label("SABLE / CLIP. LINK. BANK.", -515, 11, 1019.8, 48, 5);
   return { update(race: RaceState | null) {
     rings.forEach((ring, i) => {
       const active = race?.drift?.nextZone === i && !race.finished;

@@ -280,9 +280,12 @@ fixtures outside the playable bundle, and old world links redirect.
   recordings depend on them (`design/PORT_ALDER.md`, "Ridge Circuit").
 - **Venues** (2026-09-25, `design/VENUES.md`): enclosed places to race that are
   worlds of their own, entered and left only at a gate's marker or by a rival's
-  challenge. The stadium (Wharf Arena, working name, `src/sim/stadium.ts`) is the
+  challenge. The stadium is the dirt and drift venue (Shawn): its circuits are paved
+  only until a dirt surface and handling model exist, and track racing belongs to
+  the track venue. The stadium (Wharf Arena, working name, `src/sim/stadium.ts`) is the
   Wharf arena at its map coordinates with its original continuous shell restored, a dirt floor but for
-  Sable's apron, no streets or traffic and nothing of the city's data;
+  Sable's apron, nothing standing on it (props come back through generation), lit from the rim,
+  no streets or traffic and nothing of the city's data;
   `STADIUM_VERSION` names it. Stop at a gate's ring on either side to cross
   (`?venue=stadium`, `?gate=east|north`). Sable's drift runs there, identical to the
   millimetre to the city's arena. Its two circuits, Full and Short (`stadium-circuits.ts`,

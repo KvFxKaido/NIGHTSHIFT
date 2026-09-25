@@ -35,6 +35,21 @@ brick that wins every shove, in the tight stadium; Crest's and Wake's fast cars 
 
 ## The stadium (Wharf Arena, working name)
 
+**What it is for** (Shawn, 2026-09-25): the dirt and drift venue. Sable's drift, off-road races and dirt circuits
+run here; circuit and track racing belongs to the track venue. Full and Short (below) are paved **for now**, because
+there is no dirt surface or handling model yet: the only ground the sim has is physics v6's off-pavement cost to a
+2WD car (AWD exempt), which is a penalty, not a surface. When dirt exists they become dirt circuits, and generated
+circuits here are dirt layouts: lines on a graded dirt ribbon drawn per race, a gate at every turn since nothing but
+the gates stops a cut across open dirt, and tyre walls later as generated props. Known before that day:
+
+- The rival's corner planning does not read the ground (`rival.ts`): an AWD rival loses nothing on dirt, but a 2WD
+  one would plan its corners on grip it does not have. Measure an AWD and a 2WD rival on a dirt layout first.
+- The AWD names are this stadium's natural cast: Moth's Kestrel, Bollard's Breakwater, Plumb's Meridian, Wake's
+  Reign. The career table above puts 2WD cars on dirt (Stray's Latch FWD and Tally's Vesper RWD off-road, Deuce's
+  Wager RWD in a stadium circuit) and wants a pass with that in mind.
+- Generated circuits with asphalt, as loops over an authored paved network, belong to the track venue, where Ridge's
+  three layouts already share corners.
+
 `src/sim/stadium.ts`, `src/render/stadium.ts`, `tests/stadium.test.ts`. The arena at the coordinates it has on the
 map, so Sable's yard, line and zones are the same numbers in both.
 
@@ -53,7 +68,14 @@ map, so Sable's yard, line and zones are the same numbers in both.
 - **Named by what a car drives on and into**: `STADIUM_VERSION` is `stadium-v<revision>-<hash>`, the hash over the
   shell, the pad, the circuits' asphalt and the yard's solids, written with `toFixed` so a browser and Node agree.
   Pinned by test; a change bumps `STADIUM.revision` and repins. The restored shell was `stadium-v2-7662b672`; with
-  the circuits paved it is `stadium-v3-84732353`. The city still uses its original cut shell and unchanged identity.
+  the circuits paved `stadium-v3-84732353`; with the props gone `stadium-v4-8da8b985`. The city still uses its
+  original cut shell and unchanged identity.
+- **Nothing stands on the floor** (Shawn, 2026-09-25: "remove all props and anything else that was in the stadium for
+  more real estate. We can add stuff like that to the procedural generation later"). The venue has no warehouse,
+  container or floodlight masts (`STADIUM_SOLIDS` is empty); the city's arena keeps them until the city side closes.
+  Sable's arrows and numbered zones are paint, drawn for her event alone, so free drive and the circuits race on a
+  clear floor. The masts were the only light, over her apron alone: the bowl is lit instead by eight floods on the
+  shell's top ring (`addStadiumLights`), which take no floor and reach every run.
 - **The gates, both ways** (`STADIUM_GATES`). Each has a marker on each side: stop within 7 m of it, under 2 m/s, and
   the garage shutter's prompt offers the other side. City side: the east gate on Harbor Way and the north driveway.
   Venue side: inside each restored wall. Crossing loads the other world with `?gate=<id>`; you arrive at that gate's other
@@ -64,8 +86,12 @@ map, so Sable's yard, line and zones are the same numbers in both.
   the shell is the collision, and a test holds every door vertex within 0.35 m of the wall's face, on the floor's side.
 - **Sable's drift runs here.** `?race=sable-yard-drift[-2|-3]` builds the venue. The drift test's robot driver scores
   the same to the millimetre in the city's arena and in the venue, in all three drivetrains (FWD 4,157 points and 10
-  clips, RWD 3,969 and 7, AWD 5,193 and 11, 2026-09-25), so her targets carry over untouched. After her event,
-  free roam is the venue's free drive; the garage is the city's.
+  clips, RWD 3,969 and 7, AWD 5,193 and 11, 2026-09-25), and still does with the props gone, which it never
+  touched. After her event, free roam is the venue's free drive; the garage is the city's.
+  **Her targets are suspect for a driver** (3,000 / 3,600 / 4,200): they were set with the warehouse and container
+  standing, to clip and to crash into, and the venue has neither. The robot run cannot see that. Her zones keep their
+  names ("Warehouse entry", "Container clip") for things that are not there. Re-set them from a driven run, or bring
+  props back to her apron through generation.
 
 ### Built and not yet (2026-09-25)
 
@@ -79,9 +105,11 @@ Not yet, in the order proposed:
    arena's cuts on the map, move Sable's parked car out to the east gate, and let her flash load the venue. Today the
    city's arena is still open, Sable is still parked inside it, and her flash already loads the venue because every
    race is a page load. Closing the map is what refuses recordings and pending career courses, so it happens once.
-2. **Generated stadium circuits** over the same named corners, and the pink slips that race them.
+2. **A dirt surface and handling model**, then the circuits turned to dirt and **generated dirt circuits** (above,
+   "What it is for"), and the pink slips that race them.
 3. **Off-road**: the generator for unordered gates over the floor, and the gates placed so no cut pays an AWD car.
-4. **Light** along the circuits: only Sable's apron has floods, and the west half is dark but for headlights.
+4. **Props, generated**: what stands on the floor, drift obstacles and stunt pieces, drawn per event instead of
+   standing for every one. Sable's targets are suspect until her apron has something on it again, or are re-set.
 5. The venue page without the city's data.
 
 ### Continuous-shell validation (2026-09-25)

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { addNightSky, ALDER_SKY } from "./sky.ts";
-import { STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER } from "../sim/stadium.ts";
+import { STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER, inStadium } from "../sim/stadium.ts";
+import { STADIUM_SHELL_MESH } from "../sim/stadium-shell.ts";
 import { STADIUM_CIRCUIT, STADIUM_LAYOUT_IDS, stadiumLap } from "../sim/stadium-circuits.ts";
 import { frames, merged, strip } from "./track-strips.ts";
 import type { DistrictLighting } from "./scene.ts";
@@ -32,6 +33,46 @@ export function addStadium(scene: THREE.Scene, lighting: DistrictLighting): void
   addStadiumMarkers(scene, "venue");
   addStadiumDoors(scene, night);
   addStadiumCircuits(scene, night);
+  if (night) addStadiumLights(scene);
+}
+
+/** Floods round the rim: how many, and how bright. The yard's own masts were four at 160 and 15 m up over one apron. */
+const RIM_LIGHTS = { count: 8, intensity: 420, distance: 340, decay: 1 } as const;
+
+/**
+ * The bowl's light, from its rim (2026-09-25). The yard's four floodlight masts were props on the floor and went with
+ * the rest of them, and they had lit Sable's apron alone; floods on the shell's top ring take no floor and reach every
+ * run. Evenly spaced round the wall, each head on the rim vertex nearest its stretch of wall, its light a few metres
+ * in over the floor. Drawing only.
+ */
+export function addStadiumLights(scene: THREE.Scene): void {
+  const group = new THREE.Group(); group.name = "stadium-rim-lights"; scene.add(group);
+  const v = STADIUM_SHELL_MESH.vertices, rim: THREE.Vector3[] = [];
+  for (let i = 0; i < v.length; i += 3) if (v[i + 1]! > 24 && v[i + 1]! < 30) rim.push(new THREE.Vector3(v[i]!, v[i + 1]!, v[i + 2]!));
+  const loop = STADIUM_FLOOR, start = [0];
+  for (let i = 1; i < loop.length; i++) start.push(start[i - 1]! + Math.hypot(loop[i]!.x - loop[i - 1]!.x, loop[i]!.z - loop[i - 1]!.z));
+  const total = start.at(-1)!;
+  const head = new THREE.MeshBasicMaterial({ color: 0xe7ecf2 });
+  for (let k = 0; k < RIM_LIGHTS.count; k++) {
+    const s = total * (k + .5) / RIM_LIGHTS.count;
+    let i = 1;
+    while (start[i]! < s) i++;
+    const a = loop[i - 1]!, b = loop[i]!, t = (s - start[i - 1]!) / (start[i]! - start[i - 1]!);
+    const wall = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+    const length = Math.hypot(b.x - a.x, b.z - a.z) || 1, tx = (b.x - a.x) / length, tz = (b.z - a.z) / length;
+    // Into the bowl: whichever side of the wall is its floor.
+    const side = inStadium(wall.x - tz * 3, wall.z + tx * 3) ? 1 : -1, nx = -tz * side, nz = tx * side;
+    const top = rim.reduce((best, r) => Math.hypot(r.x - wall.x, r.z - wall.z) < Math.hypot(best.x - wall.x, best.z - wall.z) ? r : best);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(6, .5, 1.4), head);
+    lamp.name = "stadium-rim-flood";
+    lamp.position.set(top.x, top.y + .6, top.z);
+    lamp.rotation.y = Math.atan2(-tz, tx);
+    group.add(lamp);
+    const light = new THREE.PointLight(0xc2def0, RIM_LIGHTS.intensity, RIM_LIGHTS.distance, RIM_LIGHTS.decay);
+    light.name = "stadium-rim-light";
+    light.position.set(wall.x + nx * 6, top.y - 2, wall.z + nz * 6);
+    group.add(light);
+  }
 }
 
 /** Kerbs go on every turn's arc and this far either side of it: every stadium turn is tight. */
