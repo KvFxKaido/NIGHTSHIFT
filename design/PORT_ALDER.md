@@ -3154,6 +3154,32 @@ else came is the same kind: gen-38 at seed 1 spun onto the verge by an oncoming 
 pavement 23 ticks, its aim never left the lane), and a 5 to 9 mph nudge on gen-66 counted as on a line for 7 ticks.
 The junction's crossing car is the problem parked on 2026-09-23; this change neither caused it nor fixes it.
 
+## What a committed pass costs (2026-09-25, `pass-v4`, `traffic-v12`)
+
+At `traffic-v11` the pass planner came out 9.7 s behind the reactive driver over the 12 seed-0 races that commit a pass,
+where at v10 it had been 9.7 s ahead over 17. Read pass by pass (each race's time over its own pass, planned against
+reactive), most of that is not the planner: over 11 distinct passes it lost 4.8 s and gained 3.2. v10's lead was mostly
+two races where the reactive driver was unlucky afterwards (gen-68 hit and was reset; gen-37 met traffic later on), and
+v11's timing took those away. What the passes themselves showed:
+
+- gen-24 and gen-51 share one pass, and it cost 2.5 s each: it read a taxi turning across the road 224 m on as in its
+  way and slowed the rival from 106 mph to stop short of it; the reactive driver kept its speed and slipped past the
+  taxi at 70 mph with 4 m in it. The read was right. The taxi had claimed three junctions at once from a v11 bar with
+  the rival 450 m off, which `traffic-v12` now judges movement by movement (`design/INTERSECTIONS.md`); it still claims,
+  because its junction was round a bend from the rival.
+- gen-81 (1.2 s): a pass past its lead early came back in over the rejoin it had chosen at the start, 25 m at 41 mph,
+  now at 64, and the curve capped it. `pass-v4` rejoins over as long a length as the speed then asks for (the pull-out's
+  own 1.4 s), never shorter (`tests/traffic-pass.test.ts`). Most of gen-81's loss is something else, still open: the
+  plan's speed at the moment it is made came out 35 mph, braking the car from 46, when every re-read of the same path
+  from 0.2 s later allows 86 and more.
+
+`pass-v4` on the six-seed gate against `traffic-v12`: 449 of 498 races identical, time level (46,457 to 46,458 s),
+distinct incidents 55 to 55, contact in a pass still none, off the pavement 293 to 206 ticks, resets 34 to 32. Two races
+moved much: gen-75 at seed 1000 10.9 s quicker and back on the pavement, and gen-15 at seed 271828 17.8 s slower,
+hit by an oncoming taxi 390 m after its pass while it sat 1.3 m left of centre going round a van standing at a bar. That
+last is the driver's, not the pass's: a car standing at a bar just off its line, which it reads as clear, as it read the
+SUV at 110 mph in the v11 gate.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

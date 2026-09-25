@@ -65,6 +65,25 @@ test("a committed side persists and does not rejoin while still alongside the le
   assert.equal(driver.trafficPass, undefined, "recovery must discard the old maneuver");
 });
 
+// A pass that gets past its lead early comes back in early (pass-v4, 2026-09-25), over a rejoin as long as the speed it
+// is doing then asks for, as the pull-out was. It kept the length chosen at the start: planned at 41 mph over 25 m and
+// pulled in at 64, the tighter curve capped it to 53 mph (gen-81 at seed 0, 1.2 s).
+test("a pass that is past its lead early rejoins over the length its speed now asks for", () => {
+  const driver = createRivalDriver(); driver.avoidance = laneRest(20);
+  // Planned as the test above plans one, at 25 m/s: the rejoin is 1.4 s of it, 35 m.
+  const decision = planTrafficPass(route, driver, car, { network, vehicles: [vehicle(25)], tick: 0 });
+  assert.ok(decision?.pass, "open street should admit a pass");
+  const pass = decision.pass;
+  assert.ok(Math.abs(pass.to - pass.back - 25 * 1.4) < 1e-9, `planned rejoin ${(pass.to - pass.back).toFixed(1)} m`);
+  // Out, alongside, and already well past the lead, at 45 m/s.
+  driver.along = pass.out + 5;
+  const fast = { ...car, x: pass.offset, z: -driver.along, speed: 45, forwardSpeed: 45 };
+  planTrafficPass(route, driver, fast, { network, vehicles: [vehicle(pass.out - 20, 2)], tick: 12 });
+  const now = driver.trafficPass!;
+  assert.equal(now.back, driver.along, "past its lead, it comes back in from here");
+  assert.ok(now.to - now.back >= 45 * 1.4 - 1e-9, `rejoined over ${(now.to - now.back).toFixed(1)} m at 45 m/s`);
+});
+
 test("a pass may use a shoulder, and no more than the shoulder", () => {
   // Port Alder's carriageways gained 5.6 m of asphalt each side on 2026-09-23 that no traffic drives (`shoulder`). A
   // pass 9 m from the centre of a 20 m road is off it; with the shoulder it is on asphalt, and 14 m out is not: the

@@ -37,6 +37,8 @@ export const TRAFFIC_PASS = {
   holdOut: [20, 40, 60, 80, 110, 140],
 } as const;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+/** How long a pull-out or a rejoin is at `speed`, metres: 1.4 s of it, and no less than 25 m. */
+const swingLength = (speed: number) => Math.max(25, speed * 1.4);
 const ease = (n: number) => { const t = clamp(n, 0, 1); return t * t * (3 - 2 * t); };
 
 /** A complete pull-out / alongside / rejoin path, expressed in the road's frame. */
@@ -143,7 +145,10 @@ export function planTrafficPass(route: RivalDefinition, driver: RivalDriver, car
     pass.back += extra; pass.to += extra;
   }
   if (pass && !pass.returning && target && driver.along > pass.out && relative(target).ahead < -TRAFFIC_PASS.rejoinGap && driver.along < pass.back) {
-    const returnLength = pass.to - pass.back;
+    // Past its lead early, it comes back in from here, over as long a rejoin as the speed it is doing now asks for
+    // (pass-v4, 2026-09-25). It kept the length chosen when the pass began: planned at 41 mph over 25 m and pulled in at
+    // 64, the tighter curve capped it to 53 (gen-81, seed 0, 1.2 s). Never shorter than it was.
+    const returnLength = Math.max(pass.to - pass.back, swingLength(car.speed));
     pass.back = driver.along; pass.to = pass.back + returnLength;
   }
   if (pass && driver.along > pass.to) { delete driver.trafficPass; pass = undefined; }
@@ -218,7 +223,7 @@ export function planTrafficPass(route: RivalDefinition, driver: RivalDriver, car
     return { pass };
   }
 
-  const from = driver.along, outLength = Math.max(25, car.speed * 1.4);
+  const from = driver.along, outLength = swingLength(car.speed);
   const closing = car.speed - Math.max(lead!.speed, TRAFFIC_KINDS[lead!.vehicle.kind].cruise);
   if (closing < 4) return undefined;
   const alongside = Math.max(outLength + 8, car.speed * (lead!.ahead + TRAFFIC_PASS.rejoinGap) / closing);
