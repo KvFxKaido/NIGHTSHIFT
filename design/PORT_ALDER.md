@@ -3173,6 +3173,18 @@ v11's timing took those away. What the passes themselves showed:
   plan's speed at the moment it is made came out 35 mph, braking the car from 46, when every re-read of the same path
   from 0.2 s later allows 86 and more.
 
+  Probed the same day (`pass-v4`, seed 0; neither cause is the pass's own path, which moves 0.63 m across and is
+  all but straight). The pass is committed at 3399 m, 46 mph, coming out of a corner behind and beside a van (#29)
+  accelerating out of it at 28 mph. `evaluatePass` reads each sample's radius through points 6 m either side, and
+  the first sample is the car itself: its point behind lies on the lane's corner arc, where the road turns 18.6
+  degrees in those 6 m, so it reads a 27 m radius and caps the plan at 35 mph for a corner already driven. The next
+  sample reads 177 m, and the re-reads from 4 m on give 78 mph, then 90. The rival's own speed plan in `rival.ts`
+  reads 8 m behind at its first samples too, but brakes on the sample 8 m ahead, which does not see them (about 100
+  mph throughout). Then the in-pass emergency check (the body-relative one inside `if (pass)` in `rivalInput`) held
+  it at the van's speed plus its margin, 34 to 35 mph, for 0.6 s more: in the road's frame the van was 4.0 to 2.9 m
+  across, the gap the pass was planned with, but the car was still yawed from the corner, and in its body frame the
+  van was 2.0 to 2.6 m across, inside the check's 2.6. It let go at the tick that read 2.64. Not fixed yet.
+
 `pass-v4` on the six-seed gate against `traffic-v12`: 449 of 498 races identical, time level (46,457 to 46,458 s),
 distinct incidents 55 to 55, contact in a pass still none, off the pavement 293 to 206 ticks, resets 34 to 32. Two races
 moved much: gen-75 at seed 1000 10.9 s quicker and back on the pavement, and gen-15 at seed 271828 17.8 s slower,
