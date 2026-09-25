@@ -70,7 +70,8 @@ sections of rows:
 
 X drives out, B backs out, the right stick turns the car. Cinder-only rows hide on
 other bodies. On a car you do not own every customization row is locked, the
-Livery's Design switch with them, and a
+Livery's Design switch with them; a browsed car's rows show its own saved look
+(each car keeps its own since 2026-09-24), and a
 section with nothing to land on drops focus rather than leave it on a hidden row.
 On a screen 560 px or shorter (a phone held to race is 390) the heading goes, rows
 tighten, and the hint bar stays pinned in view.

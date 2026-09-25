@@ -25,9 +25,9 @@ import { createControlsPanel } from "./ui/controls.ts";
 import { keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
-  updateCustomization, BODY_PRESET_CATEGORIES,
+  createDefaultCustomization, updateCustomization, BODY_PRESET_CATEGORIES, type CarCustomization,
 } from "./customization/customization.ts";
-import { PLAYER_CAR_IDS, drivetrainFor } from "./customization/cars.ts";
+import { PLAYER_CAR_IDS, drivetrainFor, isPlayerCarId } from "./customization/cars.ts";
 import { renderCarStats } from "./ui/car-stats.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
 import { createInputController, mapGamepad } from "./input/input.ts";
@@ -66,7 +66,7 @@ import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
-import { createOptionRow } from "./ui/menu-rows.ts";
+import { createOptionRow, rowAt } from "./ui/menu-rows.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
@@ -263,7 +263,10 @@ try {
 }
 
 const input = createInputController();
-if (loadedSave && progress.preserveLegacyOwnership()) settings.update({ ...loadedSave.build, car: restored.car });
+// A slot's look is its own car's, which may not be the car it now selects (an unowned one falls back to the Cinder).
+if (loadedSave && progress.preserveLegacyOwnership()) {
+  settings.update({ car: restored.car, customization: loadedSave.build.customization, forCar: loadedSave.build.car });
+}
 const controls = createControlsPanel(input);
 const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
 // Development arrival shortcut: start inside the arena so its scale can be judged
@@ -322,10 +325,23 @@ const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: stree
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
 const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: ALDER_GARAGE.entrance });
-let customization = restored.customization;
+// Every car has its own customization (settings schema 4). `lookFor` is any car's: what this session made it, then a
+// loaded slot's for that slot's car, then what was saved for it, then the factory's. `customization` is the selected
+// car's, the one the garage's rows edit.
+const sessionLooks = new Map<string, CarCustomization>();
+function lookFor(car: string): CarCustomization {
+  return sessionLooks.get(car) ?? (loadedSave?.build.car === car ? { ...loadedSave.build.customization }
+    : isPlayerCarId(car) ? settings.customizationOf(car) : createDefaultCustomization());
+}
+let customization = lookFor(selectedCar);
+// The car on the garage platform, selected or browsed, and the look it is drawn in. The livery editor repaints it on
+// every refresh, which with one look for every car could use the selected car's; with a look per car that drew the
+// Cinder, browsed back to, in the equipped Bulwark's paint.
+let platformCar = selectedCar;
+const platformLook = () => platformCar === selectedCar ? customization : lookFor(platformCar);
 applyCarCustomization(view, customization);
 const liveryEditor = createLiveryEditor({ car: () => view,
-  restorePaint: () => applyCarCustomization(view, customization),
+  restorePaint: () => applyCarCustomization(view, platformLook()),
   editing: active => { view.garageLiveryEditing = active; },
   facePanel: panel => { view.garageYaw = ({ hood: -Math.PI / 4, roof: -Math.PI / 4, left: -Math.PI * .75, right: Math.PI / 4, rear: Math.PI * .75 }[panel]); },
 });
@@ -474,9 +490,11 @@ const equipCar = document.querySelector<HTMLButtonElement>("[data-equip-car]")!;
 function isEquippedCar(id: string): boolean {
   return id === selectedCar && !new URL(location.href).searchParams.has("car");
 }
-function showCar(parts: CarView): void {
+/** Put a body on the platform in its own look: the selected car's as edited, a browsed car's as it was saved. */
+function showCar(parts: CarView, car: string): void {
   setPlayerCar(view, parts);
-  applyCarCustomization(view, customization);
+  platformCar = car;
+  applyCarCustomization(view, platformLook());
   liveryEditor.refresh();
 }
 async function previewGarageCar(id: typeof selectedCar): Promise<void> {
@@ -499,12 +517,12 @@ async function previewGarageCar(id: typeof selectedCar): Promise<void> {
       cars.set(id, parts);
     }
     if (request !== previewRequest) return;
-    showCar(parts);
+    showCar(parts, id);
     carNote.textContent = isEquippedCar(id) ? "Your equipped car." : "Preview only · Equip an owned car to take it to the street.";
   } catch {
     if (request !== previewRequest) return;
     previewCar = selectedCar;
-    showCar(cars.get(selectedCar)!);
+    showCar(cars.get(selectedCar)!, selectedCar);
     carNote.textContent = "Could not load that preview. Browse to it again to retry.";
   } finally {
     if (request === previewRequest) { carLoading = false; renderCarSelection(); }
@@ -514,7 +532,7 @@ function restoreEquippedCar(): void {
   ++previewRequest;
   previewCar = selectedCar;
   carLoading = false;
-  showCar(cars.get(selectedCar)!);
+  showCar(cars.get(selectedCar)!, selectedCar);
   carNote.textContent = isEquippedCar(selectedCar) ? "Your equipped car." : "URL preview · Confirm to save this car.";
   renderCarSelection();
 }
@@ -539,6 +557,8 @@ function renderCarSelection(): void {
   const owner = BLACKLIST.find(name => name.car === previewCar);
   const owned = ownsCar(career, previewCar);
   carRow.render();
+  // The customization rows read the car on the platform (getCustomization), so a browsed car shows its own values.
+  document.querySelectorAll("[data-customization-rows] [data-row]").forEach(element => rowAt(element)?.render());
   document.querySelector<HTMLElement>("[data-car-meta]")!.textContent = `${(PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar) + 1} / ${PLAYER_CAR_IDS.length} · ${drivetrainFor(previewCar).toUpperCase()}`;
   document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (isEquippedCar(previewCar) ? "Equipped" : "Owned")
     : owner ? `Win the pink slip · #${owner.rank} ${owner.name}` : "For sale · $1,500";
@@ -583,6 +603,8 @@ function selectCar(): void {
     return;
   }
   selectedCar = id;
+  // The car brings its own look, already on the platform from browsing it.
+  customization = lookFor(id);
   saveSettings({ car: id }, ["car"]);
   const carUrl = new URL(location.href);
   carUrl.searchParams.delete("drivetrain");
@@ -615,7 +637,9 @@ document.querySelector<HTMLButtonElement>("[data-replace-stage-race]")!.addEvent
 
 const savePanel = createSavesPanel(saves, () => ({
   world: roadWorld.id,
-  build: { car: ownsCar(progress.get(), selectedCar) ? selectedCar : "cinder", customization: { ...customization } },
+  // The slot's car and that car's own look (a car driven unowned is saved as the Cinder, in the Cinder's).
+  build: ownsCar(progress.get(), selectedCar) ? { car: selectedCar, customization: { ...customization } }
+    : { car: "cinder", customization: lookFor("cinder") },
   position: race ? null : { x: sim.state.vehicle.x, z: sim.state.vehicle.z, heading: sim.state.vehicle.heading },
 }));
 /** Whether a drive is under way, so the race list can draw a race from where the car is. */
@@ -683,14 +707,19 @@ const menu = createMenuController({
   returnToMain: () => {},
   openSaves: mode => savePanel.open(mode),
   resumeRun: () => input.armDrivingInputGate(),
-  getCustomization: () => customization,
+  // The car on the platform: a browsed one's rows are locked and show its own values.
+  getCustomization: () => previewCar === selectedCar ? customization : lookFor(previewCar),
   customize: (category, optionId) => {
     customization = updateCustomization(customization, category, optionId);
+    sessionLooks.set(selectedCar, customization);
     applyCarCustomization(view, customization);
     if (category === "paint") liveryEditor.useFactoryPaint();
     liveryEditor.refresh();
     const changed = category === "bodyKit" ? BODY_PRESET_CATEGORIES : [category];
-    saveSettings({ customization: Object.fromEntries(changed.map(key => [key, customization[key]])) }, changed);
+    // Saved as this car's own; the primitive `classic` has no saved look to keep.
+    if (isPlayerCarId(selectedCar)) {
+      saveSettings({ customization: Object.fromEntries(changed.map(key => [key, customization[key]])), forCar: selectedCar }, changed);
+    }
   },
   screenChanged: (screen, state) => {
     const from = previousScreen;

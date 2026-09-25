@@ -164,14 +164,17 @@ show their pink-slip requirement, and the Bulwark can be purchased from its prev
 Browsing leaves the saved car and current drive untouched; leaving without equipping
 restores your car. Equipping a different body starts a fresh drive with its own handling.
 Paint, wheel finish, stance and livery editing are available for the equipped car.
-Your equipped car and visual setup save on this browser and return after refresh.
+Each car keeps its own setup: repainting one never touches another, a browsed car
+shows the look it was left in, and equipping it brings that look back. Your equipped
+car and every car's setup save on this browser and return after refresh (settings
+schema 4; an older save gives every car the one setup it had).
 Options and Garage show settings status; blocked storage leaves the game usable with
 session-only choices. Performance parts, prices, race progress and saved replays
 are not implemented by this settings save.
 
 **Named saved games:** the title offers **Continue** (most recently saved slot),
 **Load game**, **New drive**, **Garage**, and **Options**. Pause → **Save game**
-writes one of three named slots, including your car, customization,
+writes one of three named slots, including your car, that car's customization,
 and free-roam location. These are manual saves; choosing an occupied slot requires
 **Replace save**. Loading starts the car stationary. Race saves and locations
 blocked by new scenery return to Wharf Garage; race clocks and opponents are not

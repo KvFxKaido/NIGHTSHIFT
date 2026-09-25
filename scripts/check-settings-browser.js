@@ -44,7 +44,8 @@ async page => {
   await page.reload(); await ready(page);
   check((await state()).carModel === 'ns-bulwark', 'Car must survive reload');
   check((await state()).drivetrain === 'awd', 'A reloaded car must still drive as itself');
-  same((await state()).customization, selected, 'Changing car must keep paint, wheels and stance');
+  // Each car keeps its own look (settings schema 4): the Bulwark was never customized, so it is factory.
+  same((await state()).customization, { paint: 'signal', wheels: 'graphite', stance: 'street' }, 'A chosen car must bring its own look');
 
   const beforePreview = await saved();
   await visit('?scene=garage&drivetrain=fwd&paint=signal&wheels=alloy&stance=low');
@@ -60,8 +61,9 @@ async page => {
     'Saving a garage choice must not clear a handling override');
   const edited = JSON.parse(await saved());
   check(!('drivetrain' in edited), `A drivetrain must never be persisted: ${await saved()}`);
-  check(edited.version === 3 && edited.car === 'bulwark', `Saved build must name the chosen car: ${await saved()}`);
-  same(edited.customization, { paint: 'blackglass', wheels: 'white', stance: 'slammed' }, 'Only deliberate changes may persist');
+  check(edited.version === 4 && edited.car === 'bulwark', `Saved build must name the chosen car: ${await saved()}`);
+  same(edited.cars.bulwark, { paint: 'blackglass', wheels: 'graphite', stance: 'street' }, 'Only deliberate changes may persist');
+  same(edited.cars.cinder, selected, "Changing the Bulwark must leave the Cinder's look alone");
   await page.reload(); await ready(page);
   check((await state()).customization.paint === 'blackglass', 'Old URL cannot undo a saved paint');
   // Saving an already-active preview is deliberate too, without resetting it.
@@ -70,9 +72,9 @@ async page => {
   await page.evaluate(() => window.__ns.set({ wheels: 'alloy' }));
   check((await state()).tick === tickBefore, 'Already-active choice must not reset the run');
   check(await page.evaluate(() => !new URL(location.href).searchParams.has('wheels')), 'Choosing wheels clears its URL override');
-  check(JSON.parse(await saved()).customization.wheels === 'alloy', 'Already-active preview can be saved');
+  check(JSON.parse(await saved()).cars.bulwark.wheels === 'alloy', 'Already-active preview can be saved');
   await visit('?scene=garage');
-  same((await state()).customization, { paint: 'blackglass', wheels: 'alloy', stance: 'slammed' }, 'Bare link restores saved setup, not preview');
+  same((await state()).customization, { paint: 'blackglass', wheels: 'alloy', stance: 'street' }, 'Bare link restores saved setup, not preview');
 
   // Corrupt saves must not prevent play or be overwritten just by opening.
   await page.evaluate(key => localStorage.setItem(key, '{broken'), key);
@@ -100,12 +102,13 @@ async page => {
   try {
     await blocked.goto(base + '?scene=garage'); await ready(blocked);
     await blocked.evaluate(() => window.__ns.set({ paint: 'ice' }));
+    // Before choosing another body, which brings its own look.
+    check(await blocked.evaluate(() => window.__ns.view.paintMaterial.color.getHexString()) === 'd8dde2', 'Blocked storage cannot prevent customizing');
     await blocked.locator('[data-car="bulwark"]').click();
     await blocked.waitForFunction(() => window.__ns.state().carModel === 'ns-bulwark');
     const status = await blocked.locator('[data-menu-screen="garage"] [data-settings-status]').textContent();
     check(status.includes('session only'), 'Blocked storage must report session-only choices');
     check(await blocked.evaluate(() => window.__ns.state().drivetrain) === 'awd', 'Blocked storage cannot prevent choosing a body');
-    check(await blocked.evaluate(() => window.__ns.view.paintMaterial.color.getHexString()) === 'd8dde2', 'Blocked storage cannot prevent customizing');
   } finally { await blocked.close(); }
 
   await page.evaluate(() => window.__ns.set({ paint: 'ice', wheels: 'alloy', stance: 'low' }));

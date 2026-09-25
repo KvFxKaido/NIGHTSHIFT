@@ -1,5 +1,8 @@
 import { decodeSettings, SETTINGS_VERSION, type PlayerSettings } from "./settings.ts";
 
+/** A slot's car and that car's look when it was saved; unchanged by settings schema 4, which gave every car its own. */
+export type SaveBuild = Pick<PlayerSettings, "car" | "customization">;
+
 export const SAVES_KEY = "nightshift.saves";
 export const SAVE_IDS = ["slot-1", "slot-2", "slot-3"] as const;
 export type SaveId = typeof SAVE_IDS[number];
@@ -8,7 +11,7 @@ export interface DriveSave {
   name: string;
   savedAt: number;
   world: string;
-  build: Omit<PlayerSettings, "audio">;
+  build: SaveBuild;
   position: { x: number; z: number; heading: number } | null;
 }
 type Disk = Pick<Storage, "getItem" | "setItem">;
@@ -24,12 +27,17 @@ export function decodeSaves(raw: string | null): DriveSave[] {
       if (!slot || !isSaveId(slot.id) || result.some(s => s.id === slot.id)) throw Error("Invalid slot");
       if (typeof slot.name !== "string" || !slot.name.trim() || slot.name.length > 32
         || !Number.isFinite(slot.savedAt) || slot.savedAt < 0 || typeof slot.world !== "string") throw Error("Invalid save");
-      const decoded = decodeSettings(JSON.stringify({ ...slot.build, version: SETTINGS_VERSION, audio: { master: 1, engine: 1, music: 1 } }));
+      // A slot's build is a car and its one look, and always was: a missing look is a bad slot, as it was before
+      // schema 4 (where a settings save with none is a car nobody has customized).
+      const look = slot.build?.customization;
+      if (typeof look !== "object" || look === null || Array.isArray(look)) throw Error("Invalid build");
+      const decoded = decodeSettings(JSON.stringify({ car: slot.build.car, customization: look,
+        version: SETTINGS_VERSION, audio: { master: 1, engine: 1, music: 1 } }));
       if (decoded.status !== "saved") throw Error("Invalid build");
       const p = slot.position;
       if (p !== null && (!p || ![p.x, p.z, p.heading].every(Number.isFinite)
         || Math.abs(p.x) > 100000 || Math.abs(p.z) > 100000 || Math.abs(p.heading) > Math.PI * 2)) throw Error("Invalid position");
-      const { audio: _, ...build } = decoded.settings;
+      const build: SaveBuild = { car: decoded.settings.car, customization: decoded.settings.customization };
       result.push({ id: slot.id, name: slot.name.trim(), savedAt: slot.savedAt, world: slot.world,
         build, position: p === null ? null : { x: p.x, z: p.z, heading: p.heading } });
     }

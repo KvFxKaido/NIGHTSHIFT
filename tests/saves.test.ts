@@ -48,9 +48,22 @@ test("invalid saves and storage failures never clobber existing slot data", () =
 test("malformed and unsupported slot payloads are rejected", () => {
   for (const value of [{ version: 2, slots: [] }, { version: 1, slots: [example, example] },
     { version: 1, slots: [{ ...example, build: { ...example.build, car: "missing" } }] },
+    // A build with no look was always a bad slot; settings schema 4 must not read it as a factory car.
+    { version: 1, slots: [{ ...example, build: { car: "bulwark" } }] },
     { version: 1, slots: [{ ...example, position: { x: 0, z: 0, heading: Infinity } }] }]) {
     assert.throws(() => decodeSaves(JSON.stringify(value)));
   }
+});
+
+// Settings schema 4 gave every car its own customization; a slot is still one car and its one look, so the slots on
+// disk before it read the same after it and a slot written now is the same JSON as one written before.
+test("a slot keeps one car and its look, on disk exactly as before per-car customization", () => {
+  const storage = disk(), store = createSaveStore(() => storage);
+  const look = { paint: "ice", wheels: "alloy", stance: "slammed", bodyKit: "street" };
+  store.write({ ...example, build: { car: "bulwark", customization: look } });
+  const raw = JSON.parse(storage.getItem(SAVES_KEY)!);
+  assert.deepEqual(raw.slots[0].build, { car: "bulwark", customization: look });
+  assert.deepEqual(store.list()[0]!.build, { car: "bulwark", customization: look });
 });
 test("loading a slot strips conflicting race, car and scripted-driving previews", () => {
   const url = new URL(loadSaveUrl("http://localhost:5173/?race=sound-to-sky&car=classic&drive=W600&freeze=1&drivetrain=awd", "slot-2"));
