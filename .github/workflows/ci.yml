@@ -1,10 +1,10 @@
 name: CI
 
-# Push on master only: a branch's commits are covered by its pull request, and
+# Push on main only (the default branch, master until 2026-09-25): a branch's commits are covered by its pull request, and
 # unfiltered triggers ran every PR commit twice (seen on #11).
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 # One run per ref: pushing again cancels the run it supersedes.
