@@ -3219,6 +3219,34 @@ side through every pull-out, where the nose already points out. What gen-81 show
 the car it passes, a check that lets it alone only past 2.6, and a van drifting 0.3 m into that accelerating out of a
 corner.
 
+## A car beside its line (2026-09-25, `driver-v6`)
+
+The car standing at a bar just off the rival's line, which the v11 gate met at 110 mph (gen-19, seed 1000,
+`design/INTERSECTIONS.md`), was not misread. An SUV stood at a bar in the outer lane, 5.6 m across the road, and the
+rival rested at 1.1, 4.5 m clear of it. The traffic loop's same-direction branch gives any car going its way within 5 m
+of the rival two sides to be passed on, 3.2 m (`PASS.gap`) either side of it, and set the aim to the one nearer the
+rival's line: here 2.4 m, the other clamped off the road. So it moved the rival 1.3 m TOWARDS a car it was already clear
+of, to pass it at 3.2. At 105 mph it ran 1.25 m past that aim, and the will-be check (`willBe`) read it as clear: it
+never credits a car past where it means to be with moving further out. It hit the SUV at 110 mph.
+
+`driver-v6`: a car going its way is dodged only when it is nearer where the rival means to be than the gap; further off
+it is left alone, and the will-be check reads the rival as meaning to be where it was (`dodge` in `rivalInput`). gen-19
+now goes by the SUV with no contact. On the six-seed gate against `pass-v5`: 298 of 498 races moved (the rival had
+been drawn towards cars in the next lane all over the map), distinct incidents 56 to 41, races with contact 76 to 63,
+contact 1,453 to 1,083 ticks, 123 s quicker, resets 32 to 28, contact in a pass none, contact on a line 27 to 43 ticks,
+off the pavement 153 to 328 ticks. The off-pavement rise is four events in seven rows (one course shared by four races
+at seed 1000), each a swerve round an oncoming box truck turning across a junction, ending off the shoulder at walking
+pace and put back out of sight: arrival times the change moved, into a kind it does not touch. Codex reviewed the
+change: a traffic car 3.2 to 5 m off no longer cancels a block of the player (`blocking`), which the gate, with the
+player parked, cannot see; a race against the player can.
+
+What the same race shows after the fix, not fixed: the rival still runs 1.8 m wide of its aim there at 100 to 112 mph,
+and clears the SUV by 2.6 m centre to centre. Uptown Circuit at seed 1000 has the same shape with a box truck in the
+left lane at 117 mph, in a right-hand bend: the dodge moves the aim away, the car runs wide towards the truck, and the
+will-be check, crediting it with moving back to its aim, never brakes. The next change is there: when the car is moving
+away from where it means to be, carry that motion on with the deceleration `followAcross` allows (Codex's proposal),
+gated like this one and on the rear-end test.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.
