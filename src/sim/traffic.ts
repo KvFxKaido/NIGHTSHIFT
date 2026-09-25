@@ -63,7 +63,10 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // (`clearingTime`) floors a corner at traffic's own crawl, 2 m/s, where it floored it at a racer's 3.
 // v11 (2026-09-24): 31 more junctions dressed (intersection-dressing.ts, the second pass), so traffic stops at their
 // bars too: 144 of 169, where the rival's crossing incidents at bare junctions were. The rules are v10's.
-export const TRAFFIC_REVISION = "traffic-v11";
+// v12 (2026-09-25): a claim is judged against racers movement by movement, each over the time the car will be in it,
+// however long a chain takes to reach its last junction (`chainWindows`, `CHAIN_HORIZON`), where every movement was
+// judged over the first 8 s alike.
+export const TRAFFIC_REVISION = "traffic-v12";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,
@@ -903,31 +906,59 @@ function movementPath(network: TrafficNetwork, id: number): LanePose[] {
  * Other vehicles are not reckoned: this is the car's own drive, and anything in its way only makes it longer.
  */
 export function clearingTime(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, chain: readonly number[], toEntry: number): number {
+  return Math.min(RACER_HORIZON.max, driveChain(network, vehicle, chain, toEntry, RACER_HORIZON.max).seconds);
+}
+
+/**
+ * How far a chain's last movement is looked at for racers, seconds (`traffic-v12`, 2026-09-25). The racer look ran to
+ * `RACER_HORIZON.max` (8 s) over every movement of a chain alike, and a chain through a junction cluster can take longer
+ * than that to reach its last junction: a taxi stood at its bar, claimed three junctions with the rival 450 m off, held
+ * the one on the rival's road 11.5 s before it got there, and turned across the rival as it arrived (gen-24, seed 0).
+ */
+const CHAIN_HORIZON = 20;
+
+/**
+ * When the car will be in each movement of its chain, driven as `clearingTime` drives it: seconds from now it enters
+ * and leaves each. Past `horizon` a window ends there.
+ */
+export function chainWindows(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, chain: readonly number[],
+  toEntry: number, horizon = CHAIN_HORIZON): { enter: number; exit: number }[] {
+  return driveChain(network, vehicle, chain, toEntry, horizon).windows;
+}
+
+function driveChain(network: TrafficNetwork, vehicle: Readonly<TrafficVehicleState>, chain: readonly number[], toEntry: number,
+  horizon: number): { seconds: number; windows: { enter: number; exit: number }[] } {
   const cruise = TRAFFIC_KINDS[vehicle.kind].cruise;
   let through = 0, taken = cruise;
+  // Where each movement starts and ends, metres from the car along its drive.
+  const bounds: number[] = [toEntry];
   for (const id of chain) {
     const path = movementPath(network, id);
     for (let i = 1; i < path.length; i++) through += Math.hypot(path[i]!.x - path[i - 1]!.x, path[i]!.z - path[i - 1]!.z);
+    bounds.push(toEntry + through);
     const corner = cornerOf(network, id);
     if (corner) taken = Math.min(taken, corner.speed);
   }
   // The car's own floor, the corner it crawls (`traffic-v10`): floored at `RACER_MOVING`, a racer's threshold, a 2 m/s
   // hairpin was reckoned at 3 and held 2.2 s past its reckoning (lane 1063, seeds 0 and 271828).
   taken = Math.max(CORNER.crawl, taken);
-  const step = 0.1;
+  const step = 0.1, reached: number[] = [];
   let speed = vehicle.speed, covered = 0, seconds = 0;
-  while (covered < toEntry + through && seconds < RACER_HORIZON.max) {
+  while (covered < toEntry + through && seconds < horizon) {
+    while (reached.length < bounds.length && covered >= bounds[reached.length]!) reached.push(seconds);
     const limit = covered < toEntry ? Math.sqrt(taken * taken + 2 * CORNER.comfort * (toEntry - covered)) : taken;
     const target = Math.min(cruise, limit);
     speed += Math.max(-BRAKING * step, Math.min(ACCELERATION * step, target - speed));
     covered += speed * step;
     seconds += step;
   }
-  return Math.min(RACER_HORIZON.max, seconds);
+  while (reached.length < bounds.length) reached.push(seconds);
+  return { seconds, windows: chain.map((_, i) => ({ enter: reached[i]!, exit: reached[i + 1]! })) };
 }
 
 /** Whether a racer is in a movement's path now, or will be before the car could clear it (`clearing` seconds) or the racer could stop. */
-function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[], clearing: number): boolean {
+function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers: readonly TrafficRacer[],
+  windows: readonly { enter: number; exit: number }[]): boolean {
   for (const racer of racers) {
     // Only a racer on the move. One stopped or crawling at a junction is waiting
     // for traffic itself, and holding traffic for it made them wait on each other
@@ -935,13 +966,20 @@ function racerCrossing(network: TrafficNetwork, chain: readonly number[], racers
     // A wreck, though, is in the junction whether it moves or not.
     if (racer.speed < RACER_MOVING && !racer.obstacle) continue;
     const vx = -Math.sin(racer.heading) * racer.speed, vz = -Math.cos(racer.heading) * racer.speed;
-    const seconds = Math.min(RACER_HORIZON.max, Math.max(clearing, racer.speed / RACER_HORIZON.braking + RACER_HORIZON.reaction));
-    for (const id of chain) {
+    const stopping = racer.speed / RACER_HORIZON.braking + RACER_HORIZON.reaction;
+    for (const [index, id] of chain.entries()) {
       const path = movementPath(network, id);
+      // Each movement over the time the car will be in it (`traffic-v12`): the first from now, as before, to when it is
+      // clear or the racer could stop, and within the 8 s it always was; a later one from when the car could get there
+      // to a second after it leaves, however long the chain takes to reach it (to `CHAIN_HORIZON`). "Could": a hold
+      // comes out as short as 0.85 of its reckoning (p10, COUPLINGS), never much longer, so a car arrives early, not late.
+      const window = windows[index]!;
+      const from = index === 0 ? 0 : Math.max(0, window.enter * .85 - .5);
+      const seconds = index === 0 ? Math.min(RACER_HORIZON.max, Math.max(window.exit, stopping)) : window.exit + 1;
       // At most 4 m of the racer's travel between looks: at 0.25 s a racer at 55 m/s
       // stepped 13.75 m, straight over the 10 m band a junction's path is checked in.
       const every = Math.min(0.25, 4 / racer.speed);
-      for (let t = 0; t <= seconds; t += every) {
+      for (let t = from; t <= seconds; t += every) {
         const x = racer.x + vx * t, z = racer.z + vz * t;
         for (let i = 1; i < path.length; i++) {
           const a = path[i - 1]!, b = path[i]!;
@@ -1060,7 +1098,7 @@ export function stepTraffic(network: TrafficNetwork, state: TrafficState, dt: nu
     if (chain.slice(0, -1).some(id => (byLane.get(network.movements[id]!.to) ?? []).some(other => other !== vehicle))) continue;
     if (!mayEnter(network, byLane, vehicle, chain)) continue;
     // A racer in the junction, or crossing it before this vehicle could be clear, has it.
-    if (racers.some(racer => racer.speed >= RACER_MOVING) && racerCrossing(network, chain, racers, clearingTime(network, vehicle, chain, toEntry(vehicle)))) continue;
+    if (racers.some(racer => racer.speed >= RACER_MOVING) && racerCrossing(network, chain, racers, chainWindows(network, vehicle, chain, toEntry(vehicle)))) continue;
     vehicle.holds = chain;
     for (const id of chain) holders.set(id, [...(holders.get(id) ?? []), vehicle]);
   }

@@ -2,14 +2,14 @@
  "provenance": "pnpm rival:gate, 2026-09-25",
  "revisions": {
   "physics": "four-wheel-v6",
-  "traffic": "traffic-v11",
+  "traffic": "traffic-v12",
   "driver": "driver-v5",
   "streetLine": "street-line-v3",
   "pass": "pass-v3"
  },
  "method": "scripts/street-line-batch.ts --line --trace per traffic seed, four processes a seed, the player parked at Wharf Garage. A distinct incident is one (time, route metres) pair.",
  "sourceHashes": {
-  "src/sim/traffic.ts": "84ece02e0ffe3c184d809d9b32b51fc317770e14b2b05cc41fecda7959f1cc35",
+  "src/sim/traffic.ts": "b0b6b1fae47aeaa539b8fcef660d3715bd35596bc5e4f06dd2430d52f31e1e2b",
   "src/sim/rival.ts": "cddc8047666f1f86b42bb54353455ae6184aed53475e7404191387345be944d4",
   "src/sim/sim.ts": "603b1a61eb74ca6388882a71848c6cbbbebdf6d41dabd1b662417faa0dbe411d",
   "src/sim/traffic-pass.ts": "5aafddd07c69ea5c2f0a7d5a41b8f718f0071a4849ba40b241acd4649b4e72b8",
@@ -21,9 +21,9 @@
   "0": {
    "summary": {
     "races": 83,
-    "seconds": 7717.93,
+    "seconds": 7718.54,
     "dnf": 0,
-    "contact": 255,
+    "contact": 267,
     "racesWithContact": 9,
     "distinctIncidents": 7,
     "contactOnLine": 0,
@@ -33,13 +33,6 @@
     "reversals": 0
    },
    "incidents": [
-    {
-     "at": "t=75.0 along 2811",
-     "mph": 51,
-     "races": [
-      "gen-28"
-     ]
-    },
     {
      "at": "t=43.0 along 1634",
      "mph": 61,
@@ -58,6 +51,13 @@
       "gen-37",
       "gen-65",
       "gen-66"
+     ]
+    },
+    {
+     "at": "t=94.5 along 3082",
+     "mph": 26,
+     "races": [
+      "gen-49"
      ]
     },
     {
@@ -130,7 +130,7 @@
      "stray": 12.5,
      "wide": 2.2,
      "wideAt": "585 m at 100 mph",
-     "onLine": 0.218,
+     "onLine": 0.212,
      "corners": 3,
      "goCorners": 3,
      "aborts": 0,
@@ -260,8 +260,8 @@
     {
      "id": "gen-28",
      "line": true,
-     "seconds": 98.45,
-     "contact": 18,
+     "seconds": 95.75,
+     "contact": 0,
      "resets": 0,
      "unseen": 0,
      "passTicks": 245,
@@ -269,18 +269,17 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.5,
+     "stray": 15.4,
      "wide": 2.5,
      "wideAt": "1761 m at 86 mph",
-     "onLine": 0.301,
+     "onLine": 0.309,
      "corners": 4,
      "goCorners": 4,
      "aborts": 0,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "pass t=65.0 target=12 from=2468 to=2647 offset=-0.7",
-      "contact t=75.0 along 2811 blend 0.00 go false v 51"
+      "pass t=65.0 target=12 from=2468 to=2647 offset=-0.7"
      ]
     },
     {
@@ -408,7 +407,7 @@
     {
      "id": "gen-52",
      "line": true,
-     "seconds": 76.78,
+     "seconds": 77.2,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -420,7 +419,7 @@
      "stray": 16,
      "wide": 2.6,
      "wideAt": "1733 m at 110 mph",
-     "onLine": 0.368,
+     "onLine": 0.366,
      "corners": 5,
      "goCorners": 5,
      "aborts": 0,
@@ -552,7 +551,7 @@
     {
      "id": "gen-76",
      "line": true,
-     "seconds": 127.8,
+     "seconds": 128.68,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -561,7 +560,7 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 14.7,
+     "stray": 14.8,
      "wide": 2.2,
      "wideAt": "585 m at 100 mph",
      "onLine": 0.193,
@@ -569,7 +568,7 @@
      "goCorners": 6,
      "aborts": 0,
      "contactOnLine": 0,
-     "jumps": 1,
+     "jumps": 0,
      "events": []
     },
     {
@@ -644,7 +643,7 @@
     {
      "id": "gen-9",
      "line": true,
-     "seconds": 105.08,
+     "seconds": 104.13,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -656,7 +655,7 @@
      "stray": 15.3,
      "wide": 2.6,
      "wideAt": "2622 m at 67 mph",
-     "onLine": 0.338,
+     "onLine": 0.371,
      "corners": 7,
      "goCorners": 7,
      "aborts": 0,
@@ -878,8 +877,8 @@
     {
      "id": "gen-49",
      "line": true,
-     "seconds": 98.9,
-     "contact": 0,
+     "seconds": 101.73,
+     "contact": 30,
      "resets": 0,
      "unseen": 0,
      "passTicks": 0,
@@ -887,16 +886,19 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 16.8,
+     "stray": 16.7,
      "wide": 2.2,
      "wideAt": "585 m at 100 mph",
-     "onLine": 0.323,
+     "onLine": 0.354,
      "corners": 6,
      "goCorners": 6,
-     "aborts": 0,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
-     "events": []
+     "events": [
+      "gave back t=90.9 along 3013 v 51",
+      "contact t=94.5 along 3082 blend 0.00 go false v 26"
+     ]
     },
     {
      "id": "gen-53",
@@ -1428,7 +1430,7 @@
     {
      "id": "gen-58",
      "line": true,
-     "seconds": 84.93,
+     "seconds": 85.03,
      "contact": 0,
      "resets": 0,
      "unseen": 1,
@@ -1594,7 +1596,7 @@
     {
      "id": "gen-3",
      "line": true,
-     "seconds": 90.82,
+     "seconds": 90.8,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -1801,7 +1803,7 @@
     {
      "id": "gen-39",
      "line": true,
-     "seconds": 111.15,
+     "seconds": 111.17,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -1839,7 +1841,7 @@
      "stray": 12.5,
      "wide": 2.2,
      "wideAt": "585 m at 100 mph",
-     "onLine": 0.221,
+     "onLine": 0.207,
      "corners": 4,
      "goCorners": 4,
      "aborts": 0,
@@ -1908,10 +1910,10 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 14.5,
+     "stray": 14.6,
      "wide": 2.2,
      "wideAt": "585 m at 100 mph",
-     "onLine": 0.255,
+     "onLine": 0.244,
      "corners": 6,
      "goCorners": 6,
      "aborts": 0,
@@ -1968,7 +1970,7 @@
     {
      "id": "gen-67",
      "line": true,
-     "seconds": 100.55,
+     "seconds": 100.58,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -1980,7 +1982,7 @@
      "stray": 15.2,
      "wide": 1.9,
      "wideAt": "3880 m at 83 mph",
-     "onLine": 0.211,
+     "onLine": 0.212,
      "corners": 6,
      "goCorners": 6,
      "aborts": 0,
@@ -2066,11 +2068,11 @@
   "1": {
    "summary": {
     "races": 83,
-    "seconds": 7829.13,
+    "seconds": 7831.86,
     "dnf": 0,
-    "contact": 285,
-    "racesWithContact": 23,
-    "distinctIncidents": 14,
+    "contact": 598,
+    "racesWithContact": 25,
+    "distinctIncidents": 17,
     "contactOnLine": 10,
     "passContact": 0,
     "off": 0,
@@ -2137,6 +2139,29 @@
      "mph": 67,
      "races": [
       "gen-10"
+     ]
+    },
+    {
+     "at": "t=55.9 along 1996",
+     "mph": 34,
+     "races": [
+      "gen-46",
+      "gen-79"
+     ]
+    },
+    {
+     "at": "t=56.1 along 1999",
+     "mph": 27,
+     "races": [
+      "gen-46",
+      "gen-79"
+     ]
+    },
+    {
+     "at": "t=108.2 along 3773",
+     "mph": 26,
+     "races": [
+      "gen-46"
      ]
     },
     {
@@ -2515,7 +2540,7 @@
     {
      "id": "gen-52",
      "line": true,
-     "seconds": 79.42,
+     "seconds": 80.28,
      "contact": 6,
      "resets": 0,
      "unseen": 0,
@@ -2524,19 +2549,20 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 16.1,
+     "stray": 14.8,
      "wide": 1.1,
      "wideAt": "1008 m at 130 mph",
-     "onLine": 0.271,
+     "onLine": 0.244,
      "corners": 5,
      "goCorners": 5,
-     "aborts": 1,
+     "aborts": 2,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
       "gave back t=39.2 along 1392 v 55",
       "contact t=46.7 along 1559 blend 0.00 go false v 43",
-      "contact t=46.9 along 1563 blend 0.00 go false v 46"
+      "contact t=46.9 along 1563 blend 0.00 go false v 46",
+      "gave back t=57.4 along 1930 v 33"
      ]
     },
     {
@@ -2764,7 +2790,7 @@
     {
      "id": "gen-9",
      "line": true,
-     "seconds": 106.68,
+     "seconds": 106.22,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -2774,9 +2800,9 @@
      "reversals": 0,
      "off": 0,
      "stray": 15.2,
-     "wide": 1.6,
-     "wideAt": "2002 m at 84 mph",
-     "onLine": 0.299,
+     "wide": 1.5,
+     "wideAt": "2654 m at 67 mph",
+     "onLine": 0.322,
      "corners": 7,
      "goCorners": 7,
      "aborts": 0,
@@ -2912,7 +2938,7 @@
     {
      "id": "gen-33",
      "line": true,
-     "seconds": 108.13,
+     "seconds": 107.25,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -2921,19 +2947,18 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.6,
+     "stray": 16,
      "wide": 2.5,
-     "wideAt": "2953 m at 100 mph",
-     "onLine": 0.344,
+     "wideAt": "2938 m at 106 mph",
+     "onLine": 0.416,
      "corners": 11,
      "goCorners": 11,
-     "aborts": 2,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
       "pass t=6.4 target=26 from=168 to=395 offset=-0.2",
-      "gave back t=25.0 along 1029 v 43",
-      "gave back t=52.9 along 1953 v 45"
+      "gave back t=25.0 along 1029 v 43"
      ]
     },
     {
@@ -3092,7 +3117,7 @@
     {
      "id": "gen-61",
      "line": true,
-     "seconds": 63.45,
+     "seconds": 64.38,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -3104,7 +3129,7 @@
      "stray": 15.6,
      "wide": 2.6,
      "wideAt": "2004 m at 81 mph",
-     "onLine": 0.387,
+     "onLine": 0.381,
      "corners": 4,
      "goCorners": 4,
      "aborts": 0,
@@ -3168,7 +3193,7 @@
     {
      "id": "gen-73",
      "line": true,
-     "seconds": 66.42,
+     "seconds": 67.07,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -3180,14 +3205,15 @@
      "stray": 15.2,
      "wide": 1.3,
      "wideAt": "334 m at 104 mph",
-     "onLine": 0.287,
+     "onLine": 0.21,
      "corners": 4,
      "goCorners": 4,
-     "aborts": 0,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "pass t=6.4 target=26 from=168 to=395 offset=-0.2"
+      "pass t=6.4 target=26 from=168 to=395 offset=-0.2",
+      "gave back t=43.7 along 1737 v 69"
      ]
     },
     {
@@ -3524,8 +3550,8 @@
     {
      "id": "gen-46",
      "line": true,
-     "seconds": 111.1,
-     "contact": 0,
+     "seconds": 114.15,
+     "contact": 273,
      "resets": 0,
      "unseen": 0,
      "passTicks": 224,
@@ -3533,18 +3559,20 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 16.1,
-     "wide": 3.2,
-     "wideAt": "3662 m at 76 mph",
-     "onLine": 0.157,
+     "stray": 16,
+     "wide": 3.1,
+     "wideAt": "3661 m at 75 mph",
+     "onLine": 0.196,
      "corners": 6,
      "goCorners": 6,
-     "aborts": 1,
+     "aborts": 0,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
       "pass t=6.4 target=26 from=168 to=395 offset=-0.2",
-      "gave back t=32.4 along 1324 v 55"
+      "contact t=55.9 along 1996 blend 0.00 go false v 34",
+      "contact t=56.1 along 1999 blend 0.00 go false v 27",
+      "contact t=108.2 along 3773 blend 0.00 go false v 26"
      ]
     },
     {
@@ -4229,7 +4257,7 @@
     {
      "id": "gen-75",
      "line": true,
-     "seconds": 125.37,
+     "seconds": 124.42,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -4241,7 +4269,7 @@
      "stray": 14.9,
      "wide": 3.1,
      "wideAt": "3157 m at 119 mph",
-     "onLine": 0.24,
+     "onLine": 0.268,
      "corners": 9,
      "goCorners": 9,
      "aborts": 0,
@@ -4252,8 +4280,8 @@
     {
      "id": "gen-79",
      "line": true,
-     "seconds": 92.05,
-     "contact": 0,
+     "seconds": 91.58,
+     "contact": 40,
      "resets": 0,
      "unseen": 0,
      "passTicks": 224,
@@ -4261,18 +4289,19 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 16.1,
-     "wide": 2.4,
-     "wideAt": "1596 m at 99 mph",
-     "onLine": 0.129,
+     "stray": 16,
+     "wide": 2.5,
+     "wideAt": "1705 m at 77 mph",
+     "onLine": 0.184,
      "corners": 4,
      "goCorners": 4,
-     "aborts": 1,
+     "aborts": 0,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
       "pass t=6.4 target=26 from=168 to=395 offset=-0.2",
-      "gave back t=32.4 along 1324 v 55"
+      "contact t=55.9 along 1996 blend 0.00 go false v 34",
+      "contact t=56.1 along 1999 blend 0.00 go false v 27"
      ]
     }
    ]
@@ -4280,15 +4309,15 @@
   "42": {
    "summary": {
     "races": 83,
-    "seconds": 7722.79,
+    "seconds": 7724.85,
     "dnf": 0,
-    "contact": 43,
-    "racesWithContact": 4,
-    "distinctIncidents": 4,
+    "contact": 44,
+    "racesWithContact": 5,
+    "distinctIncidents": 5,
     "contactOnLine": 6,
     "passContact": 0,
     "off": 83,
-    "resets": 4,
+    "resets": 5,
     "reversals": 0
    },
    "incidents": [
@@ -4311,6 +4340,13 @@
      "mph": 130,
      "races": [
       "gen-37"
+     ]
+    },
+    {
+     "at": "t=58.8 along 2004",
+     "mph": 69,
+     "races": [
+      "gen-61"
      ]
     },
     {
@@ -4517,7 +4553,7 @@
     {
      "id": "gen-32",
      "line": true,
-     "seconds": 84.18,
+     "seconds": 82.7,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -4527,9 +4563,9 @@
      "reversals": 0,
      "off": 0,
      "stray": 14.5,
-     "wide": 3.3,
-     "wideAt": "2821 m at 67 mph",
-     "onLine": 0.286,
+     "wide": 2.9,
+     "wideAt": "2722 m at 76 mph",
+     "onLine": 0.346,
      "corners": 5,
      "goCorners": 5,
      "aborts": 2,
@@ -5195,25 +5231,28 @@
     {
      "id": "gen-61",
      "line": true,
-     "seconds": 64.85,
-     "contact": 0,
+     "seconds": 68.28,
+     "contact": 1,
      "resets": 0,
-     "unseen": 0,
+     "unseen": 1,
      "passTicks": 0,
      "passes": 0,
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.7,
+     "stray": 15,
      "wide": 1.2,
      "wideAt": "1007 m at 130 mph",
-     "onLine": 0.41,
+     "onLine": 0.342,
      "corners": 4,
      "goCorners": 4,
-     "aborts": 0,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
-     "events": []
+     "events": [
+      "gave back t=42.4 along 1502 v 40",
+      "contact t=58.8 along 2004 blend 0.00 go false v 69"
+     ]
     },
     {
      "id": "gen-65",
@@ -5387,7 +5426,7 @@
     {
      "id": "gen-10",
      "line": true,
-     "seconds": 114.47,
+     "seconds": 114.58,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -5396,10 +5435,10 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 16,
-     "wide": 4.7,
-     "wideAt": "3553 m at 128 mph",
-     "onLine": 0.432,
+     "stray": 15,
+     "wide": 4.8,
+     "wideAt": "3557 m at 128 mph",
+     "onLine": 0.423,
      "corners": 10,
      "goCorners": 10,
      "aborts": 0,
@@ -6315,7 +6354,7 @@
   "1000": {
    "summary": {
     "races": 83,
-    "seconds": 7654.99,
+    "seconds": 7662.65,
     "dnf": 0,
     "contact": 59,
     "racesWithContact": 7,
@@ -6323,8 +6362,8 @@
     "contactOnLine": 0,
     "passContact": 0,
     "off": 140,
-    "resets": 2,
-    "reversals": 0
+    "resets": 5,
+    "reversals": 3
    },
    "incidents": [
     {
@@ -7098,19 +7137,19 @@
     {
      "id": "gen-33",
      "line": true,
-     "seconds": 112.68,
+     "seconds": 122.6,
      "contact": 0,
      "resets": 0,
-     "unseen": 0,
+     "unseen": 3,
      "passTicks": 0,
      "passes": 0,
      "passContact": 0,
-     "reversals": 0,
+     "reversals": 3,
      "off": 0,
      "stray": 16,
      "wide": 2.6,
      "wideAt": "2902 m at 121 mph",
-     "onLine": 0.392,
+     "onLine": 0.357,
      "corners": 11,
      "goCorners": 11,
      "aborts": 0,
@@ -7824,7 +7863,7 @@
     {
      "id": "gen-70",
      "line": true,
-     "seconds": 123.22,
+     "seconds": 123.33,
      "contact": 14,
      "resets": 0,
      "unseen": 0,
@@ -7836,7 +7875,7 @@
      "stray": 15.5,
      "wide": 2.3,
      "wideAt": "4437 m at 70 mph",
-     "onLine": 0.277,
+     "onLine": 0.285,
      "corners": 10,
      "goCorners": 10,
      "aborts": 1,
@@ -8189,7 +8228,7 @@
     {
      "id": "gen-47",
      "line": true,
-     "seconds": 111.3,
+     "seconds": 108.93,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -8199,9 +8238,9 @@
      "reversals": 0,
      "off": 0,
      "stray": 16.6,
-     "wide": 2.1,
-     "wideAt": "3984 m at 69 mph",
-     "onLine": 0.212,
+     "wide": 1.1,
+     "wideAt": "3738 m at 91 mph",
+     "onLine": 0.218,
      "corners": 5,
      "goCorners": 5,
      "aborts": 0,
@@ -8412,15 +8451,15 @@
   "271828": {
    "summary": {
     "races": 83,
-    "seconds": 7784.22,
+    "seconds": 7776.69,
     "dnf": 0,
-    "contact": 728,
+    "contact": 403,
     "racesWithContact": 23,
-    "distinctIncidents": 13,
+    "distinctIncidents": 12,
     "contactOnLine": 11,
     "passContact": 0,
     "off": 70,
-    "resets": 5,
+    "resets": 4,
     "reversals": 0
    },
    "incidents": [
@@ -8522,14 +8561,7 @@
      ]
     },
     {
-     "at": "t=61.4 along 2367",
-     "mph": 48,
-     "races": [
-      "gen-67"
-     ]
-    },
-    {
-     "at": "t=62.5 along 2374",
+     "at": "t=65.4 along 2472",
      "mph": 6,
      "races": [
       "gen-67"
@@ -8986,7 +9018,7 @@
     {
      "id": "gen-72",
      "line": true,
-     "seconds": 72.28,
+     "seconds": 73.1,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -8995,16 +9027,18 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.5,
-     "wide": 1.3,
-     "wideAt": "1869 m at 98 mph",
-     "onLine": 0.142,
+     "stray": 12.7,
+     "wide": 2.3,
+     "wideAt": "1764 m at 67 mph",
+     "onLine": 0.076,
      "corners": 2,
      "goCorners": 2,
-     "aborts": 0,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
-     "events": []
+     "events": [
+      "gave back t=42.4 along 1649 v 32"
+     ]
     },
     {
      "id": "gen-76",
@@ -9355,7 +9389,7 @@
     {
      "id": "gen-49",
      "line": true,
-     "seconds": 105,
+     "seconds": 103.53,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -9367,7 +9401,7 @@
      "stray": 12.5,
      "wide": 1.2,
      "wideAt": "1008 m at 130 mph",
-     "onLine": 0.272,
+     "onLine": 0.274,
      "corners": 6,
      "goCorners": 6,
      "aborts": 0,
@@ -9706,7 +9740,7 @@
     {
      "id": "gen-22",
      "line": true,
-     "seconds": 66.62,
+     "seconds": 67.45,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -9715,16 +9749,18 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.5,
-     "wide": 1.3,
-     "wideAt": "1869 m at 98 mph",
-     "onLine": 0.309,
+     "stray": 15.3,
+     "wide": 2.3,
+     "wideAt": "1764 m at 67 mph",
+     "onLine": 0.235,
      "corners": 4,
      "goCorners": 4,
-     "aborts": 0,
+     "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
-     "events": []
+     "events": [
+      "gave back t=42.4 along 1649 v 32"
+     ]
     },
     {
      "id": "gen-26",
@@ -9993,7 +10029,7 @@
     {
      "id": "gen-70",
      "line": true,
-     "seconds": 121.83,
+     "seconds": 121.85,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -10004,7 +10040,7 @@
      "off": 0,
      "stray": 15.4,
      "wide": 3.4,
-     "wideAt": "4334 m at 118 mph",
+     "wideAt": "4326 m at 118 mph",
      "onLine": 0.402,
      "corners": 10,
      "goCorners": 10,
@@ -10217,7 +10253,7 @@
     {
      "id": "gen-23",
      "line": true,
-     "seconds": 64.02,
+     "seconds": 63.98,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -10227,16 +10263,16 @@
      "reversals": 0,
      "off": 0,
      "stray": 14.3,
-     "wide": 2.5,
-     "wideAt": "2199 m at 72 mph",
-     "onLine": 0.362,
+     "wide": 1.6,
+     "wideAt": "2199 m at 71 mph",
+     "onLine": 0.368,
      "corners": 5,
      "goCorners": 5,
      "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "gave back t=56.4 along 2144 v 104"
+      "gave back t=56.8 along 2162 v 96"
      ]
     },
     {
@@ -10311,7 +10347,7 @@
     {
      "id": "gen-39",
      "line": true,
-     "seconds": 111.22,
+     "seconds": 111.25,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -10476,28 +10512,26 @@
     {
      "id": "gen-67",
      "line": true,
-     "seconds": 110.25,
-     "contact": 330,
+     "seconds": 102.53,
+     "contact": 5,
      "resets": 0,
-     "unseen": 1,
+     "unseen": 0,
      "passTicks": 0,
      "passes": 0,
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 11.3,
-     "wide": 5.9,
-     "wideAt": "3269 m at 98 mph",
-     "onLine": 0.166,
+     "stray": 11.7,
+     "wide": 1.6,
+     "wideAt": "3778 m at 67 mph",
+     "onLine": 0.195,
      "corners": 6,
      "goCorners": 6,
-     "aborts": 1,
+     "aborts": 0,
      "contactOnLine": 0,
-     "jumps": 1,
+     "jumps": 0,
      "events": [
-      "contact t=61.4 along 2367 blend 0.00 go false v 48",
-      "contact t=62.5 along 2374 blend 0.00 go false v 6",
-      "gave back t=90.9 along 3221 v 129"
+      "contact t=65.4 along 2472 blend 0.00 go false v 6"
      ]
     },
     {
@@ -10578,15 +10612,15 @@
   "314159": {
    "summary": {
     "races": 83,
-    "seconds": 7738.58,
+    "seconds": 7742.47,
     "dnf": 0,
-    "contact": 168,
-    "racesWithContact": 10,
-    "distinctIncidents": 9,
+    "contact": 90,
+    "racesWithContact": 7,
+    "distinctIncidents": 6,
     "contactOnLine": 0,
     "passContact": 0,
     "off": 0,
-    "resets": 4,
+    "resets": 5,
     "reversals": 0
    },
    "incidents": [
@@ -10614,8 +10648,8 @@
      ]
     },
     {
-     "at": "t=112.7 along 4088",
-     "mph": 37,
+     "at": "t=112.5 along 4085",
+     "mph": 34,
      "races": [
       "gen-33"
      ]
@@ -10632,28 +10666,6 @@
      "mph": 42,
      "races": [
       "gen-77"
-     ]
-    },
-    {
-     "at": "t=78.3 along 3083",
-     "mph": 88,
-     "races": [
-      "gen-46",
-      "gen-79"
-     ]
-    },
-    {
-     "at": "t=97.5 along 3777",
-     "mph": 62,
-     "races": [
-      "gen-46"
-     ]
-    },
-    {
-     "at": "t=121.7 along 4100",
-     "mph": 19,
-     "races": [
-      "gen-51"
      ]
     }
    ],
@@ -10806,7 +10818,7 @@
     {
      "id": "gen-24",
      "line": true,
-     "seconds": 132.57,
+     "seconds": 132.2,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -10815,10 +10827,10 @@
      "passContact": 0,
      "reversals": 0,
      "off": 0,
-     "stray": 15.1,
-     "wide": 2.6,
-     "wideAt": "1694 m at 85 mph",
-     "onLine": 0.32,
+     "stray": 14.6,
+     "wide": 2.9,
+     "wideAt": "2658 m at 67 mph",
+     "onLine": 0.289,
      "corners": 9,
      "goCorners": 9,
      "aborts": 0,
@@ -11321,7 +11333,7 @@
     {
      "id": "gen-25",
      "line": true,
-     "seconds": 77.78,
+     "seconds": 75.35,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -11333,7 +11345,7 @@
      "stray": 15.6,
      "wide": 2.6,
      "wideAt": "1694 m at 85 mph",
-     "onLine": 0.389,
+     "onLine": 0.394,
      "corners": 4,
      "goCorners": 4,
      "aborts": 0,
@@ -11369,8 +11381,8 @@
     {
      "id": "gen-33",
      "line": true,
-     "seconds": 112.78,
-     "contact": 8,
+     "seconds": 113.55,
+     "contact": 1,
      "resets": 0,
      "unseen": 0,
      "passTicks": 0,
@@ -11381,14 +11393,14 @@
      "stray": 16,
      "wide": 3,
      "wideAt": "3746 m at 110 mph",
-     "onLine": 0.318,
+     "onLine": 0.315,
      "corners": 11,
      "goCorners": 10,
      "aborts": 0,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "contact t=112.7 along 4088 blend 0.00 go false v 37"
+      "contact t=112.5 along 4085 blend 0.00 go false v 34"
      ]
     },
     {
@@ -11417,7 +11429,7 @@
     {
      "id": "gen-41",
      "line": true,
-     "seconds": 97.58,
+     "seconds": 94.38,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -11429,7 +11441,7 @@
      "stray": 15.6,
      "wide": 2.6,
      "wideAt": "1694 m at 85 mph",
-     "onLine": 0.372,
+     "onLine": 0.408,
      "corners": 6,
      "goCorners": 6,
      "aborts": 0,
@@ -11943,8 +11955,8 @@
     {
      "id": "gen-46",
      "line": true,
-     "seconds": 100.8,
-     "contact": 26,
+     "seconds": 102.6,
+     "contact": 0,
      "resets": 0,
      "unseen": 0,
      "passTicks": 0,
@@ -11953,18 +11965,16 @@
      "reversals": 0,
      "off": 0,
      "stray": 15.4,
-     "wide": 2.9,
-     "wideAt": "512 m at 130 mph",
-     "onLine": 0.361,
+     "wide": 4.3,
+     "wideAt": "3862 m at 107 mph",
+     "onLine": 0.237,
      "corners": 6,
      "goCorners": 6,
      "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "gave back t=63.9 along 2576 v 55",
-      "contact t=78.3 along 3083 blend 0.00 go false v 88",
-      "contact t=97.5 along 3777 blend 0.00 go false v 62"
+      "gave back t=42.0 along 1726 v 116"
      ]
     },
     {
@@ -12087,7 +12097,7 @@
     {
      "id": "gen-70",
      "line": true,
-     "seconds": 126.78,
+     "seconds": 127.72,
      "contact": 0,
      "resets": 0,
      "unseen": 0,
@@ -12099,7 +12109,7 @@
      "stray": 13.8,
      "wide": 3,
      "wideAt": "3431 m at 110 mph",
-     "onLine": 0.328,
+     "onLine": 0.302,
      "corners": 10,
      "goCorners": 10,
      "aborts": 1,
@@ -12480,10 +12490,10 @@
     {
      "id": "gen-51",
      "line": true,
-     "seconds": 129.17,
-     "contact": 30,
+     "seconds": 133.02,
+     "contact": 0,
      "resets": 0,
-     "unseen": 1,
+     "unseen": 2,
      "passTicks": 265,
      "passes": 1,
      "passContact": 0,
@@ -12492,15 +12502,14 @@
      "stray": 14.3,
      "wide": 2.6,
      "wideAt": "1694 m at 85 mph",
-     "onLine": 0.231,
+     "onLine": 0.242,
      "corners": 6,
      "goCorners": 6,
      "aborts": 0,
      "contactOnLine": 0,
      "jumps": 1,
      "events": [
-      "pass t=41.8 target=29 from=1517 to=1742 offset=5.1",
-      "contact t=121.7 along 4100 blend 0.00 go false v 19"
+      "pass t=41.8 target=29 from=1517 to=1742 offset=5.1"
      ]
     },
     {
@@ -12647,8 +12656,8 @@
     {
      "id": "gen-79",
      "line": true,
-     "seconds": 84.05,
-     "contact": 15,
+     "seconds": 86.58,
+     "contact": 0,
      "resets": 0,
      "unseen": 0,
      "passTicks": 0,
@@ -12659,15 +12668,14 @@
      "stray": 15.4,
      "wide": 2.9,
      "wideAt": "512 m at 130 mph",
-     "onLine": 0.325,
+     "onLine": 0.177,
      "corners": 4,
      "goCorners": 4,
      "aborts": 1,
      "contactOnLine": 0,
      "jumps": 0,
      "events": [
-      "gave back t=63.9 along 2576 v 55",
-      "contact t=78.3 along 3083 blend 0.00 go false v 88"
+      "gave back t=42.0 along 1726 v 116"
      ]
     }
    ]
