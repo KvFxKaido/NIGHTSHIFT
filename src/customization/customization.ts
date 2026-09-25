@@ -21,6 +21,10 @@ export interface StanceOption {
   wheelInset: number;
 }
 
+/**
+ * The presets paint was chosen from until 2026-09-24, when the garage took a colour picker instead. They stay as
+ * named paints, with their own finishes, so saves, slots and `?paint=ice` links from before still read.
+ */
 export const PAINT_OPTIONS: readonly PaintOption[] = [
   { id: "signal", name: "Signal Red", color: 0xa80d2f, roughness: 0.2, metalness: 0.72 },
   { id: "blackglass", name: "Blackglass", color: 0x111722, roughness: 0.16, metalness: 0.82 },
@@ -88,13 +92,52 @@ export interface CarCustomization {
   tint?: string;
 }
 
+/** A picked paint: `#rrggbb`, lower case. */
+const PAINT_HEX = /^#[0-9a-f]{6}$/;
+/** The finish a picked colour is laid in: the presets' metallic, between Signal Red's and Ice White's. */
+export const PAINT_FINISH = { roughness: 0.2, metalness: 0.7 } as const;
+
+/** Whether `value` is something `category` may be: one of its options, or for paint a picked colour too. */
+export function isCustomizationValue(category: CustomizationCategory, value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (category === "paint" && PAINT_HEX.test(value)) return true;
+  return CUSTOMIZATION_OPTIONS[category].some(option => option.id === value);
+}
+
+/** What a paint value draws as: a named paint's own colour and finish, or a picked colour in `PAINT_FINISH`. */
+export function paintOf(value: string): { color: number; roughness: number; metalness: number } {
+  if (PAINT_HEX.test(value)) return { color: Number.parseInt(value.slice(1), 16), ...PAINT_FINISH };
+  return PAINT_OPTIONS.find(option => option.id === value) ?? PAINT_OPTIONS[0]!;
+}
+
+/** Hue in degrees, saturation and lightness in percent: what the garage's three paint rows are. */
+export interface Hsl { h: number; s: number; l: number }
+
+export function hslOf(color: number): Hsl {
+  const r = (color >> 16 & 255) / 255, g = (color >> 8 & 255) / 255, b = (color & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d === 0) return { h: 0, s: 0, l: l * 100 };
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: h * 60, s: s * 100, l: l * 100 };
+}
+
+export function paintFromHsl({ h, s, l }: Hsl): string {
+  const sat = Math.min(100, Math.max(0, s)) / 100, light = Math.min(100, Math.max(0, l)) / 100;
+  const hue = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * light - 1)) * sat, x = c * (1 - Math.abs((hue / 60) % 2 - 1)), m = light - c / 2;
+  const [r, g, b] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x]
+    : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x];
+  return `#${[r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+
 /** Resolve old whole-kit saves and new individual parts through one catalog. */
 export function customizationOption(current: CarCustomization, category: CustomizationCategory): string {
   const kit = BODY_KIT_OPTIONS.some(option => option.id === current.bodyKit) ? current.bodyKit! : "stock";
   const fallback = category === "front" || category === "skirts" || category === "rear" ? kit
     : category === "spoiler" ? (kit === "race" ? "wing" : kit) : CUSTOMIZATION_OPTIONS[category][0]!.id;
   const value = current[category] ?? fallback;
-  return CUSTOMIZATION_OPTIONS[category].some(option => option.id === value) ? value : fallback;
+  return isCustomizationValue(category, value) ? value : fallback;
 }
 
 export function bodyPresetIsMixed(current: CarCustomization): boolean {
@@ -112,8 +155,7 @@ export function updateCustomization(
   category: CustomizationCategory,
   optionId: string,
 ): CarCustomization {
-  const options = CUSTOMIZATION_OPTIONS[category];
-  if (!options.some((option) => option.id === optionId)) return current;
+  if (!isCustomizationValue(category, optionId)) return current;
   if (category === "bodyKit") return { ...current, bodyKit: optionId, front: optionId,
     skirts: optionId, rear: optionId, spoiler: optionId === "race" ? "wing" : optionId };
   return { ...current, [category]: optionId };

@@ -3,7 +3,7 @@ import {
   PAINT_OPTIONS,
   STANCE_OPTIONS,
   WHEEL_OPTIONS,
-  customizationOption, TINT_OPTIONS,
+  customizationOption, paintOf, TINT_OPTIONS,
   type CarCustomization,
 } from "../customization/customization.ts";
 
@@ -846,7 +846,7 @@ export function applyCarCustomization(
   car: CarView,
   customization: CarCustomization,
 ): void {
-  const paint = PAINT_OPTIONS.find((option) => option.id === customization.paint) ?? PAINT_OPTIONS[0]!;
+  const paint = paintOf(customization.paint);
   // Variant groups come from Blender extras. Hide the whole group so its cel
   // outlines, shadows and children always follow the equipped part.
   car.carVisual.traverse(object => {

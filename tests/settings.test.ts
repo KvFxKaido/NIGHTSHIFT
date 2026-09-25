@@ -193,6 +193,18 @@ test("each car keeps its own customization, and selecting one brings its look", 
   assert.throws(() => store.update({ customization: { paint: "ice" }, forCar: "ns-99" as PlayerCarId }), RangeError);
 });
 
+test("a picked paint colour saves and reloads as the car's own, and a malformed one is refused", () => {
+  const disk = storage();
+  const store = createSettingsStore(() => disk);
+  store.update({ customization: { paint: "#3a7bd5" }, forCar: "bulwark" });
+  assert.equal(createSettingsStore(() => disk).customizationOf("bulwark").paint, "#3a7bd5");
+  assert.throws(() => store.update({ customization: { paint: "#3A7BD5" } }), RangeError);
+  const damaged = decodeSettings(JSON.stringify({ version: SETTINGS_VERSION, car: "cinder", audio: DEFAULT_LEVELS,
+    cars: { cinder: { paint: "#zzzzzz", wheels: "alloy", stance: "low" } } }));
+  assert.equal(damaged.status, "recovered");
+  assert.equal(damaged.settings.cars.cinder!.paint, "signal");
+});
+
 test("a version 3 save gives every car the look it had, without reporting recovery", () => {
   const disk = storage();
   disk.setItem(SETTINGS_KEY, JSON.stringify({ version: 3, ...example, car: "bulwark" }));

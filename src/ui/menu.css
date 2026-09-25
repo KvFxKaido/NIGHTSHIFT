@@ -816,6 +816,25 @@ body[data-game-screen="map"] #performance-metrics { display: none; }
 .menu-row:has(.menu-row-value:disabled) { opacity: .45; }
 .menu-row:has(.menu-row-value:disabled) .menu-row-step { visibility: hidden; }
 
+/* The paint picker (ui/paint-picker.ts): the colour above three slider rows, each track painted with where it goes. */
+.paint-picker-head { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px 0 12px; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.paint-picker-head .menu-row-label { flex: 1; }
+.paint-picker-swatch { width: 44px; height: 20px; background: var(--swatch); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
+.paint-picker-hex { min-width: 4.6rem; color: var(--menu-ink); font: 800 12px/1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+.menu-row.paint-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) 3.2rem; gap: 10px; }
+.paint-row input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; height: 12px; margin: 0;
+  background: var(--track); border-radius: 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); cursor: pointer;
+}
+.paint-row input[type="range"]:focus { outline: none; }
+.paint-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 8px; height: 22px; background: var(--menu-ink); border: 2px solid #05070c; box-shadow: 0 0 0 1px var(--menu-cyan);
+}
+.paint-row input[type="range"]::-moz-range-thumb { width: 6px; height: 20px; background: var(--menu-ink); border: 2px solid #05070c; border-radius: 0; }
+.paint-row-value { color: var(--menu-ink); font: 800 12px/1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif; letter-spacing: .06em; text-align: right; }
+.paint-row:has(input:disabled) { opacity: .45; }
+.paint-row:has(input:disabled) input[type="range"] { cursor: not-allowed; }
+
 .menu-hints {
   display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 16px; padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, .08);

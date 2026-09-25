@@ -25,8 +25,10 @@ import { createControlsPanel } from "./ui/controls.ts";
 import { keyLabel } from "./input/bindings.ts";
 import RAPIER from "@dimforge/rapier3d-compat";
 import {
-  createDefaultCustomization, updateCustomization, BODY_PRESET_CATEGORIES, type CarCustomization,
+  createDefaultCustomization, isCustomizationValue, updateCustomization, BODY_PRESET_CATEGORIES,
+  type CarCustomization, type CustomizationCategory,
 } from "./customization/customization.ts";
+import { createPaintPicker } from "./ui/paint-picker.ts";
 import { PLAYER_CAR_IDS, drivetrainFor, isPlayerCarId } from "./customization/cars.ts";
 import { renderCarStats } from "./ui/car-stats.ts";
 import { applyDeepLink, installDebugApi } from "./debug/debug.ts";
@@ -353,6 +355,51 @@ document.querySelector("[data-livery-row]")!.append(createOptionRow({
   choose: id => liveryEditor.setEnabled(id === "on"),
 }).element);
 
+/** The look the garage's rows show: the car on the platform, whose rows are locked when it is only being browsed. */
+function rowsLook(): CarCustomization {
+  return previewCar === selectedCar ? customization : lookFor(previewCar);
+}
+/** Change the selected car's look and draw it; saved at once, or by `saveLook` later (a paint slider's drag). */
+function customize(category: CustomizationCategory, option: string, save = true): boolean {
+  if (!isCustomizationValue(category, option)) return false;
+  customization = updateCustomization(customization, category, option);
+  sessionLooks.set(selectedCar, customization);
+  applyCarCustomization(view, customization);
+  if (category === "paint") liveryEditor.useFactoryPaint();
+  liveryEditor.refresh();
+  if (save) saveLook(selectedCar, category === "bodyKit" ? BODY_PRESET_CATEGORIES : [category]);
+  paintPicker.render();
+  return true;
+}
+/** Save `car`'s look in `changed`, as this session has it. The primitive `classic` has no saved look to keep. */
+function saveLook(car: string, changed: CustomizationCategory[]): void {
+  if (!isPlayerCarId(car)) return;
+  const look = lookFor(car);
+  saveSettings({ customization: Object.fromEntries(changed.map(key => [key, look[key]])), forCar: car }, changed);
+}
+// Paint is a colour picker (ui/paint-picker.ts): every nudge and every pixel of a drag draws, and the save waits for
+// the change to be done, because a save rewrites the address bar and a drag is dozens of inputs a second.
+let paintSave: { car: string; timer: ReturnType<typeof setTimeout> } | null = null;
+function savePaint(): void {
+  if (!paintSave) return;
+  clearTimeout(paintSave.timer);
+  const { car } = paintSave;
+  paintSave = null;
+  saveLook(car, ["paint"]);
+}
+const paintPicker = createPaintPicker({
+  value: () => rowsLook().paint,
+  change: paint => {
+    if (!customize("paint", paint, false)) return;
+    if (paintSave && paintSave.car !== selectedCar) savePaint();
+    if (paintSave) clearTimeout(paintSave.timer);
+    paintSave = { car: selectedCar, timer: setTimeout(savePaint, 400) };
+  },
+  commit: savePaint,
+});
+document.querySelector("[data-paint-picker]")!.append(paintPicker.element);
+addEventListener("pagehide", savePaint);
+
 // Audio is presentation, so it lives beside the renderer and reads state after
 // the ticks are done. Browsers refuse an AudioContext without a gesture, so the
 // whole stack is built on the first click or key and the game runs silent until
@@ -559,6 +606,7 @@ function renderCarSelection(): void {
   carRow.render();
   // The customization rows read the car on the platform (getCustomization), so a browsed car shows its own values.
   document.querySelectorAll("[data-customization-rows] [data-row]").forEach(element => rowAt(element)?.render());
+  paintPicker.render();
   document.querySelector<HTMLElement>("[data-car-meta]")!.textContent = `${(PLAYER_CAR_IDS as readonly string[]).indexOf(previewCar) + 1} / ${PLAYER_CAR_IDS.length} · ${drivetrainFor(previewCar).toUpperCase()}`;
   document.querySelector<HTMLElement>("[data-car-ownership]")!.textContent = owned ? (isEquippedCar(previewCar) ? "Equipped" : "Owned")
     : owner ? `Win the pink slip · #${owner.rank} ${owner.name}` : "For sale · $1,500";
@@ -708,19 +756,8 @@ const menu = createMenuController({
   openSaves: mode => savePanel.open(mode),
   resumeRun: () => input.armDrivingInputGate(),
   // The car on the platform: a browsed one's rows are locked and show its own values.
-  getCustomization: () => previewCar === selectedCar ? customization : lookFor(previewCar),
-  customize: (category, optionId) => {
-    customization = updateCustomization(customization, category, optionId);
-    sessionLooks.set(selectedCar, customization);
-    applyCarCustomization(view, customization);
-    if (category === "paint") liveryEditor.useFactoryPaint();
-    liveryEditor.refresh();
-    const changed = category === "bodyKit" ? BODY_PRESET_CATEGORIES : [category];
-    // Saved as this car's own; the primitive `classic` has no saved look to keep.
-    if (isPlayerCarId(selectedCar)) {
-      saveSettings({ customization: Object.fromEntries(changed.map(key => [key, customization[key]])), forCar: selectedCar }, changed);
-    }
-  },
+  getCustomization: rowsLook,
+  customize: (category, optionId) => { customize(category, optionId); },
   screenChanged: (screen, state) => {
     const from = previousScreen;
     previousScreen = screen;
@@ -1186,6 +1223,8 @@ installDebugApi({
   // button left to click, so the comparison flow resets the run directly.
   setDrivetrain: layout => { reset(layout); input.armDrivingInputGate(); },
   setPedalAssist: value => { sim.pedalAssist = Math.max(0, Math.min(1, value)); reset(); input.armDrivingInputGate(); },
+  customize: (category, option) => customize(category, option),
+  customization: rowsLook,
   canvas: view.renderer.domElement,
   // Scripted checks use the same fixed simulation as live driving.
   advance: (ticks, tickInput) => {

@@ -164,6 +164,8 @@ show their pink-slip requirement, and the Bulwark can be purchased from its prev
 Browsing leaves the saved car and current drive untouched; leaving without equipping
 restores your car. Equipping a different body starts a fresh drive with its own handling.
 Paint, wheel finish, stance and livery editing are available for the equipped car.
+Paint is any colour: a swatch over hue, saturation and brightness rows, nudged with
+left and right or dragged.
 Each car keeps its own setup: repainting one never touches another, a browsed car
 shows the look it was left in, and equipping it brings that look back. Your equipped
 car and every car's setup save on this browser and return after refresh (settings
@@ -307,6 +309,6 @@ Source: `assets/cars/ns-kestrel-01.blend`. Rebuild with Blender's `--background 
 
 Open **Garage → Livery**. Pick a panel (hood, roof, either door, rear), then add stripes, racing numbers, chevrons, bolts, or a NIGHTSHIFT/text label. Select layers to change their color, position, size, rotation, or panel, mirror onto the opposite door, reorder, or delete them. Base paint supports hex colors and gloss/satin/matte finishes. Color swatches, number buttons, and the existing keyboard/controller menu navigation make common edits possible without typing; custom text and hex values use keyboard input. Right stick rotates the platform.
 
-Up to 12 layers save automatically per browser for NS-01, with 40 session undo steps and redo. Livery off restores factory paint while keeping the design. Choosing a factory paint preset also turns the livery off. Graphics follow the body into driving and survive reloads and switching cars; Bulwark keeps its existing customization and does not edit NS-01's design. Designs are a per-car browser profile, not part of individual game-save slots. Bulwark livery authoring, image imports, and freehand painting are future work.
+Up to 12 layers save automatically per browser for NS-01, with 40 session undo steps and redo. Livery off restores factory paint while keeping the design. Changing the paint colour also turns the livery off. Graphics follow the body into driving and survive reloads and switching cars; Bulwark keeps its existing customization and does not edit NS-01's design. Designs are a per-car browser profile, not part of individual game-save slots. Bulwark livery authoring, image imports, and freehand painting are future work.
 
 Graphics are projected only onto outward-facing painted triangles and remain local to the body for stance and motion. No glass, tire, or rival materials are modified. This first slice uses panel projections instead of a full-wrap UV texture; edited graphics can clip at panel edges. `src/customization/livery.ts` owns validated design data/history; `src/render/livery.ts` owns projection and texture disposal; `src/ui/livery.ts` owns garage editing and persistence.

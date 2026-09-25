@@ -5,7 +5,7 @@
    what a person clicking would get. */
 
 import * as THREE from "three";
-import { CUSTOMIZATION_CATEGORIES, type CarCustomization } from "../customization/customization.ts";
+import { CUSTOMIZATION_CATEGORIES, customizationOption, type CarCustomization, type CustomizationCategory } from "../customization/customization.ts";
 import type { View } from "../render/scene.ts";
 import { isDrivetrain, type Drivetrain, type Input, type Sim } from "../sim/sim.ts";
 import { BLENDER_CARS, isBlenderCarId as isPlayerCarId } from "../render/blender-car.ts";
@@ -52,6 +52,10 @@ export interface DebugBridge {
   /** Starts a fresh run on a different drivetrain, for handling comparisons. */
   setDrivetrain(layout: Drivetrain): void;
   setPedalAssist(value: number): void;
+  /** The garage's own customize, a preset id or for paint `#rrggbb`; false for a value the category cannot take. */
+  customize(category: CustomizationCategory, option: string): boolean;
+  /** The look the garage's rows show. */
+  customization(): CarCustomization;
   isFrozen(): boolean;
   setTelemetry(visible: boolean): void;
   pause(): void;
@@ -156,15 +160,15 @@ export function installDebugApi(bridge: DebugBridge): void {
     return document.body.dataset.gameScreen ?? "unknown";
   }
 
+  // Through the garage's own customize, never by clicking: the option buttons this clicked became rows (2026-09-24)
+  // and paint a colour picker, and every ?paint= link had silently done nothing since.
   function set(options: Partial<CarCustomization>): string[] {
     const applied: string[] = [];
     for (const [category, option] of Object.entries(options)) {
       if (!option) continue;
-      if (click(`[data-customization="${category}"][data-option="${option}"]`)) {
-        applied.push(`${category}=${option}`);
-      } else {
-        applied.push(`${category}=${option} (no such option)`);
-      }
+      const known = (CUSTOMIZATION_CATEGORIES as readonly string[]).includes(category);
+      applied.push(known && bridge.customize(category as CustomizationCategory, option)
+        ? `${category}=${option}` : `${category}=${option} (no such ${known ? "option" : "category"})`);
     }
     bridge.renderOnce();
     return applied;
@@ -227,11 +231,8 @@ export function installDebugApi(bridge: DebugBridge): void {
     return found;
   }
 
-  function selected(category: string): string | null {
-    const pressed = document.querySelector<HTMLButtonElement>(
-      `[data-customization="${category}"][aria-pressed="true"]`,
-    );
-    return pressed?.dataset.option ?? null;
+  function selected(category: CustomizationCategory): string {
+    return customizationOption(bridge.customization(), category);
   }
 
   function state() {

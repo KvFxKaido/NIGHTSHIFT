@@ -124,7 +124,10 @@ test("the garage is rows in sections, with no tiles of options", async () => {
   assert.doesNotMatch(garage, /data-option=/, "a customization option is a tile again; make it a row");
   assert.doesNotMatch(garage, /class="garage-options/, "an option grid is back in the garage");
   const slots = [...garage.matchAll(/data-customization-rows="([^"]+)"/g)].flatMap(match => match[1]!.split(" "));
-  assert.deepEqual([...slots].sort(), [...CUSTOMIZATION_CATEGORIES].sort(), "every customization category has exactly one row");
+  // Paint is the one category that is not a row of options: a colour picker, rows of sliders (ui/paint-picker.ts).
+  assert.deepEqual([...slots].sort(), CUSTOMIZATION_CATEGORIES.filter(category => category !== "paint").sort(),
+    "every customization category but paint has exactly one row");
+  assert.equal(garage.match(/data-paint-picker/g)?.length, 1, "paint has exactly one picker");
   const sections = [...garage.matchAll(/data-section="([^"]+)"/g)].map(match => match[1]);
   const tabs = [...garage.matchAll(/data-section-tab="([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(tabs, sections, "each section has its tab, in the same order");

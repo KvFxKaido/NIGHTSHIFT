@@ -100,9 +100,10 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   is an option, not a decision. The Godot workshop in `godot-prototype/` is
   a reference experiment, not a migration.
 - Customization target: body parts, paint and a few simple performance
-  upgrades. Today: paint, wheel finish, visual ride height, and a layered
-  livery editor (`src/customization/livery.ts`); those appearance edits are visual
-  only. Car ownership and buying Bulwark are implemented separately.
+  upgrades. Today: paint (any colour since 2026-09-24, picked by hue, saturation and
+  brightness rows, `src/ui/paint-picker.ts`; the old presets still read), wheel finish,
+  visual ride height, and a layered livery editor (`src/customization/livery.ts`);
+  those appearance edits are visual only. Car ownership and buying Bulwark are implemented separately.
 - **Surge** (GDD §3.6, 5.1, 8.4) is the proposed nitrous verb and is **not
   implemented**: a few finite tanks, capacity bought in the garage, full at
   every event start, no mid-race refill and no passive recharge. Style earns
@@ -685,7 +686,8 @@ Every mesh carries a kebab-case `name`. `window.__ns` (`src/debug/debug.ts`)
 exposes `pick(x, y, screenshotWidth)`, `find`, `state` (includes rival
 diagnostics), `drive("W600,WD90")`, `freeze()`, `shot()`,
 `drivetrain('awd'|'fwd'|'rwd')`. Reach states by URL, never by scripting
-menu clicks: `?scene=garage&paint=blackglass&stance=slammed`,
+menu clicks: `?scene=garage&paint=blackglass&stance=slammed` (a colour is `paint=%23rrggbb`,
+lower case; `__ns.set` goes through the garage's own customize and says which values it refused),
 `?scene=track&drive=W600&freeze=1`, `?scene=pause&drivetrain=rwd`,
 `?scene=track&visit=rivet`, `?race=sable-yard-drift`.
 The player drives with no pedal assist (Shawn, 2026-09-20), except on the drag

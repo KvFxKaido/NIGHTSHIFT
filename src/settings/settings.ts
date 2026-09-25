@@ -1,6 +1,6 @@
 import { isPlayerCarId, PLAYER_CAR_IDS, type PlayerCarId } from "../customization/cars.ts";
 import {
-  createDefaultCustomization, CUSTOMIZATION_OPTIONS, CUSTOMIZATION_CATEGORIES,
+  createDefaultCustomization, CUSTOMIZATION_CATEGORIES, isCustomizationValue,
   type CarCustomization, type CustomizationCategory,
 } from "../customization/customization.ts";
 import { DEFAULT_LEVELS, isLevel, type AudioLevels } from "../audio/audio-mix.ts";
@@ -29,7 +29,6 @@ export interface SettingsPatch {
 export type SettingsStatus = "ready" | "saved" | "recovered" | "unavailable";
 export type SettingsUrlKey = "car" | CustomizationCategory;
 type SettingsStorage = Pick<Storage, "getItem" | "setItem">;
-const options = CUSTOMIZATION_OPTIONS;
 const categories = CUSTOMIZATION_CATEGORIES;
 
 const channels: (keyof AudioLevels)[] = ["master", "engine", "music"];
@@ -67,7 +66,7 @@ function decodeCustomization(value: Record<string, unknown>): { look: CarCustomi
     const option = value[category];
     // Additive visual slots: old saves and career slots retain factory parts.
     if (option === undefined && category !== "paint" && category !== "wheels" && category !== "stance") continue;
-    if (typeof option === "string" && options[category].some(candidate => candidate.id === option)) look[category] = option;
+    if (isCustomizationValue(category, option)) look[category] = option;
     else recovered = true;
   }
   return { look, recovered };
@@ -162,7 +161,7 @@ export function createSettingsStore(storage: () => SettingsStorage) {
       }
       for (const category of categories) {
         const value = patch.customization?.[category];
-        if (value !== undefined && !options[category].some(option => option.id === value)) {
+        if (value !== undefined && !isCustomizationValue(category, value)) {
           throw new RangeError(`Unknown ${category}: ${value}`);
         }
       }

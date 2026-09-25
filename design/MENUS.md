@@ -64,7 +64,7 @@ sections of rows:
 | Section | Rows | Face buttons |
 |---|---|---|
 | Car | Car (browse) | A Drive this car, Y Buy (when they can act) |
-| Paint | Paint, Wheel finish, Window tint | |
+| Paint | Hue, Saturation, Brightness (the paint's colour, under its swatch), Wheel finish, Window tint | |
 | Body | Kit, Front lip, Side skirts, Rear valance, Spoiler, Wheel design, Ride height | |
 | Livery | Design (on / off); Edit livery | |
 
@@ -91,4 +91,9 @@ moves it to M, or the first free letter; a keyboard always has one.
 
 **Phase 3:** the livery editor with no keyboard. Colours as a palette row plus hue and
 brightness rows instead of hex; panels, graphics and layers as rows; placement on the
-sticks, which needs its own design because the right stick turns the car.
+sticks, which needs its own design because the right stick turns the car. The paint
+picker (2026-09-24, `ui/paint-picker.ts`) is the first of those colours: slider rows
+whose tracks show where they go, and a saturation row as well as hue and brightness,
+because without one no white, silver or grey can be reached. It has no palette row;
+Shawn asked for the picker instead of the presets. A drag draws every step and saves
+when it stops, since a save rewrites the address bar and browsers rate-limit that.

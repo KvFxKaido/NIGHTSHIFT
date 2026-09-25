@@ -79,7 +79,8 @@ try {
   await choose('bodyKit', 'race');
   await choose('wheelDesign', 'mesh');
   await choose('tint', 'dark');
-  await choose('paint', 'ice');
+  // Paint is a colour picker, not a row of presets (2026-09-24): a named paint still reads, set as a link sets it.
+  assert.deepEqual(await page.evaluate(() => __ns.set({ paint: 'ice' })), ['paint=ice']);
   await capture('race');
   assert.ok((await equipped()).includes('cinder-spoiler-wing'));
   await page.evaluate(() => { __ns.view.garageYaw = Math.PI; });
@@ -102,6 +103,18 @@ try {
   assert.equal(await value('spoiler'), 'wing');
   await page.evaluate(() => { __ns.view.garageYaw = Math.PI; });
   await capture('race-restored');
+  // The picker as a player walks it: focus the brightness row and nudge it with the arrows, which the menu turns into
+  // slider steps. The paint changes as it moves, and saves as the Cinder's own colour once the nudging stops.
+  await openSection('paint');
+  const paintBefore = await page.evaluate(() => __ns.view.paintMaterial.color.getHexString());
+  await page.locator('[data-paint="l"]').focus();
+  for (let press = 0; press < 5; press++) await page.keyboard.press('ArrowLeft');
+  await page.waitForFunction(() => /^#[0-9a-f]{6}$/.test(JSON.parse(localStorage.getItem('nightshift.settings') ?? '{}').cars?.cinder?.paint ?? ''));
+  const paintAfter = await page.evaluate(() => __ns.view.paintMaterial.color.getHexString());
+  assert.notEqual(paintAfter, paintBefore, 'the brightness row did not change the paint');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('nightshift.settings')).cars.cinder.paint), `#${paintAfter}`,
+    'the saved paint is not the drawn one');
+  await capture('paint-picker');
   await page.locator('[data-menu-screen="garage"] [data-menu-action="start"]').click();
   await page.waitForFunction(() => document.body.dataset.gameScreen === 'playing' && !__ns.view.garageCutscene);
   await page.evaluate(() => { __ns.drive('W120'); });
