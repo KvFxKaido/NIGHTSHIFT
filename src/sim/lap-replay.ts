@@ -6,6 +6,7 @@
  * must be initialised first, as for any `createSim`.
  */
 import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
+import { STADIUM_VERSION, createStadiumWorld } from "./stadium.ts";
 import { GENERATED_LAYOUT, recordedEvent, type RecordedEvent } from "./recorded-event.ts";
 import { rivalDifference } from "./rival-revision.ts";
 import { TRAFFIC_REVISION } from "./traffic.ts";
@@ -16,15 +17,22 @@ export type ReplayResult =
   | { ok: true; laps: number }
   | { ok: false; reason: string };
 
+/** The world a recorded race runs in, from its grid: Port Alder, or the venue a stadium circuit names. */
+export function recordedWorld(event: RecordedEvent) {
+  return event.venue === "stadium" ? createStadiumWorld(event.start) : createAlderWorld(true, event.start);
+}
+
 export function replayLapSession(session: LapSession): ReplayResult {
   if (session.format !== LAP_RECORDING_FORMAT) return { ok: false, reason: `format ${session.format}, expected ${LAP_RECORDING_FORMAT}` };
-  // A recording from another world or physics revision cannot be expected to match, so it is refused, not compared.
-  if (session.world !== ALDER_VERSION) return { ok: false, reason: `recorded on world ${session.world}, this build is ${ALDER_VERSION}` };
   // A circuit, or a generated race drawn again from its id and its flash (recorded-event.ts).
   let event: RecordedEvent | null;
   try { event = recordedEvent(session.race, session.laps, { start: session.startCode ?? null, solo: session.solo }); }
   catch (error) { return { ok: false, reason: `${session.race} cannot be drawn: ${error instanceof Error ? error.message : String(error)}` }; }
   if (!event) return { ok: false, reason: `unknown race ${session.race}` };
+  // A recording from another world or physics revision cannot be expected to match, so it is refused, not compared.
+  // The world is the race's own: Port Alder, or the venue a stadium circuit runs in.
+  const world = event.venue === "stadium" ? STADIUM_VERSION : ALDER_VERSION;
+  if (session.world !== world) return { ok: false, reason: `recorded on world ${session.world}, this build is ${world}` };
   if (session.arena !== event.identity) return { ok: false, reason: `recorded on ${event.layout === GENERATED_LAYOUT ? "generator" : "circuit"} ${session.arena ?? "ridge-circuit-v1"}, this build is ${event.identity}` };
   if (session.physics !== PHYSICS_VERSION) return { ok: false, reason: `recorded on physics ${session.physics}, this build is ${PHYSICS_VERSION}` };
   if (session.tickHz !== TICK_HZ) return { ok: false, reason: `recorded at ${session.tickHz} Hz` };
@@ -37,7 +45,7 @@ export function replayLapSession(session: LapSession): ReplayResult {
   const handling = carHandling(session.car, session.drivetrain);
   if ((session.carRevision ?? 1) !== handling.revision) return { ok: false, reason: `driven in the ${session.car} at handling revision ${session.carRevision ?? 1}, this build's is ${handling.revision}` };
   // Traffic is part of the world and replays with it, by its revision.
-  const sim = createSim(handling, createAlderWorld(true, event.start),
+  const sim = createSim(handling, recordedWorld(event),
     { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
   try {
     const recorder = createLapRecorder(event.track);

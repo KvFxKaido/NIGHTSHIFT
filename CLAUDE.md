@@ -283,6 +283,22 @@ fixtures outside the playable bundle, and old world links redirect.
   `pnpm dev` to the git-ignored `recordings/laps/`; the input log replays exactly
   (`lap-replay.ts`, `pnpm laps --verify`). Lap lengths are pinned because
   recordings depend on them (`design/PORT_ALDER.md`, "Ridge Circuit").
+- **Venues** (2026-09-25, `design/VENUES.md`): enclosed places to race that are
+  worlds of their own, entered and left only at a gate's marker or by a rival's
+  challenge. The stadium is the dirt and drift venue (Shawn): its circuits are paved
+  only until a dirt surface and handling model exist, and track racing belongs to
+  the track venue. The stadium (Wharf Arena, working name, `src/sim/stadium.ts`) is the
+  Wharf arena at its map coordinates with its original continuous shell restored, a dirt floor but for
+  Sable's apron, nothing standing on it (props come back through generation), lit from the rim,
+  no streets or traffic and nothing of the city's data;
+  `STADIUM_VERSION` names it. Stop at a gate's ring on either side to cross
+  (`?venue=stadium`, `?gate=east|north`). Sable's drift runs there, identical to the
+  millimetre to the city's arena. Its two circuits, Full and Short (`stadium-circuits.ts`,
+  `?race=stadium-full|stadium-short[-solo]`), are tight, gated at every turn and raced
+  and recorded as Ridge's are; a race names its world by its `venue`, and the replay
+  builds that world (`recordedWorld`). The city's arena is still open and Sable still
+  parked in it; closing it is one Port Alder identity change, shared with Ridge
+  Circuit becoming the track venue, Rivet's dragway beside it.
 - **Uptown Circuit** (working name): an authored three-lap loop of Uptown's
   streets, a gate at every turn, recorded the same way, in traffic or clear, with
   or without the rival (`street-circuit.ts`, `?race=street-uptown[-clear][-solo]`).
@@ -347,8 +363,10 @@ fixtures outside the playable bundle, and old world links redirect.
 | Rival, encounter, cruisers, traffic | `rival.ts`, `alder-rival.ts`, `encounter.ts`, `alder-cruisers.ts`, `traffic.ts` | `design/PORT_ALDER.md` |
 | Junctions: signals, stop signs, bars, and where traffic stops for them | `intersection-dressing.ts`, `street-traffic.ts` (`control`), `render/intersection-dressing.ts` | `design/INTERSECTIONS.md` |
 | Ridge Circuit: layouts, races, drawing | `arena.ts`, `arena-events.ts`, `render/arena.ts` | `design/PORT_ALDER.md` |
+| Venues: the stadium world, its shell, floor and gates; its circuits and their races | `stadium.ts`, `stadium-circuits.ts`, `stadium-events.ts`, `render/stadium.ts` | `design/VENUES.md` |
+| A circuit's lap from named corners, Ridge's and the stadium's; drawing one | `circuit-plan.ts`, `render/track-strips.ts` | `design/VENUES.md` ("The circuits") |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
-| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes") |
+| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
 | Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
@@ -575,6 +593,17 @@ fixtures outside the playable bundle, and old world links redirect.
   three that had bitten this loop already: say which frame every number is in, and read it where the thing is. The
   rule is honest to about 0.2 m and its margin is 0.3: a pass driver-v1 made at 2.2 m it may brake for, and a value
   that separates that from a 2.3 m pass does not exist. Measure a change to it on the batch AND the rear-end test.
+  It credits a car past where it means to be with moving back, where at 100+ mph it runs on 1 to 2 m; carrying that on at
+  `followAcross`'s 2 m/s^2 read gen-19's 0.45 m pessimistic (the car took it out at about 3) and braked a pass that cleared.
+- The same-direction dodge aims 3.2 m (`PASS.gap`) from a car only when that car is nearer where the rival means to be
+  than that (`driver-v6`). Taken for any car within 5 m, it moved the rival TOWARDS cars already clear of it, and ran it
+  into an SUV standing at a bar at 110 mph (gen-19, seed 1000); undone, the gate lost 15 of 56 distinct incidents. It
+  reads that car where it will be when the rival is alongside (`there`, `driver-v7`), for the gate, the sides and the
+  no-side slow: read where it was, a box truck finishing its turn came 1.2 m across in the last second, 3.8 m off to 2.5,
+  at 117 mph (Uptown, seed 1000). What no reading mends is the rival reaching its line above 120 mph: 0.9 m short of it
+  in gen-1 at seed 1000, 1.8 m wide in gen-19. Its reach across is measured (`PORT_ALDER.md`, "A car beside its line");
+  slowing it to arrive no sooner than that reach clears the car fixed gen-1 and added nine incidents, slow ones among
+  traffic (`driver-v8`, not shipped): a rival braked towards a car's speed stays among traffic longer.
 - A route's `width` is the carriageway traffic drives; Port Alder's asphalt runs `shoulder` (5.6 m) past it each side
   (2026-09-23). Anything in the rival bounded by the width adds `route.shoulder`, or on the shoulder it is lost (held
   to 22 mph), makes no progress toward a reset, and a pass onto it is clamped back: `lost`, the progress mark, `edge`,
@@ -582,6 +611,10 @@ fixtures outside the playable bundle, and old world links redirect.
   baseline on the new world before judging a change on it.
 - A committed pass is clear of a car that is ON its path, and looks only 26 m ahead at 105 mph because of it. More
   than `PASS_ASTRAY` off that path the car looks as far as it would with no pass; a tracked pass must not change.
+  That check reads other cars along the car's NOSE, and the nose is right more often than it looks: a car lags a path
+  that swings, so read against the pass path plus its error it sat on the passed car's side through every pull-out
+  (2,142 held ticks to 1,868 over 64 passes), and against the path alone it met an oncoming taxi at 115 mph (gen-71).
+  Measure a frame for it pass by pass, both checks on the same races, not on the gate's totals (`PORT_ALDER.md`).
 - A rival's difficulty is its car (`CAR_TUNES`) and its driver's share of the grip (`BLACKLIST_CORNERING`,
   `BLACKLIST_LAUNCH`), never its position in the race. The share is `RivalDefinition.skill` and reaches a LINE's
   corners only: `cornering` would move the lane's corners too, where the limit is tracking (past about 0.82 a lane
@@ -692,6 +725,13 @@ fixtures outside the playable bundle, and old world links redirect.
   yours to run, not CI's.
 - Blackglass fixtures name AWD explicitly where they measure AWD; do not
   "fix" a default-FWD number by editing a historical AWD one.
+- `circuit-plan.ts` is Ridge Circuit's lap construction, moved out of `arena.ts` unchanged for the stadium's circuits
+  (2026-09-25, checked bit for bit). Every Ridge recording, line fingerprint and car card is measured on its
+  arithmetic, so it is not to be tidied: a change to it is a change to Ridge, and wants `ARENA.revision`.
+- Every `loadDrive` carries the car's look (paint, wheels, stance), and a link with a look passes through the garage
+  screen to set it (`applyDeepLink`), so leaving that garage puts the car at `ALDER_GARAGE_EXIT`. A drive that must
+  start anywhere else guards that first leave: races by `!race`, the venue by its own start, a gate's city side by
+  `arrivalPending` (`main.ts`). A gate arrival without it landed at the garage while `roadWorld.start` said the gate.
 
 ## Debugging without a screen
 

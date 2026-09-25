@@ -525,6 +525,29 @@ test("off the path of its pass, it looks as far ahead as it would with no pass",
   assert.ok(short.target < 40, `1.5 m short of its path, 70 m from a stopped car at 45 m/s, it kept ${short.target.toFixed(1)} m/s`);
 });
 
+// A car going its way is dodged only when it is in the way (driver-v6, 2026-09-25). Dodged whenever it was within 5 m,
+// the side of it nearest the rival's line moved the rival TOWARDS an SUV standing at a bar in the outer lane, 4.5 m clear
+// of it, to pass at 3.2; it ran past that at 105 mph and hit the SUV at 110 (gen-19, seed 1000).
+test("a stopped car beside its line does not draw it across, and one in its way is still dodged", () => {
+  const width = 16, line = ownSide(width);
+  const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "dodge", start: { x: line, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000] };
+  // Resting on its own side at 45 m/s, an SUV `beside` metres to its right 60 m on, standing or going its way at
+  // `speed` turned `heading` from the road; the rival's aim after a second.
+  const aim = (beside: number, speed = 0, heading = 0) => {
+    const vehicle = { ...createSim("fwd").state.vehicle, x: line, y: 0, z: -100, heading: 0, speed: 45, forwardSpeed: 45, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: line };
+    const suv = { id: 142, kind: "suv" as const, x: line + beside, y: 0, z: -160, heading, speed, length: 4.7 };
+    for (let tick = 0; tick < 60; tick++) rivalInput(route, { vehicle, driver, race: null }, [suv], null);
+    return driver.avoidance - line;
+  };
+  assert.ok(Math.abs(aim(4.5)) < .05, `an SUV 4.5 m to its right drew it ${aim(4.5).toFixed(2)} m towards it`);
+  assert.ok(aim(2) < -1, `an SUV 2 m to its right moved it only ${(-aim(2)).toFixed(2)} m away`);
+  // Read where it will be (driver-v7): 4.5 m off now at 10 m/s, 7 degrees in towards the line, 1.2 m/s across; about 1.6 s
+  // out, it will be 2.6 m off, in the way (Uptown at seed 1000, a box truck finishing its turn, at 117 mph).
+  assert.ok(aim(4.5, 10, .12) < -.3, `an SUV coming across towards its line moved it only ${(-aim(4.5, 10, .12)).toFixed(2)} m away`);
+});
+
 // Where it will be, not where it means to be (2026-09-22). Shawn's second legit race against Wake: he passed her into
 // the bend at 2400 m, she moved back right behind him, and 24 m ahead of her was a sedan doing 31 mph. She chose to go
 // round it on the left, which moves `intent` 3 m across at 4 m/s; the car under it moved 0.4 m in the 0.75 s that

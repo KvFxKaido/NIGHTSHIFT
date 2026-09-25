@@ -381,6 +381,10 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "driver-v5", "pass-v3", "street-line-v3" (2026-09-23): the shoulders Port Alder gained that day are road to a race
  * rival (`shoulder`): its edge, its passes, its bends' arcs, and where it is lost or making progress.
  * "pass-v4" (2026-09-25): a pass past its lead early rejoins over the length its speed then asks for (traffic-pass.ts).
+ * "pass-v5" (2026-09-25): a pass's speed plan reads no road behind the car (`evaluatePass`).
+ * "driver-v6" (2026-09-25): a car going its way is dodged only when it is nearer the rival's line than the pass gap;
+ *   further off it is left alone, where the dodge had moved the rival towards it.
+ * "driver-v7" (2026-09-25): that dodge reads the car where it will be when the rival is alongside, not where it is.
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -913,10 +917,20 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       || Math.hypot(other.x-(obstacle.x+normalX*(candidate-offRoute)),other.z-(obstacle.z+normalZ*(candidate-offRoute)))<7
       || Math.hypot(other.x-Math.sin(other.heading)*other.speed*alongside-passAt(candidate).x,other.z-Math.cos(other.heading)*other.speed*alongside-passAt(candidate).z)<7));
     const reach=Math.min(PASS.reach, edge);
-    const sides=[offRoute-PASS.gap,offRoute+PASS.gap].map(c=>clamp(c,Math.max(lowest,-reach),Math.min(highest,reach)))
-      .filter(c=>Math.abs(c-offRoute)>=2.6).sort((a,b)=>Math.abs(a-intent)-Math.abs(b-intent));
+    // Where it will be when this car is alongside, as far as `alongside` looks, not where it is (driver-v7, 2026-09-25),
+    // for whether it is in the way, the sides it offers and whether there is none: the crossing branch above has always
+    // read a car at arrival. Read where it was, a box truck finishing its turn onto Uptown's road was 3.8 m from the
+    // rival's line and left alone, and came 1.2 m across in the last second to 2.5, at 117 mph (seed 1000).
+    const there=offRoute+across*alongside;
+    const sides=[there-PASS.gap,there+PASS.gap].map(c=>clamp(c,Math.max(lowest,-reach),Math.min(highest,reach)))
+      .filter(c=>Math.abs(c-there)>=2.6).sort((a,b)=>Math.abs(a-intent)-Math.abs(b-intent));
     const open=sides.find(clear);
-    if (open!==undefined) { offset=open; blocking=false; }
+    // Only round a car that is in the way (driver-v6, 2026-09-25): nearer where it means to be than the gap it passes
+    // at. Taken for any car within 5 m, the side nearest its line moved it TOWARDS an SUV standing at a bar in the
+    // outer lane, 4.5 m clear of it, to pass it at 3.2; at 105 mph it ran 1.25 m past that and hit the SUV at 110 (gen-19,
+    // seed 1000). A car further off is left where it is, as if it were not there.
+    const dodge=open!==undefined && Math.abs(there-intent)<PASS.gap ? open : undefined;
+    if (dodge!==undefined) { offset=dodge; blocking=false; }
     const onBumper=ahead-length<4;
     // And, for a car following this road, against where this car will actually BE when it gets there (2026-09-22):
     // from where it is, at the rate it is moving across the road, towards the side being chosen now (`open`) or where
@@ -932,7 +946,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const carAcross = (car.x - here.x) * -here.uz + (car.z - here.z) * here.ux, nx = -here.uz, nz = here.ux;
     const acrossRate = (-Math.sin(car.heading) * car.forwardSpeed + Math.cos(car.heading) * car.lateralSpeed) * nx
       + (-Math.cos(car.heading) * car.forwardSpeed - Math.sin(car.heading) * car.lateralSpeed) * nz;
-    const meant = open ?? intent;
+    const meant = dodge ?? intent;
     const toward = Math.sign(meant - carAcross), moving = Math.max(0, acrossRate * toward);
     const willBe = carAcross + toward * Math.min(Math.abs(meant - carAcross), moving * arrival + .5 * RIVAL_RACING.followAcross * arrival * arrival);
     // Alongside, the corridor is the cars' own width: matching the speed of a car 2.5 m beside this one is not a way
@@ -943,7 +957,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // let go, where held to this it stayed stopped until the unseen reset (gen-67, the old rule passed it at 34 mph).
     const corridor = RIVAL_RACING.followCorridor + RIVAL_RACING.followMargin * Math.min(1, arrival);
     const stillInPath = RIVAL_RACING.followWhereItIs && follows && car.speed - along > RIVAL_RACING.followClosing && Math.abs(sideAtArrival - willBe) < corridor;
-    if (ahead>0 && ((Math.abs(offRoute-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
+    if (ahead>0 && ((Math.abs(there-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;

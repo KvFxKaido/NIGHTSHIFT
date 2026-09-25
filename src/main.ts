@@ -56,7 +56,7 @@ import { authoredSprintFor } from "./sim/authored-sprints.ts";
 import { alderCourseDraws } from "./sim/alder-course.ts";
 import { recordedEvent, type RecordedEvent } from "./sim/recorded-event.ts";
 import { BLACKLIST_CRUISERS, cruiserFor } from "./sim/alder-cruisers.ts";
-import { circuitEvent, type CircuitEvent } from "./sim/circuits.ts";
+import { circuitEvent, circuitVenue, type CircuitEvent } from "./sim/circuits.ts";
 import { withExits } from "./sim/rival.ts";
 import { NO_RIVAL, rivalRevision } from "./sim/rival-revision.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
@@ -66,6 +66,9 @@ import { snapToLane, encodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import type { RoadWorld } from "./sim/road-world.ts";
 import { addAlder } from "./render/alder.ts";
+import { STADIUM, STADIUM_GATES, STADIUM_WALL_LINES, createStadiumWorld, stadiumGate, stadiumGateAt, type StadiumGate } from "./sim/stadium.ts";
+import { addStadium, addStadiumMarkers } from "./render/stadium.ts";
+import { STADIUM_LAYOUT_IDS, stadiumLap } from "./sim/stadium-circuits.ts";
 import { canEnterGarage } from "./sim/garage.ts";
 import { createMenuController } from "./ui/menu.ts";
 import { createOptionRow, rowAt } from "./ui/menu-rows.ts";
@@ -125,6 +128,13 @@ let recorded: RecordedEvent | null = null;
 let raceStartCode: string | null = null;
 /** A generated race or Sound to Sky raced with nobody: `?solo=1`. Circuits carry solo in their race id. */
 let solo = false;
+/**
+ * In the stadium venue (src/sim/stadium.ts), not the city: `?venue=stadium` for its free drive, and Sable's drift,
+ * which runs there. `?gate=` names the gate a car came through, so it arrives at that gate's side: the venue's
+ * inside with `venue`, the city's outside without it.
+ */
+let venue = false;
+let arrivedBy: StadiumGate | null = null;
 let lighting: DistrictLighting = "night";
 /** Draw between the last two ticks rather than at the last; `?smooth=0` turns it off. */
 let smooth = true;
@@ -141,7 +151,7 @@ try {
   const params = url.searchParams;
   if (requestedSave !== null) {
     // A slot is authoritative over preview links and always resumes free roam.
-    for (const key of ["race", "car", "unlock", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit"]) params.delete(key);
+    for (const key of ["race", "car", "unlock", "drivetrain", "paint", "wheels", "stance", "drive", "freeze", "visit", "venue", "gate"]) params.delete(key);
     if (!loadedSave) { params.delete("save"); params.delete("scene"); }
   }
   // Old bookmarks now enter the Port Alder demo; incompatible routes are retired.
@@ -203,6 +213,13 @@ try {
     if (solo) { race = withExits(race!, rival!); rival = null; }
     else { params.delete("solo"); history.replaceState(history.state, "", url); }
   }
+  // The venue: its free drive by name; Sable's drift and the stadium circuits because that is where they run. Its
+  // races say so themselves, so any race drops a stray ?venue=, and a gate that is not one is dropped too.
+  if (params.has("venue") && (params.get("venue") !== STADIUM.id || race)) params.delete("venue");
+  if (params.has("gate") && (!stadiumGate(params.get("gate")) || race)) params.delete("gate");
+  history.replaceState(history.state, "", url);
+  venue = race ? race.kind === "drift" || (circuit !== null && circuitVenue(circuit) === "stadium") : params.get("venue") === STADIUM.id;
+  arrivedBy = stadiumGate(params.get("gate"));
   const requested = params.get("lighting") ?? "night";
   if (requested !== "night" && requested !== "blockout") throw new Error(`Unknown lighting '${requested}'`);
   lighting = requested;
@@ -246,10 +263,11 @@ try {
     : await loadBlenderCar(new URL(BLENDER_CARS[model].path, document.baseURI).href, model);
   {
     const opponent = raceOpponentCar();
-    // A solo run has nobody to draw.
-    if (!circuit?.solo && !solo && (race || !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
-    if (!race && onTheStreets(RIVET.id)) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
-    if (!race) await Promise.all(streetCruisers.map(async cruiser => {
+    // A solo run has nobody to draw, and neither does a drift, where Sable is parked. The venue's free drive has
+    // only her: Moth, Rivet and the cruisers are on the streets.
+    if (!circuit?.solo && !solo && (race ? race.kind !== "drift" : !venue && !progress.get().mothBeaten)) rivalParts = await loadBlenderCar(new URL(BLENDER_CARS[opponent].path, document.baseURI).href, opponent);
+    if (!race && !venue && onTheStreets(RIVET.id)) rivetParts = await loadBlenderCar(new URL(BLENDER_CARS.hammer.path, document.baseURI).href, "hammer");
+    if (!race && !venue) await Promise.all(streetCruisers.map(async cruiser => {
       const car = cruiser.car as keyof typeof BLENDER_CARS;
       cruiserParts.set(cruiser.id, await loadBlenderCar(new URL(BLENDER_CARS[car].path, document.baseURI).href, car));
     }));
@@ -270,14 +288,19 @@ if (loadedSave && progress.preserveLegacyOwnership()) {
   settings.update({ car: restored.car, customization: loadedSave.build.customization, forCar: loadedSave.build.car });
 }
 const controls = createControlsPanel(input);
-const visiting = !race ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
+const visiting = !race && !venue ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
 // Development arrival shortcut: start inside the arena so its scale can be judged
 // from the car. Normal drives, saves, visits and races retain their own starts.
-const yardShellStart = import.meta.env?.DEV && !race && !visiting && !loadedSave
+const yardShellStart = import.meta.env?.DEV && !race && !venue && !visiting && !loadedSave
   && new URLSearchParams(location.search).get("yardShell") === "1"
   ? { x: -730, z: 1040, y: 2, heading: Math.PI / 2, pitch: 0 } : undefined;
-const roadWorld = createAlderWorld(!!race || !!visiting || !!yardShellStart, raceStart ?? (visiting
-  ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : yardShellStart));
+/** Out of the venue by a gate: the city, outside it, facing away. */
+const cityArrival = !race && !venue && !loadedSave ? arrivedBy?.city.leave : undefined;
+/** Until the drive's first leave of the garage, which a link's look passes through, the car belongs at that gate. */
+let arrivalPending = !!cityArrival;
+const roadWorld = venue ? createStadiumWorld(raceStart ?? (arrivedBy ?? STADIUM_GATES[0]).venue.arrive)
+  : createAlderWorld(!!race || !!visiting || !!yardShellStart || !!cityArrival, raceStart ?? (visiting
+    ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : yardShellStart ?? cityArrival));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const pedalAssist = requestedAssist ?? defaultPedalAssist(race);
@@ -291,14 +314,15 @@ function attemptTrafficSeed(): number {
   return requestedTrafficSeed ?? (crypto.getRandomValues(new Uint32Array(1))[0]! || 1);
 }
 const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, trafficSeed: attemptTrafficSeed(), race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
+  : venue ? { pedalAssist, parkedRivals: [SABLE].filter(parked => onTheStreets(parked.id)) }
   : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
-  roadWorld, lighting, sim.state.traffic, scene => addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
+  roadWorld, lighting, sim.state.traffic, scene => venue ? addStadium(scene, lighting) : addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
 if (drawnEffects()) view.celSmoke = addCelSmoke(view.scene);
-view.grass = addGrass(view.scene, roadWorld);
+if (!venue) view.grass = addGrass(view.scene, roadWorld);
 if (rivalParts) setRivalCar(view, rivalParts);
 if (rivetParts) setParkedRivalCar(view, RIVET.id, rivetParts);
 for (const [id, parts] of cruiserParts) setParkedRivalCar(view, id, parts);
@@ -308,25 +332,44 @@ if (sableParts) {
   // It was teal only so it could not be mistaken for the car the player drove.
   setParkedRivalCar(view, SABLE.id, sableParts);
 }
-const driftYardView = addDriftYard(view.scene, lighting === "night");
-await addWharfArena(view.scene);
+// In the venue her marks are painted for her event only: its free drive and circuits race on a clear floor.
+const driftYardView = addDriftYard(view.scene, lighting === "night", venue, !venue || race?.kind === "drift");
+await addWharfArena(view.scene, venue ? "closed" : "open");
+// The city's side of the venue's gates: where to stop to go in.
+if (!venue) addStadiumMarkers(view.scene, "city");
 const dragStripView = race?.drag ? addDragStrip(view.scene, race.drag, alderHeight) : null;
-document.body.dataset.world = "alder";
-document.title = "NIGHTSHIFT — Port Alder";
+document.body.dataset.world = venue ? STADIUM.id : "alder";
+document.title = venue ? `NIGHTSHIFT — ${STADIUM.name}` : "NIGHTSHIFT — Port Alder";
 document.querySelector("#brand > span")!.textContent = "NIGHTSHIFT / PORT ALDER";
-document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race ? `Port Alder / ${race.name}` : "Port Alder / Free roam";
-document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : "Return to garage";
-const gameMap = createGameMap(sim);
+const placeName = venue ? STADIUM.name : "Port Alder";
+// A venue's races carry its name already ("Wharf Arena / Full"), and are not given it twice.
+document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent = race
+  ? (race.name.startsWith(`${placeName} /`) ? race.name : `${placeName} / ${race.name}`) : venue ? `${placeName} / Free drive` : "Port Alder / Free roam";
+// A reset puts the car back where the drive began, which after a gate is that gate.
+document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : venue || cityArrival ? "Back to the gate" : "Return to garage";
+// In the venue the map is the venue's, and says so.
+const gameMap = createGameMap(sim, venue ? "stadium" : null);
+if (venue) {
+  document.querySelector('[data-menu-screen="map"] .menu-kicker')!.textContent = `${STADIUM.name} / Venue map`;
+  document.getElementById("city-map")!.setAttribute("aria-label", `${STADIUM.name}: its walls, circuits and gates, your position, rival and active race checkpoints`);
+  document.querySelectorAll<HTMLElement>("[data-district-map]").forEach(button => { button.textContent = `${STADIUM.name} map`; });
+  document.querySelectorAll<HTMLElement>(".city-map-footer .map-navigation").forEach(key => { key.textContent = "Gates"; });
+  document.querySelectorAll<HTMLElement>('[data-map-view="all"]').forEach(button => { button.textContent = "Whole arena"; });
+}
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
 const deviceElement = document.getElementById("device")!;
 const telemetryElement = document.getElementById("telemetry")!;
 const performanceOverlay = createPerformanceOverlay();
-const hudPolylines: HudPolyline[] = ALDER_STREETS.map(street => ({ points: street.points }));
+// In the venue the minimap draws its walls rather than the streets beyond them, and there is no garage to point at.
+const hudPolylines: HudPolyline[] = venue
+  ? [...STADIUM_WALL_LINES.slice(0, 2).map(line => ({ points: line })),
+    ...STADIUM_LAYOUT_IDS.map(id => ({ points: [...stadiumLap(id).points, stadiumLap(id).points[0]!] }))]
+  : ALDER_STREETS.map(street => ({ points: street.points }));
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
-for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
-const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: ALDER_GARAGE.entrance });
+if (!venue) for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
+const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: venue ? undefined : ALDER_GARAGE.entrance });
 // Every car has its own customization (settings schema 4). `lookFor` is any car's: what this session made it, then a
 // loaded slot's for that slot's car, then what was saved for it, then the factory's. `customization` is the selected
 // car's, the one the garage's rows edit.
@@ -777,10 +820,16 @@ const menu = createMenuController({
     if (screen === "races") raceList.render();
     if (screen === "blacklist") blacklistPanel.render();
     if (screen === "playing" && from === "garage" && !race) {
-      leaveGarage(sim, ALDER_GARAGE_EXIT);
+      // A link carrying a look passes through the garage to set it (debug.ts, applyDeepLink), so a drive that
+      // arrived through a venue gate leaves it once for that gate. The garage is in the city: out of it in the
+      // venue is always back at the gate the drive came in by.
+      leaveGarage(sim, venue || arrivalPending ? roadWorld.start : ALDER_GARAGE_EXIT);
       previousPoses = null;
       resetViewCamera(view);
     }
+    // The arrival is the drive's first start, whichever way it reached the track: a link without a look goes
+    // straight there and never through the garage, and a later visit to the garage must leave by its shutter.
+    if (screen === "playing") arrivalPending = false;
     setViewMode(view, screen === "garage" ? "garage" : screen === "main" ? "main" : "track");
     if (screen === "garage" && from !== "garage") beginGarageShot("enter");
     else if (screen === "playing" && (from === "garage" || from === "main")
@@ -840,9 +889,18 @@ for (const event of ["pointerdown", "keydown"] as const) {
 }
 
 const garagePrompt = document.getElementById("garage-entry") as HTMLButtonElement;
-const garageAvailable = () => canEnterGarage(ALDER_GARAGE, sim.state.vehicle, sim.state.race !== null);
+const garageAvailable = () => !venue && canEnterGarage(ALDER_GARAGE, sim.state.vehicle, sim.state.race !== null);
+/** The venue gate whose marker the car is stopped at, on this side of it. The same prompt as the garage shutter's. */
+const gateHere = () => stadiumGateAt(venue ? "venue" : "city", sim.state.vehicle, sim.state.race !== null);
+/** Through a gate: into the venue's free drive, or out of it to the city, arriving at the same gate's other side. */
+function crossGate(gate: StadiumGate): void {
+  loadDrive(null, "track", null, false, { venue: !venue, gate });
+}
 garagePrompt.addEventListener("click", () => {
-  if (!view.garageCutscene && menu.isGameplayActive() && garageAvailable()) menu.enterGarage();
+  if (view.garageCutscene || !menu.isGameplayActive()) return;
+  const gate = gateHere();
+  if (gate) crossGate(gate);
+  else if (garageAvailable()) menu.enterGarage();
 });
 
 const rivalPrompt = document.getElementById("rival-challenge") as HTMLButtonElement;
@@ -873,8 +931,12 @@ const challengeTarget = () => nearbyChallenge(sim.state.vehicle, sim.state.encou
 const flashLabel = () => input.activeGamepadName()
   ? padLabel(input.bindings().gamepad.flash, input.activeGamepadName())
   : keyLabel(input.bindings().keyboard.flash);
-function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null, soloRace = false): void {
+/** Where a drive with no race lands: the venue's free drive, and the gate a car came through (either side). */
+type Place = { readonly venue: boolean; readonly gate?: StadiumGate };
+function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", start: string | null = null, soloRace = false, place?: Place): void {
   const url = new URL(location.href);
+  if (place?.venue) url.searchParams.set("venue", STADIUM.id); else url.searchParams.delete("venue");
+  if (place?.gate) url.searchParams.set("gate", place.gate.id); else url.searchParams.delete("gate");
   if (soloRace) url.searchParams.set("solo", "1"); else url.searchParams.delete("solo");
   if (raceId) url.searchParams.set("race", raceId); else url.searchParams.delete("race");
   if (raceId?.startsWith("gen-")) {
@@ -903,7 +965,7 @@ let districtShown: string | null = null;
  *  only: a race's readout sits where it would. */
 function updateDistrictName(frameDelta: number, driving: boolean): void {
   const here = alderNeighbourhoodAt(sim.state.vehicle.x, sim.state.vehicle.z)?.id ?? null;
-  const named = driving && !race ? districtBanner.update(here, frameDelta) : null;
+  const named = driving && !race && !venue ? districtBanner.update(here, frameDelta) : null;
   if (named === districtShown) return;
   if (named) districtName.querySelector("strong")!.textContent = ALDER_NEIGHBOURHOODS.find(n => n.id === named)!.name;
   districtName.classList.toggle("shown", named !== null);
@@ -1094,6 +1156,8 @@ function frame(now: number): void {
     ? `Skip · ${padLabel(0, input.activeGamepadName())} / Enter / Esc` : "Skip · Enter / Esc";
   if (view.garageCutscene) {
     if (commands.some(command => command === "confirm" || command === "back" || command === "pause")) finishGarageShot();
+  } else if (menu.isGameplayActive() && gateHere() && commands.some(command => command === "interact" || command === "confirm")) {
+    crossGate(gateHere()!);
   } else if (menu.isGameplayActive() && garageAvailable() && commands.some(command => command === "interact" || command === "confirm")) {
     menu.enterGarage();
   } else if (!liveryEditor.handleBack(commands)) menu.handleCommands(commands);
@@ -1116,10 +1180,12 @@ function frame(now: number): void {
     const copy = cardCopy(careerCard(contact), challengePending, flashLabel());
     showRivalCard(challengeNotice ? { ...copy, action: challengeNotice } : copy);
   }
-  garagePrompt.hidden = !gameplayActive || !garageAvailable() || !rivalPrompt.hidden;
+  const gate = gateHere();
+  garagePrompt.hidden = !gameplayActive || !(gate || garageAvailable()) || !rivalPrompt.hidden;
   updateFlash(frameDelta, gameplayActive);
   updateDistrictName(frameDelta, gameplayActive && !frozen);
-  garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · Enter Wharf Garage` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · Enter Wharf Garage`;
+  const destination = gate ? (venue ? `Leave by the ${gate.name.toLowerCase()}` : `Enter ${STADIUM.name}`) : "Enter Wharf Garage";
+  garagePrompt.textContent = input.activeGamepadName() ? `${padLabel(0, input.activeGamepadName())} · ${destination}` : `${keyLabel(input.bindings().keyboard.interact)} / Enter · ${destination}`;
   const resetRequested = input.consumeReset();
   const cameraResetRequested = input.consumeCameraReset();
   const cameraCycleRequested = input.consumeCameraCycle();
@@ -1295,7 +1361,8 @@ function saveRaceReward(result: CareerResult): void {
 retryReward.addEventListener("click", () => { if (pendingReward) saveRaceReward(pendingReward); });
 document.querySelectorAll<HTMLButtonElement>("[data-free-roam]").forEach(button => {
   button.hidden = !race;
-  button.addEventListener("click", () => loadDrive(null));
+  // Free roam after a race is where the race was: the venue's free drive after one run there.
+  button.addEventListener("click", () => loadDrive(null, "track", null, false, venue ? { venue: true } : undefined));
 });
 document.querySelector<HTMLButtonElement>("[data-race-garage]")!.addEventListener("click", () => loadDrive(null, "garage"));
 

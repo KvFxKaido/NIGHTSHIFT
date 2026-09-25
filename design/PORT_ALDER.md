@@ -3154,7 +3154,7 @@ else came is the same kind: gen-38 at seed 1 spun onto the verge by an oncoming 
 pavement 23 ticks, its aim never left the lane), and a 5 to 9 mph nudge on gen-66 counted as on a line for 7 ticks.
 The junction's crossing car is the problem parked on 2026-09-23; this change neither caused it nor fixes it.
 
-## What a committed pass costs (2026-09-25, `pass-v4`, `traffic-v12`)
+## What a committed pass costs (2026-09-25, `pass-v4`, `pass-v5`, `traffic-v12`)
 
 At `traffic-v11` the pass planner came out 9.7 s behind the reactive driver over the 12 seed-0 races that commit a pass,
 where at v10 it had been 9.7 s ahead over 17. Read pass by pass (each race's time over its own pass, planned against
@@ -3173,12 +3173,114 @@ v11's timing took those away. What the passes themselves showed:
   plan's speed at the moment it is made came out 35 mph, braking the car from 46, when every re-read of the same path
   from 0.2 s later allows 86 and more.
 
+  Probed the same day (`pass-v4`, seed 0; neither cause is the pass's own path, which moves 0.63 m across and is
+  all but straight). The pass is committed at 3399 m, 46 mph, coming out of a corner behind and beside a van (#29)
+  accelerating out of it at 28 mph. `evaluatePass` reads each sample's radius through points 6 m either side, and
+  the first sample is the car itself: its point behind lies on the lane's corner arc, where the road turns 18.6
+  degrees in those 6 m, so it reads a 27 m radius and caps the plan at 35 mph for a corner already driven. The next
+  sample reads 177 m, and the re-reads from 4 m on give 78 mph, then 90. The rival's own speed plan in `rival.ts`
+  reads 8 m behind at its first samples too, but brakes on the sample 8 m ahead, which does not see them (about 100
+  mph throughout). Then the in-pass emergency check (the body-relative one inside `if (pass)` in `rivalInput`) held
+  it at the van's speed plus its margin, 34 to 35 mph, for 0.6 s more: in the road's frame the van was 4.0 to 2.9 m
+  across, the gap the pass was planned with, but the car was still yawed from the corner, and in its body frame the
+  van was 2.0 to 2.6 m across, inside the check's 2.6. It let go at the tick that read 2.64. The first is fixed in
+  `pass-v5` (below). The second was not a misreading, as it turned out, and a change of frame for it was built,
+  measured and not shipped (below).
+
 `pass-v4` on the six-seed gate against `traffic-v12`: 449 of 498 races identical, time level (46,457 to 46,458 s),
 distinct incidents 55 to 55, contact in a pass still none, off the pavement 293 to 206 ticks, resets 34 to 32. Two races
 moved much: gen-75 at seed 1000 10.9 s quicker and back on the pavement, and gen-15 at seed 271828 17.8 s slower,
 hit by an oncoming taxi 390 m after its pass while it sat 1.3 m left of centre going round a van standing at a bar. That
 last is the driver's, not the pass's: a car standing at a bar just off its line, which it reads as clear, as it read the
 SUV at 110 mph in the v11 gate.
+
+`pass-v5` (the same day): a pass's speed plan reads no road behind the car. The point behind each sample stops at the
+car (`evaluatePass`); three points on a path give its circle at any spacing, so the first sample has no limit of its own
+and the rest read only road ahead. On the six-seed gate against `pass-v4`: 455 of 498 races identical, 17 s quicker
+(46,458 to 46,441), distinct incidents 55 to 56, contact in a pass still none, off the pavement 206 to 153 ticks, resets
+32 to 32. gen-81 itself is only 0.2 s quicker: the cap at the commit cost it one re-read of hard braking, and its 0.6 s
+at the van's speed is the emergency check's, the second cause above. The two races that moved much went back to what
+they did at `traffic-v12`, before `pass-v4`: gen-15 at seed 271828 18.0 s quicker and back on the pavement, with v12's
+contact again (the oncoming taxi at 3889 m, 106 mph, braking from 128); gen-51 at seed 314159 6.5 s slower, with v12's
+two recoveries out of sight. In all three versions each race's pass is the same pass, at the same tick with the same
+stations; what follows it is the gate's noise band. The one new incident is gen-15's, which v12 had.
+
+The emergency check's frame, tried and not shipped (the same day). Two readings of another car were built in place of
+the nose for a car on its pass path. Against the path alone: a car lagging its rejoin by up to 0.9 m on an oncoming
+taxi's side read the taxi 3.2 m across when it was 2.3 from where the car would be, and met it at 115 mph (gen-71, seed
+42, the gate's only contact in a pass). Against the path plus the car's present error from it: no contact in a pass,
+but the gate went the wrong way (35 s slower, distinct incidents 56 to 59, all of them outside passes), and measured
+pass by pass, each race run with both checks, over the 64 passes that began identically at seeds 0 and 1 it held the
+car below its speed for 2,142 ticks against the nose's 1,868 and took 265.6 s to the passes' ends against 260.8. Of the
+25 that differ, 24 were slower, gen-81 among them. The nose had not misread gen-81: coming out of the corner the car was
+closing on its path, towards the van, at 2.2 m/s across, and it went by 2.56 m from the van's centre, inside the check's
+2.6. A car lags a path that swings, so reading it where it will be if it keeps its error puts it on the passed car's
+side through every pull-out, where the nose already points out. What gen-81 shows instead is a pass planned 2.9 m from
+the car it passes, a check that lets it alone only past 2.6, and a van drifting 0.3 m into that accelerating out of a
+corner.
+
+## A car beside its line (2026-09-25, `driver-v6`, `driver-v7`)
+
+The car standing at a bar just off the rival's line, which the v11 gate met at 110 mph (gen-19, seed 1000,
+`design/INTERSECTIONS.md`), was not misread. An SUV stood at a bar in the outer lane, 5.6 m across the road, and the
+rival rested at 1.1, 4.5 m clear of it. The traffic loop's same-direction branch gives any car going its way within 5 m
+of the rival two sides to be passed on, 3.2 m (`PASS.gap`) either side of it, and set the aim to the one nearer the
+rival's line: here 2.4 m, the other clamped off the road. So it moved the rival 1.3 m TOWARDS a car it was already clear
+of, to pass it at 3.2. At 105 mph it ran 1.25 m past that aim, and the will-be check (`willBe`) read it as clear: it
+never credits a car past where it means to be with moving further out. It hit the SUV at 110 mph.
+
+`driver-v6`: a car going its way is dodged only when it is nearer where the rival means to be than the gap; further off
+it is left alone, and the will-be check reads the rival as meaning to be where it was (`dodge` in `rivalInput`). gen-19
+now goes by the SUV with no contact. On the six-seed gate against `pass-v5`: 298 of 498 races moved (the rival had
+been drawn towards cars in the next lane all over the map), distinct incidents 56 to 41, races with contact 76 to 63,
+contact 1,453 to 1,083 ticks, 123 s quicker, resets 32 to 28, contact in a pass none, contact on a line 27 to 43 ticks,
+off the pavement 153 to 328 ticks. The off-pavement rise is four events in seven rows (one course shared by four races
+at seed 1000), each a swerve round an oncoming box truck turning across a junction, ending off the shoulder at walking
+pace and put back out of sight: arrival times the change moved, into a kind it does not touch. Codex reviewed the
+change: a traffic car 3.2 to 5 m off no longer cancels a block of the player (`blocking`), which the gate, with the
+player parked, cannot see; a race against the player can.
+
+What the same race shows after the fix, not fixed: the rival still runs 1.8 m wide of its aim there at 100 to 112 mph,
+and clears the SUV by 2.6 m centre to centre, where the will-be check credits a car past its aim with moving back to
+it. Carrying its outward motion on with `followAcross`'s 2 m/s^2 (Codex's proposal) brakes it for 0.2 s at 100 mph there:
+it reads the car 3.40 m across where it stopped at 2.95, since the car took the drift out at about 3 m/s^2. So it is
+0.45 m pessimistic, against a rule honest to 0.2, on a pass that cleared; not shipped.
+
+Uptown Circuit at seed 1000, the new 117 mph contact, is not the rival running wide (a first reading of it said so): the
+rival drifted 0.35 m, and a box truck in the left lane came 1.2 m across the road towards it in the last second, most
+likely still finishing its turn onto the road (traffic changes no lanes). When the dodge judged it, the truck was 3.8 m
+from where the rival meant to be, past the gap, and it was left alone; at arrival it would be 2.5 m, inside it. The
+dodge reads a car where it IS, `offRoute`, for whether it is in the way and for which sides it offers, where the
+will-be check reads it where it will be, `sideAtArrival`. The same reading chose sides before `driver-v6` too: the one
+it offered here, 3.2 m right of where the truck was, was 1.9 m from where it would be.
+
+`driver-v7` (the same day): the dodge reads a car going its way where it will be when the rival is alongside (`there`,
+as far on as `alongside`'s 4 s), for whether it is in the way, the sides it offers and whether there is none, as the
+crossing branch always has. Uptown at seed 1000 goes clean. On the gate against `driver-v6`: 164 of 498 races moved,
+42 s quicker, distinct incidents 41 to 40, resets 28 to 26, contact on a line 43 to 31 ticks, none in a pass; contact
+1,083 to 1,497 ticks, most of it one pile-up on the grid at seed 271828 at 9 mph, shared by 16 races, that moved by a
+second; off the pavement 328 to 391 (gen-78 at seed 42, which already had its reset). Gone at speed: Uptown's 117 and
+105 mph, gen-51 at 89, gen-70 at 90, gen-75 at 89. New at speed: three oncoming vans and box trucks at 70 to 90 mph, a
+branch this does not touch, and gen-1 at seed 1000, clipped at 128 mph by an SUV merging across at 37 mph. The reading
+put that SUV within 0.1 m of where it came, the dodge aimed 3.2 m clear of it, and the car was still 0.9 m short of its
+aim when it drew level, with the SUV's nose turned 7 degrees into its flank. That and gen-19 running 1.8 m wide are the
+rival not reaching its own line above 120 mph, which no reading of traffic mends. The gate also dithers at its own
+edge: at exactly 3.2 m it lets the line go and takes it back the next tick, which holds it to 0.07 m.
+
+Slowing for the reach, tried and not shipped (the same day). How fast the rival gets across when its dodge steps the
+aim was measured: the Cinder on its own controller, a straight 22 m road, the aim stepped 2.2 m, a car in its way at
+its own speed. It does not move at all for a while, then goes at a steady rate, both slower the faster it is going:
+0.5, 1, 1.5 and 2 m across in 0.77, 0.98, 1.18 and 1.38 s at 54 mph; 1.03, 1.33, 1.62 and 1.88 s at 125; 1.07, 1.38,
+1.67 and 1.93 s at 136. Fitted, in m/s of speed: a wait of 0.42 + 0.0059 v seconds, then 0.30 + 0.0045 v seconds a
+metre, within 0.02 s of every point. The will-be check's credit of 2 m/s^2 is optimistic at speed by that much.
+`driver-v8` slowed the rival, going round a car in its way, to arrive no sooner than that reach took it clear (both
+half-widths, the other car's nose turned across it, 0.4 m). gen-1 at seed 1000 went round the merging SUV without
+contact, braking from 120 mph to 65 and then passing, and the gate against `driver-v7` lost: distinct incidents 40 to
+49, 57 s slower, resets 26 to 28, and a contact in a pass (gen-75 at seed 271828, a race whose timing moved; the rule
+does not run in a pass). The new incidents are slow ones among traffic: creeping into a standing SUV at 3 mph after
+braking from 100 (gen-15, seed 1000), into the back of a box truck at 3 mph (gen-58, seed 314159), side-swiped by a box
+truck at 52 mph (gen-46, seed 1). As the gap closes the cap falls towards the other car's speed, and a rival held there
+spends longer among traffic than one that went by. The reach is measured and right; speed is not the lever for it.
 
 ## Corner dressing trial (2026-09-21)
 

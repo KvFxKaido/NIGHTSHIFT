@@ -75,7 +75,10 @@ export function evaluatePass(route: RivalDefinition, pass: TrafficPass, car: Veh
   const end = Math.min(route.along.at(-1)!, pass.to + Math.min(120, car.speed * TRAFFIC_PASS.settle));
   for (let at = along; at <= end + TRAFFIC_PASS.spacing; at += TRAFFIC_PASS.spacing) {
     const p = passingPoint(route, pass, Math.min(at, end));
-    const a = passingPoint(route, pass, at - 6), b = passingPoint(route, pass, at + 6);
+    // Never through road already driven (pass-v5, 2026-09-25): three points on a path give its circle at any spacing, so
+    // the point behind stops at the car. Committed just out of a corner, the first sample read the arc it had left, 27 m,
+    // and capped the plan at 35 mph from 46 while every re-read from 4 m on allowed 78 and more (gen-81, seed 0).
+    const a = passingPoint(route, pass, Math.max(along, at - 6)), b = passingPoint(route, pass, at + 6);
     const chord = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / chord, uz = (b.z - a.z) / chord;
     const ab = Math.hypot(p.x - a.x, p.z - a.z), bc = Math.hypot(b.x - p.x, b.z - p.z);
     const cross = Math.abs((p.x - a.x) * (b.z - a.z) - (p.z - a.z) * (b.x - a.x));

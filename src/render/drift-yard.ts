@@ -3,7 +3,10 @@ import { asphaltMaterial } from "./asphalt.ts";
 import { SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
-export function addDriftYard(scene: THREE.Scene, night: boolean) {
+/** `venue`: the yard as the stadium venue holds it (src/sim/stadium.ts): Sable's apron paved and nothing standing on
+ *  it, since the venue holds no props, and the Harbor Way gate, its approach and the driveway on the city's side of
+ *  its unbroken wall. `markings`: her line's arrows and numbered zones, which the venue paints only for her event. */
+export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false, markings = true) {
   const group = new THREE.Group(); group.name = "south-wharf-drift-yard"; scene.add(group);
   const material = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: .85 });
   function box(name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: THREE.Material) {
@@ -16,8 +19,9 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   asphalt.polygonOffset = true; asphalt.polygonOffsetFactor = -3; asphalt.polygonOffsetUnits = -3;
   // The whole site is paved now, not just the old lot: the two rectangles the
   // fence encloses, plus the driveway that reaches it.
-  for (const [name, rect] of [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const),
-    ["access-road", entry] as const]) {
+  const paved = venue ? [["pad", DRIFT_YARD.bounds] as const]
+    : [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const), ["access-road", entry] as const];
+  for (const [name, rect] of paved) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(rect.maxX - rect.minX, rect.maxZ - rect.minZ), asphalt);
     mesh.name = `drift-yard-${name}`; mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((rect.minX + rect.maxX) / 2, DRIFT_YARD.base + .035, (rect.minZ + rect.maxZ) / 2);
@@ -33,7 +37,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   const dark = material(0x26333d), trim = material(0x7c929b);
   const yellow = new THREE.MeshBasicMaterial({ color: 0xe7b15a });
   const teal = new THREE.MeshBasicMaterial({ color: 0x73e7d0 });
-  for (const s of YARD_STRUCTURES) {
+  for (const s of venue ? [] : YARD_STRUCTURES) {
     box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
     if (s.id === "warehouse") {
       box("warehouse-roof", s.x, 14.15, s.z, s.width + 1, .3, s.depth + 1, dark);
@@ -60,38 +64,41 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   }
   // The east gate on Harbor Way. The garage exit faces it down z = 910, so this
   // is what the game shows a player who has just pressed New Drive.
-  for (const s of GATE_STRUCTURES)
-    box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
-  label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
-    YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
-  for (const z of YARD_GATE.postZ) {
-    const top = DRIFT_YARD.base + YARD_GATE.postHeight;
-    // Sat on the post the way the apron's floods are, not hung beside it.
-    box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
-    box("gate-floodlight-mount", YARD_GATE.x, top - .35, z, .5, .7, .5, material(0x526775));
-    if (night) {
-      const light = new THREE.PointLight(0xc2def0, 70, 58, 1.4);
-      light.position.set(YARD_GATE.x - 2, top - 1.4, z); group.add(light);
+  if (!venue) addGate();
+  function addGate(): void {
+    for (const s of GATE_STRUCTURES)
+      box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
+    label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
+      YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
+    for (const z of YARD_GATE.postZ) {
+      const top = DRIFT_YARD.base + YARD_GATE.postHeight;
+      // Sat on the post the way the apron's floods are, not hung beside it.
+      box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
+      box("gate-floodlight-mount", YARD_GATE.x, top - .35, z, .5, .7, .5, material(0x526775));
+      if (night) {
+        const light = new THREE.PointLight(0xc2def0, 70, 58, 1.4);
+        light.position.set(YARD_GATE.x - 2, top - 1.4, z); group.add(light);
+      }
     }
-  }
-  // Lit means occupied: the gatehouse is how the player knows the meet is on.
-  const boothWindow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1),
-    new THREE.MeshStandardMaterial({ color: night ? 0xffd9a0 : 0x2a333b, emissive: night ? 0xffa94d : 0x000000, emissiveIntensity: night ? 1.1 : 0 }));
-  boothWindow.name = "gate-booth-window";
-  boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
-  boothWindow.rotation.y = Math.PI / 2;
-  group.add(boothWindow);
+    // Lit means occupied: the gatehouse is how the player knows the meet is on.
+    const boothWindow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1),
+      new THREE.MeshStandardMaterial({ color: night ? 0xffd9a0 : 0x2a333b, emissive: night ? 0xffa94d : 0x000000, emissiveIntensity: night ? 1.1 : 0 }));
+    boothWindow.name = "gate-booth-window";
+    boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
+    boothWindow.rotation.y = Math.PI / 2;
+    group.add(boothWindow);
 
-  // The street gate faces west; these sparse approach marks lead southwest
-  // through the shell's diagonal portal before the open arena floor.
-  for (let distance = 30; distance < 185; distance += 18) {
-    const mark = box("arena-entry-guide", YARD_GATE.x - Math.cos(.52) * distance,
-      DRIFT_YARD.base + .065, YARD_GATE.z + Math.sin(.52) * distance, 5, .015, .22, yellow);
-    mark.rotation.y = .52;
+    // The street gate faces west; these sparse approach marks lead southwest
+    // through the shell's diagonal portal before the open arena floor.
+    for (let distance = 30; distance < 185; distance += 18) {
+      const mark = box("arena-entry-guide", YARD_GATE.x - Math.cos(.52) * distance,
+        DRIFT_YARD.base + .065, YARD_GATE.z + Math.sin(.52) * distance, 5, .015, .22, yellow);
+      mark.rotation.y = .52;
+    }
   }
 
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.
-  for (let i = 1; i < YARD_LINE.length; i++) {
+  for (let i = 1; markings && i < YARD_LINE.length; i++) {
     const a = YARD_LINE[i - 1]!, p = YARD_LINE[i]!;
     const dx = p.x - a.x, dz = p.z - a.z, length = Math.hypot(dx, dz);
     for (let distance = 12; distance < length; distance += 22) {
@@ -103,7 +110,7 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     }
   }
   // Numbered ground targets remain visible for free-roam practice.
-  const rings = DRIFT_ZONES.map((zone, index) => {
+  const rings = (markings ? DRIFT_ZONES : []).map((zone, index) => {
     const mat = new THREE.MeshBasicMaterial({ color: 0x69c9bf, transparent: true, opacity: .35, depthWrite: false });
     const ring = new THREE.Mesh(new THREE.RingGeometry(zone.radius - .45, zone.radius, 48), mat);
     ring.name = `drift-zone-${zone.id}`; ring.rotation.x = -Math.PI / 2; ring.position.set(zone.x, 2.075, zone.z); group.add(ring);
@@ -120,7 +127,8 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
     mesh.name = `yard-sign-${text}`; mesh.position.set(x, y, z); if (flat) mesh.rotation.set(-Math.PI / 2, 0, Math.PI); else mesh.rotation.y = yaw; group.add(mesh);
   }
-  label("SABLE / CLIP. LINK. BANK.", -515, 11, 1019.8, 48, 5);
+  // On the warehouse's face, so only where the warehouse stands.
+  if (!venue) label("SABLE / CLIP. LINK. BANK.", -515, 11, 1019.8, 48, 5);
   return { update(race: RaceState | null) {
     rings.forEach((ring, i) => {
       const active = race?.drift?.nextZone === i && !race.finished;

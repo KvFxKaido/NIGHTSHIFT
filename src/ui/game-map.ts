@@ -7,9 +7,20 @@ import landmarks from "../sim/alder-landmarks.json" with { type: "json" };
 import type { Sim } from "../sim/sim.ts";
 import { ALDER_NEIGHBOURHOODS } from "../sim/alder-neighbourhoods.ts";
 import { keepReadable, readable } from "./map-labels.ts";
+import { STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_WALL_LINES } from "../sim/stadium.ts";
+import { STADIUM_CIRCUIT, STADIUM_LAYOUT_IDS, stadiumLap } from "../sim/stadium-circuits.ts";
 
-/** A view of the live world. Opening the menu pauses it without replacing it. */
-export function createGameMap(sim: Sim) {
+/** The stadium venue's map frame, [minX, minZ, maxX, maxZ]: its floor with a margin, as `ALDER_DRIVE_BOUNDS` is the city's. */
+const STADIUM_MAP_BOUNDS = (() => {
+  const xs = STADIUM_FLOOR.map(p => p.x), zs = STADIUM_FLOOR.map(p => p.z);
+  return [Math.min(...xs) - 40, Math.min(...zs) - 40, Math.max(...xs) + 40, Math.max(...zs) + 40] as const;
+})();
+
+/**
+ * A view of the live world. Opening the menu pauses it without replacing it. The world is the city's, or the
+ * stadium venue's (`venue`), which is drawn as itself: its walls, floor, Sable's apron, circuits and gates.
+ */
+export function createGameMap(sim: Sim, venue: "stadium" | null = null) {
   const svg = document.getElementById("city-map") as unknown as SVGSVGElement;
   const status = document.getElementById("city-map-status")!;
   const ns = "http://www.w3.org/2000/svg";
@@ -19,34 +30,61 @@ export function createGameMap(sim: Sim) {
     if (text) node.textContent=text;
     parent.append(node); return node;
   }
-  for (const park of ALDER_DATA.parks) {
-    const [x,z,right,bottom]=park.bounds as [number,number,number,number];
-    shape(svg,"rect",{x,y:z,width:right-x,height:bottom-z,fill:"#365744",opacity:.7});
+  if (venue === "stadium") drawStadium(); else drawCity();
+  function drawStadium(): void {
+    const points = (line: readonly { x: number; z: number }[]) => line.map(p => `${p.x},${p.z}`).join(" ");
+    shape(svg, "polygon", { points: points(STADIUM_FLOOR), fill: "#4a3f33", opacity: .85 });
+    // Sable's apron runs under the south wall's curve (DRIFT_YARD.bounds): drawn within the floor, as the game shows it.
+    const clip = shape(shape(svg, "defs", {}), "clipPath", { id: "stadium-map-floor" });
+    shape(clip, "polygon", { points: points(STADIUM_FLOOR) });
+    const pad = DRIFT_YARD.bounds;
+    shape(svg, "rect", { x: pad.minX, y: pad.minZ, width: pad.maxX - pad.minX, height: pad.maxZ - pad.minZ, fill: "#38685e", opacity: .8,
+      "clip-path": "url(#stadium-map-floor)" });
+    for (const id of STADIUM_LAYOUT_IDS) {
+      const lap = stadiumLap(id);
+      const path = shape(svg, "polygon", { points: points(lap.points), fill: "none", stroke: "#7c8f99",
+        "stroke-width": STADIUM_CIRCUIT.width + 3, "stroke-linejoin": "round" });
+      shape(path, "title", {}, `${STADIUM.name} / ${lap.layout.name}`);
+    }
+    for (const line of STADIUM_WALL_LINES.slice(0, 2)) {
+      shape(svg, "polyline", { points: points(line), fill: "none", stroke: "#93aaa4", "stroke-width": 4 });
+    }
+    for (const gate of STADIUM_GATES) {
+      const { x, z } = gate.venue.marker;
+      shape(svg, "text", { x, y: z + 34, fill: uiColor("navigation"), "font-size": 26, "text-anchor": "middle", ...readable(11, 26) }, gate.name);
+    }
+    shape(svg, "text", { x: -600, y: STADIUM_MAP_BOUNDS[1] + 25, "font-size": 30, fill: "#d8d2bd", "text-anchor": "middle", ...readable(12, 30) }, STADIUM.name);
   }
-  for (const b of ALDER_BLOCKS) shape(svg,"rect",{x:b.x-b.width/2,y:b.z-b.depth/2,width:b.width,height:b.depth,
-    transform:`rotate(${b.rotation*180/Math.PI} ${b.x} ${b.z})`,fill:"#456068",opacity:.55});
-  for (const b of [DRIFT_YARD.bounds, DRIFT_YARD.driveway]) shape(svg, "rect", { x: b.minX, y: b.minZ, width: b.maxX - b.minX, height: b.maxZ - b.minZ, fill: "#38685e", opacity: .8 });
-  for (const b of YARD_STRUCTURES) shape(svg, "rect", { x: b.x - b.width / 2, y: b.z - b.depth / 2, width: b.width, height: b.depth, fill: "#93aaa4" });
-  shape(svg, "text", { x: -460, y: 1145, "font-size": 25, fill: "#96ebce", "text-anchor": "middle", ...readable(10, 25) }, "South Wharf / Drift Yard");
-  for (const street of ALDER_STREETS) {
-    const path=shape(svg,"polyline",{points:street.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
-      stroke:street.added?"#bca879":"#66858e","stroke-width":street.points[0]!.width,"stroke-linejoin":"round"});
-    shape(path,"title",{},street.name);
+  function drawCity(): void {
+    for (const park of ALDER_DATA.parks) {
+      const [x,z,right,bottom]=park.bounds as [number,number,number,number];
+      shape(svg,"rect",{x,y:z,width:right-x,height:bottom-z,fill:"#365744",opacity:.7});
+    }
+    for (const b of ALDER_BLOCKS) shape(svg,"rect",{x:b.x-b.width/2,y:b.z-b.depth/2,width:b.width,height:b.depth,
+      transform:`rotate(${b.rotation*180/Math.PI} ${b.x} ${b.z})`,fill:"#456068",opacity:.55});
+    for (const b of [DRIFT_YARD.bounds, DRIFT_YARD.driveway]) shape(svg, "rect", { x: b.minX, y: b.minZ, width: b.maxX - b.minX, height: b.maxZ - b.minZ, fill: "#38685e", opacity: .8 });
+    for (const b of YARD_STRUCTURES) shape(svg, "rect", { x: b.x - b.width / 2, y: b.z - b.depth / 2, width: b.width, height: b.depth, fill: "#93aaa4" });
+    shape(svg, "text", { x: -460, y: 1145, "font-size": 25, fill: "#96ebce", "text-anchor": "middle", ...readable(10, 25) }, "South Wharf / Drift Yard");
+    for (const street of ALDER_STREETS) {
+      const path=shape(svg,"polyline",{points:street.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
+        stroke:street.added?"#bca879":"#66858e","stroke-width":street.points[0]!.width,"stroke-linejoin":"round"});
+      shape(path,"title",{},street.name);
+    }
+    for (const road of ARENA_ROADS) {
+      const path=shape(svg,"polyline",{points:road.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
+        stroke:"#7c8f99","stroke-width":road.points[0]!.width+3,"stroke-linejoin":"round"});
+      shape(path,"title",{},road.name);
+    }
+    shape(svg,"text",{x:(ARENA_BOUNDS.minX+ARENA_BOUNDS.maxX)/2+80,y:ARENA_BOUNDS.minZ-40,"font-size":30,fill:"#d8d2bd","text-anchor":"middle",...readable(11,30)},ARENA.name);
+    const garage=ALDER_GARAGE.entrance, tower=landmarks.broadcastTower;
+    // All seven, from the polygons the rest of the game uses (sim/alder-neighbourhoods.ts).
+    for (const area of ALDER_NEIGHBOURHOODS) shape(svg,"text",{x:area.label[0],y:area.label[1],"font-size":30,fill:"#b9bda9","text-anchor":"middle",...readable(14,30)},area.name.toUpperCase());
+    shape(svg,"text",{x:garage.x,y:garage.z+10,fill:uiColor("navigation"),"font-size":40,"text-anchor":"middle",...readable(16,40)},"G");
+    shape(svg,"circle",{cx:tower.x,cy:tower.z,r:16,fill:"#b6c9ff",...readable(4,16)});
+    shape(svg,"text",{x:tower.x+25,y:tower.z+8,fill:"#c9d5ff","font-size":28,...readable(11,28)},"Broadcast Tower");
   }
-  for (const road of ARENA_ROADS) {
-    const path=shape(svg,"polyline",{points:road.points.map(p=>`${p.x},${p.z}`).join(" "),fill:"none",
-      stroke:"#7c8f99","stroke-width":road.points[0]!.width+3,"stroke-linejoin":"round"});
-    shape(path,"title",{},road.name);
-  }
-  shape(svg,"text",{x:(ARENA_BOUNDS.minX+ARENA_BOUNDS.maxX)/2+80,y:ARENA_BOUNDS.minZ-40,"font-size":30,fill:"#d8d2bd","text-anchor":"middle",...readable(11,30)},ARENA.name);
-  const garage=ALDER_GARAGE.entrance, tower=landmarks.broadcastTower;
-  // All seven, from the polygons the rest of the game uses (sim/alder-neighbourhoods.ts).
-  for (const area of ALDER_NEIGHBOURHOODS) shape(svg,"text",{x:area.label[0],y:area.label[1],"font-size":30,fill:"#b9bda9","text-anchor":"middle",...readable(14,30)},area.name.toUpperCase());
-  shape(svg,"text",{x:garage.x,y:garage.z+10,fill:uiColor("navigation"),"font-size":40,"text-anchor":"middle",...readable(16,40)},"G");
-  shape(svg,"circle",{cx:tower.x,cy:tower.z,r:16,fill:"#b6c9ff",...readable(4,16)});
-  shape(svg,"text",{x:tower.x+25,y:tower.z+8,fill:"#c9d5ff","font-size":28,...readable(11,28)},"Broadcast Tower");
   const markers=shape(svg,"g",{"data-map-markers":""});
-  const [minX,minZ,maxX,maxZ]=ALDER_DRIVE_BOUNDS;
+  const [minX,minZ,maxX,maxZ]=venue === "stadium" ? STADIUM_MAP_BOUNDS : ALDER_DRIVE_BOUNDS;
   let cx=(minX+maxX)/2, cz=(minZ+maxZ)/2, zoom=1;
   function view() {
     const w=(maxX-minX)/zoom, h=(maxZ-minZ)/zoom;
@@ -107,6 +145,7 @@ export function createGameMap(sim: Sim) {
     // Sized now if the map is already on screen, and again once it is.
     keepReadable(svg);requestAnimationFrame(()=>keepReadable(svg));
     status.textContent=sim.race&&progress?`${sim.race.name} · ${progress.finished?"Finished":raceProgressLabel(sim.race, progress)} · Paused`
+      :venue === "stadium" ? `Free drive · ${STADIUM.name} · Paused · Stop in a gate's ring to leave`
       :`Free roam · ${ALDER_DATA.roadHullKm2.toFixed(1)} km² Port Alder · Paused${sim.state.parkedRivals.length ? " · Rivet / Drag & Sable / Drift: southern Harbor Way" : ""}`;
   }};
 }

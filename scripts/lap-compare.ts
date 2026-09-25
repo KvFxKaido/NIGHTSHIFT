@@ -17,10 +17,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createAlderWorld } from "../src/sim/alder.ts";
 import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
-import { replayLapSession } from "../src/sim/lap-replay.ts";
+import { recordedWorld, replayLapSession } from "../src/sim/lap-replay.ts";
 import type { RivalDefinition } from "../src/sim/rival.ts";
 import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
 
@@ -69,7 +68,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
   if (!raced.comparable) throw new Error(`${session.race} cannot be compared gate by gate: a generated circuit's laps lie over each other and an unordered race is driven in the driver's own order. Its input log still replays (pnpm laps --verify).`);
   const event = { ...raced, rival: rival ?? raced.rival };
   const handling = carHandling(session.car, session.drivetrain as Drivetrain);
-  const sim = createSim(handling, createAlderWorld(true, event.start),
+  const sim = createSim(handling, recordedWorld(event),
     { race: event.race, rival: event.rival, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
   try {
     const you = createLapRecorder(event.track), theirs = createLapRecorder(event.track);
