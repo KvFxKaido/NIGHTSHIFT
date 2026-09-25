@@ -1,8 +1,11 @@
 # Cosmetic intersection infrastructure
 
-The first pass dresses 113 complete road-network junctions: 236 signal heads,
-170 stop signs and 136 marked crossings. They were visual infrastructure; since
-`traffic-v10` (step 2, below) traffic obeys them, and racers still drive as before.
+144 of the 169 road-network junctions that could be are dressed: 338 signal heads,
+174 stop signs, 180 marked crossings and 3 STOP legends painted on the road. Step 1
+dressed 113 of them (236 heads, 170 signs, 136 crossings); a second pass added 31
+(`traffic-v11`, below, "Built: dressing the bare junctions"). They were visual
+infrastructure; since `traffic-v10` (step 2, below) traffic obeys them, and racers
+still drive as before.
 
 `ALDER_INTERSECTIONS` exposes stable junction and street identities, approach
 directions, stop positions, pole positions and control types. Later traffic
@@ -17,9 +20,13 @@ arm where no pair runs straight, 2 of 113); it was the widest single arm until
 They never display a green phase. Four-arm signalized junctions receive crosswalks.
 
 Degree-two bends, alley-only junctions, acute merges and approaches that cannot
-fit are omitted. The complete junction is withheld if any required pole cannot
-stand on raised sidewalk clear of solids, parking/site entrances and existing
-street props. Paint must fit the approach asphalt and clear crossing roads.
+fit are omitted. In the first pass the complete junction is withheld if any
+required pole cannot stand on raised sidewalk clear of solids, parking/site
+entrances and existing street props. Paint must fit the approach asphalt and clear
+crossing roads. The second pass dresses what the first withheld, with a bar that
+needs less room (below), and an arm with no room for a pole keeps its paint alone;
+a stop there, with no head or sign to say so, has STOP painted on the road behind
+its bar, in the bar's white, bold enough to read from the car coming up to it.
 Existing longitudinal paint is trimmed from the stop bar through the junction.
 Signal poles extend where necessary to retain 4.8 m of head clearance on hills.
 
@@ -144,6 +151,39 @@ What it did (`design/measurements/stop-and-dwell.json`):
 So the next step is not rule 3. It is the undressed third: dressing the 56 (a junction whose one awkward approach loses
 its pole but keeps its paint, say), or giving them a rule with no paint, which breaks "the paint is the promise". Shawn's
 call. The undressed cluster at (-650, -1080) starves on its own and is a separate job.
+
+**Built: dressing the bare junctions (`traffic-v11`, 2026-09-24).** Shawn took the recommendation above, and its premise
+was wrong: "one approach could not fit paint or a pole" had been counted as one reason, and letting an arm keep its paint
+without its pole dressed exactly one more junction. What kept the rest bare, arm by arm over the 55 that pass the shape
+checks: 75 arms found a crossing road inside the 6 m step 1 keeps clear in front of every bar, at every distance it tried;
+6 had paint leaving their own asphalt; 2 were too short for a bar. The 6 m is a crosswalk's depth, and only a four-arm
+signal gets a crosswalk; a bar is 0.45 m. On a short block with a 20 m road and its 5.6 m shoulders at each end, step 1's
+search (12 m out to 42% of the arm, 2 m steps) found no spot outside them.
+
+So a second pass (`dressIntersections`), run after the first so every junction the first dressed is dressed exactly as it
+was (all 113 checked field by field against the old inventory): a bar keeps only its own depth clear where there is no
+crosswalk; the search runs from 8 m to 48% of the arm in 1 m steps and checks 4.5 m of asphalt behind the bar for a
+legend; a four-arm signal that cannot fit its crosswalks keeps its bars without them (5 junctions); and an arm with no
+room for its pole keeps its paint (7 approaches), a stop among them painting STOP (3). 31 more junctions, 30 of them
+signals: 144 of 169, and 6 of the 8 junctions where the v10 gate's claimed crossings were. `tests/intersection-dressing`
+pins the count, because a changed inventory moves traffic.
+
+What it did (`design/measurements/junction-dressing.json`, against v10):
+
+- The gate, six seeds: crossings by a car that had claimed its junction 8 to 3, which is what this was for. One is a
+  chain out of the cluster claimed with the rival 400 m off, past the 8 s racer horizon; two are at walking pace. Totals
+  within the noise: distinct incidents 52 to 55 (the gate's count), contact 1,515 to 1,538 ticks, 67 s over 498 races; contact on a line 114
+  to 27, in a pass 30 to 0; resets 22 to 30. Rear-ends rose (into the back 8 to 14, from behind 4 to 8): of four read,
+  three are at junctions v11 did not touch, the timing lottery, and one is new in kind, gen-19 at seed 1000 hitting an SUV
+  standing at a new bar at 110 mph. It read the SUV, 1.5 to 1.9 m to its right, as out of its path while drifting towards
+  it. That is the rival's reading of a car standing just off its line, and a car standing at a bar is what v11 put there.
+  Off the pavement 70 to 293 ticks is two races: gen-54 at seed 42, at the same still-bare junction v10's gen-54 met at
+  seed 271828, and gen-75 at seed 1000, spun by a car hitting it from behind at 97 mph.
+- Traffic alone, twelve seeds: level (standing over a minute 100 to 108, still standing 18 to 22, longest 352 to 313 s).
+  All of it is still the cluster at (-650, -1080), which v11 dressed in part, so some of its lanes now wait at a bar for a
+  gap in a priority stream where they waited at the line: the same lock in another shape, still a separate job.
+
+25 junctions stay bare: 3 acute merges, and 22 whose arms still find no spot (the ones around 99 and 246 among them).
 
 **Questions for Shawn** (all three answered yes, 2026-09-24: racers keep the junction on a red, a full stop, at the painted bar).
 

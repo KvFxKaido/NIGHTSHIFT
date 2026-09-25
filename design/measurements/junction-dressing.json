@@ -1,0 +1,168 @@
+{
+ "provenance": "Claude, 2026-09-24, traffic-v10 (2606f07) against traffic-v11 (the second dressing pass, intersection-dressing.ts), driver-v5, street-line-v3, pass-v3, alder-slice-v8.",
+ "inventory": {
+  "v10": {
+   "junctions": 113,
+   "signalHeads": 236,
+   "stopSigns": 170,
+   "crossingApproaches": 136
+  },
+  "v11": {
+   "junctions": 144,
+   "signalHeads": 338,
+   "stopSigns": 174,
+   "crossingApproaches": 180,
+   "approachesWithoutPole": 7,
+   "stopLegends": 3,
+   "candidates": 169
+  },
+  "firstPassUnchanged": "all 113 of v10's junctions identical in v11, compared field by field against HEAD's inventory",
+  "whyBare": "Of the 55 bare junctions that pass the shape checks, the arms failing were: 75 with a crossing road inside the 6 m step 1 kept clear in front of every bar, 6 whose paint left their own asphalt, 2 too short for a bar; a pole alone kept 1 junction bare. The second pass keeps a bar's depth clear where there is no crosswalk, searches from 8 m to 48% of the arm in 1 m steps, drops a junction's crosswalks rather than the junction, and paints an arm with no room for a pole."
+ },
+ "method": "As stop-and-dwell.json: the soak ten minutes a seed; the gate's incidents replayed by rival:scene and classified by kind.",
+ "soak": {
+  "v10": {
+   "0": {
+    "overAMinute": 1,
+    "stillStanding": 0,
+    "longestSeconds": 73
+   },
+   "1": {
+    "overAMinute": 2,
+    "stillStanding": 0,
+    "longestSeconds": 84
+   },
+   "2": {
+    "overAMinute": 11,
+    "stillStanding": 0,
+    "longestSeconds": 209
+   },
+   "7": {
+    "overAMinute": 6,
+    "stillStanding": 0,
+    "longestSeconds": 175
+   },
+   "42": {
+    "overAMinute": 4,
+    "stillStanding": 1,
+    "longestSeconds": 106
+   },
+   "99": {
+    "overAMinute": 10,
+    "stillStanding": 1,
+    "longestSeconds": 100
+   },
+   "1000": {
+    "overAMinute": 11,
+    "stillStanding": 3,
+    "longestSeconds": 224
+   },
+   "123456": {
+    "overAMinute": 0,
+    "stillStanding": 0,
+    "longestSeconds": 54
+   },
+   "271828": {
+    "overAMinute": 10,
+    "stillStanding": 0,
+    "longestSeconds": 352
+   },
+   "314159": {
+    "overAMinute": 9,
+    "stillStanding": 4,
+    "longestSeconds": 157
+   },
+   "2147483647": {
+    "overAMinute": 22,
+    "stillStanding": 2,
+    "longestSeconds": 308
+   },
+   "3735928559": {
+    "overAMinute": 14,
+    "stillStanding": 7,
+    "longestSeconds": 131
+   }
+  },
+  "v11": {
+   "0": {
+    "overAMinute": 3,
+    "stillStanding": 0,
+    "longestSeconds": 107
+   },
+   "1": {
+    "overAMinute": 6,
+    "stillStanding": 1,
+    "longestSeconds": 144
+   },
+   "2": {
+    "overAMinute": 9,
+    "stillStanding": 0,
+    "longestSeconds": 194
+   },
+   "7": {
+    "overAMinute": 4,
+    "stillStanding": 0,
+    "longestSeconds": 182
+   },
+   "42": {
+    "overAMinute": 4,
+    "stillStanding": 2,
+    "longestSeconds": 173
+   },
+   "99": {
+    "overAMinute": 6,
+    "stillStanding": 0,
+    "longestSeconds": 79
+   },
+   "1000": {
+    "overAMinute": 10,
+    "stillStanding": 3,
+    "longestSeconds": 313
+   },
+   "123456": {
+    "overAMinute": 4,
+    "stillStanding": 0,
+    "longestSeconds": 103
+   },
+   "271828": {
+    "overAMinute": 17,
+    "stillStanding": 2,
+    "longestSeconds": 205
+   },
+   "314159": {
+    "overAMinute": 5,
+    "stillStanding": 2,
+    "longestSeconds": 119
+   },
+   "2147483647": {
+    "overAMinute": 25,
+    "stillStanding": 7,
+    "longestSeconds": 313
+   },
+   "3735928559": {
+    "overAMinute": 15,
+    "stillStanding": 5,
+    "longestSeconds": 130
+   }
+  }
+ },
+ "soakFinding": "Level: standing over a minute 100 to 108, still standing 18 to 22, longest 352 to 313 s. Everything still standing in v11 is in the cluster at (-650, -1080), which v11 dressed in part, so some of its lanes now wait at a bar for a gap in a priority stream (seed 1000, 312 s at one bar) where before they waited at the line: the same lock, another shape.",
+ "gateKinds": {
+  "v10": {
+   "distinct": 51,
+   "oncoming": 31,
+   "from behind": 4,
+   "crossing, claimed": 8,
+   "into the back": 8
+  },
+  "v11": {
+   "distinct": 55,
+   "into the back": 14,
+   "from behind": 8,
+   "oncoming": 28,
+   "crossing, claimed": 3,
+   "crossing": 2
+  }
+ },
+ "gateFinding": "Crossings by a car that had claimed its junction 8 to 3: one a chain out of the cluster claimed with the rival 400 m off (beyond the 8 s racer horizon), two at walking pace. Rear-ends rose (into the back 8 to 14, from behind 4 to 8); of the four checked, three are at junctions v11 did not change (the timing lottery) and one is new: gen-19 at seed 1000 hit an SUV standing at a new bar at 110 mph, having read it 1.5 to 1.9 m to its right as out of its path while drifting towards it. Off the pavement 70 to 293 ticks is gen-54 at seed 42 (the same still-bare junction as v10's gen-54 at seed 271828) and gen-75 at seed 1000 (a spin after being hit from behind at 97 mph)."
+}

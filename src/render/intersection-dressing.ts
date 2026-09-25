@@ -19,6 +19,25 @@ function stopLetterTexture():THREE.DataTexture {
   return map;
 }
 
+/** The same four letters for the road: no margin, so they fill the legend, and every stroke two pixels wide, so a
+ *  3 m legend has strokes of about a quarter metre, as painted road letters do. The sign's 1-pixel strokes, stretched
+ *  across a lane, came out 10 cm wide and all but vanished at night. */
+function roadLetterTexture():THREE.DataTexture {
+  const glyphs=['01110100011000001110000011000101110','11111001000010000100001000010000100',
+    '01110100011000110001100011000101110','11110100011000111110100001000010000'];
+  // A letter is 5 columns, 6 once its strokes are doubled, and a column of road between letters.
+  const width=27,height=7,pixels=new Uint8Array(width*height*4);
+  glyphs.forEach((glyph,g)=>[...glyph].forEach((v,i)=>{
+    if(v!=='1')return;
+    const x=i%5,y=Math.floor(i/5);
+    for(const dx of [0,1])pixels.set([255,255,255,255],(y*width+g*7+x+dx)*4);
+  }));
+  const map=new THREE.DataTexture(pixels,width,height);
+  map.magFilter=THREE.NearestFilter;map.needsUpdate=true;map.colorSpace=THREE.SRGBColorSpace;
+  map.flipY=true;
+  return map;
+}
+
 export function addIntersectionDressing(scene:THREE.Scene,junctions:readonly DressedJunction[],
   height:(x:number,z:number)=>number,lift:(x:number,z:number)=>number,shoulder:number):void {
   const metal=new THREE.MeshStandardMaterial({color:0x697478,roughness:.65,metalness:.45});
@@ -28,6 +47,8 @@ export function addIntersectionDressing(scene:THREE.Scene,junctions:readonly Dre
   const red=new THREE.MeshStandardMaterial({color:0xa32323,roughness:.9});
   const white=new THREE.MeshStandardMaterial({color:0xd9ddd5,roughness:.95});
   const letters=new THREE.MeshBasicMaterial({map:stopLetterTexture(),transparent:true,depthWrite:false});
+  // The same letters as road paint: lit like the bar (white, rough), not glowing like the sign's face.
+  const roadLetters=new THREE.MeshStandardMaterial({color:0xd9ddd5,roughness:.95,map:roadLetterTexture(),alphaTest:.5});
   const amberLamp=new THREE.MeshBasicMaterial({color:0xffb321});
   const redLamp=new THREE.MeshBasicMaterial({color:0xff3023});
   scene.userData.intersectionFlashes=[amberLamp,redLamp];
@@ -43,7 +64,9 @@ export function addIntersectionDressing(scene:THREE.Scene,junctions:readonly Dre
       put(new THREE.BoxGeometry(w,h,d).translate(x,y,z),m,frame);
     const disc=(x:number,y:number,z:number,r:number,m:THREE.Material,segments=16)=>
       put(new THREE.CircleGeometry(r,segments).rotateZ(segments===8?Math.PI/8:0).translate(x,y,z),m,frame);
-    if(a.control==='signal') {
+    if(!a.pole) {
+      // No room for a pole (sim/intersection-dressing.ts, the second pass): the paint only.
+    } else if(a.control==='signal') {
       const reach=a.width/4+shoulder+1.35;
       // A pole on the downhill sidewalk must not lower its head into trucks.
       const headGround=height(a.poleX-a.uz*reach,a.poleZ+a.ux*reach);
@@ -72,6 +95,18 @@ export function addIntersectionDressing(scene:THREE.Scene,junctions:readonly Dre
       g.computeVertexNormals();put(g,white,new THREE.Matrix4());
     };
     paint(a.width/4,0,a.width/2,.45);
+    // A stop with no sign or head to say so says it on the road, read by the car coming up to the bar: traffic stops
+    // there (traffic-v10), and the paint is the promise. The sign's own letters, stretched along the lane as road
+    // legends are, in the same white as the bar.
+    if(!a.pole&&(a.control==='stop'||a.flash==='red')) {
+      // 2.4 m of letter along the lane, from 2 m to 4.4 m behind the bar: clear of it, and inside the 4.5 m of asphalt
+      // the second pass checked on that side of it.
+      const legend=new THREE.PlaneGeometry(Math.min(3.2,a.width/2-.6),2.4,1,1).rotateX(-Math.PI/2).translate(a.width/4,0,3.2);
+      legend.applyMatrix4(paintFrame);
+      const p=legend.getAttribute('position');
+      for(let i=0;i<p.count;i++)p.setY(i,height(p.getX(i),p.getZ(i))+.04);
+      legend.computeVertexNormals();put(legend,roadLetters,new THREE.Matrix4());
+    }
     if(a.crosswalk) {
       const edge=a.width/2+shoulder-.3;
       for(let x=-edge+.4;x<edge;x+=1.4)paint(x,-3.5,.55,2.8);

@@ -160,10 +160,16 @@ test("traffic stops behind a racer in its lane, braking, and without one drives 
 function junctionRun(withRacer: boolean, arriveTick = 0, pick = 0, speed = 20) {
     const traffic = createTraffic(network);
     for (let tick = 0; tick < 60 * 20; tick++) stepTraffic(network, traffic, DT);
-    const vehicle = traffic.vehicles.filter(v => {
+    // A car that claims on the move, which is what the racer look is for: on a stop lane (traffic-v10) a car claims
+    // standing at its bar. Since v11 dressed 31 more junctions, all six cars 45 to 60 m from a line at 20 s at seed 0 are
+    // on stop lanes, so the window is 40 to 90 m (the claim comes at 34 m either way, and every time here is the claim's).
+    const candidates = traffic.vehicles.filter(v => {
       const lane = network.lanes[v.lane]!, toLine = lane.length - lane.entry - v.distance;
-      return !v.holds.length && v.movement >= 0 && v.speed > 8 && toLine > 45 && toLine < 60 && !trafficCornering(network, v);
-    })[pick]!;
+      return !v.holds.length && v.movement >= 0 && v.speed > 8 && toLine > 40 && toLine < 90 && !trafficCornering(network, v)
+        && lane.control?.rule !== "stop";
+    });
+    assert.ok(pick < candidates.length, `only ${candidates.length} cars approach a junction they claim on the move; the test proves nothing`);
+    const vehicle = candidates[pick]!;
     const movement = network.movements[vehicle.movement]!, lane = network.lanes[movement.from]!;
     const point = network.pose(movement.from, lane.length);
     // A racer crossing the junction square to the approach, timed to reach it

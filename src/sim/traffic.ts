@@ -61,7 +61,9 @@ export type TrafficKind = "sedan" | "taxi" | "suv" | "van" | "box-truck";
 // bar and stands there `STOP_DWELL` before it may claim, where it used to claim from 34 m out on the move; the forecast
 // holds it there too. Amber approaches and undressed junctions are driven as before. A claim's reckoning near racers
 // (`clearingTime`) floors a corner at traffic's own crawl, 2 m/s, where it floored it at a racer's 3.
-export const TRAFFIC_REVISION = "traffic-v10";
+// v11 (2026-09-24): 31 more junctions dressed (intersection-dressing.ts, the second pass), so traffic stops at their
+// bars too: 144 of 169, where the rival's crossing incidents at bare junctions were. The rules are v10's.
+export const TRAFFIC_REVISION = "traffic-v11";
 
 /**
  * A car traffic does not drive but must not drive into (2026-09-13): the player,

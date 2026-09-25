@@ -10,6 +10,22 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Dressing the bare junctions (2026-09-24)
+
+Asked for: dress the 56 junctions step 1 left bare, as recommended ("one awkward approach loses its pole but keeps its
+paint"). What was assumed and wrong:
+
+- That the pole was what kept them bare. The count it came from lumped "could not fit paint or a pole" into one reason,
+  and the recommendation read the second half. Keeping paint without a pole dressed one junction. Counted arm by arm:
+  75 arms found a crossing road inside the 6 m step 1 keeps clear before every bar (a crosswalk's depth, at junctions
+  that get no crosswalk), 6 had paint off their asphalt, 2 were too short. The fix was the room a bar needs.
+- That a bar alone says a stop. Every approach has a bar, amber ones included; the head or the sign says which stop.
+  A stop with no pole paints STOP on the road, and the sign's own 1-pixel letters, stretched over a lane, drew strokes a
+  tenth of a metre wide that all but vanished: the road has its own bold bitmap.
+- That incidents at unchanged junctions are the change's. Three of four new rear-ends were at junctions v11 did not
+  touch, and one off-pavement race was at a junction still bare: new stops move every car's timing, and the gate's
+  lottery deals new hands. The one read to v11 is a car standing at a new bar that the rival read as out of its path.
+
 ## Traffic stops at the bars (2026-09-24)
 
 Asked for: step 2's first rule, stop and dwell, once Shawn had answered the sketch's three questions (`design/INTERSECTIONS.md`).
