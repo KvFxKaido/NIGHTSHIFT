@@ -1,5 +1,10 @@
 # Wharf arena
 
+Since 2026-09-25 the arena is also a venue of its own, the stadium (`design/VENUES.md`, `src/sim/stadium.ts`): the
+same yard and shell placement, with the original continuous perimeter restored before the entrance cuts.
+The venue loads `closed-shell.glb`; city gate markers load that separate world.
+Sable's drift runs there. The city's copy described below is still open until the city side of that change lands.
+
 September 23, 2026 — the approved 1,080 by 380 metre shell now ships in normal
 Port Alder drives. Its position and silhouette are the approved whole-site
 preview: centred on (-600, 997.5), approximately 26.5 metres tall around the rim,
@@ -37,6 +42,9 @@ confirmed this license on September 23, 2026.
   floors, lights and outlier tail. Its intermediate GLB remains ignored.
 - `scripts/build-yard-arena.mjs`: fixes the approved placement, removes the
   small ramp, clips and caps entrances, then welds/deduplicates/prunes the GLB.
+- `scripts/build-yard-arena.mjs --closed`: generates the venue's uncut shell and collision into separate
+  `closed-shell.glb` / `closed-collision.json` outputs. `--source=<path>` allows the ignored source
+  GLB in another checkout. Neither existing city asset is overwritten.
 - `public/assets/wharf-arena/shell.glb`: four meshes sharing one material,
   4,002 triangles, approximately 284 KB, no textures or added lights.
 - `assets/wharf-arena/collision.json`: the exact same world-space triangles.

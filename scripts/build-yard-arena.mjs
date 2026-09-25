@@ -8,9 +8,14 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { NodeIO } from '@gltf-transform/core';
 import { dedup, prune, weld } from '@gltf-transform/functions';
 
-const bytes = await readFile('inspiration/tron-light-cycle-arena/shell-preview.glb');
+// Keep the city's cut shell stable. The venue is baked from the same source
+// before clipping, so its walls recover their original profile at both gates.
+const closed = process.argv.includes('--closed');
+const sourcePath = process.argv.find(arg => arg.startsWith('--source='))?.slice(9)
+  ?? 'inspiration/tron-light-cycle-arena/shell-preview.glb';
+const bytes = await readFile(sourcePath);
 const { scene } = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
-const cuts = [
+const cuts = closed ? [] : [
   { minX: -584, maxX: -536, minZ: 780, maxZ: 930 },
   // Harbor Way's gate leads diagonally into the rounded eastern tip.
   { minX: -220, maxX: 20, minZ: -14, maxZ: 14, x: -45, z: 910, rotation: -.52 },
@@ -117,15 +122,17 @@ for (const rect of cuts) {
     }
   }
 }
-const caps = new THREE.BufferGeometry();
-caps.setAttribute('position', new THREE.Float32BufferAttribute(capPositions, 3)); caps.computeVertexNormals();
-const capMesh = new THREE.Mesh(caps, material); capMesh.name = 'entrance-jambs'; arena.add(capMesh);
+if (capPositions.length) {
+  const caps = new THREE.BufferGeometry();
+  caps.setAttribute('position', new THREE.Float32BufferAttribute(capPositions, 3)); caps.computeVertexNormals();
+  const capMesh = new THREE.Mesh(caps, material); capMesh.name = 'entrance-jambs'; arena.add(capMesh);
+}
 globalThis.FileReader = class { readAsArrayBuffer(blob) { blob.arrayBuffer().then(result => { this.result = result; this.onloadend?.(); }); } };
 const binary = await new GLTFExporter().parseAsync(arena, { binary: true });
 const io = new NodeIO(), document = await io.readBinary(new Uint8Array(binary));
 await document.transform(weld(), dedup(), prune());
 await mkdir('public/assets/wharf-arena', { recursive: true });
 await mkdir('assets/wharf-arena', { recursive: true });
-await io.write('public/assets/wharf-arena/shell.glb', document);
-await writeFile('assets/wharf-arena/collision.json', JSON.stringify({ vertices, indices, proxies, cuts }) + '\n');
+await io.write(`public/assets/wharf-arena/${closed ? 'closed-shell' : 'shell'}.glb`, document);
+await writeFile(`assets/wharf-arena/${closed ? 'closed-collision' : 'collision'}.json`, JSON.stringify({ vertices, indices, proxies, cuts }) + '\n');
 console.log(JSON.stringify({ triangles: indices.length / 3, vertices: vertices.length / 3, proxies: proxies.length, cuts }));

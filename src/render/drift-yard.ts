@@ -3,7 +3,9 @@ import { asphaltMaterial } from "./asphalt.ts";
 import { SITE_PAVING, DRIFT_YARD, DRIFT_ZONES, GATE_STRUCTURES, YARD_GATE, YARD_LINE, YARD_STRUCTURES } from "../sim/drift-yard.ts";
 import type { RaceState } from "../sim/race.ts";
 
-export function addDriftYard(scene: THREE.Scene, night: boolean) {
+/** `venue`: the yard as the stadium venue holds it (src/sim/stadium.ts), where only Sable's apron is paved and the
+ *  Harbor Way gate, its approach and the driveway are on the city's side of its unbroken wall. */
+export function addDriftYard(scene: THREE.Scene, night: boolean, venue = false) {
   const group = new THREE.Group(); group.name = "south-wharf-drift-yard"; scene.add(group);
   const material = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: .85 });
   function box(name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: THREE.Material) {
@@ -16,8 +18,9 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   asphalt.polygonOffset = true; asphalt.polygonOffsetFactor = -3; asphalt.polygonOffsetUnits = -3;
   // The whole site is paved now, not just the old lot: the two rectangles the
   // fence encloses, plus the driveway that reaches it.
-  for (const [name, rect] of [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const),
-    ["access-road", entry] as const]) {
+  const paved = venue ? [["pad", DRIFT_YARD.bounds] as const]
+    : [...SITE_PAVING.map((r, i) => [`site-${i}`, r] as const), ["access-road", entry] as const];
+  for (const [name, rect] of paved) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(rect.maxX - rect.minX, rect.maxZ - rect.minZ), asphalt);
     mesh.name = `drift-yard-${name}`; mesh.rotation.x = -Math.PI / 2;
     mesh.position.set((rect.minX + rect.maxX) / 2, DRIFT_YARD.base + .035, (rect.minZ + rect.maxZ) / 2);
@@ -60,34 +63,37 @@ export function addDriftYard(scene: THREE.Scene, night: boolean) {
   }
   // The east gate on Harbor Way. The garage exit faces it down z = 910, so this
   // is what the game shows a player who has just pressed New Drive.
-  for (const s of GATE_STRUCTURES)
-    box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
-  label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
-    YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
-  for (const z of YARD_GATE.postZ) {
-    const top = DRIFT_YARD.base + YARD_GATE.postHeight;
-    // Sat on the post the way the apron's floods are, not hung beside it.
-    box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
-    box("gate-floodlight-mount", YARD_GATE.x, top - .35, z, .5, .7, .5, material(0x526775));
-    if (night) {
-      const light = new THREE.PointLight(0xc2def0, 70, 58, 1.4);
-      light.position.set(YARD_GATE.x - 2, top - 1.4, z); group.add(light);
+  if (!venue) addGate();
+  function addGate(): void {
+    for (const s of GATE_STRUCTURES)
+      box(`yard-${s.id}`, s.x, s.base + s.height / 2, s.z, s.width, s.height, s.depth, material(s.color));
+    label(YARD_GATE.sign.text, YARD_GATE.x, YARD_GATE.sign.y, YARD_GATE.z,
+      YARD_GATE.sign.width, YARD_GATE.sign.height, false, Math.PI / 2);
+    for (const z of YARD_GATE.postZ) {
+      const top = DRIFT_YARD.base + YARD_GATE.postHeight;
+      // Sat on the post the way the apron's floods are, not hung beside it.
+      box("gate-floodlight-head", YARD_GATE.x, top + .15, z, 2.4, .4, 1, yellow);
+      box("gate-floodlight-mount", YARD_GATE.x, top - .35, z, .5, .7, .5, material(0x526775));
+      if (night) {
+        const light = new THREE.PointLight(0xc2def0, 70, 58, 1.4);
+        light.position.set(YARD_GATE.x - 2, top - 1.4, z); group.add(light);
+      }
     }
-  }
-  // Lit means occupied: the gatehouse is how the player knows the meet is on.
-  const boothWindow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1),
-    new THREE.MeshStandardMaterial({ color: night ? 0xffd9a0 : 0x2a333b, emissive: night ? 0xffa94d : 0x000000, emissiveIntensity: night ? 1.1 : 0 }));
-  boothWindow.name = "gate-booth-window";
-  boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
-  boothWindow.rotation.y = Math.PI / 2;
-  group.add(boothWindow);
+    // Lit means occupied: the gatehouse is how the player knows the meet is on.
+    const boothWindow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1),
+      new THREE.MeshStandardMaterial({ color: night ? 0xffd9a0 : 0x2a333b, emissive: night ? 0xffa94d : 0x000000, emissiveIntensity: night ? 1.1 : 0 }));
+    boothWindow.name = "gate-booth-window";
+    boothWindow.position.set(YARD_GATE.booth.x + YARD_GATE.booth.width / 2 + .02, DRIFT_YARD.base + 1.9, YARD_GATE.booth.z);
+    boothWindow.rotation.y = Math.PI / 2;
+    group.add(boothWindow);
 
-  // The street gate faces west; these sparse approach marks lead southwest
-  // through the shell's diagonal portal before the open arena floor.
-  for (let distance = 30; distance < 185; distance += 18) {
-    const mark = box("arena-entry-guide", YARD_GATE.x - Math.cos(.52) * distance,
-      DRIFT_YARD.base + .065, YARD_GATE.z + Math.sin(.52) * distance, 5, .015, .22, yellow);
-    mark.rotation.y = .52;
+    // The street gate faces west; these sparse approach marks lead southwest
+    // through the shell's diagonal portal before the open arena floor.
+    for (let distance = 30; distance < 185; distance += 18) {
+      const mark = box("arena-entry-guide", YARD_GATE.x - Math.cos(.52) * distance,
+        DRIFT_YARD.base + .065, YARD_GATE.z + Math.sin(.52) * distance, 5, .015, .22, yellow);
+      mark.rotation.y = .52;
+    }
   }
 
   // Sparse arrows suggest the sweeper and transition, without prescribing steering.

@@ -32,7 +32,16 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 | The rival driver | `rival.ts` | `RIVAL_REVISIONS.driver` and its tables | every rival race; **the car cards' street pace and AI laps**, which are the rival's planner driving each car (`pnpm cars --streets`, `--laps`), so the ladder the cars were tuned against moves with the driver | `pnpm rival:gate`, `pnpm cars --laps --streets`, the rival tests |
 | Street lines | `street-line.ts`, `racing-line.ts` | `RIVAL_REVISIONS.streetLine`, the drawn line's fingerprint | generated races and Uptown in traffic; Uptown / Clear and Ridge Circuit draw their own lines (`racing-line.ts`) | `pnpm rival:gate`; the Uptown / Clear pace test |
 | Committed passes | `traffic-pass.ts` | `RIVAL_REVISIONS.pass` | the same races | `pnpm rival:gate` |
+| The stadium venue world | `stadium.ts`, `stadium-shell.ts` (continuous shell, floor, solids) | `STADIUM_VERSION`, hashed from them | Sable's drift event and its score targets, which run there since 2026-09-25 (the robot run is identical to the millimetre to the city's arena's, `design/VENUES.md`) | `tests/stadium.test.ts`, `tests/drift.test.ts` |
 | The generator, route choice, `PACE` | `race-generator.ts`, `route-choice.ts` | `GENERATOR_REVISIONS` | which races exist; stored career courses; **the batch itself**, whose 82 generated races are generator draws, so a generator change changes what the batch runs and a before/after comparison across it compares different races | the generator fingerprints; a fresh `pnpm rival:gate --save` |
+
+## Stadium enclosure revision — 2026-09-25
+
+The venue alone moves to `stadium-v2-7662b672`: its original wall profile replaces the gate slabs,
+and the floor follows the continuous inner perimeter. V1 enclosure measurements are superseded.
+The city shell, city world identity, tyre tuning and Sable's authored line/targets are unchanged.
+Current enclosure, render/collision equality, marker reachability and drift checks are in
+`tests/stadium.test.ts`; results are recorded in `design/VENUES.md`.
 
 ## Wharf arena world change — 2026-09-23
 
