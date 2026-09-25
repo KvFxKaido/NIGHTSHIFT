@@ -347,7 +347,15 @@ document.querySelector('[data-menu-screen="pause"] .menu-kicker')!.textContent =
   ? (race.name.startsWith(`${placeName} /`) ? race.name : `${placeName} / ${race.name}`) : venue ? `${placeName} / Free drive` : "Port Alder / Free roam";
 // A reset puts the car back where the drive began, which after a gate is that gate.
 document.querySelector<HTMLElement>("[data-restart-label]")!.textContent = race ? "Restart race" : venue || cityArrival ? "Back to the gate" : "Return to garage";
-const gameMap = createGameMap(sim);
+// In the venue the map is the venue's, and says so.
+const gameMap = createGameMap(sim, venue ? "stadium" : null);
+if (venue) {
+  document.querySelector('[data-menu-screen="map"] .menu-kicker')!.textContent = `${STADIUM.name} / Venue map`;
+  document.getElementById("city-map")!.setAttribute("aria-label", `${STADIUM.name}: its walls, circuits and gates, your position, rival and active race checkpoints`);
+  document.querySelectorAll<HTMLElement>("[data-district-map]").forEach(button => { button.textContent = `${STADIUM.name} map`; });
+  document.querySelectorAll<HTMLElement>(".city-map-footer .map-navigation").forEach(key => { key.textContent = "Gates"; });
+  document.querySelectorAll<HTMLElement>('[data-map-view="all"]').forEach(button => { button.textContent = "Whole arena"; });
+}
 document.body.dataset.assetState = "ready";
 assetStatus.remove();
 const modeElement = document.getElementById("mode")!;
@@ -816,10 +824,12 @@ const menu = createMenuController({
       // arrived through a venue gate leaves it once for that gate. The garage is in the city: out of it in the
       // venue is always back at the gate the drive came in by.
       leaveGarage(sim, venue || arrivalPending ? roadWorld.start : ALDER_GARAGE_EXIT);
-      arrivalPending = false;
       previousPoses = null;
       resetViewCamera(view);
     }
+    // The arrival is the drive's first start, whichever way it reached the track: a link without a look goes
+    // straight there and never through the garage, and a later visit to the garage must leave by its shutter.
+    if (screen === "playing") arrivalPending = false;
     setViewMode(view, screen === "garage" ? "garage" : screen === "main" ? "main" : "track");
     if (screen === "garage" && from !== "garage") beginGarageShot("enter");
     else if (screen === "playing" && (from === "garage" || from === "main")

@@ -112,11 +112,15 @@ Not yet, in the order proposed:
    standing for every one. Sable's targets are suspect until her apron has something on it again, or are re-set.
 5. The venue page without the city's data.
 
-### Continuous-shell validation (2026-09-25)
+### Continuous-shell validation (2026-09-25, at `stadium-v2`)
+
+What was run when the continuous shell landed, before the circuits (v3) and the props' removal (v4); the tests
+named here have moved on with the venue, so read this as that step's record, not today's coverage.
 
 - Full `pnpm test`: **796 passed, zero failed** (343 seconds). `git diff --check` passes.
-- 26 focused stadium, city-shell, drift and yard-grid checks pass. The venue tests compare every GLB triangle
-  with the physics bake, check retained props for clipping and confirm the closed floor outline.
+- 26 focused stadium, city-shell, drift and yard-grid checks pass. The venue tests compared every GLB triangle
+  with the physics bake, checked the props the venue then kept for clipping and confirmed the closed floor outline.
+  Since v4 the venue has no props and that check is replaced by one that nothing stands on its floor.
 - Sable's complete drift state and final x/z match the city exactly in FWD, RWD and AWD after restoring the shell:
   4,157 / 3,969 / 5,193 points, 10 / 7 / 11 clips. Targets and line remain unchanged.
 - `pnpm build` passes (the existing large-chunk warning remains); glTF validation reports zero errors or warnings.

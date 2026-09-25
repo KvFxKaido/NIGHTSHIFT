@@ -36,13 +36,20 @@ gets an entry when it lands. The ledger is a snapshot of what was live on
 | The stadium circuits | `stadium-circuits.ts` on `circuit-plan.ts` | `STADIUM_CIRCUIT_IDENTITY` (`stadium-circuits-v1`) | the stadium races, their gates and the rival's line through them; the rival's lap limits in the test (Full 69.3 s, Short 47.9 s flying, Moth's Kestrel, 2026-09-25) | `tests/stadium-circuits.test.ts` |
 | The generator, route choice, `PACE` | `race-generator.ts`, `route-choice.ts` | `GENERATOR_REVISIONS` | which races exist; stored career courses; **the batch itself**, whose 82 generated races are generator draws, so a generator change changes what the batch runs and a before/after comparison across it compares different races | the generator fingerprints; a fresh `pnpm rival:gate --save` |
 
-## Stadium enclosure revision — 2026-09-25
+## Stadium venue revisions — 2026-09-25
 
-The venue alone moves to `stadium-v2-7662b672`: its original wall profile replaces the gate slabs,
-and the floor follows the continuous inner perimeter. V1 enclosure measurements are superseded.
-The city shell, city world identity, tyre tuning and Sable's authored line/targets are unchanged.
-Current enclosure, render/collision equality, marker reachability and drift checks are in
-`tests/stadium.test.ts`; results are recorded in `design/VENUES.md`.
+The venue is `stadium-v4-8da8b985`, and each step to it changed only the venue: the city's shell, the city's world
+identity and tyre tuning did not move at any of them.
+
+- v1 sealed the city's cut shell with slabs across the two gates.
+- v2 (`stadium-v2-7662b672`) replaced them with the original continuous wall profile, the floor following the
+  unbroken inner perimeter. V1's enclosure measurements are superseded.
+- v3 (`stadium-v3-84732353`) paved the two circuits.
+- v4 (`stadium-v4-8da8b985`) removed the yard's props: nothing stands on the floor. Sable's authored line and
+  targets are unchanged as numbers, but the targets are suspect for a driver (the ledger's venue row above).
+
+The enclosure, render/collision equality, marker reachability, the circuits and the drift run are held by
+`tests/stadium.test.ts` and `tests/stadium-circuits.test.ts`; results are recorded in `design/VENUES.md`.
 
 ## Wharf arena world change — 2026-09-23
 
