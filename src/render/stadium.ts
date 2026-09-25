@@ -28,6 +28,116 @@ export function addStadium(scene: THREE.Scene, lighting: DistrictLighting): void
   scene.add(floor);
 
   addStadiumMarkers(scene, "venue");
+  addStadiumDoors(scene, night);
+}
+
+/** The barrier wall's top where the gates were: the shell's vertices there stand at 1.86 and 6.95 m (measured
+ *  2026-09-25), the stands stepping back 16 m above it. A door and its frame stay under it; the sign stands on it. */
+const BARRIER_TOP = 6.95;
+const DOOR = { width: 12, height: 4.2, header: .6, jamb: .5, inset: .06, frameDepth: .3 } as const;
+/** What the sign over each door says. Harbor Way is the east gate's street; the north driveway's is left unnamed. */
+const DOOR_SIGNS: Record<string, string> = { east: "EAST GATE · HARBOR WAY", north: "NORTH GATE" };
+
+/** The venue's wall at car height, walked by arc length from where it passes nearest (x, z): a point and the
+ *  wall's direction there. The wall curves at the east gate, so a door drawn along it stays on its face. */
+function wallFrom(x: number, z: number): (s: number) => { x: number; z: number; tx: number; tz: number } {
+  const loop = STADIUM_FLOOR, n = loop.length, start = [0];
+  for (let i = 0; i < n; i++) start.push(start[i]! + Math.hypot(loop[(i + 1) % n]!.x - loop[i]!.x, loop[(i + 1) % n]!.z - loop[i]!.z));
+  const total = start[n]!;
+  let origin = 0, nearest = Infinity;
+  for (let i = 0; i < n; i++) {
+    const a = loop[i]!, b = loop[(i + 1) % n]!, dx = b.x - a.x, dz = b.z - a.z, length = start[i + 1]! - start[i]!;
+    if (!length) continue;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (length * length)));
+    const d = Math.hypot(a.x + dx * t - x, a.z + dz * t - z);
+    if (d < nearest) { nearest = d; origin = start[i]! + t * length; }
+  }
+  return (s: number) => {
+    const at = ((origin + s) % total + total) % total;
+    let i = 0;
+    while (start[i + 1]! <= at && i < n - 1) i++;
+    const a = loop[i]!, b = loop[(i + 1) % n]!, length = start[i + 1]! - start[i]! || 1, t = (at - start[i]!) / length;
+    return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, tx: (b.x - a.x) / length, tz: (b.z - a.z) / length };
+  };
+}
+
+/**
+ * A roller door where each city gate was, so the way out reads from across the bowl: a ribbed shutter drawn on the
+ * barrier's face and following its curve, a steel frame, a lit sign standing on the barrier above it, amber beacons
+ * on the jambs, and a warm light on the door at night. Drawing only: the shell's wall is the collision, and nothing
+ * here stands more than the frame's 0.3 m off it.
+ */
+export function addStadiumDoors(scene: THREE.Scene, night: boolean): void {
+  const group = new THREE.Group(); group.name = "stadium-doors"; scene.add(group);
+  const steel = new THREE.MeshStandardMaterial({ color: 0x46545e, roughness: .6, metalness: .3, side: THREE.DoubleSide });
+  const rib = new THREE.MeshStandardMaterial({ color: 0x7c929b, roughness: .5, metalness: .3, side: THREE.DoubleSide });
+  const frame = new THREE.MeshStandardMaterial({ color: 0x26333d, roughness: .7, side: THREE.DoubleSide });
+  const beacon = new THREE.MeshBasicMaterial({ color: 0xffb04d });
+  for (const gate of STADIUM_GATES) {
+    const marker = gate.venue.marker, along = wallFrom(marker.x, marker.z);
+    // Inward is toward the marker, whichever way round the loop runs.
+    const middle = along(0), toward = (middle.x - marker.x) * -middle.tz + (middle.z - marker.z) * middle.tx < 0 ? 1 : -1;
+    const inward = (p: { tx: number; tz: number }) => ({ x: -p.tz * toward, z: p.tx * toward });
+    /** A strip on the wall from `s0` to `s1` round it, `bottom` to `top` above the floor, `out` metres off its face. */
+    const strip = (s0: number, s1: number, bottom: number, top: number, out: number, into: number[], index: number[]) => {
+      const steps = Math.max(1, Math.ceil((s1 - s0) / .5));
+      const first = into.length / 3;
+      for (let k = 0; k <= steps; k++) {
+        const p = along(s0 + (s1 - s0) * k / steps), n = inward(p);
+        into.push(p.x + n.x * out, STADIUM.base + bottom, p.z + n.z * out, p.x + n.x * out, STADIUM.base + top, p.z + n.z * out);
+      }
+      for (let k = 0; k < steps; k++) {
+        const a = first + k * 2;
+        index.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+      }
+    };
+    const mesh = (name: string, material: THREE.Material, build: (into: number[], index: number[]) => void) => {
+      const into: number[] = [], index: number[] = [];
+      build(into, index);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(into, 3));
+      geometry.setIndex(index); geometry.computeVertexNormals();
+      const made = new THREE.Mesh(geometry, material); made.name = name; made.receiveShadow = true;
+      group.add(made);
+      return made;
+    };
+    const half = DOOR.width / 2;
+    mesh(`stadium-door-${gate.id}`, steel, (into, index) => strip(-half, half, 0, DOOR.height, DOOR.inset, into, index));
+    mesh(`stadium-door-ribs-${gate.id}`, rib, (into, index) => {
+      for (let y = .35; y < DOOR.height - .1; y += .35) strip(-half, half, y, y + .06, DOOR.inset + .04, into, index);
+    });
+    mesh(`stadium-door-frame-${gate.id}`, frame, (into, index) => {
+      strip(-half - DOOR.jamb, half + DOOR.jamb, DOOR.height, DOOR.height + DOOR.header, DOOR.frameDepth, into, index);
+      for (const side of [-1, 1]) strip(side * half, side * (half + DOOR.jamb), 0, DOOR.height, DOOR.frameDepth, into, index);
+    });
+    for (const side of [-1, 1]) {
+      const p = along(side * (half + DOOR.jamb / 2)), n = inward(p);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(.35, .35, .35), beacon);
+      lamp.name = `stadium-door-beacon-${gate.id}`;
+      lamp.position.set(p.x + n.x * DOOR.frameDepth, STADIUM.base + DOOR.height + DOOR.header + .2, p.z + n.z * DOOR.frameDepth);
+      group.add(lamp);
+    }
+    const n = inward(middle);
+    if (night) {
+      const light = new THREE.PointLight(0xffc98a, 60, 45, 1.4);
+      light.name = `stadium-door-light-${gate.id}`;
+      light.position.set(middle.x + n.x * 6, STADIUM.base + 5, middle.z + n.z * 6);
+      group.add(light);
+    }
+    if (typeof document === "undefined") continue;   // Headless: the door and frame still build.
+    const canvas = document.createElement("canvas"); canvas.width = 1024; canvas.height = 128;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#101f2a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffc268"; ctx.font = "bold 64px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(DOOR_SIGNS[gate.id] ?? gate.name.toUpperCase(), canvas.width / 2, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 1.4), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+    sign.name = `stadium-door-sign-${gate.id}`;
+    // Standing on the barrier's top over the door, facing into the bowl.
+    sign.position.set(middle.x + n.x * DOOR.inset, BARRIER_TOP + .8, middle.z + n.z * DOOR.inset);
+    sign.rotation.y = Math.atan2(n.x, n.z);
+    group.add(sign);
+  }
 }
 
 /**

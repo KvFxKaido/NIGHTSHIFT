@@ -57,7 +57,11 @@ map, so Sable's yard, line and zones are the same numbers in both.
 - **The gates, both ways** (`STADIUM_GATES`). Each has a marker on each side: stop within 7 m of it, under 2 m/s, and
   the garage shutter's prompt offers the other side. City side: the east gate on Harbor Way and the north driveway.
   Venue side: inside each restored wall. Crossing loads the other world with `?gate=<id>`; you arrive at that gate's other
-  side, clear of its marker and facing away. `?venue=stadium` is the venue's free drive.
+  side, clear of its marker and facing away. `?venue=stadium` is the venue's free drive. Inside, each way out is
+  drawn as a roller door on the barrier where the city gate was (`addStadiumDoors`): a 12 by 4.2 m ribbed shutter
+  following the wall's curve, a steel frame, amber beacons, a lit sign standing on the barrier's top ("EAST GATE ·
+  HARBOR WAY", "NORTH GATE") and a warm light on it at night, so the way out reads from across the bowl. Drawing only:
+  the shell is the collision, and a test holds every door vertex within 0.35 m of the wall's face, on the floor's side.
 - **Sable's drift runs here.** `?race=sable-yard-drift[-2|-3]` builds the venue. The drift test's robot driver scores
   the same to the millimetre in the city's arena and in the venue, in all three drivetrains (FWD 4,157 points and 10
   clips, RWD 3,969 and 7, AWD 5,193 and 11, 2026-09-25), so her targets carry over untouched. After her event,

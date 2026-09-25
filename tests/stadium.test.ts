@@ -10,6 +10,7 @@ import { NodeIO } from "@gltf-transform/core";
 import * as THREE from "three";
 import { YARD_STRUCTURES } from "../src/sim/drift-yard.ts";
 import { nearbyChallenge } from "../src/sim/encounter.ts";
+import { addStadiumDoors } from "../src/render/stadium.ts";
 import {
   STADIUM, STADIUM_FLOOR, STADIUM_GATES, STADIUM_MARKER, STADIUM_VERSION,
   createStadiumWorld, inStadium, onStadiumPad, stadiumGate, stadiumGateAt,
@@ -238,4 +239,41 @@ test("the stadium floor follows one closed wall loop and covers the restored gat
   assert.equal(inStadium(-100, 938), false);
   assert.equal(inStadium(-140, 970), true);
   assert.equal(createStadiumWorld().meshes!.length, 1);
+});
+
+// The way out is drawn, not built: a roller door on the wall where each city gate was. Drawing only, so it must lie
+// on the wall's face (the car meets the shell, and a door standing off it would be a thing it drives into and through)
+// and on the floor's side of it, and face the gate's own marker.
+test("each gate's roller door lies on the wall where the city gate was, facing its marker", () => {
+  const wallDistance = (x: number, z: number) => {
+    let best = Infinity;
+    for (let i = 1; i < STADIUM_FLOOR.length; i++) {
+      const a = STADIUM_FLOOR[i - 1]!, b = STADIUM_FLOOR[i]!, dx = b.x - a.x, dz = b.z - a.z;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+      best = Math.min(best, Math.hypot(a.x + dx * t - x, a.z + dz * t - z));
+    }
+    return best;
+  };
+  for (const night of [true, false]) {
+    const scene = new THREE.Scene();
+    addStadiumDoors(scene, night);
+    for (const gate of STADIUM_GATES) {
+      let sumX = 0, sumZ = 0, count = 0;
+      for (const part of ["door", "door-ribs", "door-frame"]) {
+        const mesh = scene.getObjectByName(`stadium-${part}-${gate.id}`) as THREE.Mesh | undefined;
+        assert.ok(mesh, `no ${part} at the ${gate.id} gate`);
+        const position = mesh.geometry.getAttribute("position");
+        for (let i = 0; i < position.count; i++) {
+          const x = position.getX(i), y = position.getY(i), z = position.getZ(i);
+          assert.ok(inStadium(x, z), `${gate.id} ${part} is behind the wall at ${x.toFixed(1)}, ${z.toFixed(1)}`);
+          assert.ok(wallDistance(x, z) <= .35, `${gate.id} ${part} stands ${wallDistance(x, z).toFixed(2)} m off the wall`);
+          assert.ok(y >= STADIUM.base && y < 6.95, `${gate.id} ${part} reaches ${y.toFixed(2)} m, past the barrier's top`);
+          if (part === "door") { sumX += x; sumZ += z; count++; }
+        }
+      }
+      const marker = gate.venue.marker;
+      assert.ok(Math.hypot(sumX / count - marker.x, sumZ / count - marker.z) < 15, `the ${gate.id} door is not the one its marker faces`);
+      assert.equal(scene.getObjectByName(`stadium-door-light-${gate.id}`) !== undefined, night, `${gate.id}'s door light at night: ${night}`);
+    }
+  }
 });
