@@ -291,7 +291,14 @@ export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDef
   const exits = gateExits(route);
   return { ...race, checkpoints: race.checkpoints.map((gate, i) => exits[i] ? { ...gate, exit: exits[i]! } : gate) };
 }
-interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number }
+interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number; id?: number }
+/**
+ * Why the rival wants the speed it does this tick (2026-09-25), for the slowdown census (`pnpm rival:census`) and
+ * `rival-scene`: the corner plan's speed, the target it settled on, and the rule that brought the target lowest, with
+ * the traffic car's id where one did. Filled only when the caller passes one; it is outside the sim's state, so
+ * nothing that hashes or records the state sees it, and it changes nothing the rival does.
+ */
+export interface RivalSpeedWhy { plan: number; target: number; by: string; id?: number }
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */
 /**
  * How a rival races the player (2026-09-13). Before this the player was passed
@@ -672,7 +679,7 @@ export const RIVAL_BRAKING = {
   correction: 3,
 } as const;
 
-export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null, trafficContext?: PassingContext): Input {
+export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null, trafficContext?: PassingContext, why?: RivalSpeedWhy): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
@@ -736,6 +743,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // It plans with its own car's numbers, the ones its tyres will actually have.
   const handling = handlingFor(route);
   let desiredSpeed = route.speedLimit ?? handling.topSpeed;
+  // Every rule below lowers the target through `cap`: the same Math.min, naming the rule that got it lowest (`why`).
+  let by = "top", byId: number | undefined;
+  const cap = (speed: number, rule: string, id?: number) => { const next = Math.min(desiredSpeed, speed); if (next < desiredSpeed) { by = rule; byId = id; } desiredSpeed = next; };
   // At highway speed, a 100 m preview cannot see a corner early enough to stop,
   // so the preview looks through the whole braking envelope.
   const plan = route.lateral ? RIVAL_BRAKING : RIVAL_CORNERING;
@@ -764,7 +774,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // Brake as if every corner were `brakingMargin` metres nearer.
   const marginIndex = Math.min(profile.length - 1, Math.round(RIVAL_CORNERING.brakingMargin / 4));
-  desiredSpeed = Math.min(desiredSpeed, profile[marginIndex]!);
+  const planSpeed = profile[marginIndex]!;
+  cap(planSpeed, "corner");
   // How hard the profile slows from here to the next sample: what the brake should
   // deliver while the car rides it. Zero where the profile is not falling.
   const profileSpeed = profile[marginIndex]!, profileNext = profile[Math.min(profile.length - 1, marginIndex + 1)]!;
@@ -808,8 +819,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // on has none, so it braked for cars that would be gone before it arrived,
   // and it queued behind slower cars it could have passed. Now each car is
   // judged by where it will be when the rival gets there.
-  const slowFor = (along: number, ahead: number, length: number) => {
-    desiredSpeed=Math.min(desiredSpeed,Math.max(0,along)+Math.max(0,ahead-length-5)*.65);
+  const slowFor = (along: number, ahead: number, length: number, rule: string, id?: number) => {
+    cap(Math.max(0,along)+Math.max(0,ahead-length-5)*.65, rule, id);
   };
   // Every lateral position below is an offset from the route, the frame
   // `driver.avoidance` is in (2026-09-13). `side` is measured from the car, so a
@@ -872,7 +883,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       // would with no pass at all.
       if (immediate > 0 && immediate < (astray ? 15 + car.speed * 1.6 : length + car.speed * .45) && Math.abs(lateral) < 2.6) {
         const speed = obstacle.speed * (-Math.sin(obstacle.heading) * fx - Math.cos(obstacle.heading) * fz);
-        slowFor(speed, immediate, length);
+        slowFor(speed, immediate, length, "pass-hold", obstacle.id);
       }
       continue;
     }
@@ -894,11 +905,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       // 182 s and 30): the rival's line runs down the middle of the street, so
       // an oncoming car is often genuinely in its way. That is the line's
       // problem, not this loop's.
-      if (inPath && ahead>0) slowFor(along,ahead,length);
+      if (inPath && ahead>0) slowFor(along,ahead,length,crossing ? "crossing" : "oncoming",obstacle.id);
       continue;
     }
     if (trafficDecision) {
-      if (inPath && ahead > 0) slowFor(along, ahead, length);
+      if (inPath && ahead > 0) slowFor(along, ahead, length, "pass-path", obstacle.id);
       continue;
     }
     // Same direction: pass it on whichever side is clear, the way it passes the
@@ -957,7 +968,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // let go, where held to this it stayed stopped until the unseen reset (gen-67, the old rule passed it at 34 mph).
     const corridor = RIVAL_RACING.followCorridor + RIVAL_RACING.followMargin * Math.min(1, arrival);
     const stillInPath = RIVAL_RACING.followWhereItIs && follows && car.speed - along > RIVAL_RACING.followClosing && Math.abs(sideAtArrival - willBe) < corridor;
-    if (ahead>0 && ((Math.abs(there-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
+    if (ahead>0 && ((Math.abs(there-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length,stillInPath ? "follow" : onBumper ? "bumper" : "no-side",obstacle.id);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
@@ -983,7 +994,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     if (aimShift) { const shift = shiftAt(line!, wideAt); tx += blend * shift.x; tz += blend * shift.z; }
     error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   }
-  if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);
+  if (Math.abs(error)>1) cap(6, "aim");
   // Lost: held to 10 m/s until it is back, which is off the road. On a racing line
   // the line and any pass already use most of the width, and in a recorded race
   // (2026-09-13) the rival abandoning a re-pass at 95 mph drifted 6.5 m from its
@@ -1001,10 +1012,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   };
   const lost = Math.abs(nearestRoad) > nearestWidth / 2 + (route.shoulder ?? 0) + OFF_ROAD_MARGIN && Math.abs(nearestSide) >= (route.clearance ?? 0)
     && !(line && blend > 0 && onItsLine());
-  if (lost) desiredSpeed=Math.min(desiredSpeed,10);
-  if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
-  if (pass) desiredSpeed = Math.min(desiredSpeed, pass.speed);
+  if (lost) cap(10, "lost");
+  if (driver.along < driver.bypassUntil) cap(8, "bypass");
+  if (pass) cap(pass.speed, "pass-plan");
   driver.targetSpeed=desiredSpeed;
+  if (why) { why.plan = planSpeed; why.target = desiredSpeed; why.by = by; why.id = byId; }
   if (car.speed<1.2) driver.stuckTicks++; else driver.stuckTicks=0;
   if (driver.stuckTicks>100 && driver.reverseTicks===0) {
     driver.reverseTicks=110; driver.stuckTicks=0; driver.recoveries++;

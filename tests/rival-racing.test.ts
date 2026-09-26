@@ -5,7 +5,7 @@ import { carHandling, createSim, step, steadyWheelAngleFor, HANDLING, type Input
 import { projectOntoPath } from "../src/sim/street-path.ts";
 import type { CoursePoint } from "../src/sim/track.ts";
 import { passingOffset } from "../src/sim/traffic-pass.ts";
-import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_CORNERS, RIVAL_TRAFFIC_FRAME, type RivalDefinition } from "../src/sim/rival.ts";
+import { createRivalDriver, rivalInput, sampleDrivingPath, OFF_ROAD_MARGIN, RIVAL_LANE, RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_CORNERS, RIVAL_TRAFFIC_FRAME, type RivalDefinition, type RivalSpeedWhy } from "../src/sim/rival.ts";
 import { laneOffset } from "../src/sim/lanes.ts";
 await RAPIER.init();
 
@@ -546,6 +546,29 @@ test("a stopped car beside its line does not draw it across, and one in its way 
   // Read where it will be (driver-v7): 4.5 m off now at 10 m/s, 7 degrees in towards the line, 1.2 m/s across; about 1.6 s
   // out, it will be 2.6 m off, in the way (Uptown at seed 1000, a box truck finishing its turn, at 117 mph).
   assert.ok(aim(4.5, 10, .12) < -.3, `an SUV coming across towards its line moved it only ${(-aim(4.5, 10, .12)).toFixed(2)} m away`);
+});
+
+// Why it wants the speed it does (2026-09-25): `rivalInput` names the rule that brought its target lowest, for the
+// slowdown census (`pnpm rival:census`) and rival-scene, in an object outside the sim's state.
+test("it names the rule that holds it below its plan, and the car that did", () => {
+  const width = 16, line = ownSide(width);
+  const points: CoursePoint[] = [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "why", start: { x: line, y: 0, z: 0, heading: 0, pitch: 0 }, points, along: [0, 8000], gates: [8000] };
+  const ask = (hazards: { id: number; kind: "sedan"; x: number; y: number; z: number; heading: number; speed: number; length: number }[]) => {
+    const vehicle = { ...createSim("fwd").state.vehicle, x: line, y: 0, z: -100, heading: 0, speed: 45, forwardSpeed: 45, lateralSpeed: 0 };
+    const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: line };
+    const why: RivalSpeedWhy = { plan: 0, target: 0, by: "none" };
+    rivalInput(route, { vehicle, driver, race: null }, hazards, null, undefined, why);
+    return { ...why, wanted: driver.targetSpeed };
+  };
+  const clear = ask([]);
+  assert.ok(clear.by === "top" || clear.by === "corner", `with nothing about it was held by ${clear.by}`);
+  assert.equal(clear.target, clear.wanted);
+  // A sedan crossing its road 30 m on at 8 m/s, timed to be in its path when it gets there.
+  const held = ask([{ id: 5, kind: "sedan", x: line + 4.6, y: 0, z: -130, heading: Math.PI / 2, speed: 8, length: 4.4 }]);
+  assert.equal(held.by, "crossing");
+  assert.equal(held.id, 5);
+  assert.ok(held.target < held.plan - 10 && held.target === held.wanted, `target ${held.target.toFixed(1)} against a plan of ${held.plan.toFixed(1)}`);
 });
 
 // Where it will be, not where it means to be (2026-09-22). Shawn's second legit race against Wake: he passed her into

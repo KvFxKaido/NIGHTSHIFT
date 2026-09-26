@@ -361,7 +361,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Venues: the stadium world, its shell, floor and gates; its circuits and their races | `stadium.ts`, `stadium-circuits.ts`, `stadium-events.ts`, `render/stadium.ts` | `design/VENUES.md` |
 | A circuit's lap from named corners, Ridge's and the stadium's; drawing one | `circuit-plan.ts`, `render/track-strips.ts` | `design/VENUES.md` ("The circuits") |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
-| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
+| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene, the slowdown census | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `scripts/rival-census.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
 | Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
@@ -801,7 +801,8 @@ pnpm cars             # every car's measured card; before and after a tune. --la
 pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
 pnpm traffic:soak     # traffic alone for ten minutes per traffic seed: what stood over a minute. Seeds as args, --json
 pnpm rival:gate       # the rival alone in traffic, 83 races at six traffic seeds (~20 min), against its baseline; --save re-pins it
-pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick
+pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick (and what held it)
+pnpm rival:census     # the gate's races: every stretch the rival is held below its own corner plan, by the rule that held it and what it cost; --rows=, --keep=, --json=
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 ```
 

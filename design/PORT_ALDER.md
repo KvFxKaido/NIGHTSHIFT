@@ -3282,6 +3282,43 @@ braking from 100 (gen-15, seed 1000), into the back of a box truck at 3 mph (gen
 truck at 52 mph (gen-46, seed 1). As the gap closes the cap falls towards the other car's speed, and a rival held there
 spends longer among traffic than one that went by. The reach is measured and right; speed is not the lever for it.
 
+## Where the rival slows (2026-09-25, `pnpm rival:census`)
+
+Shawn, having raced it: really good, "with a few random slowdowns in random places". The census names them. Every
+rule in `rivalInput` that lowers the rival's target now does it through one helper that records the rule that got it
+lowest, and the traffic car where one did (`RivalSpeedWhy`, filled into an object the sim keeps outside its state, so
+the golden master is identical to the bit). `street-line-batch.ts --census` groups the ticks the target sits more than
+2 m/s under the rival's own corner plan, for a reason that is not a corner, into episodes (`scripts/rival-slowdowns.ts`):
+one car, or one rule with no car, joined across flickers under 0.25 s, and costed as the time the car spends behind its
+plan, (1 - speed / plan) a tick, while held and for up to 3 s after. `pnpm rival:census` runs it over the gate's races
+and ranks them; `rival-scene` now says what held it on every line of a trace.
+
+At `driver-v7` over the gate's 498 races (12.9 h raced): 1,144 episodes, 1,137 s, 2.46% of the time. By rule: crossing
+traffic 34%, following a car 27%, oncoming 10%, recovering after a knock (`aim`) 9%, a pass's own plan 7%, no side to
+pass on 6%, the pass's emergency check 4%. The one that reads as random is inside `follow`: 142 of its 254 episodes and
+235 s of its 313 are for a car STANDING still, with the rival a median 2.4 m left of where it meant to be. Traced (gen-13,
+seed 314159): through a 73 degree left turn at 30 mph it turned in 11.6 degrees early and cut 2.7 m inside, across the
+middle into the oncoming lane of the street it was entering, where a sedan stood at its bar. A standing car has no
+direction, so the same-direction check read it, and the rival stuttered past at 9 mph for 3 s, brake and throttle
+turn about. With the rival more than 0.8 m left of its aim and the car standing or oncoming, 131 episodes, 231 s: 20% of
+all the time it is held. Since `traffic-v10` cars stand at their bars, and a bar on the far side of a left turn is
+where that cut goes.
+
+Why it cuts: it steers for an aim 8 m plus 0.35 s of its speed along its path, and round an arc that aim sits inside
+the tangent by half the arc between them (18 degrees at 12 m on a 20 m radius), on top of a feedforward that already
+gives the wheel the arc takes. `driver-v9`, tried the same day and not shipped: steer against the angle a car exactly on
+its path would see the same aim at, so a car on its path steers by the feedforward alone. Taken everywhere on streets it
+cost 1.1% of the rival's pace on a clear road over 14 races (the cut is quick) and broke the two pass fixtures on timing;
+taken only in its lane round bends towards the oncoming side, not on a corner line, it cost 0.04%, kept gen-13 on its
+own side at 31 mph through the turn (0.5 m off its aim at most, from 2.7), and a 90 degree left turn on its own
+controller crossed the middle by 2.01 m without it and not at all with it. The gate against `driver-v7` failed it:
+422 of 498 races moved, distinct incidents 40 to 49 (seed 0, the cleanest layout, 3 to 11), contact on a line 31 to 304
+ticks, contact 1,497 to 2,139, 72 s slower; resets 26 to 15, off the pavement 391 to 235, reversals 4 to 0. The new
+incidents read are not at its left turns (a van crossing at 97 mph, an oncoming sedan at 93, a rear-end at 65, a right
+turn behind a sedan turning the same way): every left turn a lane drives moves the timing of all that follows, and the
+gate cannot tell that from the change. It needs judging turn by turn, both steerings over the same turns, as the pass
+check's frame was (above), before it goes in.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

@@ -9,9 +9,10 @@ import { createSim, step, TICK_HZ, carHandling } from "../src/sim/sim.ts";
 import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
 import { withStreetLine } from "../src/sim/street-line.ts";
 import { TRAFFIC_KINDS } from "../src/sim/traffic.ts";
+import { slowdownTracker } from "./rival-slowdowns.ts";
 
 await RAPIER.init();
-const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace");
+const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace"), census = process.argv.includes("--census");
 const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
 // SLIP=0 is the steering feedforward without the tyres' slip, as it was to full-line-v31.
 if (process.env.SLIP) (RIVAL_STEERING as { slip: number }).slip = Number(process.env.SLIP);
@@ -22,7 +23,7 @@ if (process.env.FRAME === "0") (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = fal
 if (output) writeFileSync(output, "");
 const ids = process.argv.includes("--all") ? ["street-uptown", ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`)]
   : process.argv.slice(2).filter(a => !a.startsWith("--"));
-if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --output=path.jsonl to save rows.");
+if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --census for slowdowns, --output=path.jsonl to save rows.");
 for (const id of ids) {
   let route: RivalDefinition, race;
   if (id.startsWith("street-")) { const event = circuitEvent(id, 3)!; route = event.rival!; race = event.race; }
@@ -39,9 +40,12 @@ for (const id of ids) {
   // How far it runs from where it means to be, at speed, in its lane or on a line: not in a pass, whose path is its
   // own, and not within 4 s of touching anything, which throws it further than it ever drives.
   let wide = 0, wideAt = "", sinceContact = Infinity;
+  // --census: every stretch the rival is held below its own corner plan by something that is not a corner (rival-slowdowns.ts).
+  const slowdowns = census ? slowdownTracker(sim.rivalDefinition!) : null;
   try {
     while (!sim.state.rival!.race.finished && sim.state.rival!.race.ticks < 330 * TICK_HZ) {
       step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+      slowdowns?.tick(sim);
       const r = sim.state.rival!, car = r.vehicle, d = r.driver;
       if (r.race.countdown > 0) continue;
       racing++;
@@ -75,7 +79,7 @@ for (const id of ids) {
     }
     const r = sim.state.rival!;
     const result = JSON.stringify({ id, line: withLine, seconds: r.race.finished ? +(r.race.ticks / TICK_HZ).toFixed(2) : null, contact, resets: r.driver.resets, unseen: r.driver.unseenResets,
-      passTicks, passes, passContact, reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), wide: +wide.toFixed(1), wideAt, onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}) });
+      passTicks, passes, passContact, reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), wide: +wide.toFixed(1), wideAt, onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}), ...(slowdowns ? { slowdowns: slowdowns.done() } : {}) });
     if (output) appendFileSync(output, result + "\n"); else console.log(result);
   } finally { sim.world.free(); }
 }
