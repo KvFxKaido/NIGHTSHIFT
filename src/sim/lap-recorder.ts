@@ -182,6 +182,10 @@ export interface LapSession {
   /** A generated race's flash, as `?start=` carries it: part of what its id draws. Absent on a circuit, and for a
    *  generated race from the grid. (`start` above is where the world put the player: metadata.) */
   startCode?: string;
+  /** How the log ended when it was not at a save after a lap (2026-09-26): the driver restarted the race, or left it.
+   *  The log then runs to that moment, past the finish if there was one, and a race left unfinished has fewer laps
+   *  than it was raced for. Absent on a session last saved as a lap completed, as every earlier session was. */
+  ended?: "restart" | "quit";
   trackLimits: typeof TRACK_LIMITS;
   channels: readonly LapChannel[];
   inputs: LapRecorder["inputs"];

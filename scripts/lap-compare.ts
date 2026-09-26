@@ -20,8 +20,8 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
 import { recordedWorld, replayLapSession } from "../src/sim/lap-replay.ts";
-import type { RivalDefinition } from "../src/sim/rival.ts";
-import { carHandling, createSim, step, TICK_HZ, type Drivetrain } from "../src/sim/sim.ts";
+import { sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
+import { carHandling, createSim, step, TICK_HZ, type Drivetrain, type Sim } from "../src/sim/sim.ts";
 
 const MPH = 2.23694;
 /** Metres either side of a gate that count as its corner, and where entry and exit speed are read. */
@@ -61,7 +61,8 @@ function side(lap: RecordedLap, gate: number): CornerSide | null {
 }
 
 /** `rival` swaps in another driver for the same race and the same input log: an experiment, judged against the player's fixed run. */
-export function compareSession(session: LapSession, rival?: RivalDefinition): Comparison {
+/** `onTick` sees the sim after every tick, told whether the player's input was still the log's (the trace, `--from`). */
+export function compareSession(session: LapSession, rival?: RivalDefinition, onTick?: (sim: Sim, logged: boolean) => void): Comparison {
   // A circuit or a generated race, drawn as the session was driven (src/sim/recorded-event.ts).
   const raced = recordedEvent(session.race, session.laps, { start: session.startCode ?? null, solo: session.solo });
   if (!raced?.rival) throw new Error(`${session.race} has no rival to compare with: race one that is not solo`);
@@ -76,6 +77,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
     for (let i = 0; i < throttle.length; i++) {
       const input = { throttle: throttle[i]!, brake: brake[i]!, steer: steer[i]!, handbrake: handbrake[i]! };
       step(sim, input);
+      onTick?.(sim, true);
       recordTick(you, input, sim.state.vehicle, sim.state.race, TICK_HZ);
       const driver = sim.state.rival!;
       recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
@@ -86,6 +88,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition): Co
     const loggedLaps = theirs.laps.length;
     for (let extra = 0; extra < 120 * TICK_HZ && !sim.state.rival!.race.finished; extra++) {
       step(sim, { throttle: 0, brake: 1, steer: 0, handbrake: 1 });
+      onTick?.(sim, false);
       const driver = sim.state.rival!;
       recordTick(theirs, driver.input, driver.vehicle, driver.race, TICK_HZ);
     }
@@ -130,11 +133,28 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const replayed = replayLapSession(chosen.session);
   if (!replayed.ok) { console.log(`${chosen.name} does not replay on this build, so there is no rival to compare with: ${replayed.reason}`); process.exit(1); }
   let result: Comparison;
-  try { result = compareSession(chosen.session); } catch (error) { console.log(error instanceof Error ? error.message : String(error)); process.exit(1); }
+  // --from=<s> [--to=<s>] [--every=<s>]: the rival tick by tick over that stretch of the replay, with what it wanted and why
+  // (`RivalSpeedWhy`), where you were, and the traffic about it; AFTER marks ticks past the end of your log.
+  const arg = (name: string) => args.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+  const traceFrom = arg("from"), traceTo = Number(arg("to") ?? Infinity), traceEvery = Math.max(1, Math.round(Number(arg("every") ?? 0.25) * TICK_HZ));
+  const traced: string[] = [];
+  const trace = traceFrom === undefined ? undefined : (sim: Sim, logged: boolean) => {
+    const r = sim.state.rival!, t = r.race.ticks / TICK_HZ;
+    if (t < Number(traceFrom) || t > traceTo || r.race.ticks % traceEvery) return;
+    const mph = (v: number) => (v * 2.237).toFixed(0), car = r.vehicle, d = r.driver, why = sim.rivalWhy, here = sampleDrivingPath(sim.rivalDefinition!, d.along);
+    const along = (x: number, z: number) => (x - car.x) * here.ux + (z - car.z) * here.uz, across = (x: number, z: number) => (x - car.x) * -here.uz + (z - car.z) * here.ux;
+    const p = sim.state.vehicle, near = (sim.state.traffic?.vehicles ?? []).filter(v => along(v.x, v.z) > -5 && along(v.x, v.z) < 45 && Math.abs(across(v.x, v.z)) < 12)
+      .map(v => `${v.kind}#${v.id} ${along(v.x, v.z).toFixed(0)} m ${across(v.x, v.z).toFixed(1)} across ${mph(v.speed)} mph`).join("; ");
+    traced.push(`  t=${t.toFixed(2)} ${logged ? "     " : "AFTER"} rival at ${d.along.toFixed(0)} m, ${mph(car.speed)} mph, wants ${mph(why.target)} (${why.by}${why.id === undefined ? "" : ` #${why.id}`}), plan ${mph(why.plan)}, ${(-across(here.x, here.z)).toFixed(1)} m across | you ${along(p.x, p.z).toFixed(0)} m on, ${across(p.x, p.z).toFixed(1)} across, ${mph(p.speed)} mph${near ? ` | ${near}` : ""}`);
+  };
+  try { result = compareSession(chosen.session, undefined, trace); } catch (error) { console.log(error instanceof Error ? error.message : String(error)); process.exit(1); }
   if (json) console.log(JSON.stringify({ file: chosen.name, ...result }, null, 2));
   else {
     const time = (seconds: number | null) => seconds === null ? "  --   " : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;
     console.log(`${chosen.name}  ${result.race} · ${result.car} · pedal assist ${result.pedalAssist} · replays exactly\n`);
+    // A session saved when the driver restarted or left (lap-recorder.ts, `ended`): its log runs to that moment.
+    if (chosen.session.ended) console.log(`  The log ends where you ${chosen.session.ended === "restart" ? "restarted" : "left the race"}, ${(chosen.session.inputs.throttle.length / TICK_HZ).toFixed(1)} s after its first tick, with ${chosen.session.recorded.length} of ${chosen.session.laps} lap${chosen.session.laps === 1 ? "" : "s"} finished.\n`);
+    if (traced.length) console.log(`${traced.join("\n")}\n`);
     for (const lap of result.laps) console.log(`  lap ${lap.lap}   you ${time(lap.you)}   rival ${time(lap.rival)}${lap.you !== null && lap.rival !== null ? `   you by ${(lap.rival - lap.you).toFixed(2)} s` : ""}${lap.rivalReasons.length ? `   rival's lap INVALID (${lap.rivalReasons.join(", ")})` : ""}`);
     console.log(`\n  The rival was put back on its line ${result.rivalResets} times and was never more than ${result.rivalWidest.toFixed(1)} m from the centreline.`);
     console.log(`\n  Over the laps you both finished: ${result.gainedInCorners.toFixed(2)} s gained within ${WINDOW} m of a gate, ${result.gainedElsewhere.toFixed(2)} s everywhere else.\n`);

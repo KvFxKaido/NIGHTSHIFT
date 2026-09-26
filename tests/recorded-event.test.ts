@@ -51,20 +51,33 @@ test("a generated sprint raced against its rival records as one lap, replays exa
   // on an attempt's own traffic (main.ts draws a seed per attempt, 2026-09-22).
   const trafficSeed = 1000;
   const sim = createSim(carHandling(route.car!), createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: true, trafficSeed, pedalAssist: 0 });
-  let session: LapSession | null = null;
+  let session: LapSession | null = null, abandoned: LapSession | null = null, pastTheFinish: LapSession | null = null;
   try {
     const recorder = createLapRecorder(event.track), driver = createRivalDriver();
-    for (let tick = 0; tick < 200 * TICK_HZ && !session; tick++) {
+    const saved = (ended?: "restart" | "quit") => JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-20-120000-gen-crest-23", recordedAt: "2026-09-20T12:00:00.000Z", world: sim.roadWorld.id,
+      arena: event.identity, rival: rivalRevision(event.rival!), physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: false, traffic: true,
+      trafficRevision: TRAFFIC_REVISION, trafficSeed, laps: event.race.laps ?? 1, car: route.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, pedalAssist: 0,
+      start: sim.roadWorld.start, ...(ended ? { ended } : {}) }))) as LapSession;
+    const drive = () => {
       const traffic = sim.state.traffic!.vehicles.map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
       const input = rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, traffic, sim.state.rival!.vehicle);
       step(sim, input);
-      if (!recordTick(recorder, input, sim.state.vehicle, sim.state.race, TICK_HZ)) continue;
-      session = JSON.parse(JSON.stringify(lapSession(recorder, { id: "2026-09-20-120000-gen-crest-23", recordedAt: "2026-09-20T12:00:00.000Z", world: sim.roadWorld.id,
-        arena: event.identity, rival: rivalRevision(event.rival!), physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: event.race.id, layout: event.layout, solo: false, traffic: true,
-        trafficRevision: TRAFFIC_REVISION, trafficSeed, laps: event.race.laps ?? 1, car: route.car!, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision, pedalAssist: 0,
-        start: sim.roadWorld.start }))) as LapSession;
+      return recordTick(recorder, input, sim.state.vehicle, sim.state.race, TICK_HZ);
+    };
+    for (let tick = 0; tick < 200 * TICK_HZ && !session; tick++) {
+      const lap = drive();
+      // A restart 20 s into the race (main.ts, `saveUnfinished`, 2026-09-26): the log to there, no lap.
+      if (!abandoned && sim.state.race!.ticks === 20 * TICK_HZ) abandoned = saved("restart");
+      if (lap) session = saved();
     }
+    // And one that drove on 2 s past the finish before leaving: the log runs on, the laps are the same.
+    for (let tick = 0; tick < 2 * TICK_HZ; tick++) drive();
+    pastTheFinish = saved("quit");
   } finally { sim.world.free(); }
+  assert.ok(abandoned && pastTheFinish);
+  assert.equal(abandoned.recorded.length, 0);
+  assert.deepEqual(replayLapSession(abandoned), { ok: true, laps: 0 }, "an attempt left before its finish replays");
+  assert.deepEqual(replayLapSession(pastTheFinish), { ok: true, laps: 1 }, "a log that runs past the finish replays");
   assert.ok(session, "the sprint was not finished");
   assert.equal(session.world, ALDER_VERSION);
   assert.equal(session.recorded.length, 1);

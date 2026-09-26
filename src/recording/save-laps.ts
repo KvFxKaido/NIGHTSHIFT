@@ -9,6 +9,15 @@ export function lapSessionId(now: Date, raceId: string): string {
 export type LapSaveResult = { ok: true; laps: number } | { ok: false; error: string };
 
 /**
+ * Whether a run cut short by a restart or by leaving the race is saved (2026-09-26): once it has raced for a second
+ * past the countdown, and when the log has ticks the last save did not. Saved only at a finished lap, a restart threw
+ * away the attempt it ended, and with it whatever made the driver restart ("I restarted, so you won't see that").
+ */
+export function unsavedRun(logged: number, saved: number, racingTicks: number, tickHz: number): boolean {
+  return racingTicks >= tickHz && logged > saved;
+}
+
+/**
  * Save a session through the dev server's `/__laps` endpoint, replacing its
  * earlier save. Saves are serialised so a slow write never lands after a newer
  * one. The session is stringified immediately: the recorder keeps growing.

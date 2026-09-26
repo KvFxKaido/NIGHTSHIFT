@@ -10,9 +10,14 @@ rival: `?scene=track&race=arena-full-solo` (or `arena-east`, `arena-ridge`, with
 or without `-solo`). The street circuit is `?scene=track&race=street-uptown`, in
 traffic; add `-clear` for empty streets and `-solo` for no rival, in that order
 (`street-uptown-clear-solo`). The brand line shows `REC`, then `SAVED n LAPS` as each lap
-completes; the whole session is rewritten after every lap, so quitting mid-run
-keeps every finished lap. Restarting, resetting the car or changing car starts
-a new session file. A production build has no endpoint and says `NOT SAVED`.
+completes; the whole session is rewritten after every lap. Since 2026-09-26 a restart
+(the pause menu's, or resetting the car) and leaving the race also save the attempt they
+end, once it has raced for a second: the log runs to that moment, past the finish if there
+was one, and the file says how it ended (`ended`). A restart then starts a new session
+file. So a race abandoned for whatever made you restart can still be replayed and read,
+and a finished race's rival replays with your car where you really left it rather than
+stopped at the line. Closing the tab saves nothing. A production build has no endpoint
+and says `NOT SAVED`.
 
 **A generated race** (`?scene=track&race=gen-tally-7`, or flash a name in free
 roam) is ONE lap to the recorder: the whole race, from the flag to its last gate,
@@ -26,6 +31,10 @@ the game, the replay check and the compare tool all ask.
 
 **Reading.** `pnpm laps` lists every session and lap; `pnpm laps --verify` also
 replays each session against the current build; `pnpm laps --json` is for tools.
+`pnpm laps:compare [file or part of a name] --from=<s> --to=<s>` adds the rival tick by
+tick over that stretch of the race: its speed, what it wanted and the rule that held it
+(`RivalSpeedWhy`), where you were, and the traffic about it, with ticks past the end of your
+log marked.
 
 **The file** (`nightshift-laps-v1`, `src/sim/lap-recorder.ts`):
 

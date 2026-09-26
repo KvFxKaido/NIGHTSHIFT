@@ -14,7 +14,7 @@ import { createRivalDriver, rivalInput } from "../src/sim/rival.ts";
 import { NO_RIVAL } from "../src/sim/rival-revision.ts";
 import { carHandling, createSim, step, PHYSICS_VERSION, TICK_HZ, type VehicleState } from "../src/sim/sim.ts";
 import type { RaceState } from "../src/sim/race.ts";
-import { createLapSaver, lapSessionId } from "../src/recording/save-laps.ts";
+import { createLapSaver, lapSessionId, unsavedRun } from "../src/recording/save-laps.ts";
 import { lapsMiddleware } from "../scripts/laps-server.mjs";
 await RAPIER.init();
 
@@ -189,6 +189,16 @@ test("the dev endpoint writes a session by its id, replaces it, and refuses anyt
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await rm(dir, { recursive: true });
   }
+});
+
+test("a restart or leaving the race saves an attempt past its first second of racing, and only what is new", () => {
+  // Not the countdown, not a restart pressed on the grid: a second of racing first.
+  assert.equal(unsavedRun(200, 0, 59, 60), false);
+  assert.equal(unsavedRun(200, 0, 60, 60), true);
+  // Nothing since the last save (a lap just saved it, or the restart before this one did).
+  assert.equal(unsavedRun(5000, 5000, 4000, 60), false);
+  // Driven on past a saved finish: the ticks after it are new.
+  assert.equal(unsavedRun(5120, 5000, 4000, 60), true);
 });
 
 test("the saver reports a save only when the endpoint confirms one, in the order they were made", async () => {

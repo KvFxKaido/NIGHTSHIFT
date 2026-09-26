@@ -26,6 +26,8 @@ for (const name of files) {
   const session = JSON.parse(await readFile(join(dir, name), "utf8")) as LapSession;
   const verified = replay ? replay(session) : null;
   report.push({ file: name, race: session.race, traffic: session.traffic ?? false, car: session.car, drivetrain: session.drivetrain, physics: session.physics, verified,
+    // How the log ended when not at a saved lap (2026-09-26), and how long it runs.
+    ...(session.ended ? { ended: session.ended } : {}), seconds: +(session.inputs.throttle.length / (session.tickHz || 60)).toFixed(1),
     laps: session.recorded.map(lap => ({ lap: lap.lap, seconds: lap.seconds, valid: lap.valid, reasons: lap.reasons, standingStart: lap.standingStart,
       topSpeedMph: Math.round(lap.topSpeed * 2.23694), offTrackTicks: lap.offTrackTicks })) });
 }
@@ -38,6 +40,7 @@ if (args.has("--json")) {
     for (const lap of session.laps) {
       console.log(`  lap ${lap.lap}  ${time(lap.seconds)}  ${lap.valid ? "valid  " : "INVALID"}  ${String(lap.topSpeedMph).padStart(3)} mph top${lap.standingStart ? "  standing start" : ""}${lap.reasons.length ? `  (${lap.reasons.join(", ")})` : ""}`);
     }
-    if (!session.laps.length) console.log("  no completed laps");
+    if (session.ended) console.log(`  ended by ${session.ended === "restart" ? "a restart" : "leaving the race"}, ${session.seconds} s of log${session.laps.length ? ", past its last completed lap" : ", no completed laps"}`);
+    else if (!session.laps.length) console.log("  no completed laps");
   }
 }

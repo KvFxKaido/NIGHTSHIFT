@@ -61,7 +61,7 @@ import { withExits } from "./sim/rival.ts";
 import { NO_RIVAL, rivalRevision } from "./sim/rival-revision.ts";
 import { TRAFFIC_REVISION } from "./sim/traffic.ts";
 import { bestLap, createLapRecorder, lapSession, recordTick, type LapRecorder } from "./sim/lap-recorder.ts";
-import { createLapSaver, lapSessionId } from "./recording/save-laps.ts";
+import { createLapSaver, lapSessionId, unsavedRun } from "./recording/save-laps.ts";
 import { snapToLane, encodeStart } from "./sim/race-start.ts";
 import type { RivalDefinition } from "./sim/rival.ts";
 import type { RoadWorld } from "./sim/road-world.ts";
@@ -528,6 +528,8 @@ function saveSettings(patch: SettingsPatch, keys: SettingsUrlKey[]): void {
 
 /** A fresh run: the same car, a car (`carHandling`), or the same car on another layout. */
 function reset(setup: Drivetrain | CarHandling = sim.state.handling): void {
+  // First, while the traffic it was raced in is still the sim's: the attempt this ends is kept (saveUnfinished).
+  void saveUnfinished("restart");
   previousPoses = null;
   challengePending = false;
   flashRemaining = 0;
@@ -542,25 +544,43 @@ function reset(setup: Drivetrain | CarHandling = sim.state.handling): void {
 // Lap recording: the circuits, lap by lap, and since 2026-09-20 every generated race, as one lap from the flag to its
 // last gate (sim/recorded-event.ts). Each completed lap saves the whole session to recordings/laps through pnpm dev.
 let recorder: LapRecorder | null = null;
-const recording = { id: "", recordedAt: "", status: "" };
+// `saved`: how many ticks of the log the last save had.
+const recording = { id: "", recordedAt: "", status: "", saved: 0 };
 const saveLaps = createLapSaver();
 function newRecording(): void {
   if (!recorded || !race) return;
   recorder = createLapRecorder(recorded.track);
   const now = new Date();
-  Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC" });
+  Object.assign(recording, { id: lapSessionId(now, race.id), recordedAt: now.toISOString(), status: "REC", saved: 0 });
 }
-function recordStep(tickInput: Input): void {
-  if (!recorder || !recorded || !race) return;
-  if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
-  const session = lapSession(recorder, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: recorded.rival ? rivalRevision(recorded.rival) : NO_RIVAL,
+function currentSession(rec: LapRecorder, ended?: "restart" | "quit") {
+  if (!recorded || !race) throw new Error("no race is being recorded");
+  return lapSession(rec, { id: recording.id, recordedAt: recording.recordedAt, world: roadWorld.id, arena: recorded.identity, rival: recorded.rival ? rivalRevision(recorded.rival) : NO_RIVAL,
     physics: sim.state.physicsVersion, tickHz: TICK_HZ, race: race.id, layout: recorded.layout, solo: recorded.solo, traffic: recorded.traffic,
     ...(recorded.traffic ? { trafficRevision: TRAFFIC_REVISION } : {}), ...(recorded.traffic && sim.trafficSeed ? { trafficSeed: sim.trafficSeed } : {}), laps: race.laps ?? 1,
     // A generated race's flash is part of what its id draws: without it the replay draws another race.
     ...(raceStartCode ? { startCode: raceStartCode } : {}),
     car: selectedCar, drivetrain: sim.state.drivetrain, carRevision: sim.state.handling.revision,
     // What the tyres forgave is part of how the lap was driven; replay drives it the same. Left out when it is the clamp, as every older session was.
-    ...(sim.pedalAssist !== 1 ? { pedalAssist: sim.pedalAssist } : {}), start: roadWorld.start });
+    ...(sim.pedalAssist !== 1 ? { pedalAssist: sim.pedalAssist } : {}), start: roadWorld.start, ...(ended ? { ended } : {}) });
+}
+/**
+ * Keep the attempt a restart or leaving the race cuts short (2026-09-26): the log to that moment, and past the finish
+ * if there was one, so what the rival did after it replays with the player where the player really was. Laps save as
+ * they complete; this saves what they did not. Resolves when the save does, or at once when there is nothing to save.
+ */
+function saveUnfinished(ended: "restart" | "quit"): Promise<unknown> {
+  if (!recorder || !recorded || !race) return Promise.resolve();
+  if (!unsavedRun(recorder.inputs.throttle.length, recording.saved, sim.state.race?.ticks ?? 0, TICK_HZ)) return Promise.resolve();
+  const session = currentSession(recorder, ended);
+  recording.saved = recorder.inputs.throttle.length;
+  return saveLaps(session);
+}
+function recordStep(tickInput: Input): void {
+  if (!recorder || !recorded || !race) return;
+  if (!recordTick(recorder, tickInput, sim.state.vehicle, sim.state.race, TICK_HZ)) return;
+  const session = currentSession(recorder);
+  recording.saved = recorder.inputs.throttle.length;
   const id = recording.id;
   recording.status = "SAVING";
   void saveLaps(session).then(result => {
@@ -953,7 +973,9 @@ function loadDrive(raceId: string | null, scene: "track" | "garage" = "track", s
   url.searchParams.set("drivetrain", sim.state.drivetrain);
   for (const [key, value] of Object.entries(customization)) url.searchParams.set(key, value);
   for (const key of ["drive", "freeze", "rival", "visit", "trafficSeed"]) url.searchParams.delete(key);
-  location.href = url.href;
+  // Leaving loads another page, which would drop a save in flight: the attempt being left goes first
+  // (saveUnfinished), and a save that fails or hangs never holds the page for more than 1.5 s.
+  void Promise.race([saveUnfinished("quit"), new Promise(done => setTimeout(done, 1500))]).then(() => { location.href = url.href; });
 }
 /** Seconds the brand line keeps naming the camera after a change. */
 let cameraNoticeRemaining = 0;
