@@ -3306,8 +3306,9 @@ where that cut goes.
 
 Why it cuts: it steers for an aim 8 m plus 0.35 s of its speed along its path, and round an arc that aim sits inside
 the tangent by half the arc between them (18 degrees at 12 m on a 20 m radius), on top of a feedforward that already
-gives the wheel the arc takes. `driver-v9`, tried the same day and not shipped: steer against the angle a car exactly on
-its path would see the same aim at, so a car on its path steers by the feedforward alone. Taken everywhere on streets it
+gives the wheel the arc takes. `driver-v9` (shipped 2026-09-26, on the turn-by-turn measure below, against the gate):
+steer against the angle a car exactly on its path would see the same aim at, so a car on its path steers by the
+feedforward alone (`RIVAL_STEERING.chord`). Taken everywhere on streets it
 cost 1.1% of the rival's pace on a clear road over 14 races (the cut is quick) and broke the two pass fixtures on timing;
 taken only in its lane round bends towards the oncoming side, not on a corner line, it cost 0.04%, kept gen-13 on its
 own side at 31 mph through the turn (0.5 m off its aim at most, from 2.7), and a 90 degree left turn on its own
@@ -3316,8 +3317,21 @@ controller crossed the middle by 2.01 m without it and not at all with it. The g
 ticks, contact 1,497 to 2,139, 72 s slower; resets 26 to 15, off the pavement 391 to 235, reversals 4 to 0. The new
 incidents read are not at its left turns (a van crossing at 97 mph, an oncoming sedan at 93, a rear-end at 65, a right
 turn behind a sedan turning the same way): every left turn a lane drives moves the timing of all that follows, and the
-gate cannot tell that from the change. It needs judging turn by turn, both steerings over the same turns, as the pass
-check's frame was (above), before it goes in.
+gate cannot tell that from the change.
+
+Turn by turn, then. The sim cannot snapshot but is deterministic, so a fork is a re-run: each gate race driven on v7
+(`chord` 0, v7 to the bit) gives every left turn of 30 degrees or more its v7 outcome, and for each turn the race is
+run again on v7 to 50 m before the turn and on v9 from there, through 50 m after it and back to its plan, so both
+steerings take the same turn from the same state among the same traffic. Over the six seeds, one row per turn a
+course's races share: 1,183 left turns, 500 where the correction acted (most of the rest were on a corner line). Over
+those 500: deepest inside median 3.02 m to 1.01, time over the middle 798 s to 207, held below its plan 167 s to 123
+and for a standing car 63 s to 16, contact at 13 turns (166 ticks) to 6 (121), gone at 11 and new at 4, exit speed
+55.9 mph to 56.5, and 0.041 s a turn slower. The four new: a stop nose-to-bumper at 0 mph against a sedan standing beside it, waiting on a crossing
+car (gen-11, seed 1, where the correction steered it back to its lane at a crawl); 2 and 5 ticks elsewhere; and a turn
+on the grid at seed 271828 that has contact under both (14 ticks to 28). Shipped on that: at its turns it is cleaner
+and hardly slower, and the gate's worse totals are races meeting other traffic after them. Not measured: the
+correction at a crawl, where the cut does not matter and the lane aim can fight a dodge; a floor of about 20 mph for
+it is the obvious refinement, turn by turn again.
 
 ## Corner dressing trial (2026-09-21)
 

@@ -675,6 +675,9 @@ fixtures outside the playable bundle, and old world links redirect.
   the first tick it decides differently, so one kind of incident removed is another met. A rule that changed almost
   nothing (2026-09-22) still moved contact on a line from 11 ticks to 19; read five distinct incidents in fifty as
   noise, and judge a change by what KIND of incident went and came (`pnpm rival:scene`), never by the totals alone.
+  A change to how it drives every turn is judged turn by turn, by fork: the sim is deterministic, so re-run a race on
+  the old code to the turn's entrance and switch there, both takes from one state. Straightening its left turns
+  (`driver-v9`) moved 422 of 498 races and the gate read incidents 40 to 49; at the turns contact fell 13 to 6.
 - A car near a racer is a physics body only for the tick, driven along its lane by velocity, and must change NOTHING
   until something touches it: the racer's state the tick before contact is the wall's to the bit
   (`tests/traffic-knock.test.ts`). A wreck is not a lane car: it is out of `occupancy`, an obstacle to traffic

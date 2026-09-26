@@ -548,6 +548,35 @@ test("a stopped car beside its line does not draw it across, and one in its way 
   assert.ok(aim(4.5, 10, .12) < -.3, `an SUV coming across towards its line moved it only ${(-aim(4.5, 10, .12)).toFixed(2)} m away`);
 });
 
+// Round a left turn in its lane it stays on its own side (driver-v9, 2026-09-25). Steering for an aim 12 m on round the
+// arc, on top of the feedforward, turned it in early and cut it 2.7 m inside, across the middle into the street's oncoming
+// lane, where a car stood at its bar (gen-13, seed 314159).
+test("round a left turn in its lane it keeps to its own side of the middle", () => {
+  const width = 16, line = ownSide(width);
+  // North, then a left turn west: facing -Z, +X is its right.
+  const points: CoursePoint[] = [[0, 0], [0, -200], [-200, -200]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width, zone: "boulevard" }));
+  const route: RivalDefinition = { id: "left-turn", start: { x: line, y: 0, z: -40, heading: 0, pitch: 0 }, points, along: [0, 200, 400], gates: [400], car: "cinder" };
+  const drive = (chord: number) => {
+    const shipped = RIVAL_STEERING.chord;
+    (RIVAL_STEERING as { chord: number }).chord = chord;
+    const sim = createSim(carHandling("cinder", "rwd"), { id: "left-turn", start: route.start, walls: [], project: (x, z) => projectOntoPath(points, x, z) }, { traffic: false });
+    try {
+      const driver = createRivalDriver(); driver.avoidance = line; driver.along = driver.progressMark = 40;
+      let inside = 0;
+      for (let t = 0; t < 60 * 12 && driver.along < 330; t++) {
+        const car = sim.state.vehicle;
+        step(sim, rivalInput(route, { vehicle: car, driver, race: null }, [], null));
+        const p = sampleDrivingPath(route, driver.along), across = (car.x - p.x) * -p.uz + (car.z - p.z) * p.ux;
+        if (driver.along > 150 && driver.along < 260) inside = Math.min(inside, across);
+      }
+      return inside;
+    } finally { sim.world.free(); (RIVAL_STEERING as { chord: number }).chord = shipped; }
+  };
+  const cut = drive(0), kept = drive(1);
+  assert.ok(cut < -0.5, `steering for the chord it crossed only to ${cut.toFixed(2)} m; the test proves nothing`);
+  assert.ok(kept > -0.25, `it went ${(-kept).toFixed(2)} m over the middle round a left turn`);
+});
+
 // Why it wants the speed it does (2026-09-25): `rivalInput` names the rule that brought its target lowest, for the
 // slowdown census (`pnpm rival:census`) and rival-scene, in an object outside the sim's state.
 test("it names the rule that holds it below its plan, and the car that did", () => {

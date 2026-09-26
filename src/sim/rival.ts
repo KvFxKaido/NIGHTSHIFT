@@ -392,6 +392,9 @@ export interface RivalSpeedWhy { plan: number; target: number; by: string; id?: 
  * "driver-v6" (2026-09-25): a car going its way is dodged only when it is nearer the rival's line than the pass gap;
  *   further off it is left alone, where the dodge had moved the rival towards it.
  * "driver-v7" (2026-09-25): that dodge reads the car where it will be when the rival is alongside, not where it is.
+ * "driver-v9" (2026-09-25): round a bend towards the oncoming side in its lane, it steers against where a car on its path
+ *   would see its aim (`RIVAL_STEERING.chord`), not the chord that cut it across the middle. ("driver-v8" was the reach
+ *   slowdown, measured and not shipped: `design/PORT_ALDER.md`, "A car beside its line".)
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -598,7 +601,7 @@ export const RIVAL_STREET_LINE = { speedFactor: 0.88,
  * could hold with a fifth in hand was tried on top and measured on the 83-race
  * batch: 0.06% slower and no cleaner, so it is not here.
  */
-export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3, slip: 1 } as const;
+export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3, slip: 1, chord: 1 } as const;
 
 
 /**
@@ -981,6 +984,23 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // The shift is added after the clamp: the line has checked its own ground, and the clamp knows only the carriageway.
   if (aimShift) { tx += blend * aimShift.x; tz += blend * aimShift.z; }
   let error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
+  // The angle a car exactly on its path, heading along it, would see the same aim at (driver-v9, 2026-09-25). On a
+  // straight it is nothing; round a bend the aim sits inside the tangent by half the arc between them, and steering for
+  // it on top of the feedforward, which already gives the wheel the arc takes, turned the car in early and cut inside:
+  // 11.6 degrees ahead of its path and 2.7 m inside through a 73 degree left turn at 30 mph, into the oncoming lane of
+  // the street it was entering, where a car stood at its bar (gen-13, seed 314159; `pnpm rival:census`). Steering is
+  // measured against that instead, so a car on its path steers by the feedforward and an offset is corrected as before.
+  // Streets only: a racing line (`lateral`) keeps its steering, which every raced Ridge recording names. Where else, below.
+  let chord = 0;
+  if (!route.lateral && RIVAL_STEERING.chord) {
+    const onPath = (at: number) => {
+      const s = sampleDrivingPath(route, at), shift = aimShift ? shiftAt(line!, at) : null;
+      return { x: s.x - s.uz * driver.avoidance + (shift ? blend * shift.x : 0), z: s.z + s.ux * driver.avoidance + (shift ? blend * shift.z : 0) };
+    };
+    const at = onPath(driver.along), back = onPath(driver.along - 2), on = onPath(driver.along + 2);
+    chord = angle(Math.atan2(at.x - tx, at.z - tz) - Math.atan2(back.x - on.x, back.z - on.z));
+  }
+  const aimedWide = Math.abs(error) > 1;
   if (Math.abs(error)>1) {
     // More than a radian off, at a sharp corner or after a shove, the aim can be
     // inside the tightest circle the car can turn (8.4 m at full lock): steering
@@ -1042,7 +1062,12 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const geometry = Math.atan(wheelbase * lineCurvature);
   const tyreSlip = steadyWheelAngleFor(car.forwardSpeed, lineCurvature, car.frontLoadFraction, handling, Math.max(0, car.longitudinalAcceleration)) - geometry;
   const feedforward = (RIVAL_STEERING.feedforward * geometry + RIVAL_STEERING.slip * tyreSlip) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed, 1, handling));
-  const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
+  // Only round a bend towards the oncoming side, and not on a corner line: in a left turn the inside is across the middle,
+  // where the street it enters has cars standing at their bar, and cutting it was 20% of the time the rival spends held
+  // below its plan (the census, 131 episodes); taken everywhere the correction cost 1.1% of its pace on a clear road,
+  // the inside of a right turn is its own kerb, and a corner line takes the middle only where traffic shows it clear.
+  const steerError = aimedWide || lineCurvature >= 0 || (line && blend > .05) ? error : error - RIVAL_STEERING.chord * chord;
+  const steer=clamp(-steerError*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.
   let throttle = desiredSpeed >= handling.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);
