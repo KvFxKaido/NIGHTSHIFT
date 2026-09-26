@@ -70,7 +70,7 @@ try {
       const near = sim.state.traffic!.vehicles.map(v => ({ v, ...frame(v.x, v.z) })).filter(n => Math.abs(n.ahead) < 45 && Math.abs(n.side) < 9)
         .sort((a, b) => Math.abs(a.ahead) - Math.abs(b.ahead)).slice(0, 2)
         .map(n => `${n.v.kind}#${n.v.id} ${n.ahead.toFixed(0)}m ${n.side > 0 ? "R" : "L"}${Math.abs(n.side).toFixed(1)} ${mph(n.v.speed)}mph ${Math.cos(n.v.heading - car.heading) > 0.7 ? "same" : Math.cos(n.v.heading - car.heading) < -0.7 ? "onc" : "cross"}${n.v.holds.length ? " claimed" : ""}`);
-      console.log(`t=${t.toFixed(1)} at ${d.along.toFixed(0)} m ${mph(car.speed)} mph, wants ${mph(d.targetSpeed)}; throttle ${r.input.throttle.toFixed(1)} brake ${r.input.brake.toFixed(1)} steer ${r.input.steer.toFixed(1)}; `
+      console.log(`t=${t.toFixed(1)} at ${d.along.toFixed(0)} m ${mph(car.speed)} mph, wants ${mph(d.targetSpeed)}${sim.rivalWhy.by === "corner" || sim.rivalWhy.by === "top" ? "" : ` (${sim.rivalWhy.by}${sim.rivalWhy.id === undefined ? "" : ` #${sim.rivalWhy.id}`})`}; throttle ${r.input.throttle.toFixed(1)} brake ${r.input.brake.toFixed(1)} steer ${r.input.steer.toFixed(1)}; `
         + `${across.toFixed(1)} m across a ${on.width} m road, aiming ${d.avoidance.toFixed(1)}, line ${(d.lineBlend ?? 0).toFixed(1)}${d.trafficPass ? ", passing" : ""}${car.groundContact > 0 ? ", OFF THE PAVEMENT" : ""} | ${near.join("; ")}`);
       continue;
     }

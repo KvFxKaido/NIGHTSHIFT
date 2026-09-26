@@ -291,7 +291,14 @@ export function withExits(race: RaceDefinition, route: RivalDefinition): RaceDef
   const exits = gateExits(route);
   return { ...race, checkpoints: race.checkpoints.map((gate, i) => exits[i] ? { ...gate, exit: exits[i]! } : gate) };
 }
-interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number }
+interface Obstacle { x: number; y: number; z: number; speed: number; heading: number; length?: number; id?: number }
+/**
+ * Why the rival wants the speed it does this tick (2026-09-25), for the slowdown census (`pnpm rival:census`) and
+ * `rival-scene`: the corner plan's speed, the target it settled on, and the rule that brought the target lowest, with
+ * the traffic car's id where one did. Filled only when the caller passes one; it is outside the sim's state, so
+ * nothing that hashes or records the state sees it, and it changes nothing the rival does.
+ */
+export interface RivalSpeedWhy { plan: number; target: number; by: string; id?: number }
 /** A fixed-tick driver: plans input, never moves the car or disables contact. */
 /**
  * How a rival races the player (2026-09-13). Before this the player was passed
@@ -385,6 +392,9 @@ interface Obstacle { x: number; y: number; z: number; speed: number; heading: nu
  * "driver-v6" (2026-09-25): a car going its way is dodged only when it is nearer the rival's line than the pass gap;
  *   further off it is left alone, where the dodge had moved the rival towards it.
  * "driver-v7" (2026-09-25): that dodge reads the car where it will be when the rival is alongside, not where it is.
+ * "driver-v9" (2026-09-25): round a bend towards the oncoming side in its lane, it steers against where a car on its path
+ *   would see its aim (`RIVAL_STEERING.chord`), not the chord that cut it across the middle. ("driver-v8" was the reach
+ *   slowdown, measured and not shipped: `design/PORT_ALDER.md`, "A car beside its line".)
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -591,7 +601,7 @@ export const RIVAL_STREET_LINE = { speedFactor: 0.88,
  * could hold with a fifth in hand was tried on top and measured on the 83-race
  * batch: 0.06% slower and no cleaner, so it is not here.
  */
-export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3, slip: 1 } as const;
+export const RIVAL_STEERING = { feedforward: 0.8, feedforwardLead: 0.3, slip: 1, chord: 1 } as const;
 
 
 /**
@@ -672,7 +682,7 @@ export const RIVAL_BRAKING = {
   correction: 3,
 } as const;
 
-export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null, trafficContext?: PassingContext): Input {
+export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehicle" | "driver"> & { race: RivalState["race"] | null }, obstacles: readonly Obstacle[], opponent: Obstacle | null = null, trafficContext?: PassingContext, why?: RivalSpeedWhy): Input {
   const car = state.vehicle, driver = state.driver;
   if (state.race && (state.race.countdown > 0 || state.race.finished)) return { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   const gate = state.race ? route.gates[state.race.targetIndex]! : route.along.at(-1)!;
@@ -736,6 +746,9 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // It plans with its own car's numbers, the ones its tyres will actually have.
   const handling = handlingFor(route);
   let desiredSpeed = route.speedLimit ?? handling.topSpeed;
+  // Every rule below lowers the target through `cap`: the same Math.min, naming the rule that got it lowest (`why`).
+  let by = "top", byId: number | undefined;
+  const cap = (speed: number, rule: string, id?: number) => { const next = Math.min(desiredSpeed, speed); if (next < desiredSpeed) { by = rule; byId = id; } desiredSpeed = next; };
   // At highway speed, a 100 m preview cannot see a corner early enough to stop,
   // so the preview looks through the whole braking envelope.
   const plan = route.lateral ? RIVAL_BRAKING : RIVAL_CORNERING;
@@ -764,7 +777,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   }
   // Brake as if every corner were `brakingMargin` metres nearer.
   const marginIndex = Math.min(profile.length - 1, Math.round(RIVAL_CORNERING.brakingMargin / 4));
-  desiredSpeed = Math.min(desiredSpeed, profile[marginIndex]!);
+  const planSpeed = profile[marginIndex]!;
+  cap(planSpeed, "corner");
   // How hard the profile slows from here to the next sample: what the brake should
   // deliver while the car rides it. Zero where the profile is not falling.
   const profileSpeed = profile[marginIndex]!, profileNext = profile[Math.min(profile.length - 1, marginIndex + 1)]!;
@@ -808,8 +822,8 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // on has none, so it braked for cars that would be gone before it arrived,
   // and it queued behind slower cars it could have passed. Now each car is
   // judged by where it will be when the rival gets there.
-  const slowFor = (along: number, ahead: number, length: number) => {
-    desiredSpeed=Math.min(desiredSpeed,Math.max(0,along)+Math.max(0,ahead-length-5)*.65);
+  const slowFor = (along: number, ahead: number, length: number, rule: string, id?: number) => {
+    cap(Math.max(0,along)+Math.max(0,ahead-length-5)*.65, rule, id);
   };
   // Every lateral position below is an offset from the route, the frame
   // `driver.avoidance` is in (2026-09-13). `side` is measured from the car, so a
@@ -872,7 +886,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       // would with no pass at all.
       if (immediate > 0 && immediate < (astray ? 15 + car.speed * 1.6 : length + car.speed * .45) && Math.abs(lateral) < 2.6) {
         const speed = obstacle.speed * (-Math.sin(obstacle.heading) * fx - Math.cos(obstacle.heading) * fz);
-        slowFor(speed, immediate, length);
+        slowFor(speed, immediate, length, "pass-hold", obstacle.id);
       }
       continue;
     }
@@ -894,11 +908,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
       // 182 s and 30): the rival's line runs down the middle of the street, so
       // an oncoming car is often genuinely in its way. That is the line's
       // problem, not this loop's.
-      if (inPath && ahead>0) slowFor(along,ahead,length);
+      if (inPath && ahead>0) slowFor(along,ahead,length,crossing ? "crossing" : "oncoming",obstacle.id);
       continue;
     }
     if (trafficDecision) {
-      if (inPath && ahead > 0) slowFor(along, ahead, length);
+      if (inPath && ahead > 0) slowFor(along, ahead, length, "pass-path", obstacle.id);
       continue;
     }
     // Same direction: pass it on whichever side is clear, the way it passes the
@@ -957,7 +971,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     // let go, where held to this it stayed stopped until the unseen reset (gen-67, the old rule passed it at 34 mph).
     const corridor = RIVAL_RACING.followCorridor + RIVAL_RACING.followMargin * Math.min(1, arrival);
     const stillInPath = RIVAL_RACING.followWhereItIs && follows && car.speed - along > RIVAL_RACING.followClosing && Math.abs(sideAtArrival - willBe) < corridor;
-    if (ahead>0 && ((Math.abs(there-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length);
+    if (ahead>0 && ((Math.abs(there-intent)<2.8 && (open===undefined || onBumper)) || stillInPath)) slowFor(along,ahead,length,stillInPath ? "follow" : onBumper ? "bumper" : "no-side",obstacle.id);
   }
   // A block eases across; dodging a hazard or taking a pass does not wait.
   const lateralRate = blocking ? RIVAL_RACING.blockRate : .07;
@@ -970,6 +984,23 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   // The shift is added after the clamp: the line has checked its own ground, and the clamp knows only the carriageway.
   if (aimShift) { tx += blend * aimShift.x; tz += blend * aimShift.z; }
   let error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
+  // The angle a car exactly on its path, heading along it, would see the same aim at (driver-v9, 2026-09-25). On a
+  // straight it is nothing; round a bend the aim sits inside the tangent by half the arc between them, and steering for
+  // it on top of the feedforward, which already gives the wheel the arc takes, turned the car in early and cut inside:
+  // 11.6 degrees ahead of its path and 2.7 m inside through a 73 degree left turn at 30 mph, into the oncoming lane of
+  // the street it was entering, where a car stood at its bar (gen-13, seed 314159; `pnpm rival:census`). Steering is
+  // measured against that instead, so a car on its path steers by the feedforward and an offset is corrected as before.
+  // Streets only: a racing line (`lateral`) keeps its steering, which every raced Ridge recording names. Where else, below.
+  let chord = 0;
+  if (!route.lateral && RIVAL_STEERING.chord) {
+    const onPath = (at: number) => {
+      const s = sampleDrivingPath(route, at), shift = aimShift ? shiftAt(line!, at) : null;
+      return { x: s.x - s.uz * driver.avoidance + (shift ? blend * shift.x : 0), z: s.z + s.ux * driver.avoidance + (shift ? blend * shift.z : 0) };
+    };
+    const at = onPath(driver.along), back = onPath(driver.along - 2), on = onPath(driver.along + 2);
+    chord = angle(Math.atan2(at.x - tx, at.z - tz) - Math.atan2(back.x - on.x, back.z - on.z));
+  }
+  const aimedWide = Math.abs(error) > 1;
   if (Math.abs(error)>1) {
     // More than a radian off, at a sharp corner or after a shove, the aim can be
     // inside the tightest circle the car can turn (8.4 m at full lock): steering
@@ -983,7 +1014,7 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     if (aimShift) { const shift = shiftAt(line!, wideAt); tx += blend * shift.x; tz += blend * shift.z; }
     error=angle(Math.atan2(car.x-tx,car.z-tz)-car.heading);
   }
-  if (Math.abs(error)>1) desiredSpeed=Math.min(desiredSpeed,6);
+  if (Math.abs(error)>1) cap(6, "aim");
   // Lost: held to 10 m/s until it is back, which is off the road. On a racing line
   // the line and any pass already use most of the width, and in a recorded race
   // (2026-09-13) the rival abandoning a re-pass at 95 mph drifted 6.5 m from its
@@ -1001,10 +1032,11 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   };
   const lost = Math.abs(nearestRoad) > nearestWidth / 2 + (route.shoulder ?? 0) + OFF_ROAD_MARGIN && Math.abs(nearestSide) >= (route.clearance ?? 0)
     && !(line && blend > 0 && onItsLine());
-  if (lost) desiredSpeed=Math.min(desiredSpeed,10);
-  if (driver.along < driver.bypassUntil) desiredSpeed=Math.min(desiredSpeed,8);
-  if (pass) desiredSpeed = Math.min(desiredSpeed, pass.speed);
+  if (lost) cap(10, "lost");
+  if (driver.along < driver.bypassUntil) cap(8, "bypass");
+  if (pass) cap(pass.speed, "pass-plan");
   driver.targetSpeed=desiredSpeed;
+  if (why) { why.plan = planSpeed; why.target = desiredSpeed; why.by = by; why.id = byId; }
   if (car.speed<1.2) driver.stuckTicks++; else driver.stuckTicks=0;
   if (driver.stuckTicks>100 && driver.reverseTicks===0) {
     driver.reverseTicks=110; driver.stuckTicks=0; driver.recoveries++;
@@ -1030,7 +1062,12 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
   const geometry = Math.atan(wheelbase * lineCurvature);
   const tyreSlip = steadyWheelAngleFor(car.forwardSpeed, lineCurvature, car.frontLoadFraction, handling, Math.max(0, car.longitudinalAcceleration)) - geometry;
   const feedforward = (RIVAL_STEERING.feedforward * geometry + RIVAL_STEERING.slip * tyreSlip) / Math.max(1e-6, steeringAngleFor(car.forwardSpeed, 1, handling));
-  const steer=clamp(-error*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
+  // Only round a bend towards the oncoming side, and not on a corner line: in a left turn the inside is across the middle,
+  // where the street it enters has cars standing at their bar, and cutting it was 20% of the time the rival spends held
+  // below its plan (the census, 131 episodes); taken everywhere the correction cost 1.1% of its pace on a clear road,
+  // the inside of a right turn is its own kerb, and a corner line takes the middle only where traffic shows it clear.
+  const steerError = aimedWide || lineCurvature >= 0 || (line && blend > .05) ? error : error - RIVAL_STEERING.chord * chord;
+  const steer=clamp(-steerError*3.5 + car.lateralSpeed*.025 + feedforward,-1,1);
   // A clear racing straight needs full engine demand to overcome high-speed drag.
   // Feather only when the route, traffic or recovery asks for a lower speed.
   let throttle = desiredSpeed >= handling.topSpeed ? 1 : clamp((desiredSpeed-car.speed)/5+.16,0,1);

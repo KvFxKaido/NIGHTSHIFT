@@ -32,6 +32,7 @@
     "traffic:soak": "node --experimental-strip-types --no-warnings scripts/traffic-soak.ts",
     "rival:gate": "node --experimental-strip-types --no-warnings scripts/rival-gate.ts",
     "rival:scene": "node --experimental-strip-types --no-warnings scripts/rival-scene.ts",
+    "rival:census": "node --experimental-strip-types --no-warnings scripts/rival-census.ts",
     "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
     "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts"
   },

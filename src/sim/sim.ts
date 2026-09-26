@@ -2,7 +2,7 @@ import { createTransmission, stepTransmission, TRANSMISSION, type TransmissionSt
 import { curbRise } from "./sidewalk.ts";
 import { createLaunch, LAUNCH, RIVAL_LAUNCH_SKILL, rivalLaunchCharge, stepLaunch, type LaunchState } from "./launch.ts";
 import { dragLaneInput } from "./drag-rules.ts";
-import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver } from "./rival.ts";
+import { createRivalDriver, rivalInput, sampleRivalPath, withExits, type RivalDefinition, type RivalDriver, type RivalSpeedWhy } from "./rival.ts";
 import { readStreetLine } from "./street-line.ts";
 /* Deterministic planar four-wheel model. Tyres supply four independent forces;
    Rapier integrates motion and contacts. Three.js only draws the result. */
@@ -158,6 +158,8 @@ export interface Sim {
   pedalAssist: number;
   /** `SimOptions.trafficSeed`: set it before `resetSim` for the next run to meet other traffic. */
   trafficSeed: number;
+  /** Why the race rival wanted this tick's speed (`RivalSpeedWhy`): read by the census and rival-scene, outside `state`. */
+  readonly rivalWhy: RivalSpeedWhy;
   pedalFeedback: PedalFeedback;
   state: SimState;
   world: RAPIER.World;
@@ -735,7 +737,7 @@ export function createSim(setup: Drivetrain | CarHandling = DEFAULT_DRIVETRAIN,
   }
   return {
     roadWorld,
-    pedalAssist: clamp(options.pedalAssist ?? 1, 0, 1), trafficSeed: options.trafficSeed ?? 0, pedalFeedback: { spin: 0, lock: 0 },
+    pedalAssist: clamp(options.pedalAssist ?? 1, 0, 1), trafficSeed: options.trafficSeed ?? 0, rivalWhy: { plan: 0, target: 0, by: "none" }, pedalFeedback: { spin: 0, lock: 0 },
     state: { physicsVersion: PHYSICS_VERSION, drivetrain: handling.drivetrain, handling, tick: 0,
       vehicle, traffic, rival, encounter, parkedRivals, cruisers, encounterDriver: encounterRoute ? createRivalDriver() : null,
       race: raceDefinition ? createRace(raceDefinition) : null },
@@ -1212,7 +1214,7 @@ export function step(sim: Sim, rawInput: Input): void {
     rival.input = rivalInput(sim.rivalDefinition, rival,
       seen.map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length })),
       sim.state.vehicle, sim.roadWorld.traffic ? { network: sim.roadWorld.traffic, vehicles: seen,
-        tick: rival.race.ticks, ground: sim.roadWorld.ground, opponent: sim.state.vehicle } : undefined);
+        tick: rival.race.ticks, ground: sim.roadWorld.ground, opponent: sim.state.vehicle } : undefined, sim.rivalWhy);
     // It launches as the player does, from its own skill: it holds the line for as
     // much of the countdown as its rank is worth, and lets go at the flag (`launch.ts`).
     const charge = rivalLaunchCharge(sim.rivalDefinition.launch ?? RIVAL_LAUNCH_SKILL);
