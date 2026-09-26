@@ -60,10 +60,10 @@ test("clipping bonuses require a drift and progress around the yard before repea
   assert.equal(race.drift!.won, true); assert.equal(race.drift!.chain, 0);
 });
 
-test("the driveway is continuous and clear, and all yard structures share simulation solids", () => {
+test("the north loading approach is clear, and all yard structures share simulation solids", () => {
   const world = createAlderWorld(true, DRIFT_YARD.start);
   for (const structure of YARD_STRUCTURES) assert.ok(world.solids!.includes(structure));
-  for (let z = 740; z <= 865; z += 2) {
+  for (let z = 740; z <= 842; z += 2) {
     assert.equal(alderHeight(-560, z), DRIFT_YARD.base);
     assert.ok(world.solids!.every(b => Math.abs(b.x + 560) > b.width / 2 + 3 || Math.abs(b.z - z) > b.depth / 2 + 3));
   }

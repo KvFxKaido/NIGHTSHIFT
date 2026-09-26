@@ -96,15 +96,15 @@ map, so Sable's yard, line and zones are the same numbers in both.
 ### Built and not yet (2026-09-25)
 
 Stage A, built: the venue world, its drawing, its gates on both sides, Sable's drift in it, free drive with Sable
-parked. The city's world is unchanged: its identity did not move, so no recording or stored course is refused.
+parked. At this stage the city's world was unchanged. Its later closure is recorded below.
 Then the circuits, built the same day: Full and Short, raced and recorded (below).
 
 Not yet, in the order proposed:
 
-1. **Stage B, the city side**, as one change to Port Alder's identity together with Ridge's move (below): close the
-   arena's cuts on the map, move Sable's parked car out to the east gate, and let her flash load the venue. Today the
-   city's arena is still open, Sable is still parked inside it, and her flash already loads the venue because every
-   race is a page load. Closing the map is what refuses recordings and pending career courses, so it happens once.
+1. **Ridge's city-side move** remains future work. The stadium's city closure was completed independently on
+   2026-09-26 after Shawn found the open-world copy still open. Both worlds now draw and collide with the continuous
+   shell. The city uses `drift-yard-v5`; old city recordings/courses must be refused by the existing version checks.
+   `SABLE_CITY` stands on the paved approach at (-50, 870), clear of the east loading prompt; venue Sable is unchanged.
 2. **A dirt surface and handling model**, then the circuits turned to dirt and **generated dirt circuits** (above,
    "What it is for"), and the pink slips that race them.
 3. **Off-road**: the generator for unordered gates over the floor, and the gates placed so no cut pays an AWD car.
@@ -169,3 +169,16 @@ venue with an edge 50 to 70 m past its asphalt and a gate where Pine East arrive
 - **Heights**: `arena.ts` is plan geometry and takes its heights from Port Alder's terrain. The venue must carry the
   same heights under the layouts or the lines and cards move while the plan does not. Recorded Ridge laps will likely
   be refused once it is its own world, whichever way that goes.
+
+### City closure validation (2026-09-26)
+
+Both worlds now use the closed asset and matching collision; neither runtime can select the historical
+open GLB. Both city approaches are driven by the test through their loading markers and into the wall;
+the car stays outside. The city placement lattice loses four usable cells (409 usable, 71 blocked).
+Sable is stationary and challengeable on the paved approach, outside both entry prompts' reach.
+
+Full `pnpm test`: **805 passed, zero failed**. Production build and `git diff --check` pass.
+`scripts/check-stadium-shell.mjs` verifies both city/venue round trips and the closed fallback,
+with zero page errors, and now captures each city exterior as well as the venue. Logs:
+`artifacts/stadium-city/`; captures: `artifacts/stadium-shell/after/*city*.png`.
+The separate venue's identity, Sable pose, circuits and drift targets were not changed.

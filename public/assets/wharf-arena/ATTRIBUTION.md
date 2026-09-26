@@ -25,3 +25,7 @@ uses the same cleaned/scaled source before the entrance cuts, retaining the orig
 perimeter. Both are covered by the attribution and license above. Generate them with
 `node scripts/build-yard-arena.mjs --closed`; `--source=<path>` accepts an alternate local
 `shell-preview.glb` path. The city outputs remain separate.
+
+Since September 26, 2026 both the city exterior and stadium venue use the continuous
+`closed-shell.glb` / `closed-collision.json` pair. The open pair is retained as the
+historical cut study; rebuild the active pair with `node scripts/build-yard-arena.mjs --closed`.

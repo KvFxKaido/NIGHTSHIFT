@@ -80,11 +80,32 @@ try {
       await ready();
       const city = await page.evaluate(() => ({ enclosure: __ns.view.scene.userData.yardShell.enclosure,
         x: __ns.sim.state.vehicle.x, z: __ns.sim.state.vehicle.z }));
-      assert.equal(city.enclosure, 'open');
+      assert.equal(city.enclosure, 'closed');
       const expected = id === 'east' ? [-26, 910] : [-560, 815];
       assert.ok(Math.hypot(city.x - expected[0], city.z - expected[1]) < 1);
       await placeAtMarker(id, 'city');
       assert.match(await page.locator('#garage-entry').innerText(), /Enter Wharf Arena/);
+      await page.screenshot({ path: `${output}/${id}-city-marker-night.png` });
+      // Inspect the actual city copy from outside, where a venue-only fix cannot pass.
+      await page.evaluate(async id => {
+        const THREE = await import('/node_modules/three/build/three.module.js');
+        const { view } = __ns;
+        const camera = view.camera.clone();
+        const eye = id === 'east' ? [120, 150, 1080] : [-560, 160, 650];
+        const target = id === 'east' ? [-100, 15, 955] : [-560, 15, 854];
+        const light = new THREE.HemisphereLight(0xc0d9e8, 0x605343, 2);
+        const fog = view.scene.fog;
+        view.scene.add(light); view.scene.fog = null;
+        camera.position.set(...eye); camera.lookAt(...target); camera.updateProjectionMatrix();
+        document.querySelectorAll('body > :not(canvas):not(script)').forEach(el => el.style.visibility = 'hidden');
+        drawStadium(view.scene, camera);
+        view.scene.remove(light); view.scene.fog = fog;
+      }, id);
+      await page.screenshot({ path: `${output}/${id}-city-exterior.png` });
+      await page.evaluate(() => {
+        document.querySelectorAll('body > :not(canvas):not(script)').forEach(el => el.style.removeProperty('visibility'));
+        __ns.shot(); drawStadium(__ns.view.scene, __ns.view.camera);
+      });
       await page.locator('#garage-entry').click();
       await page.waitForURL(url => url.searchParams.get('venue') === 'stadium' && url.searchParams.get('gate') === id);
       await ready();
