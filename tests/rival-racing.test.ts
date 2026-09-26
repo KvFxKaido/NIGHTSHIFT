@@ -54,6 +54,68 @@ test("behind a slower racing player it goes for the pass instead of queueing", (
   } finally { sim.world.free(); }
 });
 
+// It passes the player only through a lane it can use (driver-v10, 2026-09-26): in both of Shawn's recorded races of
+// gen-crest-223734 its move on him was the side he was not covering, the oncoming lane, with a car coming in it.
+test("behind a racing player it does not pull out into a lane with a car coming the other way", () => {
+  const sim = straight({ x: 1, z: -120 });
+  try {
+    const route: RivalDefinition = { id: "racing-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 },
+      points: [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 24, zone: "boulevard" })), along: [0, 8000], gates: [8000] };
+    // The rival at 40 m/s, the player 20 m on at 30 m/s and `playerX` right: the side they are not covering is the left.
+    // A sedan 150 m on at `sedanX` at 15 m/s, coming towards it: met in 2.6 s, before a pass that takes 2.8.
+    const drive = (sedanX: number | null, playerX = 1) => {
+      const vehicle = { ...sim.state.rival!.vehicle, x: 0, y: 0, z: -100, heading: 0, speed: 40, forwardSpeed: 40, lateralSpeed: 0 };
+      const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: ownSide(24) };
+      const player = { x: playerX, y: 0, z: -120, heading: 0, speed: 30 };
+      const sedan = sedanX === null ? [] : [{ id: 9, x: sedanX, y: 0, z: -250, heading: Math.PI, speed: 15, length: 4.4 }];
+      for (let tick = 0; tick < 60; tick++) rivalInput(route, { vehicle, driver, race: sim.state.rival!.race }, sedan, player);
+      return { aim: driver.avoidance, wants: driver.targetSpeed };
+    };
+    // From its own side, 1.6 m right on 24 m: a second of it.
+    assert.ok(drive(null).aim < -1.5, `with the lane clear it went only ${drive(null).aim.toFixed(2)} m left; the test proves nothing`);
+    assert.ok(drive(-3.8).aim > ownSide(24) + 1, `with a car coming in the left lane it went ${drive(-3.8).aim.toFixed(2)} m, not right past the player`);
+    // A car in the next lane over, 2.5 m outside the one it would pass in, does not block it (2.6 m did, in Shawn's race).
+    assert.ok(drive(-6.3).aim < -1.5, `a car in the far lane kept it at ${drive(-6.3).aim.toFixed(2)} m`);
+    // The player 2 m right leaves too little room on that side: held behind them, no faster than them by more than 2 m/s
+    // and half a m/s a metre past 8 m back (it hit Shawn from behind at 105 mph to his 78, held and flat out).
+    const held = drive(-3.8, 2);
+    assert.ok(Math.abs(held.aim - ownSide(24)) < .5, `held, it still moved to ${held.aim.toFixed(2)} m`);
+    assert.ok(held.wants <= 30 + 2 + (20 - 8) * .5 + 1e-9, `held behind a player doing 30 m/s it wanted ${held.wants.toFixed(1)}`);
+  } finally { sim.world.free(); }
+});
+
+// The same race, the second time (2026-09-26, 41 s): with a lane clear it closed on Shawn flat out, 101 mph to his 77,
+// its aim flipping side each time either car twitched across the other, and hit him from behind still in his line.
+test("behind a racing player it keeps the side it has taken, and in their line closes no faster than it can stop", () => {
+  const sim = straight({ x: 1, z: -120 });
+  try {
+    const route: RivalDefinition = { id: "racing-check", start: { x: 0, y: 0, z: 0, heading: 0, pitch: 0 },
+      points: [[0, 0], [0, -8000]].map(([x, z]) => ({ x: x!, z: z!, y: 0, width: 24, zone: "boulevard" })), along: [0, 8000], gates: [8000] };
+    // The rival at 40 m/s at `rivalX`, heading `heading` (positive turns it left, -X), aiming at `aim`; the player 20 m
+    // on at `playerX`, 30 m/s. The car does not move: this is what it asks for over half a second from there.
+    const drive = (rivalX: number, aim: number, playerX: number, heading = 0) => {
+      const vehicle = { ...sim.state.rival!.vehicle, x: rivalX, y: 0, z: -100, heading, speed: 40, forwardSpeed: 40, lateralSpeed: 0 };
+      const driver = { ...createRivalDriver(), along: 100, progressMark: 100, avoidance: aim };
+      const player = { x: playerX, y: 0, z: -120, heading: 0, speed: 30 };
+      for (let tick = 0; tick < 30; tick++) rivalInput(route, { vehicle, driver, race: sim.state.rival!.race }, [], player);
+      return { aim: driver.avoidance, wants: driver.targetSpeed };
+    };
+    // Aiming left of them already, its car a little right of theirs: read from the car, the player was on its left and
+    // it turned back right.
+    const kept = drive(1.5, -1.5, 0.8);
+    assert.ok(kept.aim < -2.5, `leaning left of the player it went back to ${kept.aim.toFixed(2)} m`);
+    // In their line and not moving out of it: no faster than it can shed at 5 m/s^2 before it is 6 m behind them.
+    const inLine = drive(0.5, -1.5, 0.8);
+    const limit = 30 + Math.sqrt(2 * RIVAL_RACING.inLineDecel * (20 - RIVAL_RACING.inLineGap));
+    assert.ok(inLine.wants <= limit + 1e-9, `in the player's line, 20 m back and closing at 10 m/s, it wanted ${inLine.wants.toFixed(1)} m/s`);
+    // Moving out of it at 0.2 rad, 8 m/s across, it is out long before it gets there: not held.
+    const leaving = drive(0.5, -1.5, 0.8, 0.2);
+    assert.ok(leaving.wants > limit + 5, `sliding out past them it was held to ${leaving.wants.toFixed(1)} m/s`);
+    // Out of their line it is not held: past 2.2 m across it is not closing on them but passing.
+    assert.ok(drive(-1.6, -1.5, 0.8).wants > limit + 5, "2.4 m across from them it was held");
+  } finally { sim.world.free(); }
+});
+
 test("a player who blocks gets pressure, not patience", () => {
   // A 9 m street leaves too little room to dodge round the player as traffic.
   const sim = straight({ x: 0, z: -40 }, 9);

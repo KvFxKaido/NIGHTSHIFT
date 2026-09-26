@@ -190,7 +190,10 @@ fixtures outside the playable bundle, and old world links redirect.
   empty (`UNSEEN_ROAD`, `driver-v4`, 2026-09-23): it cannot be shaken, and it is
   never faster than its own clear-road self. It
   races the player rather than yielding: passes, holds its line, blocks and
-  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). On a street
+  does not lift for contact (`RIVAL_RACING`, `design/PORT_ALDER.md`). Since
+  `driver-v10` (2026-09-26, Shawn's races of gen-crest-223734) a pass on the player
+  goes only into a lane clear of traffic for as long as the pass takes, and in the
+  player's line it closes no faster than it can stop behind them. On a street
   it rests half-way into the inner lane going its way (`RIVAL_LANE`) and drives
   each junction as an arc within its own side (`RIVAL_STREET_CORNERS`). Its
   cornering is tuned to recorded laps; past about 0.8 of the grip-limited speed its
@@ -631,8 +634,11 @@ fixtures outside the playable bundle, and old world links redirect.
   the route; compare them only after adding the car's own offset across the route
   at the aim point (`carOffset`), never across the nearest segment, which at a
   corner is still the street being left. Mixing them pinned the rival on a truck's
-  bumper for 42 s, then drove it into a truck round a corner. The player-racing
-  block above the traffic loop still mixes them.
+  bumper for 42 s, then drove it into a truck round a corner. The pass on the
+  player reads them across the route since `driver-v10` (`theirs`), and keeps the
+  side its aim has taken: chosen from the car, directly behind the player the side
+  flipped each time either car twitched, and it closed at 101 mph on Shawn's 77
+  without ever leaving his line. The block beside it still mixes them.
 - A rival's peak distance from a centreline in traffic is a lottery, not a
   measure: one car met head on throws it past 20 m for a second or two, which
   failed one tune and passed the next for a difference neither caused. Measure it

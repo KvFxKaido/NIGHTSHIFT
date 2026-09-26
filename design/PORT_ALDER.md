@@ -809,7 +809,11 @@ Underground was that the missing piece is a desire to win. A racing rival now
 takes the player as its opponent (`RIVAL_RACING` in `src/sim/rival.ts`):
 
 - **Behind:** it takes the side the player is not covering and does not brake
-  for them; if the gap shuts, that is contact.
+  for them; if the gap shuts, that is contact. Since `driver-v10` (2026-09-26,
+  "Passing the player in traffic" below) only into a lane clear of traffic for
+  the pass, and not into the player's back: still in their line and not getting
+  out of it, it closes no faster than it can stop, and with no lane it holds on
+  their bumper.
 - **Alongside:** it holds its line and stays on the throttle.
 - **Ahead and being caught** within 25 m: it eases across to cover the
   player's side, at most 0.8 of the room there and 1.8 m/s laterally, and not
@@ -3332,6 +3336,36 @@ on the grid at seed 271828 that has contact under both (14 ticks to 28). Shipped
 and hardly slower, and the gate's worse totals are races meeting other traffic after them. Not measured: the
 correction at a crawl, where the cut does not matter and the lane aim can fight a dodge; a floor of about 20 mph for
 it is the obvious refinement, turn by turn again.
+
+## Passing the player in traffic (2026-09-26, `driver-v10`)
+
+Shawn raced gen-crest-223734 (Crest, the Skim) and the rival's move on him went wrong three ways. In the first race it
+took the side he was not covering, which was the oncoming lane with an SUV in it, and sat there behind it; in the second
+(driver-v9) it braked from 115 mph to 74 in the same kind of move. `RIVAL_RACING` had never looked at traffic: behind a
+racing player it took the uncovered side, whatever was in it. So the pass now goes only into a lane it can use until it
+is by: nothing in that lane (within `passLane`, 2.2 m across, where that car is on this road; 2.6 took a car in the
+next lane over) that it would meet, coming or going, in the time the pass takes (`passBy` 8 m past the player at the
+closing speed, at most `passLook` 5 s, plus 1). The uncovered side first, then the player's own where they leave room,
+and with neither it holds on their bumper, no faster than them by 2 m/s and half a m/s a metre further back than 8 m
+(`no-lane`).
+
+The third race was that first version hitting him from behind at 101 mph to his 77, at 42 s. Traced, it never got out
+of his line: it chose its side from its own car (`side`, the player across from the rival), and directly behind him
+that flips each time either car twitches, so its aim went right, left, right, left while it closed at 11 m/s with a lane
+clear and nothing holding it; the bumper hold came 6 m back, too late to shed it. Two changes. It keeps the side its aim
+has taken once that is a metre off the player's, reading the player across the ROUTE (`theirs`), and chooses the
+uncovered side of the road until then. And still in their line (centres within 2.2 m, its nose behind their tail) and
+not getting out of it faster than it closes, it closes no faster than it could shed at 5 m/s^2 before it is 6 m behind
+them, centre to centre (`in-line`). A rival already sliding out past them is not held: on a 9 m street held that way it
+braked for a blocker it was squeezing past, which "pressure, not patience" (2026-09-13) exists to stop, so the rule is
+against running into them and not against pressing.
+
+Measured on every raced recording (42, the player's inputs replayed, contact counted while the log is theirs): contact
+between the player and the rival 31 to 24, none added in any recording; the rival 9.9 s quicker in total, 9.3 of it the
+first race above (83.00 s to 73.73, no SUV), nothing else by more than 0.23 s. His second-race attempt that it hit
+(053106): no contact. The golden master is identical to the bit, and the gate cannot see any of it: its player is
+parked, and a player under `racingSpeed` is traffic to the rival, not raced (Inference from that guard; the gate was not
+re-run). `tests/rival-racing.test.ts` holds the lane check, the hold, the kept side and the in-line limit.
 
 ## Corner dressing trial (2026-09-21)
 

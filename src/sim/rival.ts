@@ -395,6 +395,8 @@ export interface RivalSpeedWhy { plan: number; target: number; by: string; id?: 
  * "driver-v9" (2026-09-25): round a bend towards the oncoming side in its lane, it steers against where a car on its path
  *   would see its aim (`RIVAL_STEERING.chord`), not the chord that cut it across the middle. ("driver-v8" was the reach
  *   slowdown, measured and not shipped: `design/PORT_ALDER.md`, "A car beside its line".)
+ * "driver-v10" (2026-09-26): a pass on the player goes only into a lane clear of traffic for the time it takes, keeps
+ *   the side it has taken, and in line behind them closes no faster than it can stop on their bumper (Shawn's races).
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 
@@ -402,6 +404,27 @@ export const RIVAL_RACING = {
   /** Metres ahead, plus this much per m/s of closing speed, that it starts a pass. */
   passReach: 15,
   passReachPerClosing: 1.6,
+  /** Its lane for a pass on the player must be clear for the time the pass takes (driver-v10, 2026-09-26): metres past
+   *  the player it counts as by (`passBy`) at the closing speed, no more than `passLook` seconds, and `passMargin` on
+   *  top; a car is in that lane within `passLane` metres of it, across the road where that car is (two half-widths
+   *  and a little: 2.6 took a car in the next lane over). Out in that lane and within `passCommitted` metres of the
+   *  player it no longer looks: alongside, a change of mind steers into them. With no lane it may be no faster than
+   *  them by more than `passHeld` m/s, and half a m/s for every metre it is further back than `passBy`. */
+  passBy: 8,
+  passLook: 5,
+  passMargin: 1,
+  passLane: 2.2,
+  passCommitted: 6,
+  passHeld: 2,
+  /** Behind them and still in line, centres within `inLine` metres across the road (the width `passLane` counts as a
+   *  lane) and its nose behind their tail (`inLineBehind`: two half-lengths, 4.16 m, and a little), it closes no faster
+   *  than it could shed at `inLineDecel` m/s^2 before it is `inLineGap` metres behind them, centre to centre. Beside
+   *  them nothing changes (it holds its line), and out of line it presses as before: the rule is against running into
+   *  them, not against pressure. */
+  inLine: 2.2,
+  inLineBehind: 4.5,
+  inLineGap: 6,
+  inLineDecel: 5,
   /** A player slower than this is parked in the road, not racing: slow for them. */
   racingSpeed: 4,
   /** How far behind, in metres, a closing player gets blocked. */
@@ -804,9 +827,46 @@ export function rivalInput(route: RivalDefinition, state: Pick<RivalState, "vehi
     const closing = car.speed - opponentAlong;
     const reach = RIVAL_RACING.passReach + Math.max(0, closing) * RIVAL_RACING.passReachPerClosing;
     if (ahead > 0 && ahead < reach && Math.abs(side) < 4 && room > 0) {
-      // Behind them: take the side they are not covering. It does not queue,
-      // so there is no speed match here; if the gap shuts, it is contact.
-      offset = side >= 0 ? -room : room;
+      // Behind them: take the side they are not covering. It does not queue; but still in line behind them it closes no
+      // faster than it can stop to their speed on their bumper, whatever lane it is making for (`inLine`). Flat out
+      // behind Shawn it hit him at 101 mph to his 77 (2026-09-26, 42 s), having never got out of line to pass.
+      // Only into a lane it can use until it is by (driver-v10, 2026-09-26): nothing in it that it would meet, coming
+      // the other way or slower its way, in the time the pass takes, read where each car is on this road. The side they
+      // are not covering first, then theirs where they leave 2.6 m of it, else it stays on their bumper. In both of
+      // Shawn's recorded races of gen-crest-223734 its move on him was the oncoming lane with a car in it: once it sat
+      // behind an SUV for the race, once it braked from 115 mph to 74. Alongside them it is committed and does not look.
+      const nx = -target.uz, nz = target.ux, carOff = (car.x - target.x) * nx + (car.z - target.z) * nz, theirs = side + carOff;
+      const passing = Math.min(RIVAL_RACING.passLook, (ahead + RIVAL_RACING.passBy) / Math.max(2, closing)) + RIVAL_RACING.passMargin;
+      // Committed only once it is out in that lane: within `passCommitted` of them still behind is not a pass begun, and
+      // took one as a lane to swerve into at the last moment (Shawn's race, 2026-09-26, 42 s).
+      const laneClear = (lane: number) => (ahead <= RIVAL_RACING.passCommitted && Math.abs(driver.avoidance - lane) < 1) || !obstacles.some(o => {
+        const ox = o.x - car.x, oz = o.z - car.z, oAhead = ox * target.ux + oz * target.uz;
+        if (oAhead < -5) return false;
+        if (Math.abs(o.y - routeHeightAt(route, driver.along + oAhead) - (car.y - routeHeightAt(route, driver.along))) > 3) return false;
+        const road = sampleDrivingPath(route, driver.along + oAhead);
+        if (Math.abs((o.x - road.x) * -road.uz + (o.z - road.z) * road.ux - lane) > RIVAL_RACING.passLane) return false;
+        const closingOn = car.speed - o.speed * (-Math.sin(o.heading) * road.ux - Math.cos(o.heading) * road.uz);
+        return closingOn > 0 && Math.max(0, oAhead - 5) / closingOn < passing;
+      });
+      // The side it has taken, once its aim is a metre off theirs; until then the side of the road they are not
+      // covering. Read from its own car, as it was to driver-v9, the side flipped each time either car twitched across
+      // the other: behind Shawn at 70 to 100 mph its aim went right, left, right, left, and it never got out of line.
+      const lean = driver.avoidance - theirs;
+      const preferred = Math.abs(lean) > 1 ? Math.sign(lean) * room : theirs >= 0 ? -room : room, other = -preferred;
+      const usable = (lane: number) => Math.abs(lane - theirs) >= RIVAL_RACING.passLane && laneClear(lane);
+      // In line when it gets there: moving out of their line faster than it closes on them (the across speeds in the
+      // road's frame, each from its heading) is a pass under way and is not held; on a 9 m street it braked a rival
+      // already sliding out past a blocker.
+      const acrossRate = (speed: number, heading: number) => speed * (-Math.sin(heading) * nx - Math.cos(heading) * nz);
+      const apart = Math.sign(side) * (acrossRate(opponent.speed, opponent.heading) - acrossRate(car.speed, car.heading));
+      const outFirst = apart > 0 && closing > 0 && (RIVAL_RACING.inLine - Math.abs(side)) / apart < Math.max(0, ahead - RIVAL_RACING.inLineGap) / closing;
+      if (Math.abs(side) < RIVAL_RACING.inLine && ahead > RIVAL_RACING.inLineBehind && !outFirst)
+        cap(Math.max(0, opponentAlong) + Math.sqrt(2 * RIVAL_RACING.inLineDecel * Math.max(0, ahead - RIVAL_RACING.inLineGap)), "in-line");
+      if (usable(preferred)) offset = preferred;
+      else if (usable(other)) offset = other;
+      // Neither: on their bumper, and no faster than them by `passHeld`. "Pressure, not patience" is for a player who
+      // blocks; held by traffic it kept its foot down and hit Shawn from behind at 105 mph to his 78 (the same race).
+      else cap(Math.max(0, opponentAlong) + RIVAL_RACING.passHeld + Math.max(0, ahead - RIVAL_RACING.passBy) * .5, "no-lane");
     } else if (ahead < -2.5 && ahead > -RIVAL_RACING.blockReach && Math.abs(side) < 6 && closing < 1 && room > 0
       // Not while braking for a corner: a block there throws the car wide.
       && desiredSpeed >= car.speed - 2) {
