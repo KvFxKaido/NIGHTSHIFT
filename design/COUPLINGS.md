@@ -51,6 +51,15 @@ identity and tyre tuning did not move at any of them.
 The enclosure, render/collision equality, marker reachability, the circuits and the drift run are held by
 `tests/stadium.test.ts` and `tests/stadium-circuits.test.ts`; results are recorded in `design/VENUES.md`.
 
+## City stadium closure — 2026-09-26
+
+`drift-yard-v5` replaces the city's cut shell and occupancy proxies with the continuous perimeter.
+`SABLE_CITY` moves the street challenge to (-50, 870); venue Sable and `STADIUM_VERSION` are unchanged.
+Older city-world-dependent recordings, line/route measurements and rival-gate totals are suspect
+until remeasured. Current: all 805 tests, including the generator fingerprints and real-car city gate
+approaches, plus browser round trips through both markers. The six-seed rival gate and recorded-lap
+replays were not rerun. Tyres, streets, traffic rules and venue floor/circuits are unchanged.
+
 ## Wharf arena world change — 2026-09-23
 
 `drift-yard-v4` replaces the old fence with a colliding shell and shifts Sable's

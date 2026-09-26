@@ -5,8 +5,10 @@ import { NodeIO } from "@gltf-transform/core";
 import { WHARF_ARENA_MESH, WHARF_ARENA_PROXIES } from "../src/sim/wharf-arena.ts";
 import { createAlderWorld, alderGround } from "../src/sim/alder.ts";
 import { createSim, step } from "../src/sim/sim.ts";
+import { STADIUM_GATES, inStadium, stadiumGateAt } from "../src/sim/stadium.ts";
+import { canChallenge } from "../src/sim/encounter.ts";
 import * as THREE from "three";
-import { YARD_STRUCTURES, GATE_STRUCTURES } from "../src/sim/drift-yard.ts";
+import { YARD_STRUCTURES, GATE_STRUCTURES, SABLE_CITY, SABLE } from "../src/sim/drift-yard.ts";
 
 await RAPIER.init();
 
@@ -23,7 +25,7 @@ test("yard buildings, containers and lights do not clip the shell", () => {
 });
 
 test("the shipping mesh and physics bake contain the same triangles", async () => {
-  const doc = await new NodeIO().read("public/assets/wharf-arena/shell.glb");
+  const doc = await new NodeIO().read("public/assets/wharf-arena/closed-shell.glb");
   const key = (vertices: number[][]) => vertices.map(v => v.map(n => n.toFixed(3)).join(",")).sort().join(";");
   const physics = new Map<string, number>(), visual = new Map<string, number>();
   const add = (map: Map<string, number>, k: string) => map.set(k, (map.get(k) ?? 0) + 1);
@@ -40,23 +42,40 @@ test("the shipping mesh and physics bake contain the same triangles", async () =
   assert.ok(WHARF_ARENA_PROXIES.every(p => p.collision === false));
 });
 
-test("both arena entrances pass real cars; the uncut perimeter stops one", () => {
-  // Drive through each portal, not just through the old posts outside it.
-  for (const start of [
-    { x: -560, z: 795, heading: Math.PI, targetZ: 965 },
-    { x: -65, z: 920, heading: Math.PI / 2 + .52, targetZ: 990 },
-  ]) {
-    const sim = createSim("rwd", createAlderWorld(true, { ...start, y: 2, pitch: 0 }), { traffic: false });
+test("both city approaches reach their loading markers but cannot drive into the stadium", () => {
+  for (const gate of STADIUM_GATES) {
+    const { marker, leave } = gate.city;
+    const heading = Math.atan2(leave.x - marker.x, leave.z - marker.z);
+    const sim = createSim("rwd", createAlderWorld(true, { ...leave, heading }), { traffic: false, parkedRivals: [SABLE_CITY] });
+    let reached = false;
     try {
-      for (let tick = 0; tick < 550; tick++) step(sim, { throttle: 1, brake: 0, steer: 0, handbrake: 0 });
-      assert.ok(sim.state.vehicle.z > start.targetZ, `entrance blocked at ${sim.state.vehicle.x}, ${sim.state.vehicle.z}`);
-      assert.equal(alderGround(sim.state.vehicle.x, sim.state.vehicle.z), false);
+      for (let tick = 0; tick < 600; tick++) {
+        step(sim, { throttle: 1, brake: 0, steer: 0, handbrake: 0 });
+        const car = sim.state.vehicle;
+        reached ||= Math.hypot(car.x - marker.x, car.z - marker.z) < 3;
+        assert.equal(inStadium(car.x, car.z), false, gate.id + ': drove through the closed city shell at tick ' + tick);
+      }
+      assert.ok(reached, gate.id + ': loading marker blocked by the shell');
+      assert.equal(alderGround(marker.x, marker.z), false);
+      assert.equal(stadiumGateAt('city', { ...marker, speed: 0 }, false)?.id, gate.id);
     } finally { sim.world.free(); }
   }
-  const sim = createSim("rwd", createAlderWorld(true, { x: -730, z: 1090, y: 2, heading: Math.PI, pitch: 0 }), { traffic: false });
+});
+
+test("Sable's street challenge stays outside the shell and leaves room for the loading prompt", () => {
+  assert.equal(inStadium(SABLE_CITY.start.x, SABLE_CITY.start.z), false);
+  assert.equal(inStadium(SABLE.start.x, SABLE.start.z), true, 'the venue must keep its own Sable pose');
+  assert.equal(alderGround(SABLE_CITY.start.x, SABLE_CITY.start.z), false);
+  for (const gate of STADIUM_GATES) {
+    assert.equal(canChallenge({ ...gate.city.marker, y: 2 }, SABLE_CITY.start, false), false,
+      gate.id + ': rival card would hide the loading prompt');
+  }
+  const sim = createSim('rwd', createAlderWorld(true, { ...SABLE_CITY.start, z: SABLE_CITY.start.z + 20 }),
+    { traffic: false, parkedRivals: [SABLE_CITY] });
   try {
-    for (let tick = 0; tick < 500; tick++) step(sim, { throttle: 1, brake: 0, steer: 0, handbrake: 0 });
-    assert.ok(sim.state.vehicle.z < 1170, "car passed through the southern wall");
-    assert.ok(sim.state.vehicle.z > 1110, "car did not reach the wall");
+    for (let tick = 0; tick < 180; tick++) step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
+    const rival = sim.state.parkedRivals[0]!.vehicle;
+    assert.ok(Math.hypot(rival.x - SABLE_CITY.start.x, rival.z - SABLE_CITY.start.z) < .1, 'Sable intersects a solid');
+    assert.equal(canChallenge(sim.state.vehicle, rival, false), true);
   } finally { sim.world.free(); }
 });

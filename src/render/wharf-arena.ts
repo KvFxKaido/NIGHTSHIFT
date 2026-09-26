@@ -1,14 +1,12 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { WHARF_ARENA_MESH } from "../sim/wharf-arena.ts";
-import { STADIUM_SHELL_MESH } from "../sim/stadium-shell.ts";
 
-export async function addWharfArena(scene: THREE.Scene, enclosure: "open" | "closed" = "open"): Promise<void> {
-  const shell = enclosure === "closed" ? STADIUM_SHELL_MESH : WHARF_ARENA_MESH;
-  const asset = enclosure === "closed" ? "closed-shell" : "shell";
+export async function addWharfArena(scene: THREE.Scene): Promise<void> {
+  const shell = WHARF_ARENA_MESH;
   let group: THREE.Object3D;
   try {
-    group = (await new GLTFLoader().loadAsync(`/assets/wharf-arena/${asset}.glb`)).scene;
+    group = (await new GLTFLoader().loadAsync("/assets/wharf-arena/closed-shell.glb")).scene;
   } catch (error) {
     // A missing asset must not leave an invisible arena-sized obstacle. The
     // collision bake is also a complete neutral visual fallback.
@@ -24,5 +22,5 @@ export async function addWharfArena(scene: THREE.Scene, enclosure: "open" | "clo
   });
   scene.add(group);
   const bounds = new THREE.Box3().setFromObject(group, true);
-  scene.userData.yardShell = { state: "ready", collision: true, enclosure, min: bounds.min.toArray(), max: bounds.max.toArray() };
+  scene.userData.yardShell = { state: "ready", collision: true, enclosure: "closed", min: bounds.min.toArray(), max: bounds.max.toArray() };
 }

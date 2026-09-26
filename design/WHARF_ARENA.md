@@ -3,7 +3,10 @@
 Since 2026-09-25 the arena is also a venue of its own, the stadium (`design/VENUES.md`, `src/sim/stadium.ts`): the
 same yard and shell placement, with the original continuous perimeter restored before the entrance cuts.
 The venue loads `closed-shell.glb`; city gate markers load that separate world.
-Sable's drift runs there. The city's copy described below is still open until the city side of that change lands.
+Sable's drift runs there. Since 2026-09-26 the city copy is closed too: both worlds load
+`closed-shell.glb` and collide with `closed-collision.json`. The city is `drift-yard-v5`.
+Both loading markers remain outside the shell, and `SABLE_CITY` parks at (-50, 870);
+the venue retains its own Sable pose. The cut-shell account below is the original September 23 implementation.
 
 September 23, 2026 — the approved 1,080 by 380 metre shell now ships in normal
 Port Alder drives. Its position and silhouette are the approved whole-site
@@ -45,7 +48,7 @@ confirmed this license on September 23, 2026.
 - `scripts/build-yard-arena.mjs --closed`: generates the venue's uncut shell and collision into separate
   `closed-shell.glb` / `closed-collision.json` outputs. `--source=<path>` allows the ignored source
   GLB in another checkout. Neither existing city asset is overwritten.
-- `public/assets/wharf-arena/shell.glb`: four meshes sharing one material,
+- Historical `assets/wharf-arena/open-shell.glb` (outside the public bundle): four meshes sharing one material,
   4,002 triangles, approximately 284 KB, no textures or added lights.
 - `assets/wharf-arena/collision.json`: the exact same world-space triangles.
   Rapier receives this synchronously before the first tick. Narrow ground-level
@@ -66,10 +69,12 @@ event in all drivetrains with no scenery contacts and checks repeatability.
 `tests/yard-grid.test.ts` pins the changed occupancy of the existing lattice.
 
 `node scripts/test-wharf-arena.mjs` captures overview, plan, interior and night
-chase views, drives on the asphalt, and verifies the arena is present without
-any query flag while the normal start remains at Wharf Garage. A development
-`?world=alder&scene=track&yardShell=1` link is retained solely for starting inside
-the arena. Camera-study fill light and disabled fog are confined to the three
+chase views, drives inside the venue, and verifies the arena is present in the city
+while the normal start remains at Wharf Garage. The legacy development
+`?world=alder&scene=track&yardShell=1` link now redirects to `?venue=stadium`.
+Both this script and `scripts/check-stadium-shell.mjs` require a Vite dev server;
+`STADIUM_URL` overrides its address, not a production or preview URL.
+Camera-study fill light and disabled fog are confined to the three
 overview captures; the chase image uses normal game lighting.
 
 Build and browser capture passed on September 23, 2026. The browser reported

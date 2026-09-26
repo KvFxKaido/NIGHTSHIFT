@@ -87,3 +87,10 @@ export const SABLE = {
   id: "sable", name: "Sable", carName: "NS-01", car: "blender", eventId: "sable-yard-drift",
   start: { x: -526, z: 931, y: 2, heading: Math.PI / 2, pitch: 0 },
 } as const;
+
+/** Street-side challenge, clear of both the closed shell and the east loading marker.
+ * The venue keeps SABLE's original pose; moving this never moves its drift event. */
+export const SABLE_CITY = {
+  ...SABLE,
+  start: { x: -50, z: 870, y: DRIFT_YARD.base, heading: Math.PI / 2, pitch: 0 },
+} as const;

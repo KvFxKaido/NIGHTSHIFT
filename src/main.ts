@@ -1,7 +1,7 @@
 import { addWharfArena } from "./render/wharf-arena.ts";
 import { createLiveryEditor } from "./ui/livery.ts";
 import { padLabel, refreshControlHints } from "./ui/prompts.ts";
-import { DRIFT_YARD, SABLE, YARD_LINE } from "./sim/drift-yard.ts";
+import { DRIFT_YARD, SABLE, SABLE_CITY, YARD_LINE } from "./sim/drift-yard.ts";
 import { SABLE_DRIFT, sableDriftFor } from "./sim/drift-event.ts";
 import { addDriftYard } from "./render/drift-yard.ts";
 import { HARBOR_DRAG, DRAG_START, RIVET, RIVET_DRAG_DRIVER } from "./sim/drag-event.ts";
@@ -213,6 +213,13 @@ try {
     if (solo) { race = withExits(race!, rival!); rival = null; }
     else { params.delete("solo"); history.replaceState(history.state, "", url); }
   }
+  // Old arena-study links now enter the separate venue instead of trapping a car inside the city shell.
+  if (params.has("yardShell")) {
+    if (import.meta.env?.DEV && params.get("yardShell") === "1" && !race && !params.has("visit") && !loadedSave) {
+      params.set("venue", STADIUM.id);
+    }
+    params.delete("yardShell");
+  }
   // The venue: its free drive by name; Sable's drift and the stadium circuits because that is where they run. Its
   // races say so themselves, so any race drops a stray ?venue=, and a gate that is not one is dropped too.
   if (params.has("venue") && (params.get("venue") !== STADIUM.id || race)) params.delete("venue");
@@ -288,19 +295,14 @@ if (loadedSave && progress.preserveLegacyOwnership()) {
   settings.update({ car: restored.car, customization: loadedSave.build.customization, forCar: loadedSave.build.car });
 }
 const controls = createControlsPanel(input);
-const visiting = !race && !venue ? [RIVET, SABLE].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
-// Development arrival shortcut: start inside the arena so its scale can be judged
-// from the car. Normal drives, saves, visits and races retain their own starts.
-const yardShellStart = import.meta.env?.DEV && !race && !venue && !visiting && !loadedSave
-  && new URLSearchParams(location.search).get("yardShell") === "1"
-  ? { x: -730, z: 1040, y: 2, heading: Math.PI / 2, pitch: 0 } : undefined;
+const visiting = !race && !venue ? [RIVET, SABLE_CITY].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
 /** Out of the venue by a gate: the city, outside it, facing away. */
 const cityArrival = !race && !venue && !loadedSave ? arrivedBy?.city.leave : undefined;
 /** Until the drive's first leave of the garage, which a link's look passes through, the car belongs at that gate. */
 let arrivalPending = !!cityArrival;
 const roadWorld = venue ? createStadiumWorld(raceStart ?? (arrivedBy ?? STADIUM_GATES[0]).venue.arrive)
-  : createAlderWorld(!!race || !!visiting || !!yardShellStart || !!cityArrival, raceStart ?? (visiting
-    ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : yardShellStart ?? cityArrival));
+  : createAlderWorld(!!race || !!visiting || !!cityArrival, raceStart ?? (visiting
+    ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : cityArrival));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const pedalAssist = requestedAssist ?? defaultPedalAssist(race);
@@ -315,7 +317,7 @@ function attemptTrafficSeed(): number {
 }
 const sim = createSim(carHandling(selectedCar), roadWorld, race ? { pedalAssist, trafficSeed: attemptTrafficSeed(), race, rival: rival ?? undefined, traffic: race.kind !== "drag" && race.kind !== "drift" && (!circuit || circuit.traffic), parkedRivals: race.kind === "drift" ? [SABLE] : [] }
   : venue ? { pedalAssist, parkedRivals: [SABLE].filter(parked => onTheStreets(parked.id)) }
-  : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE].filter(parked => onTheStreets(parked.id)),
+  : { pedalAssist, encounterRoute: progress.get().mothBeaten ? undefined : ALDER_CRUISE, parkedRivals: [RIVET, SABLE_CITY].filter(parked => onTheStreets(parked.id)),
     cruisers: streetCruisers.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
 const view = createView(document.getElementById("view") as HTMLCanvasElement, carParts,
   roadWorld, lighting, sim.state.traffic, scene => venue ? addStadium(scene, lighting) : addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
@@ -334,7 +336,7 @@ if (sableParts) {
 }
 // In the venue her marks are painted for her event only: its free drive and circuits race on a clear floor.
 const driftYardView = addDriftYard(view.scene, lighting === "night", venue, !venue || race?.kind === "drift");
-await addWharfArena(view.scene, venue ? "closed" : "open");
+await addWharfArena(view.scene);
 // The city's side of the venue's gates: where to stop to go in.
 if (!venue) addStadiumMarkers(view.scene, "city");
 const dragStripView = race?.drag ? addDragStrip(view.scene, race.drag, alderHeight) : null;
