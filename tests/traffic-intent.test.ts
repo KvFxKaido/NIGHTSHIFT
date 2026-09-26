@@ -6,7 +6,7 @@ import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
 import { carHandling, createSim, DT, step } from "../src/sim/sim.ts";
 import { APPROACH_READ, clearingTime, createTraffic, forecastTraffic, forecastTrafficPath, RACER_HORIZON, RACER_IN_LANE, SIGNAL_RANGE, stepTraffic, TRAFFIC_KINDS, trafficCornering, trafficSignal, type TrafficVehicleState } from "../src/sim/traffic.ts";
 import { RIVET } from "../src/sim/drag-event.ts";
-import { SABLE } from "../src/sim/drift-yard.ts";
+import { SABLE_CITY } from "../src/sim/drift-yard.ts";
 
 await RAPIER.init();
 
@@ -331,7 +331,7 @@ test("traffic rounds its corners: it points where it is going, covers the ground
 // facing up it: four vehicles stopped behind her inside a minute and stayed.
 test("no parked rival stands in a lane, so traffic never queues behind one", () => {
   const widest = Math.max(...Object.values(TRAFFIC_KINDS).map(kind => kind.width));
-  for (const parked of [RIVET, SABLE]) {
+  for (const parked of [RIVET, SABLE_CITY]) {
     for (const lane of network.lanes) {
       // The nearest point of the lane, coarsely and then to 10 cm.
       let at = 0, nearest = Infinity;
@@ -355,7 +355,7 @@ test("no parked rival stands in a lane, so traffic never queues behind one", () 
   }
   // And driven: two minutes beside both of them, and nothing waits in the road behind Rivet. It took 45 s to form.
   const traffic = createTraffic(network);
-  const racers = [RIVET, SABLE].map(parked => ({ x: parked.start.x, z: parked.start.z, heading: parked.start.heading, speed: 0 }));
+  const racers = [RIVET, SABLE_CITY].map(parked => ({ x: parked.start.x, z: parked.start.z, heading: parked.start.heading, speed: 0 }));
   const stopped = new Map<number, number>();
   let longest = 0;
   for (let tick = 0; tick < 60 * 120; tick++) {

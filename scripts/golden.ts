@@ -21,7 +21,7 @@ import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 import { ALDER_CRUISE } from "../src/sim/encounter.ts";
 import { BLACKLIST_CRUISERS } from "../src/sim/alder-cruisers.ts";
 import { RIVET, HARBOR_DRAG, DRAG_START, RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
-import { SABLE, DRIFT_YARD } from "../src/sim/drift-yard.ts";
+import { SABLE, SABLE_CITY, DRIFT_YARD } from "../src/sim/drift-yard.ts";
 import { SABLE_DRIFT } from "../src/sim/drift-event.ts";
 import { arenaEvent } from "../src/sim/arena-events.ts";
 import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
@@ -78,10 +78,10 @@ for (const layout of ["fwd", "awd", "rwd"] as const) {
   sim.world.free();
 }
 {
-  const sim = createSim("rwd", createAlderWorld(false), { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE],
+  const sim = createSim("rwd", createAlderWorld(false), { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE_CITY],
     cruisers: BLACKLIST_CRUISERS.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
   // A burnout first: e-brake and gas at rest, swinging, then let go and drive.
-  run("free roam: burnout, Moth, cruisers, traffic", `player: shared rwd; Moth: ${ALDER_CRUISE.car}; parked: ${RIVET.car}, ${SABLE.car}; `
+  run("free roam: burnout, Moth, cruisers, traffic", `player: shared rwd; Moth: ${ALDER_CRUISE.car}; parked: ${RIVET.car}, ${SABLE_CITY.car}; `
     + `cruisers: ${BLACKLIST_CRUISERS.map(cruiser => cruiser.car).join(", ")}`, sim, 1500,
     t => t < 200 ? { throttle: 1, brake: 0, steer: t < 100 ? 1 : -1, handbrake: 1 } : pattern(t));
   sim.world.free();
