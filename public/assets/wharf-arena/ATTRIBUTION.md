@@ -14,18 +14,15 @@ applied neutral grey materials; cut north and east entrances; baked world
 transforms and generated collision. This adaptation is not endorsed by the
 original creator. The original title identifies the source asset only.
 
-`shell.glb` is the optimized runtime mesh. Its collision counterpart is
-`assets/wharf-arena/collision.json`, under the same attribution and license.
-Rebuild with `node scripts/inspect-yard-shell.mjs` followed by
-`node scripts/build-yard-arena.mjs` when the source is installed in the ignored
-`inspiration/tron-light-cycle-arena/` folder.
-
-The stadium venue variant, `closed-shell.glb` and `assets/wharf-arena/closed-collision.json`,
+The runtime pair, `closed-shell.glb` and `assets/wharf-arena/closed-collision.json`,
 uses the same cleaned/scaled source before the entrance cuts, retaining the original continuous
 perimeter. Both are covered by the attribution and license above. Generate them with
 `node scripts/build-yard-arena.mjs --closed`; `--source=<path>` accepts an alternate local
-`shell-preview.glb` path. The city outputs remain separate.
+`shell-preview.glb` path. The ignored source is prepared with `node scripts/inspect-yard-shell.mjs`
+from `inspiration/tron-light-cycle-arena/`.
 
 Since September 26, 2026 both the city exterior and stadium venue use the continuous
-`closed-shell.glb` / `closed-collision.json` pair. The open pair is retained as the
-historical cut study; rebuild the active pair with `node scripts/build-yard-arena.mjs --closed`.
+`closed-shell.glb` / `closed-collision.json` pair. The historical cut study is retained
+outside the public bundle as `assets/wharf-arena/open-shell.glb` and
+`assets/wharf-arena/collision.json`, under this same attribution and license.
+Running the builder without `--closed` regenerates that historical pair.

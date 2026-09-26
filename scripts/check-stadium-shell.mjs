@@ -2,6 +2,8 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
+// Requires a Vite dev server: the inspection hooks import source modules directly.
+// STADIUM_URL overrides that dev server's address, not a preview or production URL.
 const before = process.argv.includes('--before');
 const base = process.env.STADIUM_URL ?? 'http://localhost:5177';
 const output = `artifacts/stadium-shell/${before ? 'before' : 'after'}`;

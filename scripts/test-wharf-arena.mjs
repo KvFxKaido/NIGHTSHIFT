@@ -2,6 +2,8 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
+// Requires Vite's dev server for direct source imports and the legacy study shortcut.
+const base = process.env.STADIUM_URL ?? 'http://localhost:5177';
 await mkdir('artifacts/yard-shell', { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11'] });
 try {
@@ -16,7 +18,7 @@ try {
     } });
   });
   console.log('Loading arena');
-  await page.goto('http://localhost:5173/?world=alder&scene=track&freeze=1&yardShell=1');
+  await page.goto(`${base}/?world=alder&scene=track&freeze=1&yardShell=1`);
   await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready' && __ns.view.scene.userData.yardShell?.state === 'ready');
   console.log('Capturing arena');
   const report = await page.evaluate(async () => {
@@ -55,17 +57,16 @@ try {
     drawShell(__ns.view.scene, __ns.view.camera);
   });
   await page.screenshot({ path: 'artifacts/yard-shell/driver-night.png' });
-  assert.ok(Math.abs(report.player.x + 730) < 1 && Math.abs(report.player.z - 1040) < 1);
+  assert.equal(new URL(page.url()).searchParams.get('venue'), 'stadium');
+  assert.equal(new URL(page.url()).searchParams.has('yardShell'), false);
+  assert.ok(Math.abs(report.player.x + 126) < 1 && Math.abs(report.player.z - 974) < 1);
   const driving = await page.evaluate(async () => {
-    const { alderGround } = await import('/src/sim/alder.ts');
     __ns.drive('W120');
-    return { x: __ns.sim.state.vehicle.x, speed: __ns.sim.state.vehicle.speed,
-      offroad: alderGround(__ns.sim.state.vehicle.x, __ns.sim.state.vehicle.z) };
+    return { x: __ns.sim.state.vehicle.x, speed: __ns.sim.state.vehicle.speed };
   });
   assert.ok(driving.x < report.player.x - 3 && driving.speed > 1);
-  assert.equal(driving.offroad, false, 'The arena floor must drive as asphalt');
   assert.equal(report.collision, true); assert.ok(report.triangles < 5000); assert.deepEqual(errors, []);
-  await page.goto('http://localhost:5173/?world=alder&scene=track&freeze=1');
+  await page.goto(`${base}/?world=alder&scene=track&freeze=1`);
   await page.waitForFunction(() => window.__ns && document.body.dataset.assetState === 'ready');
   const normal = await page.evaluate(() => ({ arena: !!__ns.view.scene.getObjectByName('wharf-arena'),
     x: __ns.sim.state.vehicle.x, z: __ns.sim.state.vehicle.z }));

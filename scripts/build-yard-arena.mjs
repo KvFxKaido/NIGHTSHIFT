@@ -133,6 +133,6 @@ const io = new NodeIO(), document = await io.readBinary(new Uint8Array(binary));
 await document.transform(weld(), dedup(), prune());
 await mkdir('public/assets/wharf-arena', { recursive: true });
 await mkdir('assets/wharf-arena', { recursive: true });
-await io.write(`public/assets/wharf-arena/${closed ? 'closed-shell' : 'shell'}.glb`, document);
+await io.write(closed ? 'public/assets/wharf-arena/closed-shell.glb' : 'assets/wharf-arena/open-shell.glb', document);
 await writeFile(`assets/wharf-arena/${closed ? 'closed-collision' : 'collision'}.json`, JSON.stringify({ vertices, indices, proxies, cuts }) + '\n');
 console.log(JSON.stringify({ triangles: indices.length / 3, vertices: vertices.length / 3, proxies: proxies.length, cuts }));

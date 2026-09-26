@@ -213,6 +213,13 @@ try {
     if (solo) { race = withExits(race!, rival!); rival = null; }
     else { params.delete("solo"); history.replaceState(history.state, "", url); }
   }
+  // Old arena-study links now enter the separate venue instead of trapping a car inside the city shell.
+  if (params.has("yardShell")) {
+    if (import.meta.env?.DEV && params.get("yardShell") === "1" && !race && !params.has("visit") && !loadedSave) {
+      params.set("venue", STADIUM.id);
+    }
+    params.delete("yardShell");
+  }
   // The venue: its free drive by name; Sable's drift and the stadium circuits because that is where they run. Its
   // races say so themselves, so any race drops a stray ?venue=, and a gate that is not one is dropped too.
   if (params.has("venue") && (params.get("venue") !== STADIUM.id || race)) params.delete("venue");
@@ -289,18 +296,13 @@ if (loadedSave && progress.preserveLegacyOwnership()) {
 }
 const controls = createControlsPanel(input);
 const visiting = !race && !venue ? [RIVET, SABLE_CITY].find(r => r.id === new URLSearchParams(location.search).get("visit")) : undefined;
-// Development arrival shortcut: start inside the arena so its scale can be judged
-// from the car. Normal drives, saves, visits and races retain their own starts.
-const yardShellStart = import.meta.env?.DEV && !race && !venue && !visiting && !loadedSave
-  && new URLSearchParams(location.search).get("yardShell") === "1"
-  ? { x: -730, z: 1040, y: 2, heading: Math.PI / 2, pitch: 0 } : undefined;
 /** Out of the venue by a gate: the city, outside it, facing away. */
 const cityArrival = !race && !venue && !loadedSave ? arrivedBy?.city.leave : undefined;
 /** Until the drive's first leave of the garage, which a link's look passes through, the car belongs at that gate. */
 let arrivalPending = !!cityArrival;
 const roadWorld = venue ? createStadiumWorld(raceStart ?? (arrivedBy ?? STADIUM_GATES[0]).venue.arrive)
-  : createAlderWorld(!!race || !!visiting || !!yardShellStart || !!cityArrival, raceStart ?? (visiting
-    ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : yardShellStart ?? cityArrival));
+  : createAlderWorld(!!race || !!visiting || !!cityArrival, raceStart ?? (visiting
+    ? { ...visiting.start, x: visiting.start.x - 6, z: visiting.start.z + 18 } : cityArrival));
 let pendingSavePosition = loadedSave ? safeSavePosition(loadedSave, roadWorld, ALDER_DRIVE_BOUNDS) : null;
 if (loadedSave && loadedSave.position && !pendingSavePosition) loadNotice = "Saved build loaded. Returning to Wharf Garage because the saved location is no longer clear.";
 const pedalAssist = requestedAssist ?? defaultPedalAssist(race);

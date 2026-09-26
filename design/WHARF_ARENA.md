@@ -48,7 +48,7 @@ confirmed this license on September 23, 2026.
 - `scripts/build-yard-arena.mjs --closed`: generates the venue's uncut shell and collision into separate
   `closed-shell.glb` / `closed-collision.json` outputs. `--source=<path>` allows the ignored source
   GLB in another checkout. Neither existing city asset is overwritten.
-- `public/assets/wharf-arena/shell.glb`: four meshes sharing one material,
+- Historical `assets/wharf-arena/open-shell.glb` (outside the public bundle): four meshes sharing one material,
   4,002 triangles, approximately 284 KB, no textures or added lights.
 - `assets/wharf-arena/collision.json`: the exact same world-space triangles.
   Rapier receives this synchronously before the first tick. Narrow ground-level
@@ -69,10 +69,12 @@ event in all drivetrains with no scenery contacts and checks repeatability.
 `tests/yard-grid.test.ts` pins the changed occupancy of the existing lattice.
 
 `node scripts/test-wharf-arena.mjs` captures overview, plan, interior and night
-chase views, drives on the asphalt, and verifies the arena is present without
-any query flag while the normal start remains at Wharf Garage. A development
-`?world=alder&scene=track&yardShell=1` link is retained solely for starting inside
-the arena. Camera-study fill light and disabled fog are confined to the three
+chase views, drives inside the venue, and verifies the arena is present in the city
+while the normal start remains at Wharf Garage. The legacy development
+`?world=alder&scene=track&yardShell=1` link now redirects to `?venue=stadium`.
+Both this script and `scripts/check-stadium-shell.mjs` require a Vite dev server;
+`STADIUM_URL` overrides its address, not a production or preview URL.
+Camera-study fill light and disabled fog are confined to the three
 overview captures; the chase image uses normal game lighting.
 
 Build and browser capture passed on September 23, 2026. The browser reported
