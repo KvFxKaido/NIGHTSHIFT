@@ -519,8 +519,9 @@ fixtures outside the playable bundle, and old world links redirect.
   the car on it, never `customization`, the selected car's: the livery editor repaints on every refresh, and doing it
   with `customization` drew the browsed Cinder in the equipped Bulwark's paint while its rows said Ice White. A save
   slot's build stays one car and its look (`SaveBuild`), and one with no look is still a bad slot.
-- `src/sim/alder-data.json` is 24 MB. Fine on PC; a load-time question on
-  the phone. Do not add to it casually.
+- `src/sim/alder-data.json` is 36 MB (2026-09-27), bundled as a 34.7 MB chunk. Fine on PC; a load-time question on
+  the phone. Do not add to it casually. What a load does with it costs more than its size: about ten seconds on
+  every reload rebuilding traffic's network and the city's meshes (`design/TRANSITIONS.md`, `pnpm profile:load`).
 - Sable's yard score cannot rank cars against each other: it is a chain game, so
   a car that banks fewer, longer chains beats one that drifts more in shorter ones
   (the Hammer 7,231 to the NS-01's 6,558 on identical clips, links and less raw
@@ -831,6 +832,7 @@ pnpm rival:scene      # one gate race at one seed: every contact dissected, or -
 pnpm rival:census     # the gate's races: every stretch the rival is held below its own corner plan, by the rule that held it and what it cost; --rows=, --keep=, --json=
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 pnpm adopt:capture    # an adopted place's evidence from its shots.json: poses before/after (--before=<tree>), driven passes, moments; design/CITY_ADOPTION.md
+pnpm profile:load     # after pnpm build: cold launch and warm reload per scenario, CPU x1 and x4; --profile for where the time goes; design/TRANSITIONS.md
 ```
 
 ## Relationship to SENTINEL

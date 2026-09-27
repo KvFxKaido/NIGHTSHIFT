@@ -158,7 +158,7 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   and is never decoration; red is cars. Dry streets, no rain.
 - **Performance.** New merged scenery must be listed in `CHUNKED_SCENERY`
   (`src/render/city-chunks.ts`) or it is drawn from everywhere on the map. Do not
-  add to `src/sim/alder-data.json` casually (24 MB, a phone load-time question).
+  add to `src/sim/alder-data.json` casually (36 MB, a phone load-time question).
   Buildings measure from `base`; night dressing is built in the building's frame.
   Placements go through the editor: read `design/EDITOR.md` first.
 - **Jumps wait for a decision.** `design/JUMPS_AND_DRIFT.md` is an undecided
