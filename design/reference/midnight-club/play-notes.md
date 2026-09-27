@@ -30,11 +30,14 @@ about the pedals as much as about police.
 ## MCLA: the ability gauge
 
 Shawn, 2026-09-26. The small round gauge at the top right of the same cluster,
-above the plate, is the meter for Midnight Club's special abilities, Roar and
-Zone among them.
+just above the posted-limit box, is the meter for Midnight Club's special
+abilities, Roar and Zone among them. The large arc that sweeps up the left of
+the cluster and along its top is the nitrous (boost) meter.
 
 For NIGHTSHIFT: the GDD does not mention special abilities at all. The HUD has
 reserved room for them since its MC3 layout ("the meter arcs ... reserved for
 nitrous, slipstream and abilities", `src/ui/hud.css`), and the HUD proposal of
 2026-09-26 draws the gauge where MCLA has it, as a reserved slot. Building
-abilities is a scope decision, like police.
+abilities is a scope decision, like police. The proposal's arc is MCLA's
+nitrous meter in the same place: the launch charge feeds it until Surge, the
+proposed nitrous (GDD 3.6), exists.
