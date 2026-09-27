@@ -19,6 +19,8 @@ export interface FrontModule {
   readonly finish?: "painted";
   /** A shutter raised on its lit inside: somebody is working that dock (design/CITY_ADOPTION.md). */
   readonly open?: true;
+  /** A shallow, render-only window display; it never opens the building to driving. */
+  readonly display?: "laundry";
 }
 export interface FrontRecipe {
   readonly id: string;

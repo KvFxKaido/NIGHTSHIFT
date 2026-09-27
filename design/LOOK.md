@@ -158,6 +158,14 @@ sees.
 
 ## Does it belong?
 
+Fifth Ave Laundry's working window (2026-09-27) follows **lit means occupied**:
+cream machine cabinets, dark circular doors, two tumbling loads and two idle
+drums behind the existing glazing. A violet ground-floor blade says 24 HR /
+LAUNDRY on approach. This is a shallow window tableau, like an open dock,
+with no enterable interior, dynamic lights, obstacle, or street change. Its
+reusable frontage `display: "laundry"` option keeps local bounds per window;
+the animated meshes are attached after static frontage batching.
+
 Before anything new enters the city (a building kind, a prop, a sign, a
 district's dressing), it answers these, in order:
 

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="760" viewBox="0 0 1000 760">
+<rect width="1000" height="760" fill="#111820"/>
+<g font-family="sans-serif" fill="#e9e4d6">
+<text x="40" y="42" font-size="26">FIFTH AVE LAUNDRY — adoption plan</text>
+<text x="40" y="72" font-size="16">5th Ave N · east frontage · north is up · existing street and footprints retained</text>
+<rect x="280" y="120" width="200" height="560" fill="#343d46"/>
+<path d="M380 120V680" stroke="#b7a975" stroke-width="2" stroke-dasharray="16 12"/>
+<text x="303" y="705" font-size="19">5TH AVE N</text>
+<path d="M280 120H480 M280 680H480" stroke="#92948a" stroke-width="3"/>
+<rect x="488" y="120" width="36" height="560" fill="#687176"/>
+<g fill="#43525b" stroke="#829198" stroke-width="2">
+<rect x="534" y="150" width="180" height="120"/>
+<rect x="534" y="350" width="180" height="120"/>
+<rect x="534" y="550" width="180" height="120"/>
+</g>
+<rect x="530" y="350" width="188" height="120" fill="none" stroke="#c7a2d8" stroke-width="3"/>
+<rect x="530" y="355" width="7" height="51" fill="#dce0b9"/>
+<text x="551" y="188" font-size="16">Neighbour · 42 m</text>
+<text x="551" y="383" font-size="16">745 / 30 m roof</text>
+<text x="551" y="418" font-size="16">Laundry + café</text>
+<text x="551" y="583" font-size="16">Neighbour · 18 m</text>
+<path d="M425 620V300l-10 20m10-20 10 20 M332 175V490l-10-20m10 20 10-20" fill="none" stroke="#e1c98e" stroke-width="4"/>
+<text x="42" y="152" font-size="18">From Mercer St ↓</text>
+<text x="42" y="652" font-size="18">From Broad St ↑</text>
+<circle cx="425" cy="590" r="7" fill="#d6b1e6"/><text x="435" y="594" font-size="15">N</text>
+<circle cx="332" cy="270" r="7" fill="#d6b1e6"/><text x="310" y="262" font-size="15">S</text>
+<circle cx="380" cy="390" r="7" fill="#d6b1e6"/><path d="M390 390H521" stroke="#d6b1e6" stroke-width="2"/><text x="290" y="380" font-size="15">window view</text>
+<g font-size="16">
+<text x="742" y="360">Adopted building:</text><text x="742" y="388">x −573…−555</text><text x="742" y="414">z −1339…−1321</text>
+<text x="742" y="452">Lit washer window</text><text x="742" y="478">inside existing frame</text>
+<text x="742" y="520">14 m gaps: scout only</text><text x="742" y="546">No rear street link</text>
+<text x="40" y="738">Schematic proportions. Capture coordinates and pass routes are in shots.json. No new solids or paving.</text>
+</g></g></svg>

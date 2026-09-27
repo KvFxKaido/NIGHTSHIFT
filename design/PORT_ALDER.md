@@ -4,6 +4,15 @@ Port Alder is the demo's only playable map, authorized September 10, 2026 after 
 
 Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at the cyan shutter and use **E / Enter** or **Cross / A** to enter. The garage uses the existing fixed camera and rotating car platform. Drive out returns to its forecourt. Races retain the clear northbound street grid and disable garage entry. The minimap and route board mark the garage.
 
+**Fifth Ave Laundry** occupies the existing shop at 745 on the east side of
+5th Ave N, between Broad St and Mercer St (`plot--567.000--1330.000`). Its
+violet 24 HR blade and working washer window distinguish it from the adjoining
+café and apartments. Two washer loads tumble while two drums stand idle. This
+is render-only occupation driven by the sim clock; existing building collision,
+paving, traffic, race routes and world identity remain unchanged. The adopted
+site and shortcut/jump scouting are recorded in `CITY_ADOPTION.md`; the window
+option is available in the frontage editor (see `EDITOR.md`).
+
 The upgraded workshop exterior uses the same warehouse and paved apron bounds.
 `src/sim/garage-site.ts` places two low concrete planters beside the end bays;
 their shared poses feed rendering, Rapier, grass exclusions and placement

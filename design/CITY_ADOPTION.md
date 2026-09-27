@@ -1,7 +1,7 @@
 # Adopt a piece of Port Alder
 
-Status: run once by hand (Holgate Cold Store, 2026-09-27) and revised from that
-run; cadence undecided; no scheduled automation enabled.
+Adoptions: Holgate Cold Store (PR #20); Fifth Ave Laundry (PR #22)
+as of 2026-09-27. Cadence undecided; no scheduled automation enabled.
 
 ## Purpose
 
@@ -242,7 +242,7 @@ the next run.
   drawn in the place's own module; as a roof variant the generator would need a rule for which warehouses carry one
   and a check that it stands clear of anything else on the roof.
 - **Status.** Implemented, checked by staged views and scripted driven passes both ways; not yet driven by hand.
-  PR #20 open for review, not merged.
+  PR #20 merged on 2026-09-27 (verified before the second adoption).
 - **Files.** `src/render/cold-storage.ts` (the place), `src/render/place-activity.ts` (each place's activity, run from
   `render()`), `src/render/building-fronts.ts` (an open shutter), `src/sim/building-fronts.ts` and
   `frontage-document.ts` (`open`, shutters only), `src/sim/alder-frontages.json` (the entry: renamed, docks named,
@@ -285,6 +285,82 @@ the next run.
   A reefer trailer on dock 02 (solid, so sim-side: an obstacle off the carriageway, with its own
   collision and a `COUPLINGS.md` look at the rival and traffic), the plant's hum when passing, and the service road
   behind the row that would turn its gaps into shortcuts.
+
+### 2. Fifth Ave Laundry, 5th Ave N (2026-09-27, Codex, run by request)
+
+- **Place.** Existing shop frontage `plot--567.000--1330.000`, address 745,
+  east side of 5th Ave N between Broad St and Mercer St. Building bounds
+  x -573 to -555, z -1339 to -1321; base 2 m, roof 32 m above datum.
+  Adopted tenant: the northern shop, beside the existing café and residents'
+  entrance. Its street wall is x -573; its fitted apron stays 0.95 m deep.
+- **Approach.** North from Broad St along 5th Ave N (`sea-north-41`), shop on
+  the right; south from Mercer St, shop on the left. The place is at (-564,
+  -1330) on the map. `shots.json` records exact approach and passing positions.
+- **Candidates.** This existing laundry; the shop at (-341, -1140), whose
+  22–25 m apron puts the activity much farther from the road; the three-tenant
+  block at (-520, -715), whose angled road produces a deep, uneven setback.
+  The selected row has a short apron, a street-facing window and an existing
+  laundry use. Neighbors to the north/south are 42/18 m tall but stand beside,
+  rather than in front of, the ground-floor sightline. Compare with the prior
+  adoption's hidden rooftop plant: this activity belongs at window height.
+- **Purpose.** A 24-hour laundry for residents and night workers. A unique
+  FIFTH AVE LAUNDRY board and violet 24 HR / LAUNDRY blade mark the tenant.
+  Two washer loads tumble at different speeds; two drums stand idle. Cream
+  cabinets and dark circular doors give the window a recognizable use.
+  Existing doors, canopy, café, upper floors, ground and road remain intact.
+- **Custom asset.** None needed. Scripted flat shapes form a shallow window
+  tableau between the glass and its mullions, like the established open docks.
+  It is not an enterable room. No Blender source or export is required.
+- **Extracted.** `FrontModule.display: "laundry"`, exposed as Window display
+  in the frontage editor. Any glazing at least 2.4 by 1.8 m can use it; the
+  drawing fits the opening, follows its building frame and keeps local bounds.
+  Static frontage batching leaves the animated parts intact. The generator
+  does not enable it automatically; future use needs sparse tenant-based
+  selection for laundry captions and the same minimum-size check.
+- **Shortcuts.** The row's 14 m gaps are potential entrances to a future rear
+  service route. The inspected block has no rear street connection; turning
+  across its unpaved ground is not a useful authored shortcut. Proposed for
+  later network planning, not built. Existing street connections stay intact.
+- **Jumps.** No suitable jump in this slice: level ground at 2 m, no accessible
+  deck or loading ramp with a landing route. No jump built; the planar-car
+  decision remains outside this dressing pass.
+- **Worktree/branch.** `C:\Users\ishaw\.codex\worktrees\6826\NIGHTSHIFT`,
+  `codex/adopt-fifth-avenue-laundry`, based on main at `2b4a275`.
+- **Files.** `render/frontage-displays.ts` and the shared frontage renderer,
+  frontage module/document types, saved frontage data, editor controls;
+  `tests/laundry-display.test.ts`, `scripts/test-laundry-display.mjs`.
+- **Evidence.** `design/adoptions/fifth-ave-laundry/sketch.svg` was drawn before
+  implementation. `shots.json` specifies matched poses, scripted passes both
+  ways and activity moments. `window-before-after.jpg`, the two approach pairs,
+  `driven-pass.jpg`, `wash-cycle.jpg` and `capture.json` show the same world on
+  main at `2b4a275` and the clean implementation commit recorded in `capture.json`.
+  The raw frames are in git-ignored `artifacts/adoptions/fifth-ave-laundry/`. Both driven
+  passes held their lane within the reported 0.00 m rounding and were
+  undisturbed, topping out at 97/106 mph north/south. Selected frames show
+  the shop at 46–58 mph northbound and 75–85 mph southbound. The violet blade
+  and bright machine window read briefly at the edge of the driving view;
+  individual tumbling loads are a close-pass detail. These are scripted passes.
+- **Implementation / PR.** Implemented and validated in PR #22:
+  https://github.com/KvFxKaido/NIGHTSHIFT/pull/22
+- **Checks.** `pnpm test`: all 831 pass, including five focused display
+  tests; `pnpm build` passes with the existing large-chunk warning. All 14
+  `pnpm golden` runs are bit-identical to the baseline saved on main before
+  editing, including traffic/free roam and generated races. Before/after
+  capture reports identical world identities and zero browser errors. The
+  editor's plain/laundry save-reload cycle, preview, undo/redo and lock checks
+  pass. `node scripts/test-laundry-display.mjs` verifies animation, frozen-time
+  stability, visible gameplay and viewport fit at 1440 x 900 and 390 x 844,
+  plus the place in generated-race mode. Screenshots were visually inspected;
+  `qa.json` records zero browser errors and the measured incremental display
+  cost of five draw calls / 370 triangles in each view. This is a local draw
+  budget, not a phone frame-rate claim. `git diff --check` passes. No street,
+  solid, paving or traffic-rule
+  change: no world revision or coupling-ledger recalibration is required.
+- **Limitations.** Shallow window graphics, with no sound, pedestrians or
+  arrival/departure simulation. Drums are a close-pass detail. Driving captures
+  are scripted and do not establish controller feel.
+- **Next revisit.** Judge the approach from a hand-driven lap; consider a
+  service route behind the row only as a separately scoped world change.
 
 For each adoption record: place name; map IDs/bounds; approach route; purpose;
 defining feature; implemented activity; custom asset decision and any Blender

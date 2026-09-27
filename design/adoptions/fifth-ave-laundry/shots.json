@@ -1,0 +1,18 @@
+{
+  "place": "Fifth Ave Laundry",
+  "poses": [
+    { "id": "northbound", "label": "northbound from Broad St", "at": [-587, -1290], "toward": [0, -1] },
+    { "id": "window", "label": "across the street, facing the laundry", "at": [-591, -1334], "toward": [1, 0] },
+    { "id": "southbound", "label": "southbound from Mercer St", "at": [-596, -1375], "toward": [0, 1] }
+  ],
+  "passes": [
+    { "id": "north", "label": "northbound", "from": [-587, -1285], "toward": [0, -1], "length": 150 },
+    { "id": "south", "label": "southbound", "from": [-596, -1450], "toward": [0, 1], "length": 180 }
+  ],
+  "strips": [
+    { "id": "driven-pass", "frames": [["north", 30, "north approach"], ["north", 50, "north at shop"], ["south", 90, "south approach"], ["south", 115, "south at shop"]] }
+  ],
+  "moments": [
+    { "id": "wash-cycle", "pose": "window", "period": 8, "seconds": [0, 1, 2, 3], "labels": ["washing", "tumbling", "turning", "washing"], "crop": [0.35, 0.25, 0.3, 0.4] }
+  ]
+}
