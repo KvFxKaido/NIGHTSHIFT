@@ -194,3 +194,49 @@ export function updateCameraOrbit(
   state.yawOffset = wrapAngle(state.yawOffset * (1 - recenterBlend));
   state.pitchOffset *= 1 - recenterBlend;
 }
+
+/** A car's place on the ground and the way it faces (the sim's convention: heading 0 faces -z). */
+export interface CountdownCar { x: number; y: number; z: number; heading: number }
+export interface CountdownShot {
+  readonly name: "you" | "rival" | "both";
+  readonly position: readonly [number, number, number];
+  readonly target: readonly [number, number, number];
+  readonly fov: number;
+}
+
+/**
+ * The cuts through a race's countdown (design/TRANSITIONS.md, "The flash sequence"). The countdown is the sim's 180
+ * ticks and is not lengthened for them: the launch charge and every rival's launch are timed on it. By ticks left:
+ * over 120 your car, 60 to 120 the rival's, 30 to 60 both from behind, and the last 30 (half a second) nothing, which
+ * hands the frame back to the chase camera so the launch is made seeing the road. With no racing rival (a solo race,
+ * the drift yard) your car holds until 75 and both becomes you from behind. Hard cuts, a slow push in each: a
+ * countdown is too short to ease between shots. Camera only; nothing here is read back by the sim.
+ *
+ * A shot stands on the side of its car away from the other one, so it never looks through it, and on the road
+ * (`onRoad`); if that side is off the road it takes the other, and if both are it tucks in close to the car.
+ */
+export const COUNTDOWN_CUTS = { you: 120, rival: 60, both: 30, alone: 75 } as const;
+export function countdownShot(ticksLeft: number, you: CountdownCar, rival: CountdownCar | null,
+  onRoad: (x: number, z: number) => boolean): CountdownShot | null {
+  if (ticksLeft <= COUNTDOWN_CUTS.both) return null;
+  const hero = rival ? COUNTDOWN_CUTS.you : COUNTDOWN_CUTS.alone;
+  const frame = (car: CountdownCar) => ({ fx: -Math.sin(car.heading), fz: -Math.cos(car.heading), rx: Math.cos(car.heading), rz: -Math.sin(car.heading) });
+  // How far into a shot this tick is, 0 to 1, for the push in.
+  const through = (from: number, to: number) => Math.min(1, Math.max(0, (from - ticksLeft) / (from - to)));
+  const front = (name: "you" | "rival", car: CountdownCar, other: CountdownCar | null, u: number): CountdownShot => {
+    const { fx, fz, rx, rz } = frame(car), ahead = 4.8 - .7 * u;
+    const away = other ? -Math.sign((other.x - car.x) * rx + (other.z - car.z) * rz) || 1 : 1;
+    const at = (side: number) => [car.x + fx * ahead + rx * side, car.y + .55, car.z + fz * ahead + rz * side] as const;
+    const position = [2.3 * away, -2.3 * away, 1.2 * away].map(at).find(p => onRoad(p[0], p[2])) ?? at(1.2 * away);
+    return { name, position, target: [car.x + fx * .7, car.y + .6, car.z + fz * .7], fov: 42 };
+  };
+  if (ticksLeft > hero) return front("you", you, rival, through(hero + 60, hero));
+  if (rival && ticksLeft > COUNTDOWN_CUTS.rival) return front("rival", rival, you, through(hero, COUNTDOWN_CUTS.rival));
+  const u = through(rival ? COUNTDOWN_CUTS.rival : hero, COUNTDOWN_CUTS.both), { fx, fz, rx, rz } = frame(you);
+  // Both from behind and above, looking down the road past them; the rival's side of the road leans the frame to it.
+  const lean = rival ? ((rival.x - you.x) * rx + (rival.z - you.z) * rz) / 2 : 0;
+  const back = 10.5 - 1.2 * u;
+  return { name: "both", fov: 50,
+    position: [you.x - fx * back + rx * lean, you.y + 3.4, you.z - fz * back + rz * lean],
+    target: [you.x + fx * 9 + rx * lean, you.y + .8, you.z + fz * 9 + rz * lean] };
+}

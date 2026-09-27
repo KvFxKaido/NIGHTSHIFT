@@ -9,6 +9,7 @@ import { addRaceBeacon, updateRaceBeacon, type RaceView } from "./race.ts";
 import type { RoadWorld } from "../sim/road-world.ts";
 import {
   CHASE_CAMERAS,
+  countdownShot,
   createCameraOrbitState,
   createChaseFollowState,
   DEFAULT_CHASE_CAMERA,
@@ -63,6 +64,10 @@ export interface View extends CarView {
   race: RaceView;
   /** Road surface height, for things that stand on the road. */
   surface: (x: number, z: number) => number;
+  /** Whether a point is on the asphalt, carriageway or shoulder: where a countdown shot may stand. */
+  onRoad: (x: number, z: number) => boolean;
+  /** The cuts between the racers through a countdown (camera.ts, `countdownShot`); `?cuts=0` turns them off. */
+  countdownCuts: boolean;
   /** The drawn tyre smoke; absent only under `?look=plain`. */
   celSmoke?: CelSmoke;
   grass?: GrassView;
@@ -195,6 +200,8 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     traffic: traffic ? addTraffic(scene, traffic, roadWorld.traffic ?? null, roadWorld.grade ?? null) : null,
     race: addRaceBeacon(scene, gateRadius),
     surface: (x, z) => roadWorld.project(x, z).height,
+    onRoad: (x, z) => { const p = roadWorld.project(x, z); return p.distance <= p.width / 2 + 2.5; },
+    countdownCuts: true,
   };
 
   const resize = () => {
@@ -441,6 +448,15 @@ export function render(
     view.camera.position.copy(view.cameraPosition);
     view.camera.lookAt(view.cameraTarget);
     view.camera.fov = THREE.MathUtils.lerp(48, chase.fov, handoff);
+  }
+  // Through a race's countdown, cuts between the racers. Only the drawn camera moves: the chase camera above keeps
+  // easing to its place behind the car, so when the cuts end half a second before the flag it is already there.
+  const countdown = state.race?.countdown ?? 0;
+  const cut = view.countdownCuts && countdown > 0 ? countdownShot(countdown, car, state.rival?.vehicle ?? null, view.onRoad) : null;
+  if (cut) {
+    view.camera.position.set(...cut.position);
+    view.camera.lookAt(...cut.target);
+    view.camera.fov = cut.fov;
   }
   view.camera.updateProjectionMatrix();
   // After the camera: the beacon's sign faces it and points the exit its way.

@@ -85,7 +85,12 @@ equal, bit for bit, to what the sim builds itself.
      and it is the sim's: the launch charge and every rival's launch are timed on it, so lengthening it changes races
      and their recordings. The cuts fit in those 3 s (about three shots) or play as a pre-roll before tick 0, while
      the sim has not started and nothing it decides can move. Camera only: they need neither 1 nor 2 and can come
-     first.
+     first. *Built 2026-09-27* (`countdownShot` in `src/render/camera.ts`, `?cuts=0` to compare): by ticks left,
+     over 120 your car from low at the front, 60 to 120 the rival's, 30 to 60 both from behind and above, the last
+     30 the chase camera, which eases to its place underneath the whole time; with no racing rival your car holds to
+     75 and then from behind. Each shot stands on its car's side away from the other car, on the road, and pushes
+     in slowly; the cuts are hard. Only the drawn camera moves, so the sim, the golden master and every recording
+     are as they were. Tuning left: solo's last shot is plain (a side angle may serve it better).
    - **The aerial** (GTA V's switch was the picture), for a race started from the race list or the Blacklist, where
      there is no drive to hide behind: the camera rises over the city while the race is prepared and comes down onto
      the start. It moves smoothly only with the preparation off the main thread, so it needs 1 and 2; the swap to the

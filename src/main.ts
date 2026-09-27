@@ -323,6 +323,8 @@ const view = createView(document.getElementById("view") as HTMLCanvasElement, ca
   roadWorld, lighting, sim.state.traffic, scene => venue ? addStadium(scene, lighting) : addAlder(scene, lighting), ALDER_RACE.checkpoints[0]!.radius);
 // A ?camera= link previews over this after boot (debug.ts) without saving.
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
+// A race's countdown cuts between the racers; `?cuts=0` shows it on the chase camera, to compare. Never saved.
+view.countdownCuts = new URLSearchParams(location.search).get("cuts") !== "0";
 if (drawnEffects()) view.celSmoke = addCelSmoke(view.scene);
 if (!venue) view.grass = addGrass(view.scene, roadWorld);
 if (rivalParts) setRivalCar(view, rivalParts);

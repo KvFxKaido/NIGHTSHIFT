@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   CAMERA_ORBIT,
   CHASE_CAMERAS,
+  countdownShot,
   createCameraOrbitState,
   createChaseFollowState,
   DEFAULT_CHASE_CAMERA,
@@ -146,4 +147,35 @@ test("camera reset restores the chase view", () => {
   const orbit = { yawOffset: -2.2, pitchOffset: 0.4 };
   resetCameraOrbit(orbit);
   assert.deepEqual(orbit, createCameraOrbitState());
+});
+
+// You at the origin facing -z (heading 0), the rival 7 m ahead in the lane to your right, as a flashed race starts.
+const you = { x: 0, y: 0, z: 0, heading: 0 }, rival = { x: 3.5, y: 0, z: -7, heading: 0 };
+const anywhere = () => true;
+
+test("the countdown cuts you, the rival, both, then hands back the chase camera half a second before the flag", () => {
+  const names = (other: typeof rival | null) => Array.from({ length: 180 }, (_, i) => countdownShot(180 - i, you, other, anywhere)?.name ?? "chase");
+  const runs = (list: string[]) => list.reduce<[string, number][]>((out, name) =>
+    (out.at(-1)?.[0] === name ? out.at(-1)![1]++ : out.push([name, 1]), out), []);
+  assert.deepEqual(runs(names(rival)), [["you", 60], ["rival", 60], ["both", 30], ["chase", 30]]);
+  assert.deepEqual(runs(names(null)), [["you", 105], ["both", 45], ["chase", 30]], "a solo race has no rival shot");
+  assert.equal(countdownShot(0, you, rival, anywhere), null, "a live race is the chase camera's");
+});
+
+test("a countdown shot stands on the road on the side away from the other car, and pushes in without jumping", () => {
+  const mine = countdownShot(170, you, rival, anywhere)!;
+  assert.ok(mine.position[0] < 0, "the rival is to your right, so your shot is on your left");
+  const theirs = countdownShot(100, you, rival, anywhere)!;
+  assert.ok(theirs.position[0] > rival.x, "and the rival's is on its right, away from you");
+  const leftOffRoad = countdownShot(170, you, rival, x => x > 0)!;
+  assert.ok(leftOffRoad.position[0] > 0, "a side off the road gives way to the other side");
+  const nowhere = countdownShot(170, you, rival, () => false)!;
+  assert.ok(Math.abs(nowhere.position[0] + 1.2) < 1e-9, "with neither side on the road it tucks in close to the car");
+  // Within a shot the camera eases in; a cut is the only place it jumps.
+  for (let left = 180; left > 31; left--) {
+    const a = countdownShot(left, you, rival, anywhere)!, b = countdownShot(left - 1, you, rival, anywhere)!;
+    if (a.name !== b.name) continue;
+    const moved = Math.hypot(a.position[0] - b.position[0], a.position[1] - b.position[1], a.position[2] - b.position[2]);
+    assert.ok(moved < .05, `${a.name} moved ${moved.toFixed(3)} m in a tick at ${left}`);
+  }
 });
