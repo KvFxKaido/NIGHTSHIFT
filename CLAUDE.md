@@ -96,7 +96,8 @@ work is world design and campaign design, on the playable Port Alder slice.
   of the eventual map and preserve its driving geometry. Newer areas favour
   shorter blocks, varied streets and connected routes north and east.
 - Graphics resemble upscaled/emulated MC3 rather than photorealism. The city is
-  a working port on the night shift, with sodium lamps and dry streets; its
+  a working port on the night shift, with sodium lamps and dry streets for now (wet roads are expected, and come
+  with a wet surface in the handling, like dirt); its
   rules, and the check anything new passes first, are `design/LOOK.md`. The cars
   are drawn like the rival portraits: three flat bands of their own colour, an
   ink outline, the race's cyan on the rim (`src/render/cel.ts`). Since

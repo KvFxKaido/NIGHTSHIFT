@@ -3,7 +3,8 @@
 Design note, 2026-09-16. **Adopted the same day:** Shawn chose the night shift,
 sodium lamps, keeping amber, and dry streets; on 2026-09-17, Capitol Hill for
 the strip and neighbourhood polygons for district identity; on 2026-09-18,
-drawn cars; on 2026-09-24, drawn buildings.
+drawn cars; on 2026-09-24, drawn buildings. On 2026-09-27 Shawn made dry streets
+"for now": wet roads are expected eventually, with a wet surface in the handling.
 
 The rival portraits have a look in one sentence and rules that exclude
 (`design/CHARACTERS.md`); the city they are lit by did not. GDD §15.1 listed
@@ -77,9 +78,15 @@ morning; the city of the people who work nights, not the people who go out.
   never collapses into void.
 - **The sky is not black.** A faint cold haze, lifted near the horizon by the
   city, so roofs, evergreens and the tower read as silhouettes against it.
-- **Dry streets.** No wet pavement, no puddles, no rain, no environment
-  reflections. Seattle rains; Port Alder is its own place, and wet asphalt at
-  night is the genre's most repeated image. GDD §15.1 no longer lists it.
+- **Dry streets, for now.** No wet pavement, no puddles, no rain, no environment
+  reflections yet. Rain and wet roads are expected eventually (Seattle rains;
+  Shawn, 2026-09-27), and they wait on a wet surface in the handling, as the
+  stadium's dirt does: a road that looks wet and drives dry lies to the player,
+  so the look and the grip arrive together, and the weather is part of a race's
+  starting state, as its traffic seed is. When it comes it stays drawn: flat
+  bands of lamp colour on the road, not photoreal reflections. Until then, wet
+  asphalt at night is also the genre's most repeated image, and dry keeps the
+  city its own.
 
 ### Colour
 
@@ -150,11 +157,11 @@ Colour means something here, as it already does in the HUD.
 ### Excluded outright
 
 In one place, so a review can check them in one pass: photographic or generated
-textures; wet pavement, puddles, rain and environment reflections; bloom as
-atmosphere (glow stays per fixture, as today); neon on every face; cyan or the
-rival's red as decoration; brand names and invented logos; holograms and animated
-screens; a second design of any municipal fixture; detail on a face no driver
-sees.
+textures; bloom as atmosphere (glow stays per fixture, as today); neon on every
+face; cyan or the rival's red as decoration; brand names and invented logos;
+holograms and animated screens; a second design of any municipal fixture; detail
+on a face no driver sees. Not excluded but not yet: wet pavement, puddles, rain
+and environment reflections, which wait on wet handling (dry streets, above).
 
 ## Does it belong?
 
@@ -196,7 +203,7 @@ the Central District, Madrona Ridge, the waterfront and the garage.
 | Lit means occupied | Four window patterns (`WINDOW_PATTERNS` in `night.ts`), chosen by neighbourhood and height: offices 207 buildings, ribbon windows dark but for two cleaners' floors in a 24-floor tile and a few late desks, each building starting the tile on its own floor so a lit floor runs round all four walls; residential 778, a few warm rooms; freight 126 (SoDo), small high windows almost none lit; scattered 617 (Belltown, Capitol Hill), the tile every building had before. `tests/alder-neighbourhoods.test.ts` counts each building into its pattern's mesh. Signal House is dark but for its overnight booth on the Broad St corner and the crown control room (2026-09-21); its station lettering and aviation beacons identify the landmark without lighting every floor. | holds |
 | Dark has an edge | No road comes within 116 m of Elliott Bay (Harbor Way is 495 m inland, SoDo's 1st Ave S 1,170 m), so the city used to end in void. Since 2026-09-18 the seawall carries the street lamp every 55 m for its whole 4.3 km, its pools lighting a warm strip at the water's edge; each of the four piers has eight white pole lamps along its edges (private light); the cranes have red beacons and white work lights. The lamps glow through the haze, fog-exempt and never smaller than 6 pixels (`farGlow` in `alder.ts`), because 500 m of haze takes 82% of a bare lamp head: from Harbor Way the edge is a line of sodium points with white clusters at the piers. Elliott Bay stays a flat dark plane, and has no reflection streaks on purpose: no road has water between it and any of these lights, so a streak would be an invented reflection. Worth drawing if a road ever reaches the water, or the bay gets a far shore or ships. `tests/alder-neighbourhoods.test.ts` holds the line and the glows. | holds |
 | Sky is not black | A dome of vertex colour follows the car (`sky.ts`, 2026-09-18): `NIGHT_ZENITH #05080f` overhead, the colour the whole sky used to be, lifting to `NIGHT_HAZE #1b2638` at the horizon, most of the lift within about 15 degrees of the skyline. The fog is the haze colour, so distance fades into haze rather than black. Before it the background was `#05080f` behind fog `#070c16`, a third colour, so the horizon was a hard band and roofs, evergreens and cranes had nothing to stand against. `tests/alder-neighbourhoods.test.ts` holds the two ends of the gradient. | holds |
-| Dry streets | By omission: no environment map and no wet roughness. The wet asphalt was Blackglass's. | holds |
+| Dry streets, for now | By omission: no environment map and no wet roughness. The wet asphalt was Blackglass's. Wet roads wait on wet handling (2026-09-27). | holds |
 | Cyan belongs to the race | Neon is `#c46bff #ff4fd8 #8cff5a #6f6bff`: violet, magenta, green, indigo (`SIGN_COLORS` in `night.ts`). It was `#ff2d6f #39f0c2 #ffb03a #5ac8ff #c46bff #ff5f3c`, two cyans, the objective's amber and two reds beside the rival's, with only the violet free. Shopfront glass stays warm and cool white. | holds |
 | Neon is an accent on faces a driver reads | Each wall's frontage is measured along its own normal to the carriageway it faces, and a building in the way blocks it (`src/sim/frontage.ts`). Signs go on walls within 40 m, shopfronts within 30 m (`ALDER_REACH` in `alder.ts`): 2,097 and 1,597 of 6,912 walls. In the running game that is 4,112 glow quads and 1,540 shopfront spills, down from 15,260 and 6,740, when `alder.ts` passed zero for every wall and neon hung on back walls and hillsides. `tests/frontage.test.ts` checks the wall under every drawn sign triangle, and fails with 36,770 of 52,568 off if the zeros come back. | holds |
 | Signs name places | Where there is text, yes: PORT ALDER, WHARF GARAGE, RIDGE CIRCUIT, SOUTH WHARF / DRIFT YARD. The neon is blank. | holds |
@@ -288,7 +295,8 @@ Decided by Shawn, 2026-09-16:
    portraits' key light.
 3. **Amber:** the objective colour keeps it; brightness separates a gate from a
    lamp.
-4. **Dry streets:** wet pavement is struck from GDD §15.1.
+4. **Dry streets:** wet pavement is struck from GDD §15.1. (Made "for now" on
+   2026-09-27: wet roads come with wet handling.)
 
 Decided by Shawn, 2026-09-17:
 

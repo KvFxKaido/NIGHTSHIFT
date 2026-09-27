@@ -155,7 +155,8 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
 - **`design/LOOK.md` is the check anything new passes first.** Signs name what a
   place is, never a brand. Neon is an accent in violet, magenta, green or indigo
   only, on ground floors facing a street a driver uses. Cyan belongs to the race
-  and is never decoration; red is cars. Dry streets, no rain.
+  and is never decoration; red is cars. Dry streets for now: wet roads wait on wet
+  handling, so no adoption paints one.
 - **Performance.** New merged scenery must be listed in `CHUNKED_SCENERY`
   (`src/render/city-chunks.ts`) or it is drawn from everywhere on the map. Do not
   add to `src/sim/alder-data.json` casually (36 MB, a phone load-time question).
