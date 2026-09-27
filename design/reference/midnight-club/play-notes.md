@@ -26,3 +26,15 @@ collector) would be the natural source. A half press that holds a speed is
 help on the pedals, which the player has driven without since 2026-09-20
 (`design/HANDLING.md`, "The pedals, as a choice"), so building it is a decision
 about the pedals as much as about police.
+
+## MCLA: the ability gauge
+
+Shawn, 2026-09-26. The small round gauge at the top right of the same cluster,
+above the plate, is the meter for Midnight Club's special abilities, Roar and
+Zone among them.
+
+For NIGHTSHIFT: the GDD does not mention special abilities at all. The HUD has
+reserved room for them since its MC3 layout ("the meter arcs ... reserved for
+nitrous, slipstream and abilities", `src/ui/hud.css`), and the HUD proposal of
+2026-09-26 draws the gauge where MCLA has it, as a reserved slot. Building
+abilities is a scope decision, like police.

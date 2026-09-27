@@ -12,8 +12,8 @@ NIGHTSHIFT design: GDD §5 is where decisions live.
 - `digest.md`: the narrative tables (progression, pattern notes, conflicts)
   and the Dashboard / Cross-game summary sheets as markdown. Read this first.
 - `play-notes.md`: first-hand notes from playing (MCLA's speed limit and
-  half-pressed trigger), hand-written and not from the workbook; `export.py`
-  never touches it.
+  half-pressed trigger, its ability gauge), hand-written and not from the
+  workbook; `export.py` never touches it.
 - `export.py`: regenerates the csv files and the digest from a newer workbook
   (`python design/reference/midnight-club/export.py <file.xlsx>`, needs
   openpyxl). It fails if the workbook gains or loses a table. Do not hand-edit
