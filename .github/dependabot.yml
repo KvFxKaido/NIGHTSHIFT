@@ -1,6 +1,7 @@
 # Dependency updates, monthly and grouped (Shawn, 2026-09-26). CI builds and tests every pull request, so each one
 # arrives checked; the three.js one is also worth a look in the game, since a minor version can change how the cel
-# look draws and no test sees that.
+# look draws and no test sees that. A group takes minor and patch updates only: a major arrives as a PR of its own,
+# so one that breaks CI can be told from the rest (the first actions group bumped four majors at once, 2026-09-27).
 version: 2
 updates:
   - package-ecosystem: npm
@@ -17,6 +18,7 @@ updates:
       dev-tools:
         dependency-type: development
         exclude-patterns: ["@types/three"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -24,3 +26,4 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
