@@ -8,6 +8,20 @@ TransformControls. It edits building footprints against the real district
 roads and terrain. The daytime boxes make placement readable; the game
 continues to dress those footprints with its existing night buildings.
 
+## Laundry window display
+
+In the frontage module controls, select a glazing module and set **Window
+display → Laundry, working drums**, then Apply and Save to project. Plain
+restores the ordinary window. Laundry displays require at least 2.4 m width
+and 1.8 m height; rejected edits leave the current draft intact. The option
+survives export, save/reload, undo/redo, and placement refitting. The editor
+shows the initial drum pose; the game animates it from the simulation clock.
+
+Fifth Ave Laundry is the first saved example, `plot--567.000--1330.000` on
+5th Ave N between Broad St and Mercer St. It is locked against regeneration.
+The option is available to other suitable glazing modules but is not
+automatically spread across the city by the frontage generator.
+
 ## Editing locally
 
 1. Click a building, or choose one from **Selected building**.

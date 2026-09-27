@@ -1,0 +1,83 @@
+{
+  "editor": {
+    "previewIsNonDestructive": true,
+    "undoRedo": true,
+    "saveReloadBothChoices": true,
+    "lockPreserved": true
+  },
+  "views": [
+    {
+      "label": "desktop",
+      "moves": true,
+      "frozen": true,
+      "withDisplay": {
+        "frame": 194,
+        "calls": 628,
+        "triangles": 1597832,
+        "points": 78,
+        "lines": 0
+      },
+      "withoutDisplay": {
+        "frame": 218,
+        "calls": 623,
+        "triangles": 1597462,
+        "points": 78,
+        "lines": 0
+      },
+      "world": "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v5-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b",
+      "hasRace": false,
+      "viewportFits": true,
+      "screen": "playing",
+      "transitionHidden": true
+    },
+    {
+      "label": "portrait",
+      "moves": true,
+      "frozen": true,
+      "withDisplay": {
+        "frame": 194,
+        "calls": 490,
+        "triangles": 714374,
+        "points": 78,
+        "lines": 0
+      },
+      "withoutDisplay": {
+        "frame": 218,
+        "calls": 485,
+        "triangles": 714004,
+        "points": 78,
+        "lines": 0
+      },
+      "world": "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v5-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b",
+      "hasRace": false,
+      "viewportFits": true,
+      "screen": "playing",
+      "transitionHidden": true
+    },
+    {
+      "label": "race",
+      "moves": true,
+      "frozen": true,
+      "withDisplay": {
+        "frame": 181,
+        "calls": 628,
+        "triangles": 1597832,
+        "points": 78,
+        "lines": 0
+      },
+      "withoutDisplay": {
+        "frame": 205,
+        "calls": 623,
+        "triangles": 1597462,
+        "points": 78,
+        "lines": 0
+      },
+      "world": "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v5-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b",
+      "hasRace": true,
+      "viewportFits": true,
+      "screen": "playing",
+      "transitionHidden": true
+    }
+  ],
+  "errors": []
+}

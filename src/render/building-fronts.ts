@@ -3,6 +3,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildingWallFrames, frontPoint, type FrontPlan, type FrontModule } from "../sim/building-fronts.ts";
 import { facadeGrid, tint } from "./night.ts";
 import { buildingPalette } from "./building-palette.ts";
+import { addFrontageDisplays } from "./frontage-displays.ts";
 
 /** Bounded atlases for tenant identities; mipmaps naturally retain the
  * sign's colour/composition when its lettering becomes subpixel at distance. */
@@ -177,8 +178,10 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
         box(metal,x,y,.15,.09,h,.09);
         box(metal,x,y+h*.25,.16,w,.07,.1);
         // Dim interior bands and shelves give glazing depth without an interior mesh.
-        box(luminous,x,y+h*.34,.135,w-.2,.14,.008,false,plan.recipe.kind==="office"?"#687777":"#9d9077");
-        box(fineMaterial,x,y-h*.25,.18,w-.18,.04,.035,true);
+        if(!module.display) {
+          box(luminous,x,y+h*.34,.135,w-.2,.14,.008,false,plan.recipe.kind==="office"?"#687777":"#9d9077");
+          box(fineMaterial,x,y-h*.25,.18,w-.18,.04,.035,true);
+        }
       } else if(kind==="shutter") {
         frame(x,y,w,h);
         box(concrete,x,y+h/2+.19,.23,w+.4,.28,.42);
@@ -271,6 +274,8 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
   // Core architecture batches geographically; only tiny distance-faded details
   // keep their own building LOD. The three-site study can still inspect each kit.
   if(plans.length>3)batchFrontageCore(root);
+  // Animated parts retain their own transforms and local bounds after static batching.
+  addFrontageDisplays(scene,root,plans);
   scene.add(root);return root;
 }
 
