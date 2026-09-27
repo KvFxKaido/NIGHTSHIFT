@@ -141,11 +141,12 @@ async function passes(page) {
         disturbed = { along: Math.round(step.along), right: +step.right.toFixed(2), mph: Math.round(step.mph) };
       last = step;
       if (step.frame) {
-        const name = `pass-${pass.id}-${String(Math.round(step.along)).padStart(3, '0')}m.jpg`;
+        const name = `pass-${pass.id}-${String(Math.round(step.along)).padStart(3, '0')}m-t${step.tick}.jpg`;
         await save(name, step.frame);
         frames.push({ name, along: +step.along.toFixed(1), mph: Math.round(step.mph), right: +step.right.toFixed(2), data: step.frame });
       }
-      if (step.along >= pass.length) break;
+      // A disturbed pass's frames are not evidence of anything but what it met: stop there, not against it.
+      if (disturbed || step.along >= pass.length) break;
     }
     out[pass.id] = { frames, worstOffLane: +worst.toFixed(2), disturbed, topMph: Math.round(last.mph) };
     console.log(`pass ${pass.id}: ${frames.length} frames to ${Math.round(last.along)} m, ${out[pass.id].topMph} mph, `
@@ -227,16 +228,16 @@ try {
     const { frames, ...rest } = result;
     summary.passes[id] = { ...rest, frames: frames.map(({ data, ...f }) => f) };
   }
-  const nearest = (id, along) => passResults[id].frames.reduce((a, b) => Math.abs(b.along - along) < Math.abs(a.along - along) ? b : a);
+  const nearest = (id, along) => passResults[id].frames.reduce((a, b) => Math.abs(b.along - along) < Math.abs(a.along - along) ? b : a, passResults[id].frames[0]);
   const strips = shots.strips ?? Object.keys(passResults).map(id => ({ id: `pass-${id}`,
     frames: [.25, .5, .75, 1].map(f => [id, f * shots.passes.find(p => p.id === id).length]) }));
   for (const strip of only.has('passes') ? strips : []) {
-    const cells = strip.frames.map(([id, along, label, crop]) => {
+    const cells = strip.frames.flatMap(([id, along, label, crop]) => {
       const f = nearest(id, along), pass = shots.passes.find(p => p.id === id), hit = passResults[id].disturbed;
-      return { src: f.data, crop: crop ?? [0, 0, 1, .8], warn: !!hit,
-        label: `${label ?? pass.label}, ${f.mph} mph, ${Math.round(f.along)} m${hit ? ', DISTURBED' : ''}` };
+      return f ? [{ src: f.data, crop: crop ?? [0, 0, 1, .8], warn: !!hit,
+        label: `${label ?? pass.label}, ${f.mph} mph, ${Math.round(f.along)} m${hit ? ', DISTURBED' : ''}` }] : [];
     });
-    summary.outputs.push(await compose(cells, 660, `${strip.id}.jpg`));
+    if (cells.length) summary.outputs.push(await compose(cells, 660, `${strip.id}.jpg`));
   }
   for (const moment of only.has('moments') ? shots.moments ?? [] : []) {
     const cells = views.after.moments[moment.id].map((src, i) => ({ src, crop: moment.crop,
