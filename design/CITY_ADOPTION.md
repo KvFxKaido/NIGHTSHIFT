@@ -172,14 +172,14 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   open lit dock, its white spill on the apron, the machine room's work light.
 - **Custom asset.** None. Boxes, cylinders and flat shapes in the fronts' vertex-coloured materials, the plant banded
   like the roofs under `cel-city`. Blender is for a landmark; this is a working building.
-- **Status.** Implemented; PR open for review.
+- **Status.** Implemented; PR #20 open for review, not merged.
 - **Files.** `src/render/cold-storage.ts` (the place), `src/render/place-activity.ts` (each place's activity, run from
   `render()`), `src/render/building-fronts.ts` (an open shutter), `src/sim/building-fronts.ts` and
   `frontage-document.ts` (`open`, shutters only), `src/sim/alder-frontages.json` (the entry: renamed, docks named,
   dock 01 open, hand edited and locked), `src/editor/frontages.ts` and `editor.html` (a Dock door control),
   `src/render/alder.ts`, `src/render/scene.ts`, `tests/cold-storage.test.ts`, `design/LOOK.md`. Worktree
   `C:\dev\NIGHTSHIFT-adopt-cold-storage`, branch `claude/adopt-alder-cold-storage`.
-- **PR.** PR_URL
+- **PR.** https://github.com/KvFxKaido/NIGHTSHIFT/pull/20
 - **Evidence.** `design/adoptions/holgate-cold-store/`: `sketch.svg` (the bounds, both approaches, capture points
   A, C and D), `dock-before-after.jpg` (C, stopped at the kerb facing the dock), `southbound-before-after.jpg` (D, 45 m
   short of it southbound), `approach-before-after.jpg` (A, 90 m short northbound), `forklift-round.jpg` (four
