@@ -67,20 +67,30 @@ equal, bit for bit, to what the sim builds itself.
    worker's result is the main thread's (inference, and testable the same way).
 3. **Keep the stadium.** Build it in idle time after the city, and a gate becomes a camera move through the gate.
    Measured cheap: its whole page loads warm in 2.3 s, with 116 MB of heap to the city's 165.
-4. **The flash sequence** (Shawn, 2026-09-27; GTA V's switch was the picture, not the use). Flash a rival and the
-   camera rises to an aerial view over the two cars while the race is prepared, then comes down onto the start when
-   it is ready; through the countdown it cuts between the racers, and hands back the chase camera before the flag.
-   - The aerial can only move smoothly if the preparation is not on the main thread: it needs 1 (no reload) and 2
-     (the race drawn in a Worker). With both, the wait is short and the aerial is a beat of its own length rather
-     than a loading screen; the swap from free roam to the race session happens at its top, where traffic moving to
-     the race's own seed reads as nothing (inference).
-   - The countdown is 180 ticks, 3 s, and it is the sim's: the launch charge and every rival's launch are timed on
-     it, so lengthening it changes races and their recordings. The cuts fit in those 3 s (about three shots, the
-     chase camera back half a second before the flag, so the player launches seeing the road), or play as a pre-roll
-     before tick 0, while the sim has not started and nothing it decides can move.
-   - All of it is camera: the renderer draws, the sim decides. The cuts need neither 1 nor 2 and can come first;
-     the aerial comes with them.
-   - Undecided: drawing the course over the city from the aerial (MCLA shows the route), and whether a button skips it.
+4. **The flash sequence** (Shawn, 2026-09-27). Three parts, the first two for a street challenge, the third for a
+   race started from a menu.
+   - **Race to the start** (Midnight Club's, which Shawn raised to make transitions less necessary). Flash a rival and
+     it leads you to a start the generator chose, a few hundred metres off: a straight or a junction with room for
+     two cars, not wherever the flash happened (today's `race-start.ts` snaps the flash pose to the nearest lane, so a
+     start can land mid-block). The race is prepared in a Worker while you drive there (2), so the drive is the
+     loading, and it is play. The start is marked in cyan, which is a destination in this city's colours; the rival
+     drives there its own way, so how it drives says who it is before the flag; drifting too far from it for too long
+     calls the challenge off, as in MC. Only the first attempt drives: a restart puts both cars on the line (1). A
+     stored course keeps its start, so saved stages and recordings mean what they did.
+     In MC the drive tied into police proximity, which is why it made more sense there (Shawn; our research notes do
+     not record how). Without police it has to earn its time, so it stays short; when police come (a deferred LA
+     idea, not a decision), it is where proximity would matter.
+   - **The countdown cuts.** Through the countdown the camera cuts between the racers and hands back the chase
+     camera half a second before the flag, so the player launches seeing the road. The countdown is 180 ticks, 3 s,
+     and it is the sim's: the launch charge and every rival's launch are timed on it, so lengthening it changes races
+     and their recordings. The cuts fit in those 3 s (about three shots) or play as a pre-roll before tick 0, while
+     the sim has not started and nothing it decides can move. Camera only: they need neither 1 nor 2 and can come
+     first.
+   - **The aerial** (GTA V's switch was the picture), for a race started from the race list or the Blacklist, where
+     there is no drive to hide behind: the camera rises over the city while the race is prepared and comes down onto
+     the start. It moves smoothly only with the preparation off the main thread, so it needs 1 and 2; the swap to the
+     race session happens at its top, where traffic moving to the race's own seed reads as nothing (inference).
+     Undecided: drawing the course over the city from it (MCLA shows the route), and whether a button skips it.
 5. **Stop rebuilding what never changes.** For the first launch, and for the phone above all.
    - Now: build traffic's network in a Worker while the main thread builds the meshes; about half the wait.
    - Then bake both at build time (a Vite plugin writing typed arrays), keyed to `ALDER_VERSION`, the traffic
@@ -92,6 +102,7 @@ equal, bit for bit, to what the sim builds itself.
    RedMagic's GPU: a guess today either way.
 
 Order: the countdown cuts whenever, since they stand alone; 1 first of the rest, because it removes the loading
-screen from play (every race, restart and gate), then 2 with the flash sequence's aerial, which needs both; 5 when the
-port starts or the first launch starts to grate; 3 once 1 exists. Measure with `pnpm profile:load` before and after
-each.
+screen from play (every race, restart and gate): arriving at a start and then waiting through a reload would be worse
+than today. Then 2 with the race to the start, which is where the preparation hides, and the aerial for menu-started
+races; 5 when the port starts or the first launch starts to grate; 3 once 1 exists. Measure with `pnpm profile:load`
+before and after each.
