@@ -316,6 +316,23 @@ Decided by Shawn, 2026-09-18:
 GDD §15.1 points here, and CLAUDE.md names this page beside the renderer, so
 anything made for the city is checked against it first.
 
+## Crease ink (prototype, 2026-09-27, undecided)
+
+The hull ink draws a silhouette and nothing inside it, so a roof's front edge,
+a corner seen face-on, a kerb or a car's panel break gets no line.
+`src/render/crease-ink.ts` (`?crease=1`, never saved) draws those: the frame is
+drawn exactly as to the screen into a target that keeps depth and stencil, and
+one full-screen pass inks the pixels where the surface's normal turns. Decals,
+grass, traffic, glows, hulls and cut-out lettering stamp the stencil and are
+neither inked nor read as surfaces; lane paint far off read as black dashes and
+grass as speckle until they did. Measured at 1350 x 622 on the RX 6800 XT: the
+frame is the same to the pixel outside the ink (none brighter, mean drift
+0.06/255), ink covers 0.14 to 0.3% of it, and it costs about 3 ms a frame.
+Open: edges at grazing angles come out dotted (floor bands on Meridian House,
+far kerbs), the 3 ms is not yet broken down, and whether the lines earn their
+place is Shawn's to judge by driving. Two routes were ruled out and why is in
+the module's note.
+
 ## Grass volume and tyre response (2026-09-20)
 
 Open ground and parks have a mottled, rough grass mat (`render/grass-ground.ts`)

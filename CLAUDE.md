@@ -794,7 +794,8 @@ cars undrawn and `?look=fx` undrawn with the drawn smoke. `?look=cel-traffic`
 (2026-09-20) draws the cars and traffic, bands and ink without the stripe or the
 cyan rim, with the city undrawn: an undecided comparison, not the look. `?cuts=0` shows a race's countdown on the
 chase camera instead of the cuts between the racers (`countdownShot`, 2026-09-27); step a frozen race with
-`__ns.tick(n)` to see each shot. A frozen page (`?freeze=1`, `__ns.freeze()`) runs no ticks, so a
+`__ns.tick(n)` to see each shot. `?crease=1` draws the crease-ink prototype (`render/crease-ink.ts`, undecided,
+design/LOOK.md "Crease ink"). A frozen page (`?freeze=1`, `__ns.freeze()`) runs no ticks, so a
 pad on it does nothing while the HUD still reads LIVE: never hand one over to be
 driven (Shawn's triggers "did not work" on one, 2026-09-24). A burnout (e-brake
 and gas at a standstill) smokes anywhere, which is the quick way to look at it;

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { updateIntersectionSignals } from "./intersection-dressing.ts";
 import { updatePlaceActivity } from "./place-activity.ts";
+import type { CreaseInk } from "./crease-ink.ts";
 import type { CameraLook } from "../input/input.ts";
 import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
 import type { TrafficState } from "../sim/traffic.ts";
@@ -68,6 +69,8 @@ export interface View extends CarView {
   onRoad: (x: number, z: number) => boolean;
   /** The cuts between the racers through a countdown (camera.ts, `countdownShot`); `?cuts=0` turns them off. */
   countdownCuts: boolean;
+  /** Ink on creases, a prototype (crease-ink.ts, `?crease=1`); null draws the scene straight to the screen. */
+  creaseInk: CreaseInk | null;
   /** The drawn tyre smoke; absent only under `?look=plain`. */
   celSmoke?: CelSmoke;
   grass?: GrassView;
@@ -202,6 +205,7 @@ export function createView(canvas: HTMLCanvasElement, carParts: CarView, roadWor
     surface: (x, z) => roadWorld.project(x, z).height,
     onRoad: (x, z) => { const p = roadWorld.project(x, z); return p.distance <= p.width / 2 + 2.5; },
     countdownCuts: true,
+    creaseInk: null,
   };
 
   const resize = () => {
@@ -338,7 +342,7 @@ export function render(
     updateRaceBeacon(view.race, null, view.surface, view.camera);
     view.facadeMenu.frame(view.camera, view.cameraPosition, view.cameraTarget, frameDelta, view.facadeCameraSnap);
     view.facadeCameraSnap = false;
-    view.renderer.render(view.scene, view.camera);
+    drawCity(view);
     return;
   }
 
@@ -464,5 +468,10 @@ export function render(
   view.celSmoke?.update(state, frameDelta);
   view.grass?.update(state, frameDelta);
 
-  view.renderer.render(view.scene, view.camera);
+  drawCity(view);
+}
+
+function drawCity(view: View): void {
+  if (view.creaseInk) view.creaseInk.render(view.renderer, view.scene, view.camera);
+  else view.renderer.render(view.scene, view.camera);
 }

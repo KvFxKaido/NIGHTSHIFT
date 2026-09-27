@@ -46,6 +46,7 @@ import { createView, render, resetViewCamera, setPlayerCar, setRivalCar, setPark
   type DistrictLighting } from "./render/scene.ts";
 import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
+import { createCreaseInk } from "./render/crease-ink.ts";
 import { loadMusicPreference, saveMusicPreference } from "./settings/music-preference.ts";
 import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
   type CarHandling, type Drivetrain, type Input } from "./sim/sim.ts";
@@ -325,6 +326,8 @@ const view = createView(document.getElementById("view") as HTMLCanvasElement, ca
 view.chaseCamera = loadCameraPreference(() => window.localStorage);
 // A race's countdown cuts between the racers; `?cuts=0` shows it on the chase camera, to compare. Never saved.
 view.countdownCuts = new URLSearchParams(location.search).get("cuts") !== "0";
+// Ink on creases, a prototype to judge (render/crease-ink.ts): `?crease=1`. Never saved.
+if (new URLSearchParams(location.search).get("crease") === "1") view.creaseInk = createCreaseInk(view.renderer);
 if (drawnEffects()) view.celSmoke = addCelSmoke(view.scene);
 if (!venue) view.grass = addGrass(view.scene, roadWorld);
 if (rivalParts) setRivalCar(view, rivalParts);
