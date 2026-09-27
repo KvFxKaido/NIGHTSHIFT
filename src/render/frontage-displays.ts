@@ -73,7 +73,14 @@ export function addFrontageDisplays(scene:THREE.Scene,root:THREE.Group,plans:rea
     }
     site.add(wall);root.add(site);
   }
-  // Rebuilding an editor preview replaces the callback, including when its last
-  // display is removed. The callback never retains a previously disposed preview.
-  addPlaceActivity(scene,"frontage-displays",seconds=>{for(const update of updates)update(seconds);});
+  if(!updates.length)return;
+  // Each frontage root owns its activity. Removing an editor preview releases
+  // its callback without stopping other roots; reattaching resumes its activity.
+  const key=`frontage-displays-${root.uuid}`;
+  const activity=(seconds:number)=>{for(const update of updates)update(seconds);};
+  root.addEventListener("added",()=>addPlaceActivity(scene,key,activity));
+  root.addEventListener("removed",()=>{
+    const places=scene.userData.placeActivity as Map<string,unknown>|undefined;
+    places?.delete(key);
+  });
 }

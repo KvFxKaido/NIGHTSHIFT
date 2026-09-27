@@ -76,13 +76,24 @@ test("tumbling is continuous through the period boundary, paused time repeats, a
   update(LAUNDRY_PERIOD);assert.deepEqual(points(group),initial);
 });
 
-test("activity survives city batching and rebuilding the frontage clears old display updates",()=>{
+test("batched and independent frontage roots animate until removed, and reattach safely",()=>{
   const scene=new THREE.Scene();
   const root=addBuildingFronts(scene,ALDER_BUILDING_FRONTS,alderHeight);
   const rotor=root.getObjectByName("laundry-drum-0")!;assert.ok(rotor,"static batching must not consume rotors");
   updatePlaceActivity(scene,1);const before=rotor.rotation.z;updatePlaceActivity(scene,2);assert.notEqual(rotor.rotation.z,before);
-  const stopped=rotor.rotation.z;
+  const second=addBuildingFronts(scene,[plan],alderHeight);
+  const secondRotor=second.getObjectByName("laundry-drum-0")!;
+  updatePlaceActivity(scene,3);
+  assert.equal(rotor.rotation.z,secondRotor.rotation.z,"both roots keep animating");
+  assert.notEqual(rotor.rotation.z,before);
+  assert.equal((scene.userData.placeActivity as Map<string,unknown>).size,2);
+  root.removeFromParent();const stopped=rotor.rotation.z;
   addBuildingFronts(scene,[{...plan,modules:plan.modules.map(m=>({...m,display:undefined} as FrontModule))}],alderHeight);
-  updatePlaceActivity(scene,3);assert.equal(rotor.rotation.z,stopped,"replaced preview is not retained by its callback");
+  updatePlaceActivity(scene,4);assert.equal(rotor.rotation.z,stopped,"removed preview is not retained by its callback");
+  assert.notEqual(secondRotor.rotation.z,stopped,"removing one root leaves the other active");
   assert.equal((scene.userData.placeActivity as Map<string,unknown>).size,1);
+  scene.add(root);updatePlaceActivity(scene,5);
+  assert.equal(rotor.rotation.z,secondRotor.rotation.z,"reattached root resumes at the current clock");
+  root.removeFromParent();second.removeFromParent();
+  assert.equal((scene.userData.placeActivity as Map<string,unknown>).size,0);
 });

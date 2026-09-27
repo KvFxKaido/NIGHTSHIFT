@@ -1,5 +1,9 @@
 # Port Alder demo
 
+Port Alder is the demo's only playable map, authorized September 10, 2026 after the separate-map study. **It was Seattle until September 11, 2026.** The map is built from adapted Seattle centerlines and keeps its borrowed street names, but Shawn let go of Seattle as the city's identity once it was clear the work to make it feel like Seattle was never going to be done; the city is its own place now. The code handle is `alder` (`src/sim/alder.ts`, `alder-data.json`, `alder-slice-v4`, `?world=alder`), the display name Port Alder; `seattle.html` and `?world=seattle` still resolve here for old links, and the sentences below that say Seattle mean the real city the data came from. The base URL and old Blackglass world bookmarks enter Port Alder. `district.html` redirects to `alder.html`. Handling and car customization are shared unchanged.
+
+Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at the cyan shutter and use **E / Enter** or **Cross / A** to enter. The garage uses the existing fixed camera and rotating car platform. Drive out returns to its forecourt. Races retain the clear northbound street grid and disable garage entry. The minimap and route board mark the garage.
+
 **Fifth Ave Laundry** occupies the existing shop at 745 on the east side of
 5th Ave N, between Broad St and Mercer St (`plot--567.000--1330.000`). Its
 violet 24 HR blade and working washer window distinguish it from the adjoining
@@ -8,10 +12,6 @@ is render-only occupation driven by the sim clock; existing building collision,
 paving, traffic, race routes and world identity remain unchanged. The adopted
 site and shortcut/jump scouting are recorded in `CITY_ADOPTION.md`; the window
 option is available in the frontage editor (see `EDITOR.md`).
-
-Port Alder is the demo's only playable map, authorized September 10, 2026 after the separate-map study. **It was Seattle until September 11, 2026.** The map is built from adapted Seattle centerlines and keeps its borrowed street names, but Shawn let go of Seattle as the city's identity once it was clear the work to make it feel like Seattle was never going to be done; the city is its own place now. The code handle is `alder` (`src/sim/alder.ts`, `alder-data.json`, `alder-slice-v4`, `?world=alder`), the display name Port Alder; `seattle.html` and `?world=seattle` still resolve here for old links, and the sentences below that say Seattle mean the real city the data came from. The base URL and old Blackglass world bookmarks enter Port Alder. `district.html` redirects to `alder.html`. Handling and car customization are shared unchanged.
-
-Free roam starts outside **Wharf Garage**, beside First Avenue in SoDo. Stop at the cyan shutter and use **E / Enter** or **Cross / A** to enter. The garage uses the existing fixed camera and rotating car platform. Drive out returns to its forecourt. Races retain the clear northbound street grid and disable garage entry. The minimap and route board mark the garage.
 
 The upgraded workshop exterior uses the same warehouse and paved apron bounds.
 `src/sim/garage-site.ts` places two low concrete planters beside the end bays;

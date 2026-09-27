@@ -1,7 +1,7 @@
 # Adopt a piece of Port Alder
 
-Status: first run shipped (Holgate Cold Store); second run open for review in PR #22
-(Fifth Ave Laundry, 2026-09-27). Cadence undecided; no scheduled automation enabled.
+Adoptions: Holgate Cold Store (PR #20); Fifth Ave Laundry (PR #22)
+as of 2026-09-27. Cadence undecided; no scheduled automation enabled.
 
 ## Purpose
 
@@ -333,14 +333,14 @@ the next run.
   implementation. `shots.json` specifies matched poses, scripted passes both
   ways and activity moments. `window-before-after.jpg`, the two approach pairs,
   `driven-pass.jpg`, `wash-cycle.jpg` and `capture.json` show the same world on
-  main at `2b4a275` and this branch's working implementation. The raw frames
-  are in git-ignored `artifacts/adoptions/fifth-ave-laundry/`. Both driven
+  main at `2b4a275` and the clean implementation commit recorded in `capture.json`.
+  The raw frames are in git-ignored `artifacts/adoptions/fifth-ave-laundry/`. Both driven
   passes held their lane within the reported 0.00 m rounding and were
   undisturbed, topping out at 97/106 mph north/south. Selected frames show
   the shop at 46–58 mph northbound and 75–85 mph southbound. The violet blade
   and bright machine window read briefly at the edge of the driving view;
   individual tumbling loads are a close-pass detail. These are scripted passes.
-- **Status / PR.** Implemented and validated; PR #22 open for review, not merged:
+- **Implementation / PR.** Implemented and validated in PR #22:
   https://github.com/KvFxKaido/NIGHTSHIFT/pull/22
 - **Checks.** `pnpm test`: all 831 pass, including five focused display
   tests; `pnpm build` passes with the existing large-chunk warning. All 14
