@@ -253,9 +253,11 @@ the next run.
 - **Evidence.** `design/adoptions/holgate-cold-store/`: `sketch.svg` (the bounds, both approaches, capture points
   A, C and D), `dock-before-after.jpg` (C, stopped at the kerb facing the dock), `southbound-before-after.jpg` (D, 45 m
   short of it southbound), `approach-before-after.jpg` (A, 90 m short northbound), `forklift-round.jpg` (four
-  moments of the round): the Standard chase camera settled on a stopped car, `?scene=track` on dev servers of `main`
-  and of this branch, the same poses. `driven-pass.jpg`: live frames from two driven passes (below), north at 76 mph
-  at the Holgate junction and south at 86 mph 15 m short.
+  moments of the round): the Standard chase camera settled on a stopped car. `driven-pass.jpg`: live frames from two
+  driven passes (below), north at 76 mph at the Holgate junction and south at 86 mph 15 m short. Recaptured with
+  `pnpm adopt:capture` from `shots.json` (2026-09-27): before at 4d0e70a, after at a0fed5b, both clean, 1440 x 900 on
+  the GPU; `capture.json` holds the trees, the world identity and every pass frame's speed and offset across its lane.
+  The run's first set was made by hand in the browser pane, the frames the helper's recipe came from.
 - **Shortcuts and jumps.** The row's 8 m gaps run from 1st Ave S back to open ground with no street behind it, so
   a gap leads into a field, not between two roads: rejected as a shortcut until a service road is drawn behind the
   row, when every gap becomes one. The slice has no ramp, deck or change of level: no jump candidate, and jumps wait
