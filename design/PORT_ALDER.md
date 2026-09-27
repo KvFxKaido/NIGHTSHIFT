@@ -3367,6 +3367,50 @@ first race above (83.00 s to 73.73, no SUV), nothing else by more than 0.23 s. H
 parked, and a player under `racingSpeed` is traffic to the rival, not raced (Inference from that guard; the gate was not
 re-run). `tests/rival-racing.test.ts` holds the lane check, the hold, the kept side and the in-line limit.
 
+## Phantom corners (2026-09-26, `driver-v11`)
+
+Shawn raced Moth (gen-moth-779117, the Kestrel) and won by 13.68 s. Level with her at 1,770 m on her route, he was
+220 m up six seconds later, holding 131 to 140 mph within 7 m of her route through a waterfront S (bends of +16, -19
+and +23 degrees on a 16 m street) while she braked from 99 mph to 41 and then 36. Nothing held her: her own corner plan
+asked for those speeds, so the slowdown census, which discounts the corner plan, counted zero in the race.
+
+Each street corner is an arc (`RIVAL_STREET_CORNERS`) no longer than `legShare` of its legs, and a leg ran to the next
+vertex that turned at all, 0.57 degrees. The +16 degree bend had a vertex turning 1.6 degrees 6 m on, so its leg was
+6 m and its arc a 20 m radius, a hairpin's, read by the plan (three points 8 m apart) as 35 m; the -19 had a -3.6 7 m
+on. A route is the street data's centreline, and junctions leave such vertex pairs: a crude census (radius from the
+arc, speed as the square root of 0.8 g times it) found 57 of them on the gate's 83 courses, at about ten places in the
+city that many courses share, the waterfront S on 13.
+
+A vertex is now a corner only where the road does not run straight through it: every vertex that turns is a
+candidate, and the straightest is dropped while every point of the route between the corners either side of it lies
+within `straightWithin` (0.5 m) of the line between them. Where one was dropped, the path runs that line (a chord) and
+the corners either side take it as their tangent and their leg; an arc on a chord is sized as before, and its ends
+are read in the route's own distances. A route with nothing dropped is driven exactly as before, and the path never
+jumps (0.1 m samples never more than 0.1 m apart, tested). Through the S the plan now reads 178, 68 and 67 m where it
+read 35, 30 and 47. A 0.7 m jog in a 20 m street (-8 then +9 degrees 5 m apart) is kept, being wider than 0.5.
+
+Measured, the rival alone on clear streets over the gate's 83 courses (the player parked, no traffic):
+38 identical, 43 quicker, 1 slower by 0.03 s, 61.4 s quicker in all (0.8%), 2 to 3.4 s on the courses through the
+waterfront; nothing off the pavement before or after, no resets, and the widest from the centreline 7.8 to 10.2 m on
+three courses, on the pavement. His Moth race replayed: she finishes in 104.9 s, not 107.2, and is 48 m further on at
+54 s; he still wins by about 11 s, most of the rest being his route. Uptown and four of the car card's six sprints do
+not move; gen-moth-12 and gen-crest-23 do, by at most 2.8 m (the S). More of a course moves than its phantoms: every
+vertex within 0.5 m of straight is now a chord, which shifts the path by centimetres over long stretches (gen-58: 947 m
+of 2,797 by more than 1 cm), and that is the part the clear run shows is harmless.
+
+The gate against `driver-v9`'s baseline (`driver-v10` does not reach it): 225 of 498 races identical, 267 s quicker
+(0.6%), contact 2,139 ticks to 1,762, races with contact 67 to 63, distinct incidents 49 to 50, contact on a line 304 to
+295, in a pass 0 to 0, off the pavement 235 to 265, resets 15 to 17, reversals 0 to 1. Seed 1000 went from 4 incidents
+to 11, every one of the new ones a car crossing at a junction met at 3 to 13 mph after a hard brake from 61 to 69 mph,
+the car having claimed its junction with the rival 435 to 572 m away: arriving at another moment, the rival meets a
+crossing it used to miss (two are one taxi at one junction, on two courses that share the street). That is the gate's
+reshuffle, not a corner run into. The 30 more ticks off the pavement are one race (gen-78, seed 42), and the same:
+its path moved only at 1,269 to 1,582 m, and at 2,650 m on an 8 m street it met an oncoming box truck, clipped it and
+spun off, where the old code arrived at another moment (gen-39 there went 30 ticks off to none). Every raced recording
+replayed against `driver-v10`: contact 24 to 24, and no finish moved by more than 0.03 s but the Moth race above. The
+golden master moved free roam (the cruisers' loops have chords) and gen-crest-8-unordered; the other twelve runs,
+Sound to Sky's street rival among them, are identical.
+
 ## Corner dressing trial (2026-09-21)
 
 Shawn asked for more physical scenery around corners to discourage free cuts.

@@ -449,6 +449,36 @@ test("a corner on a resampled route gets the arc its straight runs allow", () =>
   assert.ok(Math.abs(apex(resampled) - apex(long)) < 0.01, `resampled every 29 m its arc is ${apex(resampled).toFixed(2)} m from the corner, not ${apex(long).toFixed(2)}`);
 });
 
+// A vertex the road runs straight through is not a corner (driver-v11, 2026-09-26). A leg ran to the next vertex that
+// turned at all, so a vertex turning 1.6 degrees 6 m past a 16 degree bend held the bend to a 20 m arc, and Moth braked
+// from 99 mph to 36 through a waterfront S that Shawn, within 7 m of her route, took at 131 to 140.
+test("a vertex the road runs straight through leaves the bend beside it the arc its straight runs allow", () => {
+  // The radius the corner plan reads: three points of the driving path 8 m apart, as rivalInput reads them.
+  const planRadius = (route: RivalDefinition, at: number) => {
+    const a = sampleDrivingPath(route, at - 8), b = sampleDrivingPath(route, at), c = sampleDrivingPath(route, at + 8);
+    const cross = Math.abs((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
+    return cross < .001 ? Infinity : Math.hypot(b.x - a.x, b.z - a.z) * Math.hypot(c.x - b.x, c.z - b.z) * Math.hypot(c.x - a.x, c.z - a.z) / (2 * cross);
+  };
+  const tightest = (route: RivalDefinition) => { let least = Infinity; for (let d = 60; d < route.along.at(-1)! - 10; d += 1) least = Math.min(least, planRadius(route, d)); return least; };
+  const largestStep = (route: RivalDefinition) => {
+    let most = 0, last = sampleDrivingPath(route, 0);
+    for (let d = 0.1; d < route.along.at(-1)!; d += 0.1) { const p = sampleDrivingPath(route, d); most = Math.max(most, Math.hypot(p.x - last.x, p.z - last.z)); last = p; }
+    return most;
+  };
+  const toward = (degrees: number, metres: number): [number, number] => [Math.sin(degrees * Math.PI / 180) * metres, -Math.cos(degrees * Math.PI / 180) * metres];
+  const a: [number, number] = [0, -150], [bx, bz] = toward(16, 6), b: [number, number] = [a[0] + bx, a[1] + bz];
+  const [cx, cz] = toward(17.6, 90), c: [number, number] = [b[0] + cx, b[1] + cz];
+  // The bend with its near-straight vertex, and the same bend taken as one corner straight to where it ends.
+  const kinked = streetRoute("kinked", [[0, 0], a, b, c]), single = streetRoute("single", [[0, 0], a, c]);
+  assert.ok(tightest(single) > 100, `as one corner the bend is read at ${tightest(single).toFixed(0)} m; the test proves nothing`);
+  assert.ok(Math.abs(tightest(kinked) / tightest(single) - 1) < 0.02, `with a 1.6 degree vertex 6 m on, the bend is read at ${tightest(kinked).toFixed(0)} m, not ${tightest(single).toFixed(0)}`);
+  // A 0.4 m jog in a straight street, two vertices 0.8 m apart turning 30 degrees and back, is no corner at all.
+  const [jx, jz] = toward(30, 0.8), jog = streetRoute("jog", [[0, 0], [0, -100], [jx, -100 + jz], [jx, -200]]);
+  assert.ok(tightest(jog) > 1000, `a 0.4 m jog is read as a corner of ${tightest(jog).toFixed(0)} m`);
+  // Driven straight through, the path never jumps: samples 0.1 m apart are never more than 0.1 m apart.
+  for (const route of [kinked, jog]) assert.ok(largestStep(route) < 0.1 + 1e-6, `${route.id}'s path jumps ${largestStep(route).toFixed(3)} m`);
+});
+
 // Steering feedforward on streets (2026-09-13). Error-only steering held a fast arc
 // only by being off it: on a 35 degree bend at up to 52 m/s, 2.9 m off its line.
 test("on a fast street bend it holds its arc", () => {

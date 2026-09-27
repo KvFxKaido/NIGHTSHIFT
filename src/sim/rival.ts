@@ -163,18 +163,32 @@ export function sampleRivalPath(route: RivalDefinition, distance: number) {
  * from 18.7 to 24.6 mph on average, and exits more than 1 m into the oncoming half
  * from 118 turns to 116. `legShare` 0.38 and 0.45 were clean; 0.3 and 0.5 each put
  * a race past 16 m.
+ *
+ * A corner is a vertex the road does not run straight through (`straightWithin`, driver-v11, 2026-09-26). A leg ran to
+ * the next vertex that turned at all, so a vertex turning 1.6 degrees 6 m past a 16 degree bend held the bend to a
+ * 20 m arc, and a half-metre jog in a 20 m street was two 37 mph corners: phantom corners, 57 on the gate's 83 courses
+ * at ten or so places in the city, among them a waterfront S where Moth braked from 99 mph to 36 and Shawn, within 7 m
+ * of her route, never lifted. Now the vertices the road runs within `straightWithin` of the straight line past are
+ * dropped, the smallest first, and where one was the path runs that straight line (a chord) and the corners either
+ * side take it as their leg and tangent. A route with none dropped is driven exactly as before.
  */
-export const RIVAL_STREET_CORNERS = { kerbMargin: 1.5, legShare: 0.45 } as const;
+export const RIVAL_STREET_CORNERS = { kerbMargin: 1.5, legShare: 0.45, straightWithin: 0.5 } as const;
 interface StreetCorner { start: number; end: number; cx: number; cz: number; vx: number; vz: number; radius: number; sweep: number }
-const cornerCache = new WeakMap<RivalDefinition, { list: (StreetCorner | null)[]; bySegment: number[][] }>();
+/** A straight run of the driving path from one corner to the next where the road between was driven straight through. */
+interface StreetChord { start: number; end: number; x0: number; z0: number; x1: number; z1: number }
+const cornerCache = new WeakMap<RivalDefinition, { list: (StreetCorner | null)[]; bySegment: number[][]; chords: StreetChord[]; chordsBySegment: number[][] }>();
 /** Each route vertex's arc, or null where the route runs straight on or has no room. Racing lines have none. */
 function streetCorners(route: RivalDefinition): (StreetCorner | null)[] { return cornerIndex(route).list; }
 /** The corners whose arcs reach into a segment of the route: an arc can span several. */
 function cornersOn(route: RivalDefinition, segment: number): readonly number[] { return cornerIndex(route).bySegment[segment] ?? []; }
+/** A street route's arcs, for tests and tools: the vertex, where it starts and ends along the route, radius and turn. */
+export function streetCornerArcs(route: RivalDefinition): { vertex: number; start: number; end: number; radius: number; turn: number }[] {
+  return streetCorners(route).flatMap((c, vertex) => c ? [{ vertex, start: c.start, end: c.end, radius: c.radius, turn: Math.abs(c.sweep) }] : []);
+}
 function cornerIndex(route: RivalDefinition) {
   let cached = cornerCache.get(route);
   if (cached) return cached;
-  const list: (StreetCorner | null)[] = route.points.map(() => null);
+  const n = route.points.length, list: (StreetCorner | null)[] = route.points.map(() => null);
   // How far the route turns at a vertex, in radians; a route's ends count as corners.
   const turnAt = (i: number) => {
     if (i <= 0 || i >= route.points.length - 1) return Infinity;
@@ -183,16 +197,45 @@ function cornerIndex(route: RivalDefinition) {
     if (l1 < 1e-6 || l2 < 1e-6) return Infinity;
     return Math.abs(Math.atan2(((q.x - p.x) * (r.z - q.z) - (q.z - p.z) * (r.x - q.x)) / (l1 * l2), ((q.x - p.x) * (r.x - q.x) + (q.z - p.z) * (r.z - q.z)) / (l1 * l2)));
   };
+  // The corners: every vertex that turns, less those the road runs straight through, dropped the straightest first. A
+  // vertex is straight through where every point of the route from the corner before it to the corner after is within
+  // `straightWithin` of the line between those two corners.
+  const turns = route.points.map((_, i) => turnAt(i)), kept = turns.map(t => t >= 0.01), dropped = turns.map(() => false);
+  const before = (i: number) => { let j = i - 1; while (!kept[j]) j--; return j; }, after = (i: number) => { let k = i + 1; while (!kept[k]) k++; return k; };
+  const offLine = (a: number, b: number) => {
+    const A = route.points[a]!, B = route.points[b]!, dx = B.x - A.x, dz = B.z - A.z, length2 = dx * dx + dz * dz;
+    let most = 0;
+    for (let m = a + 1; m < b; m++) {
+      const P = route.points[m]!, t = length2 > 0 ? clamp(((P.x - A.x) * dx + (P.z - A.z) * dz) / length2, 0, 1) : 0;
+      most = Math.max(most, Math.hypot(P.x - A.x - dx * t, P.z - A.z - dz * t));
+    }
+    return most;
+  };
+  while (!route.lateral) {
+    let straightest = -1, least: number = RIVAL_STREET_CORNERS.straightWithin;
+    for (let i = 1; i < n - 1; i++) {
+      if (!kept[i] || !Number.isFinite(turns[i])) continue;
+      const off = offLine(before(i), after(i));
+      if (off <= least) { least = off; straightest = i; }
+    }
+    if (straightest < 0) break;
+    kept[straightest] = false; dropped[straightest] = true;
+  }
+  const droppedBetween = (a: number, b: number) => { for (let m = a + 1; m < b; m++) if (dropped[m]) return true; return false; };
   for (let i = 1; !route.lateral && i < route.points.length - 1; i++) {
+    if (!kept[i]) continue;
     const p = route.points[i - 1]!, q = route.points[i]!, r = route.points[i + 1]!;
     let l1 = Math.hypot(q.x - p.x, q.z - p.z), l2 = Math.hypot(r.x - q.x, r.z - q.z);
     if (l1 < 1e-6 || l2 < 1e-6) continue;
-    const u1x = (q.x - p.x) / l1, u1z = (q.z - p.z) / l1, u2x = (r.x - q.x) / l2, u2z = (r.z - q.z) / l2;
+    // Each leg runs straight back, and on, to the next corner. Where a vertex between was driven straight through, the
+    // arc is tangent to the chord to that corner, not to the segment beside this one.
+    const j = before(i), k = after(i), chordIn = droppedBetween(j, i), chordOut = droppedBetween(i, k);
+    const inX = chordIn ? q.x - route.points[j]!.x : q.x - p.x, inZ = chordIn ? q.z - route.points[j]!.z : q.z - p.z;
+    const outX = chordOut ? route.points[k]!.x - q.x : r.x - q.x, outZ = chordOut ? route.points[k]!.z - q.z : r.z - q.z;
+    const inLength = Math.hypot(inX, inZ), outLength = Math.hypot(outX, outZ);
+    const u1x = inX / inLength, u1z = inZ / inLength, u2x = outX / outLength, u2z = outZ / outLength;
     const turn = Math.abs(Math.atan2(u1x * u2z - u1z * u2x, u1x * u2x + u1z * u2z));
     if (turn < 0.01) continue;
-    // Each leg runs straight back, and on, to the next corner.
-    let j = i - 1; while (j > 0 && turnAt(j) < 0.01) j--;
-    let k = i + 1; while (k < route.points.length - 1 && turnAt(k) < 0.01) k++;
     l1 = route.along[i]! - route.along[j]!; l2 = route.along[k]! - route.along[i]!;
     // Room to the inside kerb, measured from the centreline.
     const room = Math.min(p.width, q.width, r.width) / 2 - RIVAL_STREET_CORNERS.kerbMargin;
@@ -224,14 +267,25 @@ function cornerIndex(route: RivalDefinition) {
     const vx = x1 - cx, vz = z1 - cz, x2 = q.x + u2x * T, z2 = q.z + u2z * T;
     const miss = (a: number) => (vx * Math.cos(a) - vz * Math.sin(a) + cx - x2) ** 2 + (vx * Math.sin(a) + vz * Math.cos(a) + cz - z2) ** 2;
     const sweep = miss(turn) < miss(-turn) ? turn : -turn;
-    list[i] = { start: route.along[i]! - T, end: route.along[i]! + T, cx, cz, vx, vz, radius, sweep };
+    // Along a chord the route runs further than the chord does: its distances are the route's.
+    const start = chordIn ? route.along[i]! - T * l1 / inLength : route.along[i]! - T;
+    const end = chordOut ? route.along[i]! + T * l2 / outLength : route.along[i]! + T;
+    list[i] = { start, end, cx, cz, vx, vz, radius, sweep };
   }
   const bySegment: number[][] = route.points.slice(1).map(() => []);
   list.forEach((c, index) => {
     if (!c) return;
     for (let s = segmentAt(route.along, Math.max(0, c.start)); s < bySegment.length && route.along[s]! <= c.end; s++) bySegment[s]!.push(index);
   });
-  cached = { list, bySegment };
+  const chords: StreetChord[] = [], chordsBySegment: number[][] = route.points.slice(1).map(() => []);
+  for (let a = 0; a < n - 1; a = after(a)) {
+    const b = after(a);
+    if (!droppedBetween(a, b)) continue;
+    const A = route.points[a]!, B = route.points[b]!;
+    for (let s = a; s < b; s++) chordsBySegment[s]!.push(chords.length);
+    chords.push({ start: route.along[a]!, end: route.along[b]!, x0: A.x, z0: A.z, x1: B.x, z1: B.z });
+  }
+  cached = { list, bySegment, chords, chordsBySegment };
   cornerCache.set(route, cached);
   return cached;
 }
@@ -253,16 +307,24 @@ function alongDriven(route: RivalDefinition, along: number, x: number, z: number
   }
   return along;
 }
-/** The path the rival drives and plans from: the route, with a street's corners rounded (RIVAL_STREET_CORNERS). */
+/** The path the rival drives and plans from: the route, with a street's corners rounded and the vertices it runs
+ *  straight through driven straight (RIVAL_STREET_CORNERS). */
 export function sampleDrivingPath(route: RivalDefinition, distance: number) {
   const base = sampleRivalPath(route, distance);
-  const list = streetCorners(route), d = clamp(distance, 0, route.along.at(-1)!);
-  for (const index of cornersOn(route, base.index)) {
-    const corner = list[index]!;
+  const index = cornerIndex(route), list = index.list, d = clamp(distance, 0, route.along.at(-1)!);
+  for (const at of index.bySegment[base.index] ?? []) {
+    const corner = list[at]!;
     if (d < corner.start || d > corner.end) continue;
     const a = corner.sweep * (d - corner.start) / (corner.end - corner.start), c = Math.cos(a), s = Math.sin(a);
     const vx = corner.vx * c - corner.vz * s, vz = corner.vx * s + corner.vz * c, sign = Math.sign(corner.sweep);
     return { ...base, x: corner.cx + vx, z: corner.cz + vz, ux: -sign * vz / corner.radius, uz: sign * vx / corner.radius };
+  }
+  for (const at of index.chordsBySegment[base.index] ?? []) {
+    const chord = index.chords[at]!;
+    if (d < chord.start || d > chord.end) continue;
+    const t = chord.end > chord.start ? (d - chord.start) / (chord.end - chord.start) : 0;
+    const dx = chord.x1 - chord.x0, dz = chord.z1 - chord.z0, length = Math.hypot(dx, dz);
+    return { ...base, x: chord.x0 + dx * t, z: chord.z0 + dz * t, ux: dx / length, uz: dz / length };
   }
   return base;
 }
@@ -397,6 +459,8 @@ export interface RivalSpeedWhy { plan: number; target: number; by: string; id?: 
  *   slowdown, measured and not shipped: `design/PORT_ALDER.md`, "A car beside its line".)
  * "driver-v10" (2026-09-26): a pass on the player goes only into a lane clear of traffic for the time it takes, keeps
  *   the side it has taken, and in line behind them closes no faster than it can stop on their bumper (Shawn's races).
+ * "driver-v11" (2026-09-26): a street's corners are the vertices the road does not run straight through
+ *   (`RIVAL_STREET_CORNERS.straightWithin`); a near-straight vertex beside a bend held it to a hairpin's arc.
  */
 export const LAST_SINGLE_RIVAL_REVISION = "full-line-v32";
 

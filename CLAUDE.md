@@ -419,6 +419,11 @@ fixtures outside the playable bundle, and old world links redirect.
   a corner must be read round the arc, never off the nearer leg, which jumps 11 m.
   Rival routes are resampled about every 29 m: measure anything about a corner
   against the straight run to the next corner, never the segment beside it.
+  A corner is a vertex the road does not run straight through (`straightWithin`,
+  `driver-v11`): a leg that stopped at any vertex turning half a degree made a
+  16 degree bend with a 1.6 degree vertex 6 m on a 20 m arc, and Moth braked to
+  36 mph where Shawn held 140. The slowdown census discounts the corner plan, so
+  a phantom corner reads as no slowdown at all: read the plan's radius instead.
 - A traffic vehicle may claim a junction only at the head of its approach;
   claiming from a queue deadlocks. The test asserts the grant, not the
   symptom, because the symptom has moved once already.
