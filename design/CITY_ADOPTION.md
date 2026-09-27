@@ -180,34 +180,33 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
 
 ## Capturing evidence
 
-Until a capture helper is committed (a `scripts/` job for this is worth doing
-before the routine is scheduled), this is the recipe the first run arrived at,
-each step there because the one before it failed. Page JS in the browser pane,
-on the game's dev server:
+Write a shot list, `design/adoptions/<place>/shots.json` (the first run's is the
+example), and run from the adoption worktree:
 
-- **Two servers, one per tree.** "Before" from a dev server of `main`, "after"
-  from one of the adoption worktree, each on its own port with `--strictPort`;
-  prove which tree a port serves (`curl` a file only one of them has). Stopping
-  the `pnpm dev` shell can leave Vite running: check the port is free after.
-- **Reach the street.** `?scene=track`; make `document.hidden` read false (the
-  game pauses on blur); `__ns.go('track')`, `__ns.freeze(true)`, `__ns.tick(420)`,
-  then `__ns.view.garageCutscene = undefined`: on a frozen loop the garage-exit
-  shot never ends and holds the camera 5.8 m off to one side of the car.
-- **A staged pose.** Set the body's translation, a rotation of heading
-  `atan2(-ux, -uz)` for a direction (ux, uz), zero velocities, a couple of ticks.
-  `__ns.shot()` settles the camera for 24 frames, not enough after a turn: call
-  it several times and keep the last.
-- **A driven pass.** `?assist=1`, then one `__ns.drive('W1')` per tick (one
-  render per tick, as live play), reading `__ns.view.renderer.domElement.toDataURL()`
-  in the same task for a live frame. Hold the lane with `WA1` / `WD1` from the
-  offset across the lane and the heading error. Start past busy junctions: a
-  straight-line script cannot avoid a crossing car (the first run's first pass
-  shoved a sedan 100 m and left the road, and was discarded). The browser tool
-  gives a call about 45 s, so drive in chunks of a few hundred ticks.
-- **Frames.** The canvas follows the pane and changes size between sessions:
-  crop and compose by fraction, never by pixel. Post frames to a small local
-  receiver and compose side by side on a canvas; commit compact JPEGs under
-  `design/adoptions/<place>/`.
+```
+pnpm adopt:capture design/adoptions/<place>/shots.json --before=<a tree without the change>
+```
+
+It serves each tree with that tree's own Vite, drives headless Chromium, and
+writes beside the shot list: a before/after pair for each pose, a strip of
+driven-pass frames, the moments of the place's activity, and `capture.json`
+(each tree's commit and uncommitted files, each pass's speed and lane keeping).
+Raw frames go to the git-ignored `artifacts/adoptions/<place>/`. A "before" tree
+is a detached worktree of `main` with `pnpm install` run in it; remove it after.
+On Windows it draws on the GPU; `--angle=swiftshader` draws as CI does, in
+software and far slower.
+
+A pass the script flags as disturbed (knocked a metre off its lane, or slowing
+under full throttle) met something: start it past that and run it again, never
+use its frames. What the helper does and why, for when it has to change: the
+game pauses on blur, so `document.hidden` reads false; on a frozen loop the
+garage-exit shot never ends and holds the camera 5.8 m to one side, so it is
+cleared; `__ns.shot()` settles the camera 24 frames, not enough after a turn, so a
+pose takes four; a live frame is read in the same task as the tick that drew it;
+the lane is held by the keyboard's left and right from the offset and heading
+error; the servers run in the script's own process, because on Windows a server
+in a child outlives the script when it is killed and serves the wrong tree to
+the next run.
 
 ## Adoption record
 

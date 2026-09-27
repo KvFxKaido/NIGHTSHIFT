@@ -1,0 +1,20 @@
+{
+  "place": "Holgate Cold Store",
+  "poses": [
+    { "id": "approach", "label": "northbound, 90 m short", "at": [-4, 720], "toward": [0, -1] },
+    { "id": "dock", "label": "at the kerb, facing dock 01", "at": [-13, 620.15], "toward": [-1, 0] },
+    { "id": "southbound", "label": "southbound, 45 m short", "at": [-14, 560], "toward": [0, 1] }
+  ],
+  "passes": [
+    { "id": "north", "label": "north", "from": [-4, 760], "toward": [0, -1], "length": 200 },
+    { "id": "south", "label": "south", "from": [-14, 470], "toward": [0, 1], "length": 190 }
+  ],
+  "strips": [
+    { "id": "driven-pass", "frames": [["north", 91, "north, at Holgate", [0, 0.05, 0.62, 0.62]],
+      ["south", 120, "south, 15 m short", [0.38, 0.05, 0.62, 0.62]]] }
+  ],
+  "moments": [
+    { "id": "forklift-round", "pose": "dock", "period": 12, "seconds": [1.43, 4.28, 5.72, 7.85],
+      "labels": ["1.4 s across", "4.3 s stopped", "5.7 s turning", "7.9 s back"], "crop": [0.4, 0.2, 0.2, 0.26] }
+  ]
+}

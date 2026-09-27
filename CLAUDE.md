@@ -830,6 +830,7 @@ pnpm rival:gate       # the rival alone in traffic, 83 races at six traffic seed
 pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick (and what held it)
 pnpm rival:census     # the gate's races: every stretch the rival is held below its own corner plan, by the rule that held it and what it cost; --rows=, --keep=, --json=
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
+pnpm adopt:capture    # an adopted place's evidence from its shots.json: poses before/after (--before=<tree>), driven passes, moments; design/CITY_ADOPTION.md
 ```
 
 ## Relationship to SENTINEL
