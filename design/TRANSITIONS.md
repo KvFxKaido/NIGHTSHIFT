@@ -67,9 +67,20 @@ equal, bit for bit, to what the sim builds itself.
    worker's result is the main thread's (inference, and testable the same way).
 3. **Keep the stadium.** Build it in idle time after the city, and a gate becomes a camera move through the gate.
    Measured cheap: its whole page loads warm in 2.3 s, with 116 MB of heap to the city's 165.
-4. **The switch camera.** GTA V's pull-up: up over Port Alder, across, down to where the drive begins, for the long
-   jumps: a race-list race across town, the garage to a far start, a gate. On the PC the city is resident and it is
-   theatre that covers a session change; on the phone it is the cover for streaming what the destination needs.
+4. **The flash sequence** (Shawn, 2026-09-27; GTA V's switch was the picture, not the use). Flash a rival and the
+   camera rises to an aerial view over the two cars while the race is prepared, then comes down onto the start when
+   it is ready; through the countdown it cuts between the racers, and hands back the chase camera before the flag.
+   - The aerial can only move smoothly if the preparation is not on the main thread: it needs 1 (no reload) and 2
+     (the race drawn in a Worker). With both, the wait is short and the aerial is a beat of its own length rather
+     than a loading screen; the swap from free roam to the race session happens at its top, where traffic moving to
+     the race's own seed reads as nothing (inference).
+   - The countdown is 180 ticks, 3 s, and it is the sim's: the launch charge and every rival's launch are timed on
+     it, so lengthening it changes races and their recordings. The cuts fit in those 3 s (about three shots, the
+     chase camera back half a second before the flag, so the player launches seeing the road), or play as a pre-roll
+     before tick 0, while the sim has not started and nothing it decides can move.
+   - All of it is camera: the renderer draws, the sim decides. The cuts need neither 1 nor 2 and can come first;
+     the aerial comes with them.
+   - Undecided: drawing the course over the city from the aerial (MCLA shows the route), and whether a button skips it.
 5. **Stop rebuilding what never changes.** For the first launch, and for the phone above all.
    - Now: build traffic's network in a Worker while the main thread builds the meshes; about half the wait.
    - Then bake both at build time (a Vite plugin writing typed arrays), keyed to `ALDER_VERSION`, the traffic
@@ -80,6 +91,7 @@ equal, bit for bit, to what the sim builds itself.
    anti-aliasing, haze. WebGPU (three.js has it) waits on knowing whether Android's WebView offers it on the
    RedMagic's GPU: a guess today either way.
 
-Order: 1 first, because it removes the loading screen from play (every race, restart and gate), then 2, which makes
-the flash instant; 5 when the port starts or the first launch starts to grate; 3 and 4 once 1 exists, since both are
-transitions between sessions. Measure with `pnpm profile:load` before and after each.
+Order: the countdown cuts whenever, since they stand alone; 1 first of the rest, because it removes the loading
+screen from play (every race, restart and gate), then 2 with the flash sequence's aerial, which needs both; 5 when the
+port starts or the first launch starts to grate; 3 once 1 exists. Measure with `pnpm profile:load` before and after
+each.
