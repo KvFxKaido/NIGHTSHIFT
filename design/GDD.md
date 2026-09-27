@@ -989,6 +989,13 @@ readability through play, and grow the map when useful. Rival behavior,
 career rewards, purchased upgrades and Surge remain future work.
 Android testing follows the PC prototype.*
 
+*Checkpoint (2026-09-27, Shawn): the handling passes Phase 1's gate, with 2WD
+drift left for when dirt arrives as a surface; the rival races in traffic and
+may not cheat. The ten-name career, cash and car ownership exist. The open work
+is world design (Phase 3's route network and shortcuts, and a district that stays
+interesting over many races) and campaign design (Phase 4's loop: the opening,
+chapters, reputation and Surge).*
+
 Phase 4: Game Loop
 
 - Garage

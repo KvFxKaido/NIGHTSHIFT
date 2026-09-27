@@ -31,6 +31,15 @@ place for a while (Shawn, 2026-09-23), which is why the rival keeping up took th
 it did; the open question is no longer the car but how far, and where, the rival may
 be helped, and that is a scope decision.
 
+**The gate passed (Shawn, 2026-09-27).** "Handling is in a good space." The one
+tweak he expects is 2WD drift, and it waits for dirt as a surface (the stadium is the
+dirt venue, `design/VENUES.md`): tuning slides on asphalt now and again on dirt later
+is the same work twice. From here the handling is preserved rather than the priority:
+a change that moves it still needs pad feel and a dated line here, but the open work
+is world design and campaign design. The rival, he judges, drives better than either
+Midnight Club's, and the one thing holding it back, that it may not cheat, stays: in
+MCLA that night the AI was visibly boosted after crashes, which read worse than losing.
+
 ## What drives the car
 
 At each fixed 1/60-second tick, read the rigid body's actual point velocity at

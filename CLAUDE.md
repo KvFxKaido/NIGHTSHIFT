@@ -13,8 +13,9 @@ at `design/GDD.md` is the source of truth; when this file and the GDD
 disagree, the GDD wins, and when code and the GDD disagree, say so out
 loud instead of quietly picking one.
 
-Working title: Project Nightshift. Status: Early Prototype — Phase 1
-(handling), with a playable Port Alder slice around it.
+Working title: Project Nightshift. Status: Early Prototype. Phase 1's handling
+gate passed (Shawn, 2026-09-27; 2WD drift waits for a dirt surface), and the open
+work is world design and campaign design, on the playable Port Alder slice.
 
 ## The two laws (non-negotiable)
 
@@ -57,8 +58,10 @@ Working title: Project Nightshift. Status: Early Prototype — Phase 1
   implementation tasks. Do not restore a second playable map or expand the
   current feature set without a user scope decision.
 - **Handling is the first quality gate** (GDD §22). Poor handling cannot
-  be rescued by more content. Phase 1 work outranks everything until the
-  car feels good.
+  be rescued by more content. Phase 1 work outranked everything until the
+  car felt good, and on 2026-09-27 Shawn passed it (`design/HANDLING.md`):
+  the handling is now preserved, not the priority, and a change that moves
+  it still needs pad feel.
 - **Mark what a change moves.** Changing a layer of the sim (the tyres, a tune, the world, lanes, how traffic
   drives or which traffic, the rival, the generator) means finding its row in `design/COUPLINGS.md` and marking
   every number measured on it suspect; re-measuring marks it current, and a new tuned number gets an entry. The
