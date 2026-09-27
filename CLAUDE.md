@@ -246,8 +246,8 @@ fixtures outside the playable bundle, and old world links redirect.
   Drag races keep the gearbox's own launch. The **burnout** is the same hold
   anywhere else, the player's only: stopped, e-brake and gas hold the front
   wheels, the stick swings the tail round them (an assist, `applyBurnout`), and
-  letting the handbrake go launches on what the hold charged. The HUD's right
-  meter, MC3's boost bar, shows the charge and the boost (`launchMeter`).
+  letting the handbrake go launches on what the hold charged. The HUD's nitrous
+  arc (MCLA's nitrous meter; MC3's right-hand boost bar until 2026-09-26) shows the charge and the boost (`launchMeter`).
 - **Rivet / Harbor Quarter drag** with a five-speed manual gearbox
   (`transmission.ts`, `drag-rules.ts`), the Hammer rival car, assisted lane
   changes. **Sable / South Wharf drift** yard with chained scoring
@@ -344,7 +344,10 @@ fixtures outside the playable bundle, and old world links redirect.
   the move; amber lanes and the 25 undressed junctions are as before, and racers still get the
   junction (Shawn: MC3). `traffic-v11` dressed 31 of those that had been left bare, where the gate's
   crossings were: claimed crossings 8 to 3 on the six seeds.
-- **UI.** Speed dial / tachometer and heading-up minimap (`src/ui`), the
+- **UI.** Midnight Club: Los Angeles's cluster since 2026-09-26 (Shawn's mockup): a tachometer inside the cyan
+  nitrous arc, the speed in seven segments and the gear on a plate at its shoulder, and the street you are on
+  (`hud.ts`, `street-name.ts`, one SVG in `index.html` scaled by the viewport height); its tanks, the ability gauge
+  and the police readout wait for Surge, abilities and police. A heading-up minimap (`src/ui`), the
   neighbourhood's name as you cross into it in free roam (`district-banner.ts`,
   after 1.2 s so a border street never flickers), a city map overlay (M) naming
   all seven neighbourhoods from their polygons, named save slots, versioned browser-local settings,

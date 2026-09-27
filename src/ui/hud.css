@@ -81,93 +81,69 @@ canvas { display: block; width: 100%; height: 100%; }
   #brand { top: 15px; left: 16px; flex-wrap: wrap; max-width: calc(100vw - 32px); }
 }
 
-/* The driving cluster, laid out after Midnight Club 3 and drawn in NIGHTSHIFT's
-   own style: dark glass faces, cream numerals, one navigation accent. A needle
-   speedometer bottom right with the tachometer riding its shoulder, the
-   minimap bottom left, and a long meter arc rising from each (hidden until
-   something real feeds them). Sizes follow the viewport height, like MC3's. */
+/* The driving cluster, laid out after Midnight Club: Los Angeles (Shawn's mockup, 2026-09-26) and drawn in
+   NIGHTSHIFT's own style: dark glass, cream numerals, the race's cyan. Bottom right, a tachometer inside the nitrous
+   arc, the speed in seven segments and the gear on a plate at its shoulder, the street you are on under both; the
+   minimap bottom left. The cluster is one SVG in the mockup's own units (its 1280 x 720 frame), 368 x 184 of them, so
+   one height scales all of it; like MC3's, it follows the viewport height. */
 
 :root {
-  --speedo-size: clamp(170px, 31vh, 280px);
-  --tacho-size: calc(var(--speedo-size) * .58);
+  --cluster-height: clamp(140px, 25.6vh, 300px);
   --minimap-size: clamp(160px, 28vh, 252px);
+  --hud-condensed: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
 }
 
 #cluster {
   position: fixed;
   right: 22px;
-  bottom: 18px;
-  width: calc(var(--speedo-size) + var(--tacho-size) * .18);
-  height: calc(var(--speedo-size) + var(--tacho-size) * .72);
+  /* Level with the minimap (Shawn, 2026-09-26): the arc's lowest point, its butt end, is 5.9 of the cluster's 184
+     units above the box's bottom, so the box sits that much lower than the minimap's 18 px. */
+  bottom: calc(18px - var(--cluster-height) * .0322);
+  width: calc(var(--cluster-height) * 2);
+  height: var(--cluster-height);
   pointer-events: none;
   filter: drop-shadow(0 6px 22px rgba(0, 0, 0, .75));
 }
-#speedo { position: absolute; right: 0; bottom: 0; width: var(--speedo-size); height: var(--speedo-size); }
-#tacho { position: absolute; left: 0; top: 0; width: var(--tacho-size); height: var(--tacho-size); }
-#gauge, #tacho-dial { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#cluster-dial { display: block; width: 100%; height: 100%; overflow: visible; }
+/* SVG elements have no .hidden property and the attribute alone does not hide them. */
+#cluster-dial [hidden] { display: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.gauge-shell { fill: rgba(4, 8, 14, .74); stroke: rgba(242, 238, 227, .22); stroke-width: 1.4; }
-.gauge-track, .gauge-sweep {
-  fill: none;
-  stroke-width: 5;
-  stroke-linecap: butt;
-  transform: rotate(130deg);
-  transform-origin: 100px 100px;
-}
-.gauge-track { stroke: rgba(140, 175, 200, .14); }
-.gauge-sweep {
-  stroke: var(--ui-navigation);
-  filter: drop-shadow(0 0 5px rgba(89, 216, 255, .8));
-  transition: stroke 160ms linear;
-}
-.gauge-sweep.redline { stroke: var(--ui-danger); filter: drop-shadow(0 0 7px rgba(255, 49, 88, .9)); }
-.tacho-red { fill: none; stroke: var(--ui-danger); stroke-width: 5; opacity: .8; }
-.gauge-tick { stroke: rgba(190, 220, 235, .3); stroke-width: 1.6; }
-.gauge-tick.major { stroke: rgba(242, 238, 227, .75); stroke-width: 2.6; }
-.gauge-numeral {
-  fill: rgba(242, 238, 227, .92);
-  font: 800 15px/1 "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+.arc-shade, .arc-track, .arc-fill { fill: none; }
+.arc-shade { stroke: rgba(4, 8, 14, .8); stroke-width: 15; }
+.arc-track { stroke: rgba(242, 238, 227, .13); stroke-width: 9; }
+/* Cyan, the race's colour, for the nitrous arc: Shawn, "cyan for now" (2026-09-26). The launch charge it shows was
+   red, the car's own heat, while it was MC3's side bar. */
+.arc-fill { stroke: var(--ui-navigation); stroke-width: 9; filter: drop-shadow(0 0 5px rgba(89, 216, 255, .8)); }
+.tank { fill: rgba(255, 179, 71, .16); stroke: #04080e; stroke-width: 1; }
+.tank.full { fill: var(--ui-objective); }
+
+.tach-shell { fill: rgba(4, 8, 14, .86); stroke: rgba(242, 238, 227, .25); stroke-width: 1.4; }
+.tach-red { fill: none; stroke: var(--ui-danger); stroke-width: 5; }
+.tach-tick { stroke: rgba(190, 220, 235, .35); stroke-width: 1.4; }
+.tach-tick.major { stroke: rgba(242, 238, 227, .8); stroke-width: 2.4; }
+.tach-numeral {
+  fill: rgba(242, 238, 227, .9);
+  font: italic 700 15px/1 var(--hud-condensed);
   text-anchor: middle;
   dominant-baseline: central;
-  font-variant-numeric: tabular-nums;
 }
-#tacho .gauge-numeral { font-size: 19px; }
-.gauge-needle path { fill: var(--ui-ink); filter: drop-shadow(0 0 4px rgba(0, 0, 0, .9)); }
-#gauge-needle path { fill: #ff6a3d; }
-.gauge-needle.redline path { fill: var(--ui-danger); }
-.gauge-hub { fill: #0b1119; stroke: rgba(242, 238, 227, .6); stroke-width: 2; }
+.tach-needle { fill: var(--ui-ink); stroke: #04080e; stroke-width: .8; }
+.tach-needle.redline { fill: var(--ui-danger); }
+.tach-hub { fill: #0b1119; stroke: rgba(242, 238, 227, .6); stroke-width: 1.6; }
+.tach-label { fill: rgba(242, 238, 227, .5); font: 600 9px/1 var(--hud-condensed); letter-spacing: 1.5px; text-anchor: middle; }
 
-/* The digital readout sits under the hub, above the dial's open bottom, the
-   way MC3's odometer does; the gear rides in the tachometer. */
-#cluster-readout {
-  position: absolute;
-  left: 0; right: 0; top: 60%;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-}
-#speed {
-  font-size: calc(var(--speedo-size) * .12);
-  font-weight: 900;
-  line-height: .84;
-  letter-spacing: -.03em;
-  font-variant-numeric: tabular-nums;
-}
-#unit { color: rgba(242, 238, 227, .5); font: 9px/1 ui-monospace, monospace; letter-spacing: .22em; }
-#gear {
-  position: absolute;
-  left: 0; right: 0; top: 60%;
-  color: var(--ui-danger);
-  font-size: calc(var(--tacho-size) * .17);
-  font-weight: 900;
-  line-height: 1;
-  text-align: center;
-}
-#tacho-label {
-  position: absolute; left: 0; right: 0; bottom: 12%;
-  text-align: center; color: rgba(242, 238, 227, .55);
-  font: 8px/1 ui-monospace, monospace; letter-spacing: .16em;
-}
+.plate { fill: rgba(4, 8, 14, .88); stroke: rgba(242, 238, 227, .28); stroke-width: 1.2; }
+/* MCLA ghosts the unlit segments, so a leading zero is a dim 8. */
+.seg { fill: rgba(242, 238, 227, .07); }
+.seg.lit { fill: var(--ui-ink); }
+.plate-unit { fill: rgba(242, 238, 227, .62); font: italic 700 12px/1 var(--hud-condensed); }
+.plate-divider { stroke: rgba(242, 238, 227, .22); stroke-width: 1.2; }
+.plate-gear { fill: var(--ui-ink); font: italic 800 42px/1 var(--hud-condensed); text-anchor: middle; }
+.plate-gear.redline { fill: var(--ui-danger); }
+/* The street's name on the race's cyan: a street is somewhere you go (design/LOOK.md). */
+.street-plate { fill: var(--ui-navigation); stroke: #04080e; stroke-width: 1.2; }
+.street-name { fill: #04080e; font: italic 800 20px/1 var(--hud-condensed); letter-spacing: 1.5px; text-anchor: middle; }
 
 #minimap-frame {
   position: fixed;
@@ -181,8 +157,8 @@ canvas { display: block; width: 100%; height: 100%; }
 }
 #minimap { display: block; width: 100%; height: 100%; }
 
-/* The meter arcs: MC3's long curves rising from the minimap and the gauges.
-   Reserved for nitrous, slipstream and abilities; hidden until one exists.
+/* The meter arc: MC3's long curve rising from the minimap, reserved for slipstream and
+   hidden until something feeds it (the right one's launch charge is the nitrous arc's now).
    An author display beats [hidden], so say display:none outright. They are
    SVG, which has no .hidden property: toggle the attribute, not the property. */
 .hud-meter {
@@ -194,26 +170,16 @@ canvas { display: block; width: 100%; height: 100%; }
 }
 .hud-meter[hidden] { display: none; }
 #meter-left { left: calc(22px + var(--minimap-size) * .12); bottom: calc(18px + var(--minimap-size) * .9); }
-#meter-right { right: calc(22px + var(--speedo-size) * .02); bottom: calc(18px + var(--speedo-size) * .95); }
 .meter-track { fill: none; stroke: rgba(242, 238, 227, .5); stroke-width: 4; stroke-linecap: round; }
 .meter-fill { fill: none; stroke: var(--ui-navigation); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(89, 216, 255, .8)); }
-.meter-segment { fill: none; stroke: var(--ui-objective); stroke-width: 6; }
-.meter-segment.spent { stroke: rgba(255, 179, 71, .18); }
-.meter-badge { fill: rgba(4, 8, 14, .85); stroke: var(--ui-objective); stroke-width: 2; }
-.meter-count { fill: var(--ui-ink); font: 800 16px/1 "Arial Narrow", Arial, sans-serif; text-anchor: middle; dominant-baseline: central; }
-/* The right meter is the launch's until Surge exists (GDD 3.6): the charge in
-   the redline's red, the car's own heat, and no tanks or count to show yet. */
-#meter-right .meter-fill { stroke: var(--ui-danger); filter: drop-shadow(0 0 5px rgba(255, 49, 88, .8)); }
-#meter-right-segments, #meter-right .meter-badge, #meter-right-count { display: none; }
 
 @media (max-width: 640px) {
-  :root { --speedo-size: 132px; --minimap-size: 118px; }
-  #cluster { right: 12px; bottom: 12px; }
+  :root { --cluster-height: 104px; --minimap-size: 118px; }
+  #cluster { right: 12px; bottom: calc(12px - var(--cluster-height) * .0322); }
   #minimap-frame { left: 12px; bottom: 12px; }
-  .gauge-numeral { font-size: 17px; }
 }
 
-/* Event types share one instrument slot above the speed dial. */
+/* Event types share one instrument slot above the cluster. */
 .event-instruments {
   position: absolute; bottom: calc(100% + 12px); right: 0;
   width: 280px; padding: 12px 16px; text-align: right;
@@ -229,7 +195,6 @@ canvas { display: block; width: 100%; height: 100%; }
 #drag-shift.limit { color: var(--ui-danger); }
 #drift-zone { color: var(--ui-objective); margin-top: 4px; }
 #drag-controls, #drift-help { border-top: 1px solid var(--ui-border); padding-top: 8px; margin-top: 8px; color: var(--ui-muted); font-size: 10px; }
-#gear.manual { color: var(--ui-ink); }
 #race { padding: 10px 16px; background: var(--ui-panel); border-top: 2px solid var(--ui-objective); box-shadow: var(--ui-shadow); max-width: calc(100vw - 32px); text-align: center; }
 #race-gate { color: var(--ui-objective); }
 #race-time { font-family: var(--ui-mono); text-shadow: none; }
@@ -243,5 +208,5 @@ canvas { display: block; width: 100%; height: 100%; }
 @media (max-height: 500px) and (min-width: 641px) {
   #race { top: 12px; }
   .event-instruments { bottom: 0; right: calc(100% + 12px); width: 230px; }
-  :root { --speedo-size: clamp(130px, 38vh, 200px); --minimap-size: clamp(120px, 34vh, 180px); }
+  :root { --cluster-height: clamp(110px, 30vh, 170px); --minimap-size: clamp(120px, 34vh, 180px); }
 }

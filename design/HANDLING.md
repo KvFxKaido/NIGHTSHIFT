@@ -145,9 +145,10 @@ whose words — CLEAN, BOGGED, WHEELSPIN — this borrows so the two read alike.
 Shawn asked for MC3's: stopped, hold the e-brake and the gas, swing the car round
 on the stick, and let the handbrake go for a start better than just gassing it.
 It is the launch's hold anywhere a countdown is not running (`stepBurnout` in
-`src/sim/launch.ts`), so one mechanic covers both, and the HUD shows it the way
-MC3 does, on the boost bar: the right-hand meter fills with the charge and drains
-through the boost (`launchMeter` in `src/ui/hud-state.ts`).
+`src/sim/launch.ts`), so one mechanic covers both, and the HUD shows it on the
+nitrous arc round the tachometer (MCLA's, since 2026-09-26; MC3's right-hand
+boost bar before): it fills with the charge and drains through the boost
+(`launchMeter` and `nitrousArc` in `src/ui/hud-state.ts`).
 
 - **When.** Below 1.5 m/s (`LAUNCH.burnoutSpeed`), outside a countdown, with no
   boost or penalty still running, and only for the player: an AI car holding both

@@ -2,16 +2,16 @@ import type { LaunchState } from "../sim/launch.ts";
 import { uiColor } from "./theme.ts";
 import { TRANSMISSION, type TransmissionState } from "../sim/transmission.ts";
 import {
-  dialAngle, gaugeReading, launchMeter, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
-  SPEED_DIAL_MAX_MPH, SPEED_DIAL_STEP_MPH,
-  GAUGE_CIRCUMFERENCE, GAUGE_SWEEP_DEGREES, type MinimapCamera,
+  gaugeReading, launchMeter, minimapPixel, nitrousArc, segmentWithinMinimap, speedDigits, tachAngle, tachReading, withinMinimap,
+  SEGMENT_SHAPES, SPEED_DIGITS, type MinimapCamera,
 } from "./hud-state.ts";
+import { createStreetNamer, type NamedStreet } from "./street-name.ts";
 
 /**
- * The driving cluster, laid out after Midnight Club 3: a needle speedometer
- * with a tachometer riding its shoulder, and a heading-up minimap with a north
- * badge and blips pinned to its rim. All of it is a pure readout of a tick that
- * has already happened — drawn after the simulation, never consulted by it.
+ * The driving cluster, laid out after Midnight Club: Los Angeles (Shawn's mockup, 2026-09-26): a tachometer inside
+ * the nitrous arc, the speed in seven segments and the gear on a plate at its shoulder, the street you are on under
+ * both, and a heading-up minimap with a north badge and blips pinned to its rim. All of it is a pure readout of a
+ * tick that has already happened — drawn after the simulation, never consulted by it.
  */
 
 /** What the tachometer shows: the engine you hear, or the drag gearbox. */
@@ -61,59 +61,84 @@ export interface HudOptions {
   readonly polylines: readonly HudPolyline[];
   /** The player's car's governor, read each frame: the dial redlines at its own top end. */
   readonly topSpeed: () => number;
+  /** The streets the plate can name; none (a venue) and the plate stays hidden. */
+  readonly streets?: readonly NamedStreet[];
   readonly document?: Document;
 }
+
+const SVG = "http://www.w3.org/2000/svg";
+/** The tachometer's centre in its own units (index.html's `#cluster-dial`). */
+const TACH_X = 118, TACH_Y = 120;
+/** The street plate's text may run this many units before it is squeezed to fit. */
+const STREET_TEXT_MAX = 181;
 
 export function createHud(options: HudOptions): Hud {
   const root = options.document ?? document;
   const speedElement = root.getElementById("speed")!;
   const gearElement = root.getElementById("gear")!;
-  const sweep = root.getElementById("gauge-sweep") as SVGCircleElement | null;
-  const needle = root.getElementById("gauge-needle");
-  const tachNeedle = root.getElementById("tacho-needle");
-  const launchBar = root.getElementById("meter-right");
-  const launchFill = root.getElementById("meter-right-fill");
-  const tachRed = root.getElementById("tacho-red");
+  const tachNeedle = root.getElementById("tach-needle");
+  const tachRed = root.getElementById("tach-red");
+  const nitrousCurve = root.getElementById("nitrous-curve");
+  const nitrousBar = root.getElementById("nitrous-bar");
+  const streetPlate = root.getElementById("street-plate");
+  const streetName = root.getElementById("street-name") as SVGTextElement | null;
   const canvas = root.getElementById("minimap") as HTMLCanvasElement | null;
   const context = canvas?.getContext("2d") ?? null;
   const raceElement = root.getElementById("race");
   const raceGateElement = root.getElementById("race-gate");
   const raceTimeElement = root.getElementById("race-time");
-  const dialMax = SPEED_DIAL_MAX_MPH;
-  const arcLength = GAUGE_CIRCUMFERENCE * (GAUGE_SWEEP_DEGREES / 360);
-  const namespace = "http://www.w3.org/2000/svg";
+  const namer = options.streets?.length ? createStreetNamer(options.streets) : null;
+  const at = (angle: number, radius: number) => [
+    TACH_X + Math.cos(angle * Math.PI / 180) * radius, TACH_Y + Math.sin(angle * Math.PI / 180) * radius] as const;
 
   /**
-   * Marks and numerals around a dial, generated so the dial's start and span
-   * stay in hud-state.ts. `labels` is how many numbered divisions the printed
-   * range has; each gets `minor` unnumbered marks between it and the next.
+   * The tachometer's marks, one a thousand and one between, numbered every two thousand, generated so its start and
+   * sweep stay in hud-state.ts. Redrawn only when the printed range changes (a car with another redline).
    */
-  const dressDial = (group: Element | null, labels: number, minor: number, text: (index: number) => string) => {
+  const dressTach = (maxThousands: number, redlineRatio: number) => {
+    const group = root.getElementById("tach-ticks");
     if (!group) return;
-    const steps = labels * (minor + 1);
+    group.replaceChildren();
+    const steps = maxThousands * 2;
     for (let i = 0; i <= steps; i++) {
-      const major = i % (minor + 1) === 0;
-      const angle = dialAngle(i / steps);
-      const line = root.createElementNS(namespace, "line");
-      line.setAttribute("x1", "100"); line.setAttribute("y1", major ? "8" : "11");
-      line.setAttribute("x2", "100"); line.setAttribute("y2", major ? "20" : "16");
-      line.setAttribute("class", major ? "gauge-tick major" : "gauge-tick");
-      // Marks are drawn pointing up (-90°), so turn them by the angle plus 90.
-      line.setAttribute("transform", `rotate(${angle + 90} 100 100)`);
+      const major = i % 2 === 0, angle = tachAngle(i / steps);
+      const [x1, y1] = at(angle, 56), [x2, y2] = at(angle, major ? 46 : 51);
+      const line = root.createElementNS(SVG, "line");
+      line.setAttribute("x1", x1.toFixed(1)); line.setAttribute("y1", y1.toFixed(1));
+      line.setAttribute("x2", x2.toFixed(1)); line.setAttribute("y2", y2.toFixed(1));
+      line.setAttribute("class", major ? "tach-tick major" : "tach-tick");
       group.appendChild(line);
-      if (!major) continue;
-      const radians = angle * Math.PI / 180;
-      const label = root.createElementNS(namespace, "text");
-      label.setAttribute("x", (100 + Math.cos(radians) * 60).toFixed(1));
-      label.setAttribute("y", (100 + Math.sin(radians) * 60).toFixed(1));
-      label.setAttribute("class", "gauge-numeral");
-      label.textContent = text(i / (minor + 1));
+      if (i % 4 !== 0) continue;
+      const [x, y] = at(angle, 36);
+      const label = root.createElementNS(SVG, "text");
+      label.setAttribute("x", x.toFixed(1)); label.setAttribute("y", y.toFixed(1));
+      label.setAttribute("class", "tach-numeral");
+      label.textContent = String(i / 2);
       group.appendChild(label);
     }
+    const [rx1, ry1] = at(tachAngle(redlineRatio), 53.5), [rx2, ry2] = at(tachAngle(1), 53.5);
+    const large = (1 - redlineRatio) * 230 > 180 ? 1 : 0;
+    tachRed?.setAttribute("d", `M${rx1.toFixed(1)} ${ry1.toFixed(1)} A53.5 53.5 0 ${large} 1 ${rx2.toFixed(1)} ${ry2.toFixed(1)}`);
   };
-  // 0-250 mph numbered every 25, with a mark between each.
-  dressDial(root.getElementById("gauge-ticks"), dialMax / SPEED_DIAL_STEP_MPH, 1, index => String(index * SPEED_DIAL_STEP_MPH));
   let tachDressed = 0;
+
+  // The speed plate's digits: seven polygons each, built once; a frame only moves which are lit.
+  const digitSegments: SVGPolygonElement[][] = [];
+  const digitsGroup = root.getElementById("speed-digits");
+  for (let i = 0; digitsGroup && i < SPEED_DIGITS; i++) {
+    const cell = root.createElementNS(SVG, "g");
+    cell.setAttribute("transform", `translate(${i * 33} 0)`);
+    digitSegments.push(Object.entries(SEGMENT_SHAPES).map(([segment, points]) => {
+      const polygon = root.createElementNS(SVG, "polygon");
+      polygon.setAttribute("points", points);
+      polygon.setAttribute("class", "seg");
+      polygon.dataset.segment = segment;
+      cell.appendChild(polygon);
+      return polygon;
+    }));
+    digitsGroup.appendChild(cell);
+  }
+  let shownMph = -1, shownStreet: string | null | undefined;
 
   let mapSize = 0;
   const sizeCanvas = () => {
@@ -292,7 +317,13 @@ export function createHud(options: HudOptions): Hud {
   return {
     update(vehicle, race = null, rivals = [], engine = null) {
       const reading = gaugeReading(vehicle.speed, vehicle.forwardSpeed, options.topSpeed());
-      speedElement.textContent = reading.mph.toString().padStart(3, "0");
+      if (reading.mph !== shownMph) {
+        shownMph = reading.mph;
+        speedElement.textContent = `${reading.mph} mph`;
+        speedDigits(reading.mph).forEach((lit, i) => {
+          for (const polygon of digitSegments[i] ?? []) polygon.classList.toggle("lit", lit.includes(polygon.dataset.segment!));
+        });
+      }
       const transmission = vehicle.transmission;
       gearElement.textContent = transmission ? String(transmission.gear) : reading.gear;
       gearElement.classList.toggle("manual", !!transmission);
@@ -321,35 +352,34 @@ export function createHud(options: HudOptions): Hud {
           raceTimeElement.textContent = race.label;
         }
       }
-      // The speedometer: the needle and a thin sweep behind it share one scale,
-      // the printed 0..dialMax, so the sweep ends exactly under the needle.
-      const speedRatio = reading.mph / dialMax;
-      needle?.setAttribute("transform", `rotate(${dialAngle(speedRatio)} 100 100)`);
-      if (sweep) {
-        sweep.style.strokeDasharray = `${arcLength * Math.min(1, speedRatio)} ${GAUGE_CIRCUMFERENCE}`;
-        sweep.classList.toggle("redline", reading.redline);
-      }
-      // MC3's boost bar: the launch charge building, at the line or in a burnout,
-      // then the boost draining away once it is let go.
-      const launched = launchMeter(vehicle.launch);
-      launchBar?.toggleAttribute("hidden", launched === null);
-      if (launched !== null) launchFill?.setAttribute("stroke-dasharray", `${(launched * 100).toFixed(1)} 100`);
+      // The nitrous arc: the launch charge building, at the line or in a burnout, then the boost draining away once
+      // it is let go, up the curve and along the bar. Empty otherwise, until Surge feeds it.
+      const arc = nitrousArc(launchMeter(vehicle.launch) ?? 0);
+      nitrousCurve?.setAttribute("stroke-dasharray", `${(arc.curve * 100).toFixed(1)} 100`);
+      nitrousBar?.setAttribute("stroke-dasharray", `${(arc.bar * 100).toFixed(1)} 100`);
       // The tachometer: the drag gearbox when there is one, otherwise the engine you hear.
       const tach = transmission ? tachReading(transmission.rpm, TRANSMISSION.redline)
         : engine ? tachReading(engine.rpm, engine.redlineRpm) : null;
       if (tach) {
         if (tachDressed !== tach.maxThousands) {
-          const group = root.getElementById("tacho-ticks");
-          if (group) group.replaceChildren();
-          dressDial(group, tach.maxThousands, 1, index => String(index));
+          dressTach(tach.maxThousands, tach.redlineRatio);
           tachDressed = tach.maxThousands;
-          if (tachRed) {
-            tachRed.setAttribute("stroke-dasharray", `${arcLength * (1 - tach.redlineRatio)} ${GAUGE_CIRCUMFERENCE}`);
-            tachRed.setAttribute("transform", `rotate(${dialAngle(tach.redlineRatio)} 100 100)`);
-          }
         }
-        tachNeedle?.setAttribute("transform", `rotate(${dialAngle(tach.ratio)} 100 100)`);
+        tachNeedle?.setAttribute("transform", `rotate(${tachAngle(tach.ratio).toFixed(1)} ${TACH_X} ${TACH_Y})`);
         tachNeedle?.classList.toggle("redline", tach.redline);
+      }
+      gearElement.classList.toggle("redline", tach?.redline ?? false);
+      // The street you are on, squeezed to fit the plate when its name is long.
+      const street = namer?.at(vehicle.x, vehicle.z, performance.now()) ?? null;
+      if (street !== shownStreet && streetPlate && streetName) {
+        shownStreet = street;
+        streetPlate.toggleAttribute("hidden", street === null);
+        streetName.removeAttribute("textLength");
+        streetName.textContent = street ?? "";
+        if (street !== null && streetName.getComputedTextLength() > STREET_TEXT_MAX) {
+          streetName.setAttribute("textLength", String(STREET_TEXT_MAX));
+          streetName.setAttribute("lengthAdjust", "spacingAndGlyphs");
+        }
       }
       drawMinimap(vehicle, race, rivals);
     },

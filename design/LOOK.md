@@ -95,7 +95,11 @@ Colour means something here, as it already does in the HUD.
   the player is part of: the HUD's navigation colour (`--ui-navigation #59d8ff`
   in `src/ui/theme.css`), the start gate, Wharf Garage's sign and turntable
   ring, the rim light on every rival portrait. The city never spends it on
-  decoration, so anything cyan seen from a distance is a destination.
+  decoration, so anything cyan seen from a distance is a destination. In the
+  HUD since 2026-09-26 it is also the street plate, the name of the street you
+  are on (a street is somewhere you go), and the nitrous arc, where Shawn chose
+  it "for now" over the red the launch charge had as MC3's side bar: a meter the
+  player spends, not a place, and the first cyan that is not navigation.
 - **Red is cars.** Tail lights, brake lights, the rival's HUD colour
   (`--ui-rival #ff3158`), and aviation beacons on tall structures. Neon does
   not use it.

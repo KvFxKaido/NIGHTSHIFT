@@ -6,37 +6,66 @@
  */
 import { LAUNCH, type LaunchState } from "../sim/launch.ts";
 
-/** Where the gauge arc starts, measured clockwise from three o'clock. */
-export const GAUGE_START_DEGREES = 130;
-/** How far it sweeps, leaving the gap at the bottom of the dial. */
-export const GAUGE_SWEEP_DEGREES = 280;
-export const GAUGE_RADIUS = 78;
-export const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
-/** Past this fraction of top speed the sweep turns red. */
+/** Past this fraction of top speed the reading counts as redline. */
 export const GAUGE_REDLINE = 0.86;
 
 const METRES_PER_SECOND_TO_MPH = 2.237;
 
 export interface GaugeReading {
-  /** Whole miles per hour, which is what the dial actually prints. */
+  /** Whole miles per hour, which is what the plate prints. */
   mph: number;
-  /** 0..1 along the arc, clamped so an overspeed cannot wrap the sweep. */
+  /** 0..1 of the car's top speed, clamped. */
   ratio: number;
   gear: string;
   redline: boolean;
 }
 
 /**
- * The speedometer prints 0-250 mph for every car, as Midnight Club 3's does
- * (a mid-class Esprit shows the full 250 dial in both captured frames), so a
- * faster car is read as more needle, not a rescaled face. Numbered every 25.
+ * The cluster since 2026-09-26 is Midnight Club: Los Angeles's (Shawn's mockup): a tachometer inside the nitrous arc,
+ * speed printed in seven segments beside it. The tachometer sweeps 230 degrees from its lower left, clockwise from
+ * three o'clock as SVG turns.
  */
-export const SPEED_DIAL_MAX_MPH = 250;
-export const SPEED_DIAL_STEP_MPH = 25;
+export const TACH_START_DEGREES = 140;
+export const TACH_SWEEP_DEGREES = 230;
 
-/** Clockwise from three o'clock, where a 0..1 reading sits on a dial. */
-export function dialAngle(ratio: number): number {
-  return GAUGE_START_DEGREES + Math.max(0, Math.min(1, ratio)) * GAUGE_SWEEP_DEGREES;
+/** Clockwise from three o'clock, where a 0..1 reading sits on the tachometer. */
+export function tachAngle(ratio: number): number {
+  return TACH_START_DEGREES + Math.max(0, Math.min(1, ratio)) * TACH_SWEEP_DEGREES;
+}
+
+/**
+ * The nitrous arc is one meter drawn in two pieces, up the curve round the tachometer and along the bar over the
+ * plate: the curve is 145 degrees of a 90-unit radius, the bar 282 units. A 0..1 charge fills the curve first.
+ */
+export const ARC_CURVE_LENGTH = 90 * 145 * Math.PI / 180;
+export const ARC_BAR_LENGTH = 282;
+export function nitrousArc(charge: number): { curve: number; bar: number } {
+  const share = ARC_CURVE_LENGTH / (ARC_CURVE_LENGTH + ARC_BAR_LENGTH), c = Math.max(0, Math.min(1, charge));
+  return { curve: Math.min(1, c / share), bar: Math.max(0, (c - share) / (1 - share)) };
+}
+
+/** The speed plate prints three digits, as MCLA's does. */
+export const SPEED_DIGITS = 3;
+const SEGMENT_LIT: Readonly<Record<string, string>> = {
+  "0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcdfg",
+};
+/** Seven-segment polygons for one digit 28 units wide and 46 high, segment by segment a to g. */
+export const SEGMENT_SHAPES: Readonly<Record<string, string>> = (() => {
+  const W = 28, H = 46, t = 6;
+  const across = (x1: number, x2: number, y: number) => [[x1, y + t / 2], [x1 + t / 2, y], [x2 - t / 2, y], [x2, y + t / 2], [x2 - t / 2, y + t], [x1 + t / 2, y + t]];
+  const down = (x: number, y1: number, y2: number) => [[x + t / 2, y1], [x + t, y1 + t / 2], [x + t, y2 - t / 2], [x + t / 2, y2], [x, y2 - t / 2], [x, y1 + t / 2]];
+  const shapes = { a: across(2, W - 2, 0), b: down(W - t, 2, H / 2 - 1), c: down(W - t, H / 2 + 1, H - 2), d: across(2, W - 2, H - t),
+    e: down(0, H / 2 + 1, H - 2), f: down(0, 2, H / 2 - 1), g: across(2, W - 2, H / 2 - t / 2) };
+  return Object.fromEntries(Object.entries(shapes).map(([segment, points]) => [segment, points.map(([x, y]) => `${x},${y}`).join(" ")]));
+})();
+/**
+ * Which segments each digit lights, leading zeros unlit: MCLA ghosts them, so standing still reads as a dim 88 and a
+ * lit 0. Speeds past 999 print their last three digits; nothing in the game gets near.
+ */
+export function speedDigits(mph: number): string[] {
+  const text = String(Math.max(0, Math.round(mph)) % 1000).padStart(SPEED_DIGITS, "0");
+  const first = text.search(/[1-9]/);
+  return [...text].map((digit, i) => i >= (first < 0 ? SPEED_DIGITS - 1 : first) ? SEGMENT_LIT[digit]! : "");
 }
 
 export interface TachReading {
@@ -131,9 +160,9 @@ export function segmentWithinMinimap(camera: MinimapCamera,
 }
 
 /**
- * The right-hand meter, MC3's boost bar: the launch charge while it is held, at
- * the line or in a burnout (sim/launch.ts), then what is left of the boost once it
- * is let go. Null when there is neither, and the meter hides.
+ * The nitrous arc until Surge exists (it was MC3's right-hand boost bar to 2026-09-26): the launch charge while it
+ * is held, at the line or in a burnout (sim/launch.ts), then what is left of the boost once it is let go. Null when
+ * there is neither, and the arc reads empty.
  */
 export function launchMeter(launch: Pick<LaunchState, "heldTicks" | "charge" | "burnout" | "resolved" | "boostTicks" | "quality"> | undefined): number | null {
   if (!launch) return null;

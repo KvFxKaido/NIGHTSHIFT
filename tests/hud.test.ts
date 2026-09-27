@@ -2,11 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
-  dialAngle, gaugeReading, launchMeter, minimapPixel, segmentWithinMinimap, tachReading, withinMinimap,
-  SPEED_DIAL_MAX_MPH, SPEED_DIAL_STEP_MPH,
-  GAUGE_REDLINE, GAUGE_START_DEGREES, GAUGE_SWEEP_DEGREES, GAUGE_CIRCUMFERENCE,
+  gaugeReading, launchMeter, minimapPixel, nitrousArc, segmentWithinMinimap, speedDigits, tachAngle, tachReading, withinMinimap,
+  ARC_BAR_LENGTH, ARC_CURVE_LENGTH, GAUGE_REDLINE, SEGMENT_SHAPES, TACH_START_DEGREES, TACH_SWEEP_DEGREES,
 } from "../src/ui/hud-state.ts";
-import { HANDLING } from "../src/sim/sim.ts";
 import { REDLINE_RPM } from "../src/audio/audio-mix.ts";
 import { TRANSMISSION } from "../src/sim/transmission.ts";
 import { LAUNCH } from "../src/sim/launch.ts";
@@ -21,20 +19,37 @@ test("the dial reports transmission state and clamps its sweep", () => {
   assert.equal(over.ratio, 1);
   assert.equal(over.redline, true);
   assert.equal(gaugeReading(70 * GAUGE_REDLINE - 0.01, 30, 70).redline, false);
-  // The sweep never exceeds the drawn arc, whatever the dash offset is set to.
-  assert.ok(GAUGE_CIRCUMFERENCE * (GAUGE_SWEEP_DEGREES / 360) * over.ratio < GAUGE_CIRCUMFERENCE);
 });
 
-// Like MC3's, the dial is one 0-250 face for every car: a faster car is more
-// needle, not a rescaled scale.
-test("the speedometer is a fixed 0-250 face and the needle follows it", () => {
-  assert.equal(SPEED_DIAL_MAX_MPH, 250);
-  assert.equal(SPEED_DIAL_MAX_MPH % SPEED_DIAL_STEP_MPH, 0, "the numerals land on the end stop");
-  assert.ok(SPEED_DIAL_MAX_MPH > HANDLING.topSpeed * 2.237, "no car in the game pins the needle");
-  assert.equal(dialAngle(0), GAUGE_START_DEGREES);
-  assert.equal(dialAngle(1), GAUGE_START_DEGREES + GAUGE_SWEEP_DEGREES);
-  assert.equal(dialAngle(-1), dialAngle(0), "reverse cannot swing the needle below zero");
-  assert.equal(dialAngle(3), dialAngle(1), "overspeed cannot wrap the needle past the end");
+// MCLA's cluster (Shawn's mockup, 2026-09-26): the speed is printed, not a needle, and the tachometer sweeps from its
+// lower left round the top.
+test("the tachometer sweeps 230 degrees from its lower left and cannot wrap", () => {
+  assert.equal(tachAngle(0), TACH_START_DEGREES);
+  assert.equal(tachAngle(1), TACH_START_DEGREES + TACH_SWEEP_DEGREES);
+  assert.equal(TACH_START_DEGREES + TACH_SWEEP_DEGREES, 370, "it ends just past three o'clock");
+  assert.equal(tachAngle(-1), tachAngle(0), "reverse cannot swing the needle below zero");
+  assert.equal(tachAngle(3), tachAngle(1), "the limiter cannot wrap the needle past the end");
+});
+
+test("the speed plate prints three digits, the leading zeros ghosted", () => {
+  assert.deepEqual(speedDigits(0), ["", "", "abcdef"], "standing still is a dim 88 and a lit 0");
+  assert.deepEqual(speedDigits(88), ["", "abcdefg", "abcdefg"]);
+  assert.deepEqual(speedDigits(140), ["bc", "fgbc", "abcdef"]);
+  assert.deepEqual(speedDigits(87.6), ["", "abcdefg", "abcdefg"], "rounded as the reading is");
+  assert.equal(speedDigits(1234).length, 3, "never more digits than the plate has");
+  for (const lit of speedDigits(890)) for (const segment of lit) assert.ok(segment in SEGMENT_SHAPES, `no shape for segment ${segment}`);
+});
+
+// One meter in two pieces: it has to fill the curve before any of the bar, and meet at the join.
+test("the nitrous arc fills up the curve, then along the bar", () => {
+  const share = ARC_CURVE_LENGTH / (ARC_CURVE_LENGTH + ARC_BAR_LENGTH);
+  assert.deepEqual(nitrousArc(0), { curve: 0, bar: 0 });
+  assert.deepEqual(nitrousArc(1), { curve: 1, bar: 1 });
+  assert.deepEqual(nitrousArc(share), { curve: 1, bar: 0 }, "the curve is full exactly where the bar begins");
+  const half = nitrousArc(0.5);
+  assert.equal(half.curve, 1);
+  assert.ok(Math.abs(half.bar * ARC_BAR_LENGTH + ARC_CURVE_LENGTH - 0.5 * (ARC_CURVE_LENGTH + ARC_BAR_LENGTH)) < 1e-9, "half the charge is half the arc's length");
+  assert.deepEqual(nitrousArc(2), nitrousArc(1), "an overcharge cannot run past the end");
 });
 
 test("the tachometer ends one mark past the redline, so the red zone is a visible band", () => {
@@ -93,12 +108,9 @@ test("a street segment is drawn whenever any part of it crosses the disc", () =>
   assert.equal(segmentWithinMinimap(camera, -400, -250, 400, -250), false);
 });
 
-// The HUD module reaches into the page by id. If the markup and the module
-// disagree the cluster silently stops updating, which no unit test of the
-// arithmetic above would catch.
-// MC3's boost bar (design/HANDLING.md, "The burnout"): the right meter shows the
-// launch charge while it is held and the boost draining after, and hides otherwise.
-test("the right meter is the launch charge building, then the boost draining", () => {
+// The nitrous arc until Surge exists (design/HANDLING.md, "The burnout"; MC3's right-hand boost bar to 2026-09-26):
+// the launch charge while it is held and the boost draining after, and empty otherwise.
+test("the nitrous arc is the launch charge building, then the boost draining", () => {
   const launch = { heldTicks: 0, charge: 0, burnout: false, resolved: true, boostTicks: 0, quality: 0 };
   assert.equal(launchMeter(undefined), null);
   assert.equal(launchMeter(launch), null, "nothing held, nothing shown");
@@ -108,10 +120,13 @@ test("the right meter is the launch charge building, then the boost draining", (
   assert.ok(Math.abs(launchMeter({ ...launch, boostTicks: LAUNCH.boostTicks / 2, quality: .8 })! - .4) < 1e-9, "and draining");
 });
 
+// The HUD module reaches into the page by id. If the markup and the module
+// disagree the cluster silently stops updating, which no unit test of the
+// arithmetic above would catch.
 test("index.html carries every element the cluster binds to", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  for (const id of ["speed", "gear", "gauge-sweep", "gauge-ticks", "gauge-needle", "tacho-ticks", "tacho-needle",
-    "tacho-red", "minimap", "race", "race-gate", "race-time", "meter-left", "meter-right"]) {
+  for (const id of ["speed", "gear", "cluster-dial", "nitrous-curve", "nitrous-bar", "nitrous-tanks", "tach-ticks", "tach-needle",
+    "tach-red", "speed-digits", "street-plate", "street-name", "minimap", "race", "race-gate", "race-time", "meter-left"]) {
     assert.ok(html.includes(`id="${id}"`), `index.html is missing #${id}`);
   }
   assert.ok(html.includes('href="/src/ui/hud.css"'), "the cluster stylesheet is not linked");
@@ -120,14 +135,17 @@ test("index.html carries every element the cluster binds to", async () => {
   // in free roam on every screen, including three of Shawn's screenshots.
   const css = await readFile(new URL("../src/ui/hud.css", import.meta.url), "utf8");
   assert.ok(css.includes("#race[hidden] { display: none; }"), "the race readout cannot hide");
-  // The meter arcs ship hidden until something feeds them (the right one is the
-  // launch's, the left is reserved), and the rule has to be able to hide them.
-  assert.ok(css.includes(".hud-meter[hidden] { display: none; }"), "the reserved meters cannot hide");
-  for (const id of ["meter-left", "meter-right"]) {
-    // A bare hidden attribute, not the aria-hidden it sits beside.
-    assert.match(html, new RegExp(`<svg id="${id}"[^>]*\\shidden[\\s>]`), `#${id} ships visible with nothing feeding it`);
-  }
-  // The dial's static track has to match the arc the module sweeps along it.
-  const arc = (GAUGE_CIRCUMFERENCE * GAUGE_SWEEP_DEGREES / 360).toFixed(1);
-  assert.ok(html.includes(`stroke-dasharray="${arc} `), `the drawn track is not a ${arc} arc`);
+  // The left meter ships hidden until something feeds it, and the rule has to be able to hide it.
+  assert.ok(css.includes(".hud-meter[hidden] { display: none; }"), "the reserved meter cannot hide");
+  // A bare hidden attribute, not the aria-hidden it sits beside.
+  assert.match(html, /<svg id="meter-left"[^>]*\shidden[\s>]/, "#meter-left ships visible with nothing feeding it");
+  // Inside an SVG the attribute alone hides nothing: the tanks (Surge's, not built) and the street plate off every
+  // street rely on this rule.
+  assert.ok(css.includes("#cluster-dial [hidden] { display: none; }"), "the cluster's hidden pieces cannot hide");
+  assert.match(html, /<g id="nitrous-tanks" hidden>/, "the tanks ship visible with no Surge to count");
+  // The drawn arc has to be the one nitrousArc splits: 145 degrees of a 90-unit radius ending at (118, 30), and a
+  // bar from there to 400.
+  assert.ok(html.includes('d="M66.4 193.7 A90 90 0 0 1 118 30"'), "the curve is not the arc nitrousArc measures");
+  assert.ok(Math.abs(ARC_CURVE_LENGTH - 90 * (270 - 125) * Math.PI / 180) < 1e-9);
+  assert.ok(html.includes('d="M118 30 L400 30"') && ARC_BAR_LENGTH === 400 - 118, "the bar is not the length nitrousArc splits by");
 });

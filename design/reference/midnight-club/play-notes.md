@@ -22,8 +22,8 @@ Sunset Blvd.
   police readout: how close they are, and the speed that keeps them off you.
 
 For NIGHTSHIFT: police are a deferred possibility (GDD §21), so none of this is
-scheduled. The HUD proposal of 2026-09-26 keeps a slot for the limit beside the
-gear, hidden until something reads it. Port Alder's streets carry names
+scheduled. The HUD built on 2026-09-26 from Shawn's mockup leaves room for the
+limit beside the gear and for proximity under the plate, and draws neither. Port Alder's streets carry names
 (`ALDER_STREETS[].name`) but no posted limits; a street's class (local,
 collector) would be the natural source. A half press that holds a speed is
 help on the pedals, which the player has driven without since 2026-09-20
@@ -37,10 +37,10 @@ just above the posted-limit box, is the meter for Midnight Club's special
 abilities, Roar and Zone among them. The large arc that sweeps up the left of
 the cluster and along its top is the nitrous (boost) meter.
 
-For NIGHTSHIFT: the GDD does not mention special abilities at all. The HUD has
-reserved room for them since its MC3 layout ("the meter arcs ... reserved for
-nitrous, slipstream and abilities", `src/ui/hud.css`), and the HUD proposal of
-2026-09-26 draws the gauge where MCLA has it, as a reserved slot. Building
-abilities is a scope decision, like police. The proposal's arc is MCLA's
+For NIGHTSHIFT: the GDD does not mention special abilities at all. The HUD had
+reserved room for them since its MC3 layout (its meter arcs were "reserved for
+nitrous, slipstream and abilities"), and the HUD built on 2026-09-26 leaves the
+gauge's place beside the speed plate empty until Shawn decides. Building
+abilities is a scope decision, like police. The HUD's arc is MCLA's
 nitrous meter in the same place: the launch charge feeds it until Surge, the
 proposed nitrous (GDD 3.6), exists.

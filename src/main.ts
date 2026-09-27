@@ -371,7 +371,9 @@ const hudPolylines: HudPolyline[] = venue
   : ALDER_STREETS.map(street => ({ points: street.points }));
 hudPolylines.push({ points: YARD_LINE, color: "#7edfc6" });
 if (!venue) for (const road of ARENA_ROADS) hudPolylines.push({ points: road.points });
-const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: venue ? undefined : ALDER_GARAGE.entrance });
+// The street plate names Port Alder's streets and Ridge Circuit's paths; a venue has neither, and no plate.
+const hud = createHud({ polylines: hudPolylines, topSpeed: () => sim.state.handling.topSpeed, garage: venue ? undefined : ALDER_GARAGE.entrance,
+  streets: venue ? undefined : [...ALDER_STREETS, ...ARENA_ROADS] });
 // Every car has its own customization (settings schema 4). `lookFor` is any car's: what this session made it, then a
 // loaded slot's for that slot's car, then what was saved for it, then the factory's. `customization` is the selected
 // car's, the one the garage's rows edit.
