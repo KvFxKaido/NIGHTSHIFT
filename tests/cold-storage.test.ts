@@ -60,27 +60,36 @@ test("the plant stands on the cold store's roof and nowhere else, drawn with no 
   assert.ok(triangles < 2500, `${triangles} triangles`);
 });
 
-test("the forklift works inside dock 01's doorway through its whole round, and moves smoothly", () => {
+test("the forklift works inside dock 01's doorway through its whole round, and nothing drawn of it jumps a tick", () => {
   const scene = new THREE.Scene(), group = addColdStorage(scene, plan, alderHeight);
   const dock = plan.modules.find(m => m.kind === "shutter" && m.open)!;
-  const body = group.getObjectByName("cold-storage-forklift-body") as THREE.Mesh;
+  const views = ["cold-storage-forklift-body", "cold-storage-forklift-end"].map(name => group.getObjectByName(name) as THREE.Mesh | undefined).filter((m): m is THREE.Mesh => !!m);
+  const beacon = group.getObjectByName("cold-storage-beacon")!;
   const wall = group.getObjectByName("cold-storage-wall")!;
-  let last = forkliftPose(0);
-  for (let tick = 0; tick <= COLD_STORAGE_ROUND_SECONDS * 60; tick++) {
-    const seconds = tick / 60, pose = forkliftPose(seconds);
-    assert.ok(Math.abs(pose.x - last.x) < .03, `the forklift jumped at ${seconds.toFixed(2)} s`);
-    last = pose;
-    if (tick % 6) continue;
-    updatePlaceActivity(scene, seconds);
-    wall.updateWorldMatrix(true, false);
+  // Every vertex it draws, in the wall's frame; a view that is hidden draws nothing and is left out.
+  const drawn = () => {
+    wall.updateWorldMatrix(true, true);
     const inWall = new THREE.Matrix4().copy(wall.matrixWorld).invert();
-    for (const p of worldPoints(body)) {
-      const local = p.applyMatrix4(inWall);
+    return views.map(mesh => mesh.visible ? worldPoints(mesh).map(p => p.applyMatrix4(inWall)) : null);
+  };
+  let last = drawn(), lastBeacon = beacon.getWorldPosition(new THREE.Vector3());
+  for (let tick = 0; tick <= COLD_STORAGE_ROUND_SECONDS * 60; tick++) {
+    const seconds = tick / 60;
+    updatePlaceActivity(scene, seconds);
+    const now = drawn(), at = beacon.getWorldPosition(new THREE.Vector3());
+    // Driving moves it 2 cm a tick and a turn 7 cm at the fork tips. Mirroring the side view at 0.45 of its length,
+    // as the first version did, fails here: body jumped 0.45 m at 5.40 s, mid-turn.
+    now.forEach((points, view) => points && last[view] && points.forEach((p, i) =>
+      assert.ok(p.distanceTo(last[view]![i]!) < .1, `${views[view]!.name} jumped ${p.distanceTo(last[view]![i]!).toFixed(2)} m at ${seconds.toFixed(2)} s`)));
+    assert.ok(at.distanceTo(lastBeacon) < .1, `the beacon jumped at ${seconds.toFixed(2)} s`);
+    last = now; lastBeacon = at;
+    for (const local of now.flatMap(points => points ?? [])) {
       assert.ok(Math.abs(local.x - dock.x) <= (dock.width - .1) / 2, `forklift outside the doorway at ${seconds.toFixed(2)} s`);
       assert.ok(local.y >= -1e-6 && local.y <= dock.height - .5, `forklift under the rolled door (${local.y})`);
       assert.ok(local.z > .115 && local.z < .17, "in front of the racking and behind the door frame");
     }
   }
+  assert.ok(Array.from({ length: 721 }, (_, i) => forkliftPose(i / 60)).some(p => p.endOn > .99), "a turn shows the truck end on");
   assert.deepEqual(forkliftPose(COLD_STORAGE_ROUND_SECONDS), forkliftPose(0));
   const pulses = Array.from({ length: 600 }, (_, i) => beaconPulse(i / 60));
   assert.ok(Math.max(...pulses) > .99 && Math.min(...pulses) === 0, "the beacon flashes and goes dark");

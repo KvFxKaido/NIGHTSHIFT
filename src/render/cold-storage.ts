@@ -35,23 +35,28 @@ const BEACON_HZ = 1.4;
 export interface ForkliftPose {
   /** Across the dock from its centre, in metres. */
   readonly x: number;
-  /** 1 with the forks towards +x, -1 towards -x; between, a turn seen side on, never thinner than the truck is wide. */
+  /** How much of its side the truck shows: 1 with the forks towards +x, -1 towards -x, through 0 mid-turn. */
   readonly facing: number;
+  /** How much of its end it shows: 0 side on, 1 mid-turn, facing the street or away from it. */
+  readonly endOn: number;
 }
 
+/**
+ * A turn in place is drawn as its projection: the side view narrows through nothing to its mirror while the end
+ * view widens and narrows again, as a box turned by an angle shows its length times its cosine and its width times
+ * its sine. Mirroring the side view at once, however wide, jumps the forks a metre in a tick (Codex, PR #20).
+ */
 export function forkliftPose(seconds: number): ForkliftPose {
   let t = ((seconds % COLD_STORAGE_ROUND_SECONDS) + COLD_STORAGE_ROUND_SECONDS) % COLD_STORAGE_ROUND_SECONDS;
   const ease = (u: number) => u * u * (3 - 2 * u);
-  const turn = (from: number, u: number) => {
-    const c = Math.cos(Math.PI * Math.min(1, u)) * from;
-    return (c === 0 ? -from : Math.sign(c)) * Math.max(.45, Math.abs(c));
-  };
-  if (t < DRIVE) return { x: -TRAVEL + 2 * TRAVEL * ease(t / DRIVE), facing: 1 };
-  t -= DRIVE; if (t < STOP) return { x: TRAVEL, facing: 1 };
-  t -= STOP; if (t < TURN) return { x: TRAVEL, facing: turn(1, t / TURN) };
-  t -= TURN; if (t < DRIVE) return { x: TRAVEL - 2 * TRAVEL * ease(t / DRIVE), facing: -1 };
-  t -= DRIVE; if (t < STOP) return { x: -TRAVEL, facing: -1 };
-  t -= STOP; return { x: -TRAVEL, facing: turn(-1, t / TURN) };
+  const turn = (x: number, from: number, u: number): ForkliftPose =>
+    ({ x, facing: Math.cos(Math.PI * Math.min(1, u)) * from, endOn: Math.sin(Math.PI * Math.min(1, u)) });
+  if (t < DRIVE) return { x: -TRAVEL + 2 * TRAVEL * ease(t / DRIVE), facing: 1, endOn: 0 };
+  t -= DRIVE; if (t < STOP) return { x: TRAVEL, facing: 1, endOn: 0 };
+  t -= STOP; if (t < TURN) return turn(TRAVEL, 1, t / TURN);
+  t -= TURN; if (t < DRIVE) return { x: TRAVEL - 2 * TRAVEL * ease(t / DRIVE), facing: -1, endOn: 0 };
+  t -= DRIVE; if (t < STOP) return { x: -TRAVEL, facing: -1, endOn: 0 };
+  t -= STOP; return turn(-TRAVEL, -1, t / TURN);
 }
 
 /** A turning beacon seen from one side: a short flash each turn, dark between. 0 to 1. */
@@ -158,8 +163,18 @@ export function addColdStorage(scene: THREE.Scene, plan: FrontPlan, heightAt: (x
     shape(new THREE.PlaneGeometry(.9, .14), 1.1, .2, "#10151a");
     shape(new THREE.PlaneGeometry(.84, .82), 1.1, .68, "#161c21");
     const truck = new THREE.Group(); truck.name = "cold-storage-forklift";
-    const body = new THREE.Mesh(mergeGeometries(parts)!, new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, side: THREE.DoubleSide }));
+    const silhouette = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, side: THREE.DoubleSide });
+    const body = new THREE.Mesh(mergeGeometries(parts)!, silhouette);
     body.name = "cold-storage-forklift-body"; truck.add(body); parts.forEach(g => g.dispose());
+    parts.length = 0; layer = 0;
+    // End on, mid-turn: 1.1 m across, the overhead guard over the body and the mast's two uprights.
+    for (const x of [-.42, .42]) shape(new THREE.PlaneGeometry(.2, .5), x, .25);
+    shape(new THREE.PlaneGeometry(1.1, .8), 0, .66);
+    for (const x of [-.5, .5]) shape(new THREE.PlaneGeometry(.07, 1.2), x, 1.66);
+    shape(new THREE.PlaneGeometry(1.1, .08), 0, 2.24);
+    for (const x of [-.3, .3]) shape(new THREE.PlaneGeometry(.1, 2.3), x, 1.2);
+    const end = new THREE.Mesh(mergeGeometries(parts)!, silhouette);
+    end.name = "cold-storage-forklift-end"; truck.add(end); parts.forEach(g => g.dispose());
     const lens = new THREE.MeshBasicMaterial({ color: AMBER_DARK.clone(), toneMapped: false });
     const beacon = new THREE.Mesh(new THREE.BoxGeometry(.13, .12, .13), lens);
     beacon.name = "cold-storage-beacon"; beacon.position.set(-.5, 2.34, .04); truck.add(beacon);
@@ -175,7 +190,10 @@ export function addColdStorage(scene: THREE.Scene, plan: FrontPlan, heightAt: (x
 
     const activity = (seconds: number) => {
       const pose = forkliftPose(seconds), pulse = beaconPulse(seconds);
-      truck.position.x = dock.x + pose.x; truck.scale.x = pose.facing;
+      truck.position.x = dock.x + pose.x;
+      body.scale.x = pose.facing; body.visible = Math.abs(pose.facing) > 1e-3;
+      end.scale.x = pose.endOn; end.visible = pose.endOn > 1e-3;
+      beacon.position.x = flareMesh.position.x = -.5 * pose.facing; poolMesh.position.x = -.2 * pose.facing;
       lens.color.copy(AMBER_DARK).lerp(AMBER, pulse);
       flare.color.copy(AMBER).multiplyScalar(.08 + .92 * pulse);
       pool.color.copy(AMBER).multiplyScalar(.3 * pulse);
