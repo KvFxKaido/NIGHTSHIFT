@@ -56,6 +56,8 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
     element<HTMLSelectElement>("front-mount").disabled=!sign;
     element<HTMLSelectElement>("front-finish").value=module.finish??"lit";
     element<HTMLSelectElement>("front-finish").disabled=!sign;
+    element<HTMLSelectElement>("front-door").value=module.open?"open":"closed";
+    element<HTMLSelectElement>("front-door").disabled=module.kind!=="shutter";
     input("color").value=module.color??"#c5c8c3";
     input("color").disabled=!module.color&&!sign;
   }
@@ -121,6 +123,7 @@ export function createFrontagePanel(options:FrontagePanelOptions) {
     const changed:FrontModule={...module,x:Number(input("x").value),y:Number(input("y").value),width:Number(input("width").value),height:Number(input("height").value),
       ...(sign?{text:input("text").value,caption:input("caption").value,kind:element<HTMLSelectElement>("front-mount").value as "sign"|"blade",
         finish:element<HTMLSelectElement>("front-finish").value==="painted"?"painted" as const:undefined}:{}),
+      ...(module.kind==="shutter"?{open:element<HTMLSelectElement>("front-door").value==="open"?true as const:undefined}:{}),
       ...(module.color||sign?{color:input("color").value}:{})};
     const modules=entry.plan.modules.map((m,i)=>i===moduleIndex?changed:(module.color||sign)&&m.owner===module.owner&&m.color?{...m,color:input("color").value}:m);
     replace({...entry,locked:true,edited:true,plan:{...entry.plan,modules}});

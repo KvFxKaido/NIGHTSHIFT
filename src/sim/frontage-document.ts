@@ -56,8 +56,10 @@ export function parseFrontageDocument(value: unknown): FrontageDocument {
       const color=m.color===undefined?undefined:text(m.color,7);
       if(color&&!/^#[0-9a-f]{6}$/i.test(color))throw Error("Use a six-digit hex colour");
       if(m.finish!==undefined&&(m.finish!=="painted"||kind!=="sign"))throw Error("Painted lettering needs a wall sign");
+      if(m.open!==undefined&&(m.open!==true||kind!=="shutter"))throw Error("Only a shutter opens");
       return {kind,owner:text(m.owner),x:number(m.x,-50,50),y:number(m.y,0,15),width:number(m.width,.03,50),height:number(m.height,.03,10),
-        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{}),...(m.finish==="painted"?{finish:"painted" as const}:{})};
+        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{}),...(m.finish==="painted"?{finish:"painted" as const}:{}),
+        ...(m.open===true?{open:true as const}:{})};
     });
     const paving=array(p.paving,100).map(value=>{
       const s=object(value);return {left:number(s.left,-50,50),right:number(s.right,-50,50),leftDepth:number(s.leftDepth,.1,40),

@@ -20385,8 +20385,8 @@
     {
       "buildingId": "plot--44.000-617.000",
       "seed": 2338132071,
-      "locked": false,
-      "edited": false,
+      "locked": true,
+      "edited": true,
       "plan": {
         "block": {
           "x": -44,
@@ -20449,7 +20449,8 @@
             "x": -3.1500000000000004,
             "y": 2.15,
             "width": 5.8,
-            "height": 4.3
+            "height": 4.3,
+            "open": true
           },
           {
             "kind": "sign",
@@ -20459,7 +20460,7 @@
             "width": 2.6,
             "height": 0.62,
             "text": "01",
-            "caption": "RECEIVING",
+            "caption": "CHILLED",
             "color": "#c8c2a9",
             "finish": "painted"
           },
@@ -20488,7 +20489,7 @@
             "width": 2.6,
             "height": 0.62,
             "text": "02",
-            "caption": "RECEIVING",
+            "caption": "FROZEN",
             "color": "#c8c2a9",
             "finish": "painted"
           },
@@ -20508,8 +20509,8 @@
             "y": 6.55,
             "width": 16,
             "height": 1,
-            "text": "ALDER COLD STORAGE",
-            "caption": "DELIVERIES / DISPATCH",
+            "text": "HOLGATE COLD STORE",
+            "caption": "RECEIVING / 24 HOURS",
             "color": "#c8c6b9",
             "finish": "painted"
           }

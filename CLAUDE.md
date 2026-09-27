@@ -391,6 +391,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | MC3 / MCLA rosters, unlocks, REP economy (research data, csv) | `design/reference/midnight-club/` | its `README.md`, then `digest.md` |
 | The yard by the start, and the chaos it is meant to prove | — | `design/CHAOS.md` |
 | What a change in one layer moves in another, and what each tuned number was measured on | — | `design/COUPLINGS.md` |
+| Adopted places: the routine, its record, each place's drawing and activity (Holgate Cold Store first) | `render/cold-storage.ts`, `render/place-activity.ts`, `design/adoptions/` | `design/CITY_ADOPTION.md` |
 | The stories | — | `design/FIELD_NOTES.md` |
 
 ## Traps (each one has already cost a day)

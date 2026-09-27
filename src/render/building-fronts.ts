@@ -160,10 +160,30 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
         box(luminous,x,y+h*.34,.135,w-.2,.14,.008,false,plan.recipe.kind==="office"?"#687777":"#9d9077");
         box(fineMaterial,x,y-h*.25,.18,w-.18,.04,.035,true);
       } else if(kind==="shutter") {
-        frame(x,y,w,h);box(metal,x,y,.10,w,h,.08);
+        frame(x,y,w,h);
         box(concrete,x,y+h/2+.19,.23,w+.4,.28,.42);
-        for(let rib=.2;rib<h;rib+=.23)box(fineMaterial,x,y-h/2+rib,.16,w-.12,.038,.025,true);
-        box(fineMaterial,x,.55,.20,.55,.045,.07,true);
+        if(module.open) {
+          // Raised on its lit inside (a warehouse lights its docks, design/LOOK.md): the rolled door under the header,
+          // a strip light, the floor, and loaded racking against the light. Flat, as the district's open docks are:
+          // the building's own mass stands behind the wall, so there is no room to model.
+          const top=y+h/2-.47,bottom=y-h/2;
+          box(metal,x,y+h/2-.24,.17,w-.04,.46,.34);
+          box(luminous,x,(top+bottom)/2,.09,w-.1,top-bottom,.01,false,"#7d8aa1");
+          box(luminous,x,top-.35,.093,w-.1,.6,.01,false,"#95a3ba");
+          box(luminous,x,top-.12,.096,w-.6,.07,.01,false,"#eef3ff");
+          box(luminous,x,bottom+.2,.10,w-.1,.36,.01,false,"#3a424c");
+          for(const upright of [-.42,-.14,.14,.42])box(luminous,x+upright*w,(bottom+top-.4)/2,.11,.14,top-.4-bottom,.01,false,"#1c2229");
+          for(const [level,beam] of [1.3,2.5].entries()) {
+            box(luminous,x,bottom+beam,.112,.86*w,.1,.01,false,"#1c2229");
+            // Loaded pallets, a bay or two short: a store that is working, not full.
+            for(const bay of [0,1,2])if(!(bay===1&&level===1)&&!(bay===2&&level===0))
+              box(luminous,x+(bay-1)*.28*w,bottom+beam+.44,.114,.22*w,.76,.01,false,"#2c343d");
+          }
+        } else {
+          box(metal,x,y,.10,w,h,.08);
+          for(let rib=.2;rib<h;rib+=.23)box(fineMaterial,x,y-h/2+rib,.16,w-.12,.038,.025,true);
+          box(fineMaterial,x,.55,.20,.55,.045,.07,true);
+        }
       } else if(kind==="sign"||kind==="blade") {
         const blade=kind==="blade",depth=blade?w/2+.4:.23;
         const painted=module.finish==="painted";

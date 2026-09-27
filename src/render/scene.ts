@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { updateIntersectionSignals } from "./intersection-dressing.ts";
+import { updatePlaceActivity } from "./place-activity.ts";
 import type { CameraLook } from "../input/input.ts";
 import { HANDLING, type SimState, type VehicleState } from "../sim/sim.ts";
 import type { TrafficState } from "../sim/traffic.ts";
@@ -312,6 +313,7 @@ export function render(
   cameraLook: CameraLook,
 ): void {
   updateIntersectionSignals(view.scene,state.tick/60);
+  updatePlaceActivity(view.scene,state.tick/60);
   if (view.mode === "garage") {
     renderGarage(view, frameDelta, cameraLook);
     return;
