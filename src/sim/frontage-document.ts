@@ -19,6 +19,8 @@ export interface FrontageDocument {
 }
 export interface FrontageSite { id: string; block: BuildingBlock }
 export const FRONT_KINDS: readonly FrontKind[] = ["warehouse","shops","office","residential"];
+/** A shutter shorter than this stays shut: its lit inside, rolled door and racking need the room. */
+export const OPEN_DOCK_HEIGHT = 2.4;
 const MODULE_KINDS = ["door","glazing","shutter","sign","blade","light","canopy"];
 const object = (value: unknown): Record<string,unknown> => {
   if (!value || typeof value!=="object" || Array.isArray(value)) throw Error("Expected an object");
@@ -56,8 +58,10 @@ export function parseFrontageDocument(value: unknown): FrontageDocument {
       const color=m.color===undefined?undefined:text(m.color,7);
       if(color&&!/^#[0-9a-f]{6}$/i.test(color))throw Error("Use a six-digit hex colour");
       if(m.finish!==undefined&&(m.finish!=="painted"||kind!=="sign"))throw Error("Painted lettering needs a wall sign");
+      if(m.open!==undefined&&(m.open!==true||kind!=="shutter"))throw Error("Only a shutter opens");
       return {kind,owner:text(m.owner),x:number(m.x,-50,50),y:number(m.y,0,15),width:number(m.width,.03,50),height:number(m.height,.03,10),
-        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{}),...(m.finish==="painted"?{finish:"painted" as const}:{})};
+        ...(m.text===undefined?{}:{text:text(m.text,60)}),...(m.caption===undefined?{}:{caption:text(m.caption,80)}),...(color?{color}:{}),...(m.finish==="painted"?{finish:"painted" as const}:{}),
+        ...(m.open===true?{open:true as const}:{})};
     });
     const paving=array(p.paving,100).map(value=>{
       const s=object(value);return {left:number(s.left,-50,50),right:number(s.right,-50,50),leftDepth:number(s.leftDepth,.1,40),
@@ -83,6 +87,7 @@ export function frontageModuleIssues(plan: FrontPlan): string[] {
     if(!doors.some(d=>d.owner===m.owner))issues.push("Every tenant needs its own entrance");
     if(m.kind==="door"&&(Math.abs(m.y-m.height/2)>.05||m.height<2||m.width<.9))issues.push("Doors must reach the landing and allow access");
     if((m.kind==="glazing"||m.kind==="shutter")&&(m.width<.5||m.height<.5))issues.push("Openings need room for their frames");
+    if(m.kind==="shutter"&&m.open&&m.height<OPEN_DOCK_HEIGHT)issues.push(`An open dock needs ${OPEN_DOCK_HEIGHT} metres of headroom`);
     if(m.kind==="canopy"&&m.y-m.height/2<2.7)issues.push("Canopies need 2.7 metres of clearance");
     if(m.kind==="blade"&&(m.width>1.6||m.height>3||m.y-m.height/2<2.7))issues.push("Projecting signs must fit above pedestrians and stay within 1.6 metres of projection");
     if((m.kind==="sign"||m.kind==="blade")&&!m.text?.trim())issues.push("Signs need a name or number");

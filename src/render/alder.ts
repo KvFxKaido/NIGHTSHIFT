@@ -12,6 +12,7 @@ import { addBrickCorner, isBrickCorner } from "./brick-corner.ts";
 import { addMarketBlock } from "./market-block.ts";
 import { addTowerDetails } from "./tower-detail.ts";
 import { addBuildingFronts } from "./building-fronts.ts";
+import { addColdStorage, COLD_STORAGE_ID } from "./cold-storage.ts";
 import { buildingPalette } from "./building-palette.ts";
 import { ALDER_BUILDING_FRONTS } from "../sim/alder.ts";
 import { ALDER_MARKET_UTILITIES } from "../sim/alder.ts";
@@ -169,6 +170,9 @@ export function addAlder(scene: THREE.Scene, lighting: DistrictLighting): void {
   for(const block of buildings) if(isBrickCorner(block)) addBrickCorner(scene,block);
   addMarketBlock(scene, alderHeight, ALDER_MARKET_UTILITIES);
   addBuildingFronts(scene, ALDER_BUILDING_FRONTS, alderHeight, ALDER_GROUNDS_FRONT_IDS);
+  // Adopted places (design/CITY_ADOPTION.md): each finds its building by the frontage document's id.
+  const coldStorage=ALDER_BUILDING_FRONTS.find(plan=>plan.recipe.id===COLD_STORAGE_ID);
+  if(coldStorage)addColdStorage(scene,coldStorage,alderHeight);
   addSiteGrounds(scene, ALDER_SITE_GROUNDS, alderHeight);
   addGarageExterior(scene,ALDER_GARAGE.building);
   // ?look=cel-city: the cars' ink on every building, the garage's included.

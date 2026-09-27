@@ -17,6 +17,8 @@ export interface FrontModule {
   readonly color?: string;
   /** Painted lettering receives scene light instead of glowing at night. */
   readonly finish?: "painted";
+  /** A shutter raised on its lit inside: somebody is working that dock (design/CITY_ADOPTION.md). */
+  readonly open?: true;
 }
 export interface FrontRecipe {
   readonly id: string;
