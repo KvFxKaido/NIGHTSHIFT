@@ -117,6 +117,16 @@ async function street(server) {
 
 const save = (name, dataUrl) => writeFile(join(rawDir, name), Buffer.from(dataUrl.split(',')[1], 'base64'));
 
+// The summary as a reader wants it: indented, but one line per pass frame, of which there are a hundred a pass.
+function summaryJson(summary) {
+  const marked = { ...summary, passes: Object.fromEntries(Object.entries(summary.passes).map(([id, pass]) =>
+    [id, { ...pass, frames: `@frames:${id}@` }])) };
+  let text = JSON.stringify(marked, null, 2);
+  for (const [id, pass] of Object.entries(summary.passes))
+    text = text.replace(`"@frames:${id}@"`, `[\n${pass.frames.map(f => `        ${JSON.stringify(f)}`).join(',\n')}\n      ]`);
+  return text + '\n';
+}
+
 async function poses(page, role) {
   const out = {};
   for (const pose of shots.poses ?? []) {
@@ -245,7 +255,7 @@ try {
     summary.outputs.push(await compose(cells, 360, `${moment.id}.jpg`));
   }
   summary.poses = Object.fromEntries((shots.poses ?? []).map(p => [p.id, { label: p.label, at: p.at, toward: p.toward }]));
-  await writeFile(join(outDir, 'capture.json'), JSON.stringify(summary, null, 2) + '\n');
+  await writeFile(join(outDir, 'capture.json'), summaryJson(summary));
   console.log(`wrote ${[...summary.outputs, 'capture.json'].join(', ')} to ${outDir}; raw frames in ${rawDir}`);
   const hits = Object.entries(summary.passes).filter(([, p]) => p.disturbed);
   if (hits.length) { console.log(`disturbed: ${hits.map(([id]) => id).join(', ')}: start those passes past what they met`); process.exitCode = 1; }
