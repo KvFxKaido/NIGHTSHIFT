@@ -1,6 +1,6 @@
 # Adopt a piece of Port Alder
 
-Status: first run shipped (Holgate Cold Store); second run validated
+Status: first run shipped (Holgate Cold Store); second run open for review in PR #22
 (Fifth Ave Laundry, 2026-09-27). Cadence undecided; no scheduled automation enabled.
 
 ## Purpose
@@ -340,7 +340,8 @@ the next run.
   the shop at 46–58 mph northbound and 75–85 mph southbound. The violet blade
   and bright machine window read briefly at the edge of the driving view;
   individual tumbling loads are a close-pass detail. These are scripted passes.
-- **Status / PR.** Implemented and validated; publication in progress.
+- **Status / PR.** Implemented and validated; PR #22 open for review, not merged:
+  https://github.com/KvFxKaido/NIGHTSHIFT/pull/22
 - **Checks.** `pnpm test`: all 831 pass, including five focused display
   tests; `pnpm build` passes with the existing large-chunk warning. All 14
   `pnpm golden` runs are bit-identical to the baseline saved on main before
