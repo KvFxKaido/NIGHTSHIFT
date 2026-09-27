@@ -17,6 +17,9 @@ Sunset Blvd.
   holds the car at the posted speed.
 - It is for when the cops drive by, so you can pass them at the limit.
   *Inference:* speeding near them is what draws a pursuit.
+- The row of red dashes under the digital plate is cop proximity (Shawn
+  checked, same day). With the limit and the half press it makes the cluster's
+  police readout: how close they are, and the speed that keeps them off you.
 
 For NIGHTSHIFT: police are a deferred possibility (GDD §21), so none of this is
 scheduled. The HUD proposal of 2026-09-26 keeps a slot for the limit beside the
