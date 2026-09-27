@@ -1,6 +1,6 @@
 {
   "place": "Fifth Ave Laundry",
-  "captured": "2026-09-27T18:13:30.485Z",
+  "captured": "2026-09-27T18:44:54.951Z",
   "viewport": [
     1440,
     900
@@ -9,7 +9,7 @@
   "note": "Poses are a stopped car with the camera settled. Passes are scripted (full throttle, assist 1, a lane-keeping steer), not driven by hand.",
   "trees": {
     "before": {
-      "tree": "C:\\Users\\ishaw\\.codex\\worktrees\\adoption-before\\NIGHTSHIFT",
+      "tree": "C:\\Users\\ishaw\\.codex\\worktrees\\laundry-review-baseline\\NIGHTSHIFT",
       "branch": "HEAD",
       "commit": "2b4a275",
       "uncommittedFiles": 0,
@@ -19,8 +19,8 @@
     "after": {
       "tree": "C:\\Users\\ishaw\\.codex\\worktrees\\6826\\NIGHTSHIFT",
       "branch": "codex/adopt-fifth-avenue-laundry",
-      "commit": "2b4a275",
-      "uncommittedFiles": 6,
+      "commit": "0cbc5bd",
+      "uncommittedFiles": 0,
       "world": "alder-slice-v8-evergreens-v1-broadcast-v2-drift-yard-v5-arena-v1-corners-v1-market-v1-scale-v1-fronts-v2-b7922ff4-parking-v1-1e83ba00-grounds-v1-ce441b97-garage-v2-clearance-6b7ea50b",
       "pageErrors": []
     }
