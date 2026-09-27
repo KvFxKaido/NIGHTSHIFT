@@ -1,6 +1,7 @@
 # Adopt a piece of Port Alder
 
-Status: routine prepared; cadence undecided; no scheduled automation enabled.
+Status: run once by hand (Holgate Cold Store, 2026-09-27) and revised from that
+run; cadence undecided; no scheduled automation enabled.
 
 ## Purpose
 
@@ -10,6 +11,13 @@ Deliver a bounded, playable improvement and evidence from the driver's view.
 An adoption remains part of the city's history and can be revisited.
 Scout shortcut and jump opportunities as part of every adoption.
 
+**Adopt, then extract.** Port Alder has about 1,700 buildings, and one place a run
+does not make a generic city specific. Each adoption should also leave behind one
+reusable piece the rest of the city can use: a frontage option, a roof variant,
+an activity the generator or the editor can place elsewhere, sparingly (the first
+run left the open dock, now any shutter's option). Say in the record what was
+extracted, and what the generator would need to use it.
+
 ## Run the routine
 
 1. Read the current repository instructions, `design/GDD.md`,
@@ -17,15 +25,24 @@ Scout shortcut and jump opportunities as part of every adoption.
    Inspect current code and work in progress. Port Alder is the target;
    historical Blackglass plans are reference material, not current map facts.
    Every adoption must use a dedicated isolated Git worktree and a branch under
-   the running agent's prefix (`codex/`, `claude/`). Create them before making implementation changes, or resume the
-   existing adoption worktree and branch for unfinished work. Verify the
+   the running agent's prefix (`codex/`, `claude/`). Create them before making
+   implementation changes, or resume the existing adoption worktree and branch
+   for unfinished work. Verify the
    worktree path and branch before editing. Preserve existing changes and carry
    unfinished adoption work forward before starting another competing version
    of it. Check existing adoption PRs to avoid duplicating pending work.
 2. Pick one block, intersection, frontage, alley, or short connected street.
-   Favor places the player encounters and connections to existing authored
-   places. Compare up to three candidates briefly, then choose one. Record its
-   actual map identifiers or coordinates, boundaries, and approach route.
+   Favor places by how much the player sees them: the streets the gate's
+   generated courses run through most, the drives out of Wharf Garage, then
+   connections to existing authored places. Compare up to three candidates
+   briefly, then choose one. Record its actual map identifiers or coordinates,
+   boundaries, and approach route. Before designing anything seen from the road,
+   check the sightline on the busiest approach: the heights of the buildings
+   between it and the place (the first run put a rooftop plant on a 13 m roof
+   behind a 17 m corner building). Give the place a name the city does not
+   already use: the generator's stock business names repeat (the first run's was
+   painted on nine buildings); hold the new one unique with a test, as the
+   first run's is.
 3. Write a short place brief: what happens here, who uses it, why it belongs
    beside its neighbors, and what the driver should recognize. Choose one
    defining feature and one observable sign of ongoing activity. Keep a small
@@ -49,13 +66,24 @@ Scout shortcut and jump opportunities as part of every adoption.
    existing traffic, a localized light sequence, or spatial ambience; select
    what the runtime can support without inventing a citywide simulation.
    Distinguish implemented behavior from static evidence of occupation.
+   Build the piece to be extracted (Purpose) as an option of the shared system,
+   not inside the place. A change to a shared kit is tested on every variant the
+   generator makes, not just the adopted building: the open dock was laid out
+   for 4.3 m freight doors and drew racking above the generator's 3.6 m bays,
+   which a reviewer found and the run did not.
    Prototype jumps with simple geometry and drive the approach, takeoff, and
    landing before detailed asset modeling. Once the driving works, refine the
    structure in Blender if needed. Keep visual geometry and collision aligned,
    preserve the validated driving surfaces, and repeat driving checks after
    importing the finished asset.
-5. Check the result from normal driving height, both on approach and passing
-   through. Compare before/after views at the same location. Check free roam
+5. Drive past it, both directions, at the speed the street is driven, and judge
+   what reads from the live camera's frames (Capturing evidence, below). State
+   whether each pass was scripted or driven by hand; a scripted pass shows what
+   is on screen at speed, not how it feels. Staged poses of a stopped car are for
+   before/after comparison at the same location, never for judging visibility:
+   the settled camera sits lower than the live one at speed, and the first run's
+   staged view called the plant hidden northbound where the driven pass showed
+   it from the Holgate junction on. Check free roam
    and any affected race route, access clearance, collision, sightlines, and
    performance. For implemented shortcuts, drive both the normal and alternate
    lines and check travel time, clearance, re-entry, and race checkpoint rules.
@@ -83,6 +111,12 @@ Scout shortcut and jump opportunities as part of every adoption.
 
 - One bounded place per invocation. Finish or repair an incomplete adoption
   before accumulating more unfinished locations.
+- Two tiers. A dressing-only slice (drawing, frontage, render-only activity,
+  nothing solid, no sim state) runs start to finish on its own. A slice that
+  touches the sim (anything solid, a parked vehicle, traffic that visits, a
+  surface) stops after the brief with a top-down sketch and waits for Shawn's
+  approval before building: that is where the richer activity is, and where the
+  expensive checks are (`design/COUPLINGS.md`, the rival gate's baseline).
 - Completion requires a dedicated worktree, completed validation, and an open
   PR containing the pushed changes. A local diff alone is not completion.
 - Preserve established driving routes and intentional mode distinctions.
@@ -144,6 +178,37 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   `pnpm golden` (its free-roam run sees traffic and the world), and one that
   touches a race route runs `pnpm laps --verify` before and after.
 
+## Capturing evidence
+
+Until a capture helper is committed (a `scripts/` job for this is worth doing
+before the routine is scheduled), this is the recipe the first run arrived at,
+each step there because the one before it failed. Page JS in the browser pane,
+on the game's dev server:
+
+- **Two servers, one per tree.** "Before" from a dev server of `main`, "after"
+  from one of the adoption worktree, each on its own port with `--strictPort`;
+  prove which tree a port serves (`curl` a file only one of them has). Stopping
+  the `pnpm dev` shell can leave Vite running: check the port is free after.
+- **Reach the street.** `?scene=track`; make `document.hidden` read false (the
+  game pauses on blur); `__ns.go('track')`, `__ns.freeze(true)`, `__ns.tick(420)`,
+  then `__ns.view.garageCutscene = undefined`: on a frozen loop the garage-exit
+  shot never ends and holds the camera 5.8 m off to one side of the car.
+- **A staged pose.** Set the body's translation, a rotation of heading
+  `atan2(-ux, -uz)` for a direction (ux, uz), zero velocities, a couple of ticks.
+  `__ns.shot()` settles the camera for 24 frames, not enough after a turn: call
+  it several times and keep the last.
+- **A driven pass.** `?assist=1`, then one `__ns.drive('W1')` per tick (one
+  render per tick, as live play), reading `__ns.view.renderer.domElement.toDataURL()`
+  in the same task for a live frame. Hold the lane with `WA1` / `WD1` from the
+  offset across the lane and the heading error. Start past busy junctions: a
+  straight-line script cannot avoid a crossing car (the first run's first pass
+  shoved a sedan 100 m and left the road, and was discarded). The browser tool
+  gives a call about 45 s, so drive in chunks of a few hundred ticks.
+- **Frames.** The canvas follows the pane and changes size between sessions:
+  crop and compose by fraction, never by pixel. Post frames to a small local
+  receiver and compose side by side on a canvas; commit compact JPEGs under
+  `design/adoptions/<place>/`.
+
 ## Adoption record
 
 ### 1. Holgate Cold Store, 1st Ave S, SoDo (2026-09-27, Claude, run by hand)
@@ -173,6 +238,10 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   open lit dock, its white spill on the apron, the machine room's work light.
 - **Custom asset.** None. Boxes, cylinders and flat shapes in the fronts' vertex-coloured materials, the plant banded
   like the roofs under `cel-city`. Blender is for a landmark; this is a working building.
+- **Extracted.** The open dock: any shutter 2.4 m or taller can be saved open, its inside scaled to the opening, with
+  a Dock door control in the editor (`FrontModule.open`, `openDockParts`). Not yet extracted: the rooftop plant is
+  drawn in the place's own module; as a roof variant the generator would need a rule for which warehouses carry one
+  and a check that it stands clear of anything else on the roof.
 - **Status.** Implemented, checked by staged views and scripted driven passes both ways; not yet driven by hand.
   PR #20 open for review, not merged.
 - **Files.** `src/render/cold-storage.ts` (the place), `src/render/place-activity.ts` (each place's activity, run from
@@ -201,9 +270,9 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   recording or gate baseline moves. The editor's Dock door read back and round-tripped in the browser (apply, read,
   undo; nothing saved). Driven passes: from rest to 110 mph up and down 1st Ave S past the store, full throttle at
   assist 1 with a lane-keeping steer on the keyboard's left and right, in the game at driving speed with the live
-  chase camera, both held to their lane (x printed -4.0 and -14.0 at every frame, so within 5 cm). A first northbound pass from south of Harbor Way met a
-  crossing sedan at that junction, pushed it 100 m and left the road, so it was discarded and the pass started past
-  the junction. Not run: `pnpm laps --verify` (no race route touched), the rival gate (no sim change).
+  chase camera, both held to their lane (x printed -4.0 and -14.0 at every frame, so within 5 cm). A first
+  northbound pass from south of Harbor Way met a crossing sedan at that junction, pushed it 100 m and left the road,
+  so it was discarded and the pass started past the junction. Not run: `pnpm laps --verify` (no race route touched), the rival gate (no sim change).
 - **Limitations.** Northbound the plant is hidden until the Holgate junction (above). The forklift and the racking
   are flat in the doorway's plane, as the district's open docks are: from far along the street it is a shape on a
   lit panel. The activity runs on the sim clock, so the garage and a frozen page hold it still. No sound. Nothing
