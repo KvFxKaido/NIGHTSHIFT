@@ -1,0 +1,26 @@
+# Dependency updates, monthly and grouped (Shawn, 2026-09-26). CI builds and tests every pull request, so each one
+# arrives checked; the three.js one is also worth a look in the game, since a minor version can change how the cel
+# look draws and no test sees that.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    ignore:
+      # Rapier is pinned exactly and never updated by a bot: a new version is a PHYSICS_VERSION event (CLAUDE.md, the
+      # determinism law). The golden master moves and every lap recording is refused, so it moves by decision.
+      - dependency-name: "@dimforge/rapier3d-compat"
+    groups:
+      three:
+        patterns: ["three", "@types/three"]
+      dev-tools:
+        dependency-type: development
+        exclude-patterns: ["@types/three"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
