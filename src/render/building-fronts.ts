@@ -31,6 +31,26 @@ function signAtlas(signs: readonly FrontModule[]): THREE.Texture | null {
   return texture;
 }
 
+export interface DockPart { x:number; y:number; z:number; w:number; h:number; d:number; color:string }
+/** The lit inside of an open shutter (x, y its centre, w, h its opening), below the door rolled under its header:
+ * the back of the dock, a strip light, the floor, racking with loaded pallets a bay or two short. Laid out for a
+ * freight dock's 3.83 m of opening under the roll and scaled to the one it is in, so a 3.6 m workshop bay keeps its
+ * racking inside the light; `frontageModuleIssues` keeps an open dock at 2.4 m or more. */
+export function openDockParts(x:number,y:number,w:number,h:number):DockPart[] {
+  const bottom=y-h/2,s=(h-.47)/3.83,parts:DockPart[]=[];
+  const put=(px:number,py:number,z:number,pw:number,ph:number,color:string)=>parts.push({x:px,y:bottom+py*s,z,w:pw,h:ph*s,d:.01,color});
+  put(x,1.915,.09,w-.1,3.83,"#7d8aa1");
+  put(x,3.48,.093,w-.1,.6,"#95a3ba");
+  put(x,3.71,.096,w-.6,.07,"#eef3ff");
+  put(x,.2,.10,w-.1,.36,"#3a424c");
+  for(const upright of [-.42,-.14,.14,.42])put(x+upright*w,1.715,.11,.14,3.43,"#1c2229");
+  for(const [level,beam] of [1.3,2.5].entries()) {
+    put(x,beam,.112,.86*w,.1,"#1c2229");
+    for(const bay of [0,1,2])if(!(bay===1&&level===1)&&!(bay===2&&level===0))put(x+(bay-1)*.28*w,beam+.44,.114,.22*w,.76,"#2c343d");
+  }
+  return parts;
+}
+
 /** Frames, ribs, signs and access all read the same facade plan. No extra lights,
  * no full model replacement, and repeated parts merge by material per building. */
 export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[],
@@ -166,19 +186,8 @@ export function addBuildingFronts(scene: THREE.Scene, plans: readonly FrontPlan[
           // Raised on its lit inside (a warehouse lights its docks, design/LOOK.md): the rolled door under the header,
           // a strip light, the floor, and loaded racking against the light. Flat, as the district's open docks are:
           // the building's own mass stands behind the wall, so there is no room to model.
-          const top=y+h/2-.47,bottom=y-h/2;
           box(metal,x,y+h/2-.24,.17,w-.04,.46,.34);
-          box(luminous,x,(top+bottom)/2,.09,w-.1,top-bottom,.01,false,"#7d8aa1");
-          box(luminous,x,top-.35,.093,w-.1,.6,.01,false,"#95a3ba");
-          box(luminous,x,top-.12,.096,w-.6,.07,.01,false,"#eef3ff");
-          box(luminous,x,bottom+.2,.10,w-.1,.36,.01,false,"#3a424c");
-          for(const upright of [-.42,-.14,.14,.42])box(luminous,x+upright*w,(bottom+top-.4)/2,.11,.14,top-.4-bottom,.01,false,"#1c2229");
-          for(const [level,beam] of [1.3,2.5].entries()) {
-            box(luminous,x,bottom+beam,.112,.86*w,.1,.01,false,"#1c2229");
-            // Loaded pallets, a bay or two short: a store that is working, not full.
-            for(const bay of [0,1,2])if(!(bay===1&&level===1)&&!(bay===2&&level===0))
-              box(luminous,x+(bay-1)*.28*w,bottom+beam+.44,.114,.22*w,.76,.01,false,"#2c343d");
-          }
+          for(const p of openDockParts(x,y,w,h))box(luminous,p.x,p.y,p.z,p.w,p.h,p.d,false,p.color);
         } else {
           box(metal,x,y,.10,w,h,.08);
           for(let rib=.2;rib<h;rib+=.23)box(fineMaterial,x,y-h/2+rib,.16,w-.12,.038,.025,true);

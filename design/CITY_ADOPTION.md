@@ -162,9 +162,10 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   other buildings in the city; it is HOLGATE COLD STORE now, named for its corner, and the test holds it unique.
 - **Defining feature.** The refrigeration plant on the roof: four evaporative condensers on a skid 1.35 m back from
   the street edge, two fan stacks each, the lagged header and its runs back to a machine room with a work light and
-  an exhaust stack: a silhouette over the roofline with a lit side, not a lamp. It reads southbound and at the kerb.
-  Northbound, the way out of the garage, the 17 m SOUTH HARBOR FREIGHT on the corner hides this 13 m roof, and what
-  a driver sees from 90 m is the lit dock (view A).
+  an exhaust stack: a silhouette over the roofline with a lit side, not a lamp. Southbound it is on the skyline from
+  well back. Northbound, the way out of the garage, the 17 m SOUTH HARBOR FREIGHT on the corner hides this 13 m roof
+  from 90 m out (view A, staged); from the Holgate junction on, driving, the plant, the sign and the lit dock are in
+  the frame together (the driven pass).
 - **Implemented activity.** Dock 01 stands open on its strip-lit inside with loaded racking, and a forklift works it:
   across, a stop, a turn in place, back, on a 12 s round, its amber beacon flashing at 1.4 Hz and throwing its light
   on the apron. Drawn from the sim's clock (`state.tick / 60`) in the renderer, as the junction flashers are: a
@@ -172,7 +173,8 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
   open lit dock, its white spill on the apron, the machine room's work light.
 - **Custom asset.** None. Boxes, cylinders and flat shapes in the fronts' vertex-coloured materials, the plant banded
   like the roofs under `cel-city`. Blender is for a landmark; this is a working building.
-- **Status.** Implemented; PR #20 open for review, not merged.
+- **Status.** Implemented, checked by staged views and scripted driven passes both ways; not yet driven by hand.
+  PR #20 open for review, not merged.
 - **Files.** `src/render/cold-storage.ts` (the place), `src/render/place-activity.ts` (each place's activity, run from
   `render()`), `src/render/building-fronts.ts` (an open shutter), `src/sim/building-fronts.ts` and
   `frontage-document.ts` (`open`, shutters only), `src/sim/alder-frontages.json` (the entry: renamed, docks named,
@@ -183,27 +185,33 @@ already paid for. `CLAUDE.md` holds each in full; read the ones a slice touches.
 - **Evidence.** `design/adoptions/holgate-cold-store/`: `sketch.svg` (the bounds, both approaches, capture points
   A, C and D), `dock-before-after.jpg` (C, stopped at the kerb facing the dock), `southbound-before-after.jpg` (D, 45 m
   short of it southbound), `approach-before-after.jpg` (A, 90 m short northbound), `forklift-round.jpg` (four
-  moments of the round). Driving height, the Standard chase camera settled, `?scene=track` on dev servers of `main`
-  and of this branch, the same poses.
+  moments of the round): the Standard chase camera settled on a stopped car, `?scene=track` on dev servers of `main`
+  and of this branch, the same poses. `driven-pass.jpg`: live frames from two driven passes (below), north at 76 mph
+  at the Holgate junction and south at 86 mph 15 m short.
 - **Shortcuts and jumps.** The row's 8 m gaps run from 1st Ave S back to open ground with no street behind it, so
   a gap leads into a field, not between two roads: rejected as a shortcut until a service road is drawn behind the
   row, when every gap becomes one. The slice has no ramp, deck or change of level: no jump candidate, and jumps wait
   for Shawn's decision anyway.
-- **Checks.** `pnpm test` 825 of 825 on the final tree, six of them `tests/cold-storage.test.ts` (saved state and
-  unique name, `open` refused off a shutter, every plant vertex on the roof and set back from the edge, no lights,
-  under 2,500 triangles, the forklift inside the doorway every tenth of its round and never jumping a tick, one
-  activity per place). `pnpm build`. `git diff --check`. `pnpm golden` 14 of 14 bit-identical to a baseline pinned
-  at the base commit (4d0e70a). `ALDER_DATA.version` the same string on `main` and here: no stored course,
+- **Checks.** `pnpm test` on the final tree, all passing, seven of them `tests/cold-storage.test.ts` (saved state and
+  unique name, `open` refused off a shutter, an open dock's inside held within its opening from 2.4 to 10 m and the
+  document refusing one under 2.4, every plant vertex on the roof and set back from the edge, no lights, under 2,500
+  triangles, every drawn vertex of the forklift inside the doorway and moving under 10 cm a tick through its round,
+  one activity per place). `pnpm build`. `git diff --check`. `pnpm golden` 14 of 14 bit-identical to a baseline
+  pinned at the base commit (4d0e70a). `ALDER_DATA.version` the same string on `main` and here: no stored course,
   recording or gate baseline moves. The editor's Dock door read back and round-tripped in the browser (apply, read,
-  undo; nothing saved). Not run: `pnpm laps --verify` (no race route touched), the rival gate (no sim change). Not
-  driven with a pad.
-- **Limitations.** The plant is hidden northbound (above), which is the drive most players make past it. The
-  forklift and the racking are flat in the doorway's plane, as the district's open docks are: from far along the
-  street it is a shape on a lit panel. The activity runs on the sim clock, so the garage and a frozen page hold it
-  still. No sound. Nothing visits: no truck backs onto dock 02, no car parks at the office. Captures are staged poses
-  of a stopped car, not a driven pass.
-- **Next revisit.** Make the place read northbound: light the apron (the district's freight docks have floodlights;
-  this front's single bar light is the kit's), or give the corner building a lower roof if its own adoption allows.
+  undo; nothing saved). Driven passes: from rest to 110 mph up and down 1st Ave S past the store, full throttle at
+  assist 1 with a lane-keeping steer on the keyboard's left and right, in the game at driving speed with the live
+  chase camera, both held to their lane (x printed -4.0 and -14.0 at every frame, so within 5 cm). A first northbound pass from south of Harbor Way met a
+  crossing sedan at that junction, pushed it 100 m and left the road, so it was discarded and the pass started past
+  the junction. Not run: `pnpm laps --verify` (no race route touched), the rival gate (no sim change).
+- **Limitations.** Northbound the plant is hidden until the Holgate junction (above). The forklift and the racking
+  are flat in the doorway's plane, as the district's open docks are: from far along the street it is a shape on a
+  lit panel. The activity runs on the sim clock, so the garage and a frozen page hold it still. No sound. Nothing
+  visits: no truck backs onto dock 02, no car parks at the office. The driven passes are scripted, not a hand on a
+  pad: they show what is on screen at speed, not how it feels to drive past.
+- **Next revisit.** Make the place read from further north: light the apron (the district's freight docks have
+  floodlights; this front's single bar light is the kit's), or give the corner building a lower roof if its own
+  adoption allows.
   A reefer trailer on dock 02 (solid, so sim-side: an obstacle off the carriageway, with its own
   collision and a `COUPLINGS.md` look at the rival and traffic), the plant's hum when passing, and the service road
   behind the row that would turn its gaps into shortcuts.

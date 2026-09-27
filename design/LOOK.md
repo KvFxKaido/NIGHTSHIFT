@@ -604,7 +604,8 @@ other buildings. Existing documents without these optional fields load unchanged
 **Dock door** (2026-09-27, the first city adoption, `design/CITY_ADOPTION.md`) opens a
 receiving shutter on its lit inside: the door rolled under its header, a strip light,
 the floor and loaded racking, flat against the wall as the district's generic open
-docks are. Only a shutter opens; the document refuses the flag on anything else.
+docks are, and scaled to the opening. Only a shutter 2.4 m or taller opens; the
+document refuses the flag on anything else.
 Whatever moves in an open dock belongs to its place (`src/render/cold-storage.ts`),
 not to the kit.
 

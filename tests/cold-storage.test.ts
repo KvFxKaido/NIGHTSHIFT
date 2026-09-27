@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import * as THREE from "three";
 import { ALDER_BUILDING_FRONTS, ALDER_FRONTAGE_DOCUMENT as DOC, alderHeight } from "../src/sim/alder.ts";
 import { pointFootprintDistance } from "../src/sim/building-footprint.ts";
-import { parseFrontageDocument } from "../src/sim/frontage-document.ts";
+import { OPEN_DOCK_HEIGHT, parseFrontageDocument } from "../src/sim/frontage-document.ts";
+import { openDockParts } from "../src/render/building-fronts.ts";
 import { addColdStorage, beaconPulse, COLD_STORAGE_ID, COLD_STORAGE_ROUND_SECONDS, forkliftPose } from "../src/render/cold-storage.ts";
 import { updatePlaceActivity } from "../src/render/place-activity.ts";
 
@@ -93,6 +94,27 @@ test("the forklift works inside dock 01's doorway through its whole round, and n
   assert.deepEqual(forkliftPose(COLD_STORAGE_ROUND_SECONDS), forkliftPose(0));
   const pulses = Array.from({ length: 600 }, (_, i) => beaconPulse(i / 60));
   assert.ok(Math.max(...pulses) > .99 && Math.min(...pulses) === 0, "the beacon flashes and goes dark");
+});
+
+test("an open dock's inside stays within its opening at any height a dock may open at", () => {
+  // The generator's shutters are 4.3 m (freight) and 3.6 m (workshop bays); racking laid out for 4.3 at fixed heights
+  // put the upper pallets of a 3.6 m bay above its light, and a 0.9 m one built boxes of negative height.
+  for (const h of [OPEN_DOCK_HEIGHT, 3.6, 4.3, 6, 10]) for (const w of [2, 5.8]) {
+    const y = h / 2, parts = openDockParts(0, y, w, h), top = y + h / 2 - .47, bottom = y - h / 2;
+    assert.ok(parts.length > 10);
+    for (const p of parts) {
+      assert.ok(p.w > 0 && p.h > 0 && p.d > 0, `a part of no size at ${h} m`);
+      assert.ok(Math.abs(p.x) + p.w / 2 <= w / 2 + 1e-9, `a part past the jambs of a ${w} m dock`);
+      assert.ok(p.y - p.h / 2 >= bottom - 1e-9 && p.y + p.h / 2 <= top + 1e-9, `a part outside the lit inside of a ${h} m dock`);
+    }
+  }
+  const raw = JSON.parse(JSON.stringify(DOC));
+  const dock = raw.entries.find((e: { buildingId: string }) => e.buildingId === COLD_STORAGE_ID).plan.modules
+    .find((m: { kind: string; open?: boolean }) => m.kind === "shutter" && m.open);
+  Object.assign(dock, { height: OPEN_DOCK_HEIGHT - .1, y: (OPEN_DOCK_HEIGHT - .1) / 2 });
+  assert.throws(() => parseFrontageDocument(raw), /An open dock needs 2.4 metres/);
+  Object.assign(dock, { height: 3.6, y: 1.8 });
+  assert.doesNotThrow(() => parseFrontageDocument(raw));
 });
 
 test("building the city twice keeps one cold store activity", () => {

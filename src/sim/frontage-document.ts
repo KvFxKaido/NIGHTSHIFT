@@ -19,6 +19,8 @@ export interface FrontageDocument {
 }
 export interface FrontageSite { id: string; block: BuildingBlock }
 export const FRONT_KINDS: readonly FrontKind[] = ["warehouse","shops","office","residential"];
+/** A shutter shorter than this stays shut: its lit inside, rolled door and racking need the room. */
+export const OPEN_DOCK_HEIGHT = 2.4;
 const MODULE_KINDS = ["door","glazing","shutter","sign","blade","light","canopy"];
 const object = (value: unknown): Record<string,unknown> => {
   if (!value || typeof value!=="object" || Array.isArray(value)) throw Error("Expected an object");
@@ -85,6 +87,7 @@ export function frontageModuleIssues(plan: FrontPlan): string[] {
     if(!doors.some(d=>d.owner===m.owner))issues.push("Every tenant needs its own entrance");
     if(m.kind==="door"&&(Math.abs(m.y-m.height/2)>.05||m.height<2||m.width<.9))issues.push("Doors must reach the landing and allow access");
     if((m.kind==="glazing"||m.kind==="shutter")&&(m.width<.5||m.height<.5))issues.push("Openings need room for their frames");
+    if(m.kind==="shutter"&&m.open&&m.height<OPEN_DOCK_HEIGHT)issues.push(`An open dock needs ${OPEN_DOCK_HEIGHT} metres of headroom`);
     if(m.kind==="canopy"&&m.y-m.height/2<2.7)issues.push("Canopies need 2.7 metres of clearance");
     if(m.kind==="blade"&&(m.width>1.6||m.height>3||m.y-m.height/2<2.7))issues.push("Projecting signs must fit above pedestrians and stay within 1.6 metres of projection");
     if((m.kind==="sign"||m.kind==="blade")&&!m.text?.trim())issues.push("Signs need a name or number");
