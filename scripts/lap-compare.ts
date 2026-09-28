@@ -19,9 +19,10 @@ import { fileURLToPath } from "node:url";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { recordedEvent } from "../src/sim/recorded-event.ts";
 import { createLapRecorder, recordTick, type LapSession, type RecordedLap } from "../src/sim/lap-recorder.ts";
-import { recordedWorld, replayLapSession } from "../src/sim/lap-replay.ts";
+import { replayLapSession } from "../src/sim/lap-replay.ts";
 import { sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
-import { carHandling, createSim, step, TICK_HZ, type Drivetrain, type Sim } from "../src/sim/sim.ts";
+import { runScenario, sessionScenario } from "../src/sim/scenario.ts";
+import { step, TICK_HZ, type Sim } from "../src/sim/sim.ts";
 
 const MPH = 2.23694;
 /** Metres either side of a gate that count as its corner, and where entry and exit speed are read. */
@@ -68,10 +69,8 @@ export function compareSession(session: LapSession, rival?: RivalDefinition, onT
   if (!raced?.rival) throw new Error(`${session.race} has no rival to compare with: race one that is not solo`);
   if (!raced.comparable) throw new Error(`${session.race} cannot be compared gate by gate: a generated circuit's laps lie over each other and an unordered race is driven in the driver's own order. Its input log still replays (pnpm laps --verify).`);
   const event = { ...raced, rival: rival ?? raced.rival };
-  const handling = carHandling(session.car, session.drivetrain as Drivetrain);
-  const sim = createSim(handling, recordedWorld(event),
-    { race: event.race, rival: event.rival, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
-  try {
+  // The session's scenario (scenario.ts): the same construction the replay check drives the log into.
+  return runScenario(sessionScenario(session, event), sim => {
     const you = createLapRecorder(event.track), theirs = createLapRecorder(event.track);
     const { throttle, brake, steer, handbrake } = session.inputs;
     for (let i = 0; i < throttle.length; i++) {
@@ -110,7 +109,7 @@ export function compareSession(session: LapSession, rival?: RivalDefinition, onT
     const rivalWidest = Math.max(0, ...theirs.laps.flatMap(lap => lap.samples.offset.map(Math.abs)));
     return { race: session.race, car: session.car, pedalAssist: session.pedalAssist ?? 1, laps, corners, gainedInCorners, gainedElsewhere: total - gainedInCorners,
       playerReproduced, rivalResets: sim.state.rival!.driver.resets, rivalWidest };
-  } finally { sim.world.free(); }
+  });
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

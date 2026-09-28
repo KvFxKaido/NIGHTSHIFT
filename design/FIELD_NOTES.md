@@ -10,6 +10,38 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## The scenario helper (2026-09-28)
+
+Shawn brought a proposal for "personalizing the engine": explicit engine primitives, content as JSON, an agent-facing
+surface with setters like `engine.traffic.setProfile(...)`, and a rule for when to promote something, "first
+occurrence game code, second suspicious, third engine feature". Most of what it proposed was already here under other
+names (`__ns`, the batch scripts, the recordings), the JSON split would have thrown away the sentence beside every
+tuned number that says what it was measured on, and a setter with a clean name is a promise the number moves alone,
+which `design/COUPLINGS.md` exists to deny. But the promotion rule, applied to the repo, found one thing: nine places
+in the scripts stood a sim up by hand, each its own `createSim(carHandling(...), createAlderWorld(true, ...), {
+... })`, and the two that had to agree, the replay check and the lap comparison, agreed by discipline.
+
+So `src/sim/scenario.ts`: a scenario is a car, a world and the sim's options, as data, with a name; `openScenario`
+is `createSim` on it, `runScenario` frees the world after whatever the body does. Two builders reproduce what the
+game and the replay assemble: `raceScenario` from what `recordedEvent` says a race id is (its world by venue, its
+fielded rival, its traffic), `sessionScenario` from a recording (its car, its traffic seed, its pedal assist, absent
+being seed 0 and the clamp). The gate's own set-up, the shipped line stripped and the batch's put on under the
+environment's knobs with the player parked across town, was in the batch and the scene verbatim, and is
+`scripts/batch-race.ts`. The golden master, the batch, the scene, the car cards, the drift driver, the replay check
+and the comparison all open one now; the game (`main.ts`) still assembles its own, since its construction is a
+different shape (free roam or a race, the garage's car, the venue) and was not a batch script's.
+
+What it is not: a loop, a driver, or a resolver of its own. Each instrument keeps the loop that drives its scenario
+and what it reads from it, and nothing in the module decides anything. Not every construction was promoted: Sable's
+yard event is stood up the same way in the golden master and the drift driver, a second occurrence, and stays two.
+
+Proved inert the only way that counts. `pnpm golden --save` at HEAD, before the change (the local baseline predated
+it), then `pnpm golden` after: 14 of 14 bit-identical. The batch's rows for seven races over two seeds, with and
+without the line and with `--legacy-pass`, the scene's contact dissection and its trace, the cards for the Cinder and
+the NS-01 with laps, streets and drift, the comparison and `pnpm laps --verify`: each captured at HEAD and again on
+the helper, byte for byte the same. `tests/scenario.test.ts` holds the two builders to the hand-built constructions
+in CI, where the golden master cannot reach.
+
 ## Dressing the bare junctions (2026-09-24)
 
 Asked for: dress the 56 junctions step 1 left bare, as recommended ("one awkward approach loses its pole but keeps its

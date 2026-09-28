@@ -376,7 +376,8 @@ fixtures outside the playable bundle, and old world links redirect.
 | Venues: the stadium world, its shell, floor and gates; its circuits and their races | `stadium.ts`, `stadium-circuits.ts`, `stadium-events.ts`, `render/stadium.ts` | `design/VENUES.md` |
 | A circuit's lap from named corners, Ridge's and the stadium's; drawing one | `circuit-plan.ts`, `render/track-strips.ts` | `design/VENUES.md` ("The circuits") |
 | Street circuit | `street-circuit.ts`, `circuits.ts` (either circuit from a race id) | `design/PORT_ALDER.md` |
-| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene, the slowdown census | `street-line.ts`, `traffic-pass.ts`, `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `scripts/rival-census.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
+| The rival in traffic: corner lines, committed passes, the 83-race batch, the six-seed gate, one race as a scene, the slowdown census | `street-line.ts`, `traffic-pass.ts`, `scripts/batch-race.ts` (the gate's set-up, one scenario), `scripts/street-line-batch.ts`, `scripts/rival-gate.ts`, `scripts/rival-scene.ts`, `scripts/rival-census.ts`, `design/measurements/` | `design/PORT_ALDER.md` ("Corner lines in traffic", "Committed traffic passes"); how other games and robot drivers overtake: `design/reference/overtaking.md` |
+| A scenario: what a sim is stood up from, as data, for every instrument that drives one alone (golden, gate, scene, cards, replay, compare) | `scenario.ts` (`raceScenario` from a race id, `sessionScenario` from a recording, `runScenario`), `scripts/batch-race.ts` | its header; `design/FIELD_NOTES.md` ("The scenario helper") |
 | Lap recording, what a race id means to one, replay check, save endpoint | `lap-recorder.ts`, `recorded-event.ts`, `lap-replay.ts`, `src/recording/`, `scripts/laps-server.mjs` | `recordings/README.md` |
 | Rival portraits, HUD contact card | `design/reference/characters/<id>/`, `src/ui/rival-card.ts` | `design/CHARACTERS.md` |
 | The Blacklist: ten career names, stages, pay, ladder screen | `settings/blacklist.ts`, `settings/progress.ts`, `ui/blacklist-panel.ts` | `design/BLACKLIST.md` |
@@ -638,7 +639,10 @@ fixtures outside the playable bundle, and old world links redirect.
   arc runs wide). Judge the ladder by a name near its top in its own car, not by the circuits, which field Moth's.
 - A recording replays against what `recordedEvent` draws from the session (race id, laps, `startCode`, solo), so the
   game builds a generated race from that same call, never beside it: a race the game assembles differently from the
-  replay is a recording that diverges with nothing to name why. A generated race is one lap to the recorder, so it is
+  replay is a recording that diverges with nothing to name why. The sim a log is replayed into is the session's
+  scenario (`sessionScenario`, `scenario.ts`, 2026-09-28), which the replay check and `laps:compare` share: to then
+  they each assembled it and agreed by discipline, so build a replay on it, never on a `createSim` beside it. A
+  generated race is one lap to the recorder, so it is
   saved only when finished, and a player who wins leaves the rival with no lap: `laps:compare` lets it finish after
   the log and says so. A generated race's flash (`startCode`) is part of what its id draws.
 - A lap recording replays only from an unbroken run: moving the car outside

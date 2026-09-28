@@ -11,17 +11,15 @@
 //   pnpm rival:scene street-uptown --seed=42 --until=120      stop after that many race seconds
 //
 // The batch's knobs (PLAN, REACH, BEND, BENDTANGENT, WORTH, SLIP, FRAME, FOLLOW) are read from the environment as it reads
-// them. A contact is the batch's own test (a box against a box, roughly), so a scene counts what the gate counted.
+// them, and the race is the batch's own set-up (batch-race.ts). A contact is the batch's own test (a box against a box,
+// roughly), so a scene counts what the gate counted.
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createAlderWorld } from "../src/sim/alder.ts";
-import { alderCourseDraws, drawAlderCourse } from "../src/sim/alder-course.ts";
-import { circuitEvent } from "../src/sim/circuits.ts";
-import { RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, sampleDrivingPath, type RivalDefinition } from "../src/sim/rival.ts";
+import { sampleDrivingPath } from "../src/sim/rival.ts";
 import { RIVAL_REVISIONS } from "../src/sim/rival-revision.ts";
-import { carHandling, createSim, step, TICK_HZ } from "../src/sim/sim.ts";
-import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
-import { withStreetLine } from "../src/sim/street-line.ts";
+import { openScenario } from "../src/sim/scenario.ts";
+import { step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS, TRAFFIC_REVISION } from "../src/sim/traffic.ts";
+import { applyDriverKnobs, batchRace } from "./batch-race.ts";
 
 await RAPIER.init();
 const arg = (name: string) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -29,21 +27,12 @@ const id = process.argv.slice(2).find(a => !a.startsWith("--"));
 if (!id) throw new Error("Pass a race id (gen-56, street-uptown) and --seed=; --from= --to= for a trace, --until= to stop early.");
 const seed = Number(arg("seed") ?? 0), until = Number(arg("until") ?? 330), every = Number(arg("every") ?? 0.2);
 const from = arg("from") === undefined ? null : Number(arg("from")), to = Number(arg("to") ?? Infinity);
-if (process.env.SLIP) (RIVAL_STEERING as { slip: number }).slip = Number(process.env.SLIP);
-if (process.env.FOLLOW === "0") (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = false;
-if (process.env.FRAME === "0") (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = false;
+applyDriverKnobs();
 
-let route: RivalDefinition, race;
-if (id.startsWith("street-")) { const event = circuitEvent(id, 3)!; route = event.rival!; race = event.race; }
-else {
-  if (!alderCourseDraws(id, null)) throw new Error(`${id} draws no race`);
-  const course = drawAlderCourse(id, null); route = { ...course.rival }; race = course.race;
-}
-const { line: _shipped, ...bare } = route as RivalDefinition & { line?: unknown };
-const rival = withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
-  { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}),
-    ...(process.env.BENDTANGENT ? { bendTangent: Number(process.env.BENDTANGENT) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) });
-const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true, trafficSeed: seed });
+const scenario = batchRace(id, { seed });
+if (!scenario) throw new Error(`${id} draws no race`);
+const rival = scenario.options.rival!;
+const sim = openScenario(scenario);
 console.log(`${id}, traffic seed ${seed}, ${TRAFFIC_REVISION}, ${RIVAL_REVISIONS.driver}: ${from === null ? "every contact" : `the rival from ${from} to ${to === Infinity ? "the end" : to} m`}`);
 
 const mph = (v: number) => (v * 2.237).toFixed(0);

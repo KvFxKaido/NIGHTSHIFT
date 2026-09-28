@@ -25,7 +25,7 @@ const arg = (name: string) => process.argv.find(a => a.startsWith(`--${name}=`))
 const SEEDS = (arg("seeds") ?? "0,1000,271828,1,42,314159").split(",").map(Number);
 const BASELINE = arg("baseline") ?? "design/measurements/rival-gate.json";
 const GROUPS = 4;
-const SOURCES = ["src/sim/traffic.ts", "src/sim/rival.ts", "src/sim/sim.ts", "src/sim/traffic-pass.ts", "src/sim/street-line.ts", "src/sim/car-handling.ts", "scripts/street-line-batch.ts"];
+const SOURCES = ["src/sim/traffic.ts", "src/sim/rival.ts", "src/sim/sim.ts", "src/sim/traffic-pass.ts", "src/sim/street-line.ts", "src/sim/car-handling.ts", "src/sim/scenario.ts", "scripts/batch-race.ts", "scripts/street-line-batch.ts"];
 
 type Row = { id: string; seconds: number | null; contact: number; contactOnLine: number; passContact: number; off: number; resets: number; unseen: number; reversals: number; events?: string[] };
 const group = (k: number) => [...(k === 0 ? ["street-uptown"] : []), ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`).filter((_, i) => (i + 1) % GROUPS === k)];

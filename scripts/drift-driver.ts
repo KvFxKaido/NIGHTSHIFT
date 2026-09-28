@@ -1,7 +1,8 @@
-import { carHandling, createSim, step, type Input, type VehicleState } from "../src/sim/sim.ts";
+import { carHandling, step, type Input, type VehicleState } from "../src/sim/sim.ts";
 import { createAlderWorld } from "../src/sim/alder.ts";
 import { SABLE_DRIFT } from "../src/sim/drift-event.ts";
 import { DRIFT_YARD, SABLE, YARD_LINE } from "../src/sim/drift-yard.ts";
+import { runScenario } from "../src/sim/scenario.ts";
 
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const wrap = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
@@ -48,12 +49,12 @@ function createDriftDriver(): (car: VehicleState) => Input {
 }
 
 export function measureDrift(car: string) {
-  const sim = createSim(carHandling(car), createAlderWorld(true, DRIFT_YARD.start),
-    { race: SABLE_DRIFT, traffic: false, parkedRivals: [SABLE] });
-  const driver = createDriftDriver();
-  let driftingTicks = 0, angleSum = 0, bestAngle = 0, spins = 0, contacts = 0, leftBounds = false;
-  let wasSpin = false, wasContact = false;
-  try {
+  // Sable's yard event, as the golden master's drift run is stood up (scripts/golden.ts).
+  return runScenario({ name: `${car} at Sable's yard`, handling: carHandling(car), world: createAlderWorld(true, DRIFT_YARD.start),
+    options: { race: SABLE_DRIFT, traffic: false, parkedRivals: [SABLE] } }, sim => {
+    const driver = createDriftDriver();
+    let driftingTicks = 0, angleSum = 0, bestAngle = 0, spins = 0, contacts = 0, leftBounds = false;
+    let wasSpin = false, wasContact = false;
     const limit = SABLE_DRIFT.countdownTicks + SABLE_DRIFT.drift!.durationTicks;
     for (let tick = 0; !sim.state.race!.finished && tick < limit; tick++) {
       step(sim, sim.state.race!.countdown ? { throttle: 0, brake: 0, steer: 0, handbrake: 0 } : driver(sim.state.vehicle));
@@ -80,5 +81,5 @@ export function measureDrift(car: string) {
       meanAngle: driftingTicks ? angleSum / driftingTicks : 0, bestAngle,
       driftingTicks, ticks: sim.state.race!.ticks, driftingShare: driftingTicks / sim.state.race!.ticks,
       transitions: drift.transitions, clips: drift.clips, spins, contacts, leftBounds };
-  } finally { sim.world.free(); }
+  });
 }

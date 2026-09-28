@@ -19,7 +19,8 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { CAR_TUNES, type CarTune } from "../src/sim/car-handling.ts";
 import { measureCar } from "../src/sim/car-card.ts";
-import { carHandling } from "../src/sim/sim.ts";
+import type { RivalDefinition, RivalDriver } from "../src/sim/rival.ts";
+import { carHandling, step, TICK_HZ, type Input, type Sim } from "../src/sim/sim.ts";
 
 await RAPIER.init();
 const args = process.argv.slice(2);
@@ -57,66 +58,60 @@ const circuits = ["arena-full", "arena-east", "arena-ridge", "street-uptown-clea
 // Chosen by geography (2.5–4.8 km), not by which car wins or avoids traffic.
 const sprints = ["gen-1", "gen-7", "gen-15", "gen-moth-12", "gen-crest-23", "gen-wake-42"];
 const streetLimit = 300; // Seconds after the flag, enough for slow runs and reversing.
-const streetTools = streets ? {
-  ...(await import("../src/sim/alder-course.ts")), ...(await import("../src/sim/alder.ts")),
-  ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/sim.ts")),
-  ...(await import("../src/sim/traffic.ts")),
+// Port Alder is loaded only for the AI laps and the streets: a plain card is driven on the flat world.
+const tools = laps || streets ? {
+  ...(await import("../src/sim/alder-course.ts")), ...(await import("../src/sim/alder.ts")), ...(await import("../src/sim/circuits.ts")),
+  ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/scenario.ts")), ...(await import("../src/sim/traffic.ts")),
 } : null;
-const courses = streetTools ? sprints.map(id => {
-  if (!streetTools.alderCourseDraws(id, null)) throw new Error(`Street benchmark '${id}' no longer draws`);
-  return streetTools.drawAlderCourse(id, null);
+const courses = streets ? sprints.map(id => {
+  if (!tools!.alderCourseDraws(id, null)) throw new Error(`Street benchmark '${id}' no longer draws`);
+  return tools!.drawAlderCourse(id, null);
 }) : [];
-const lapTools = laps ? {
-  ...(await import("../src/sim/circuits.ts")), ...(await import("../src/sim/alder.ts")),
-  ...(await import("../src/sim/rival.ts")), ...(await import("../src/sim/sim.ts")),
-} : null;
 const driftTools = drift ? await import("./drift-driver.ts") : null;
+// The rival's planner at this car's wheel, on `route`, seeing whatever traffic the sim has: the same driver in every car.
+const planned = (route: RivalDefinition, sim: Sim, driver: RivalDriver): Input => tools!.rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race },
+  (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: tools!.TRAFFIC_KINDS[vehicle.kind].length })), null);
 for (const car of cars) {
   const row: Row = { ...measureCar(carHandling(car)), revision: CAR_TUNES[car]!.revision };
   if (driftTools) row.drift = driftTools.measureDrift(car);
-  if (lapTools) {
-    const { circuitEvent, createAlderWorld, createRivalDriver, rivalInput, createSim, step, TICK_HZ } = lapTools;
+  if (laps) {
+    const { circuitEvent, createAlderWorld, createRivalDriver, runScenario } = tools!;
     row.laps = {};
     for (const raceId of circuits) {
       // Uptown is driven on the route the rival has in traffic, the centreline with its lane arcs, on clear streets:
       // what this column has always measured, and what every street race but Uptown / Clear is driven on. The clear
       // race's own rival has a racing line since 2026-09-20, which would move every car's number for no tune.
       const event = circuitEvent(raceId === "street-uptown-clear" ? "street-uptown" : raceId, 3)!;
-      // From the rival's own grid slot, on its own line, in this car.
+      // From the rival's own grid slot, on its own line, in this car, and nobody else in the race.
       const route = { ...event.rival!, car };
-      const sim = createSim(carHandling(car), createAlderWorld(true, route.start), { race: event.race, traffic: false });
-      const driver = createRivalDriver();
-      try {
-        for (let tick = 0; !sim.state.race!.finished && tick < 600 * TICK_HZ; tick++) {
-          step(sim, rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, [], null));
-        }
+      row.laps[raceId] = runScenario({ name: raceId, handling: carHandling(car), world: createAlderWorld(true, route.start), options: { race: event.race, traffic: false } }, sim => {
+        const driver = createRivalDriver();
+        for (let tick = 0; !sim.state.race!.finished && tick < 600 * TICK_HZ; tick++) step(sim, planned(route, sim, driver));
         const gates = event.race.gatesPerLap ?? event.race.checkpoints.length, splits = sim.state.race!.splits;
         const ends = [1, 2, 3].map(lap => splits[lap * gates - 1] ?? NaN);
         const times = ends.map((end, i) => (end - (i ? ends[i - 1]! : 0)) / TICK_HZ);
-        row.laps[raceId] = { first: Math.round(times[0]! * 100) / 100, best: Math.round(Math.min(times[1]!, times[2]!) * 100) / 100 };
-      } finally { sim.world.free(); }
+        return { first: Math.round(times[0]! * 100) / 100, best: Math.round(Math.min(times[1]!, times[2]!) * 100) / 100 };
+      });
     }
   }
-  if (streetTools) {
-    const { createAlderWorld, createRivalDriver, rivalInput, createSim, step, TICK_HZ, TRAFFIC_KINDS } = streetTools;
+  if (streets) {
+    const { createAlderWorld, createRivalDriver, runScenario } = tools!;
     row.streets = {};
     for (const course of courses) {
       const route = { ...course.rival, car };
       const runs = {} as Record<"clear" | "traffic", StreetResult>;
       for (const mode of ["clear", "traffic"] as const) {
-        const sim = createSim(carHandling(car), createAlderWorld(true, course.start ?? undefined), { race: course.race, traffic: mode === "traffic" });
-        const driver = createRivalDriver();
-        try {
-          while (!sim.state.race!.finished && sim.state.race!.ticks < streetLimit * TICK_HZ) {
-            const obstacles = mode === "clear" ? [] : (sim.state.traffic?.vehicles ?? []).map(vehicle => ({ ...vehicle, length: TRAFFIC_KINDS[vehicle.kind].length }));
-            step(sim, rivalInput(route, { vehicle: sim.state.vehicle, driver, race: sim.state.race }, obstacles, null));
-          }
+        // From where the world starts, on the course's bare route (no line), clear or in seed 0's traffic.
+        runs[mode] = runScenario({ name: `${course.race.id} ${mode}`, handling: carHandling(car), world: createAlderWorld(true, course.start ?? undefined),
+          options: { race: course.race, traffic: mode === "traffic" } }, sim => {
+          const driver = createRivalDriver();
+          while (!sim.state.race!.finished && sim.state.race!.ticks < streetLimit * TICK_HZ) step(sim, planned(route, sim, driver));
           const race = sim.state.race!;
           // The player rig has no rival teleport recovery; these counters stay zero.
           // Reversing recoveries do run in rivalInput and help explain a slow finish.
-          runs[mode] = { seconds: race.finished ? race.ticks / TICK_HZ : null,
+          return { seconds: race.finished ? race.ticks / TICK_HZ : null,
             resets: driver.resets, unseenResets: driver.unseenResets, recoveries: driver.recoveries };
-        } finally { sim.world.free(); }
+        });
       }
       row.streets[course.race.id] = { ...runs, trafficCost: runs.clear.seconds !== null && runs.traffic.seconds !== null
         ? runs.traffic.seconds - runs.clear.seconds : null };

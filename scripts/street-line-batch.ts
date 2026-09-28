@@ -1,39 +1,29 @@
 // The rival in its own slot in the sim, in traffic, with the player parked across town: with the street line, or without.
 import RAPIER from "@dimforge/rapier3d-compat";
 import { appendFileSync, writeFileSync } from "node:fs";
-import { createAlderWorld } from "../src/sim/alder.ts";
-import { alderCourseDraws, drawAlderCourse } from "../src/sim/alder-course.ts";
-import { circuitEvent } from "../src/sim/circuits.ts";
-import { RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, sampleDrivingPath, sampleRivalPath, shiftAt, type RivalDefinition } from "../src/sim/rival.ts";
-import { createSim, step, TICK_HZ, carHandling } from "../src/sim/sim.ts";
-import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
-import { withStreetLine } from "../src/sim/street-line.ts";
+import { sampleDrivingPath, sampleRivalPath, shiftAt } from "../src/sim/rival.ts";
+import { openScenario } from "../src/sim/scenario.ts";
+import { step, TICK_HZ } from "../src/sim/sim.ts";
 import { TRAFFIC_KINDS } from "../src/sim/traffic.ts";
+import { applyDriverKnobs, batchRace } from "./batch-race.ts";
 import { slowdownTracker } from "./rival-slowdowns.ts";
 
 await RAPIER.init();
 const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace"), census = process.argv.includes("--census");
 const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
-// SLIP=0 is the steering feedforward without the tyres' slip, as it was to full-line-v31.
-if (process.env.SLIP) (RIVAL_STEERING as { slip: number }).slip = Number(process.env.SLIP);
-// FOLLOW=0 judges a slower car ahead against where the rival means to be alone, as it was to driver-v1.
-if (process.env.FOLLOW === "0") (RIVAL_RACING as { followWhereItIs: boolean }).followWhereItIs = false;
-// FRAME=0 reads every car from the aim point's frame, as it was to full-line-v31.
-if (process.env.FRAME === "0") (RIVAL_TRAFFIC_FRAME as { on: boolean }).on = false;
+// The driver's knobs (SLIP, FOLLOW, FRAME) and the line's (PLAN, REACH, BEND, BENDTANGENT, WORTH): batch-race.ts.
+applyDriverKnobs();
 if (output) writeFileSync(output, "");
 const ids = process.argv.includes("--all") ? ["street-uptown", ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`)]
   : process.argv.slice(2).filter(a => !a.startsWith("--"));
 if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --census for slowdowns, --output=path.jsonl to save rows.");
 for (const id of ids) {
-  let route: RivalDefinition, race;
-  if (id.startsWith("street-")) { const event = circuitEvent(id, 3)!; route = event.rival!; race = event.race; }
-  else { if (!alderCourseDraws(id, null)) continue; const course = drawAlderCourse(id, null); route = { ...course.rival }; race = course.race; }
-  const { line: _shipped, ...bare } = route as RivalDefinition & { line?: unknown };
-  const rival = withLine ? withStreetLine(bare, STREET_CIRCUIT_LINE, Number(process.env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
-    { ...(process.env.REACH ? { reach: Number(process.env.REACH) } : {}), ...(process.env.BEND ? { bendFrom: Number(process.env.BEND) } : {}), ...(process.env.BENDTANGENT ? { bendTangent: Number(process.env.BENDTANGENT) } : {}), ...(process.env.WORTH ? { worth: Number(process.env.WORTH) } : {}) }) : bare;
-  if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
   // TRAFFIC_SEED=n runs every race against another traffic (createTraffic): the rival alone across traffic layouts.
-  const sim = createSim(carHandling("cinder", "rwd"), createAlderWorld(true), { race, rival, traffic: true, trafficSeed: Number(process.env.TRAFFIC_SEED ?? 0) });
+  const scenario = batchRace(id, { line: withLine, seed: Number(process.env.TRAFFIC_SEED ?? 0) });
+  if (!scenario) continue;
+  const rival = scenario.options.rival!;
+  if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
+  const sim = openScenario(scenario);
   let aborts = 0, wasGo = false, contactOnLine = 0; let contact = 0, off = 0, stray = 0, onLine = 0, racing = 0, jumps = 0, lastAlong = 0, goCorners = 0, lastCorner = -1, wentGo = false, corners = 0;
   const events: string[] = [];
   let passTicks = 0, passes = 0, passContact = 0, lastPass = -1;

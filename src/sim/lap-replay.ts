@@ -5,22 +5,21 @@
  * recorded by another build, or was not recorded from an unbroken run. Rapier
  * must be initialised first, as for any `createSim`.
  */
-import { ALDER_VERSION, createAlderWorld } from "./alder.ts";
-import { STADIUM_VERSION, createStadiumWorld } from "./stadium.ts";
+import { ALDER_VERSION } from "./alder.ts";
+import { STADIUM_VERSION } from "./stadium.ts";
 import { GENERATED_LAYOUT, recordedEvent, type RecordedEvent } from "./recorded-event.ts";
 import { rivalDifference } from "./rival-revision.ts";
+import { openScenario, sessionScenario } from "./scenario.ts";
 import { TRAFFIC_REVISION } from "./traffic.ts";
 import { createLapRecorder, recordTick, LAP_RECORDING_FORMAT, type LapSession } from "./lap-recorder.ts";
-import { carHandling, createSim, isDrivetrain, step, PHYSICS_VERSION, TICK_HZ } from "./sim.ts";
+import { carHandling, isDrivetrain, step, PHYSICS_VERSION, TICK_HZ } from "./sim.ts";
+
+// The world a recorded race runs in lives with the scenario now; the tests and the tools still find it here.
+export { recordedWorld } from "./scenario.ts";
 
 export type ReplayResult =
   | { ok: true; laps: number }
   | { ok: false; reason: string };
-
-/** The world a recorded race runs in, from its grid: Port Alder, or the venue a stadium circuit names. */
-export function recordedWorld(event: RecordedEvent) {
-  return event.venue === "stadium" ? createStadiumWorld(event.start) : createAlderWorld(true, event.start);
-}
 
 export function replayLapSession(session: LapSession): ReplayResult {
   if (session.format !== LAP_RECORDING_FORMAT) return { ok: false, reason: `format ${session.format}, expected ${LAP_RECORDING_FORMAT}` };
@@ -44,9 +43,9 @@ export function replayLapSession(session: LapSession): ReplayResult {
   // The car it was driven in, on the layout it was driven on (a developer comparison may differ from the car's own).
   const handling = carHandling(session.car, session.drivetrain);
   if ((session.carRevision ?? 1) !== handling.revision) return { ok: false, reason: `driven in the ${session.car} at handling revision ${session.carRevision ?? 1}, this build's is ${handling.revision}` };
-  // Traffic is part of the world and replays with it, by its revision.
-  const sim = createSim(handling, recordedWorld(event),
-    { race: event.race, rival: event.rival ?? undefined, traffic: event.traffic, trafficSeed: session.trafficSeed ?? 0, pedalAssist: session.pedalAssist ?? 1 });
+  // Traffic is part of the world and replays with it, by its revision. What the log is replayed into is the session's
+  // scenario (scenario.ts), the same construction the lap comparison drives.
+  const sim = openScenario(sessionScenario(session, event));
   try {
     const recorder = createLapRecorder(event.track);
     const { throttle, brake, steer, handbrake } = session.inputs;

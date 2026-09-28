@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createSim, resetSim, step, type Input, type Sim } from "../src/sim/sim.ts";
+import { carHandling, createSim, resetSim, step, type Input, type Sim } from "../src/sim/sim.ts";
 import { createAlderWorld, ALDER_RACE } from "../src/sim/alder.ts";
 import { ALDER_RIVAL } from "../src/sim/alder-rival.ts";
 import { ALDER_CRUISE } from "../src/sim/encounter.ts";
@@ -23,8 +23,8 @@ import { BLACKLIST_CRUISERS } from "../src/sim/alder-cruisers.ts";
 import { RIVET, HARBOR_DRAG, DRAG_START, RIVET_DRAG_DRIVER } from "../src/sim/drag-event.ts";
 import { SABLE, SABLE_CITY, DRIFT_YARD } from "../src/sim/drift-yard.ts";
 import { SABLE_DRIFT } from "../src/sim/drift-event.ts";
-import { arenaEvent } from "../src/sim/arena-events.ts";
-import { drawAlderCourse, fieldAlderRival } from "../src/sim/alder-course.ts";
+import { recordedEvent } from "../src/sim/recorded-event.ts";
+import { raceScenario, runScenario } from "../src/sim/scenario.ts";
 
 await RAPIER.init();
 const args = new Set(process.argv.slice(2));
@@ -54,43 +54,30 @@ for (const layout of ["fwd", "awd", "rwd"] as const) {
   run(`blackglass ${layout} after reset`, `player: shared ${layout}`, sim, 300);
   sim.world.free();
 }
+// The shared model on each layout, the fixtures' car.
+const shared = { rwd: carHandling(null, "rwd"), awd: carHandling(null, "awd") };
+runScenario({ name: "sound to sky", handling: shared.rwd, world: createAlderWorld(true), options: { race: ALDER_RACE, rival: ALDER_RIVAL } },
+  sim => run("sound to sky, rival", `player: shared rwd; rival: ${ALDER_RIVAL.car}`, sim, 2400));
 {
-  const sim = createSim("rwd", createAlderWorld(true), { race: ALDER_RACE, rival: ALDER_RIVAL });
-  run("sound to sky, rival", `player: shared rwd; rival: ${ALDER_RIVAL.car}`, sim, 2400);
-  sim.world.free();
+  // A race as the game fields it, from its id (recorded-event.ts, scenario.ts).
+  const ridge = raceScenario(recordedEvent("arena-full")!, shared.awd);
+  runScenario(ridge, sim => run("ridge circuit full, racing line", `player: shared awd; rival: ${ridge.options.rival!.car}`, sim, 3000,
+    t => ({ ...pattern(t), steer: Math.sin(t / 53) * 0.5 })));
 }
-{
-  const event = arenaEvent("full");
-  const sim = createSim("awd", createAlderWorld(true, event.start), { race: event.race, rival: event.rival!, traffic: false });
-  run("ridge circuit full, racing line", `player: shared awd; rival: ${event.rival!.car}`, sim, 3000,
-    t => ({ ...pattern(t), steer: Math.sin(t / 53) * 0.5 }));
-  sim.world.free();
-}
-{
-  const sim = createSim("rwd", createAlderWorld(true, DRAG_START), { race: HARBOR_DRAG, rival: RIVET_DRAG_DRIVER, traffic: false });
-  run("drag strip", `player: shared rwd; rival: ${RIVET_DRAG_DRIVER.car}`, sim, 900,
-    t => ({ throttle: 1, brake: 0, steer: 0, handbrake: 0, shiftUp: t % 90 === 0 }));
-  sim.world.free();
-}
-{
-  const sim = createSim("rwd", createAlderWorld(true, DRIFT_YARD.start), { race: SABLE_DRIFT, traffic: false, parkedRivals: [SABLE] });
-  run("drift yard, Sable parked", `player: shared rwd; parked: ${SABLE.car}`, sim, 1200);
-  sim.world.free();
-}
-{
-  const sim = createSim("rwd", createAlderWorld(false), { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE_CITY],
-    cruisers: BLACKLIST_CRUISERS.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) });
+runScenario({ name: "drag strip", handling: shared.rwd, world: createAlderWorld(true, DRAG_START), options: { race: HARBOR_DRAG, rival: RIVET_DRAG_DRIVER, traffic: false } },
+  sim => run("drag strip", `player: shared rwd; rival: ${RIVET_DRAG_DRIVER.car}`, sim, 900,
+    t => ({ throttle: 1, brake: 0, steer: 0, handbrake: 0, shiftUp: t % 90 === 0 })));
+runScenario({ name: "drift yard", handling: shared.rwd, world: createAlderWorld(true, DRIFT_YARD.start), options: { race: SABLE_DRIFT, traffic: false, parkedRivals: [SABLE] } },
+  sim => run("drift yard, Sable parked", `player: shared rwd; parked: ${SABLE.car}`, sim, 1200));
+runScenario({ name: "free roam", handling: shared.rwd, world: createAlderWorld(false), options: { encounterRoute: ALDER_CRUISE, parkedRivals: [RIVET, SABLE_CITY],
+    cruisers: BLACKLIST_CRUISERS.map(cruiser => ({ id: cruiser.id, name: cruiser.name, route: cruiser.route })) } },
   // A burnout first: e-brake and gas at rest, swinging, then let go and drive.
-  run("free roam: burnout, Moth, cruisers, traffic", `player: shared rwd; Moth: ${ALDER_CRUISE.car}; parked: ${RIVET.car}, ${SABLE_CITY.car}; `
+  sim => run("free roam: burnout, Moth, cruisers, traffic", `player: shared rwd; Moth: ${ALDER_CRUISE.car}; parked: ${RIVET.car}, ${SABLE_CITY.car}; `
     + `cruisers: ${BLACKLIST_CRUISERS.map(cruiser => cruiser.car).join(", ")}`, sim, 1500,
-    t => t < 200 ? { throttle: 1, brake: 0, steer: t < 100 ? 1 : -1, handbrake: 1 } : pattern(t));
-  sim.world.free();
-}
+    t => t < 200 ? { throttle: 1, brake: 0, steer: t < 100 ? 1 : -1, handbrake: 1 } : pattern(t)));
 for (const id of ["gen-stray-5", "gen-deuce-3", "gen-crest-8-unordered"]) {
-  const course = drawAlderCourse(id, null);
-  const sim = createSim("rwd", createAlderWorld(true, course.start ?? undefined), { race: course.race, rival: fieldAlderRival(course.rival) });
-  run(id, `player: shared rwd; rival: ${course.rival.car}`, sim, 1800);
-  sim.world.free();
+  const generated = raceScenario(recordedEvent(id)!, shared.rwd);
+  runScenario(generated, sim => run(id, `player: shared rwd; rival: ${generated.options.rival!.car}`, sim, 1800));
 }
 
 if (args.has("--save")) {

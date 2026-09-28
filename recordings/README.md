@@ -27,7 +27,9 @@ unordered race is driven in your own order, so for those two `distance` and
 `offset` are not to be trusted and `pnpm laps:compare` declines them; their input
 logs replay all the same. The drag strip, the drift yard and Sound to Sky are not
 recorded. What a race id means to a recording is `src/sim/recorded-event.ts`, which
-the game, the replay check and the compare tool all ask.
+the game, the replay check and the compare tool all ask; what a session's log is
+replayed into is its scenario (`sessionScenario`, `src/sim/scenario.ts`), the one
+construction the replay check and the compare tool share since 2026-09-28.
 
 **Reading.** `pnpm laps` lists every session and lap; `pnpm laps --verify` also
 replays each session against the current build; `pnpm laps --json` is for tools.
