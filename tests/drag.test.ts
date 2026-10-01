@@ -69,9 +69,9 @@ test("Rivet coexists with the cruiser, stays parked, survives reset and owns the
     const rivet = sim.state.parkedRivals[0]!;
     for (let i = 0; i < 300; i++) step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 1 });
     assert.ok(Math.hypot(rivet.vehicle.x - RIVET.start.x, rivet.vehicle.z - RIVET.start.z) < .1);
-    assert.equal(nearbyChallenge({ ...rivet.vehicle, x: rivet.vehicle.x - 8, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), RIVET.id);
-    assert.equal(nearbyChallenge({ ...rivet.vehicle, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, true), null);
-    assert.equal(nearbyChallenge({ ...sim.state.encounter!, x: sim.state.encounter!.x + 8, speed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), MOTH.id);
+    assert.equal(nearbyChallenge({ ...rivet.vehicle, x: rivet.vehicle.x - 8, forwardSpeed: 0, lateralSpeed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), RIVET.id);
+    assert.equal(nearbyChallenge({ ...rivet.vehicle, forwardSpeed: 0, lateralSpeed: 0 }, sim.state.encounter, sim.state.parkedRivals, true), null);
+    assert.equal(nearbyChallenge({ ...sim.state.encounter!, x: sim.state.encounter!.x + 8, forwardSpeed: 0, lateralSpeed: 0 }, sim.state.encounter, sim.state.parkedRivals, false), MOTH.id);
     resetSim(sim);
     assert.equal(sim.state.parkedRivals[0]!.id, RIVET.id);
     assert.equal(sim.parkedRivalBodies.length, 1);

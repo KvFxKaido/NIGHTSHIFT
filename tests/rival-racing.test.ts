@@ -21,7 +21,7 @@ function straight(player: { x: number; z: number }, width = 24, rivalX = 0): Sim
   const route: RivalDefinition = { id: "racing-check", start, points, along, gates: [8000] };
   const sim = createSim("fwd", { id: "racing-check", start: { ...start, ...player }, walls: [], project: (x, z) => projectOntoPath(points, x, z) }, {
     traffic: false, rival: route,
-    race: { id: "racing-check", name: "Racing check", countdownTicks: 0, checkpoints: [{ id: "finish", name: "Finish", x: 0, z: -8000, y: 0, radius: 10 }] },
+    race: { id: "racing-check", name: "Racing check", countdownTicks: 0, checkpoints: [{ id: "finish", name: "Finish", x: 0, z: -8000, radius: 10 }] },
   });
   return sim;
 }
@@ -489,7 +489,7 @@ test("on a fast street bend it holds its arc", () => {
   for (let k = 29; k <= 600; k += 29) raw.push([Math.sin(bend) * k, -600 - Math.cos(bend) * k]);
   const route = streetRoute("bend", raw), end = raw.at(-1)!;
   const sim = createSim("fwd", { id: "bend", start: { ...route.start, x: -40, z: 300 }, walls: [], project: (x, z) => projectOntoPath(route.points, x, z) }, {
-    traffic: false, rival: route, race: { id: "bend", name: "Bend", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], y: 0, radius: 10 }] } });
+    traffic: false, rival: route, race: { id: "bend", name: "Bend", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], radius: 10 }] } });
   try {
     let worst = 0, fastest = 0;
     for (let t = 0; t < 60 * 40 && !sim.state.rival!.race.finished; t++) {
@@ -544,11 +544,11 @@ test("the steady-turn wheel angle is the car's own: what it says a turn takes is
 
 test("flat out through a gentle bend it holds its lane", () => {
   const { route, runUp, between, end } = fastBends();
-  const drive = (steering: Partial<typeof RIVAL_STEERING>) => {
+  const drive = (steering: { [K in keyof typeof RIVAL_STEERING]?: number }) => {
     const shipped = { ...RIVAL_STEERING };
     Object.assign(RIVAL_STEERING, steering);
     const sim = createSim("fwd", { id: "fast-bends", start: { ...route.start, x: -60, z: 300 }, walls: [], project: (x, z) => projectOntoPath(route.points, x, z) }, {
-      traffic: false, rival: route, race: { id: "fast-bends", name: "Fast bends", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], y: 0, radius: 12 }] } });
+      traffic: false, rival: route, race: { id: "fast-bends", name: "Fast bends", countdownTicks: 0, checkpoints: [{ id: "f", name: "F", x: end[0], z: end[1], radius: 12 }] } });
     try {
       let widest = 0, fastest = 0;
       for (let t = 0; t < 60 * 60 && !sim.state.rival!.race.finished; t++) {

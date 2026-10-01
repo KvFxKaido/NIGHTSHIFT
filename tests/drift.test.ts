@@ -166,7 +166,7 @@ test("a real wall contact breaks the drift chain and Sable owns the nearby chall
     assert.equal(sim.state.race!.drift!.chain, 0); assert.equal(sim.state.race!.drift!.score, 100);
     assert.match(sim.state.race!.drift!.feedback, /CONTACT/);
     const parked = [{ id: SABLE.id, vehicle: { ...sim.state.vehicle, ...SABLE.start } }];
-    assert.equal(nearbyChallenge({ ...SABLE.start, speed: 0 }, null, parked, false), "sable");
-    assert.equal(nearbyChallenge({ ...SABLE.start, speed: 0 }, null, parked, true), null);
+    assert.equal(nearbyChallenge({ ...SABLE.start, forwardSpeed: 0, lateralSpeed: 0 }, null, parked, false), "sable");
+    assert.equal(nearbyChallenge({ ...SABLE.start, forwardSpeed: 0, lateralSpeed: 0 }, null, parked, true), null);
   } finally { sim.world.free(); }
 });

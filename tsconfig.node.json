@@ -1,0 +1,11 @@
+{
+  // tests/ and scripts/ run under `node --experimental-strip-types`, which deletes
+  // types without reading them, so nothing checked them until this (2026-10-01).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // Types the .mjs servers and helpers the tests import, without checking them.
+    "allowJs": true
+  },
+  "include": ["src", "tests", "scripts"]
+}

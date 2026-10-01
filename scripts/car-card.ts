@@ -154,7 +154,7 @@ if (json) {
   if (drift) {
     console.log("\nAI drift: Sable's 90-second yard event; angles only on scoring drift ticks.");
     const columns: [string, (row: Row) => string][] = [
-      ["car", row => row.car], ["score", row => String(row.drift!.score)],
+      ["car", row => String(row.car)], ["score", row => String(row.drift!.score)],
       ["target", row => String(row.drift!.targetScore)], ["won", row => row.drift!.won ? "yes" : "no"],
       ["mean deg", row => row.drift!.meanAngle.toFixed(2)], ["best deg", row => row.drift!.bestAngle.toFixed(2)],
       ["drift ticks", row => `${row.drift!.driftingTicks}/${row.drift!.ticks}`],
@@ -174,7 +174,7 @@ if (json) {
   if (streets) {
     console.log(`\nAI street pace (traffic off): seconds; DNF at ${streetLimit} s after the flag.`);
     const columns: [string, (row: Row) => string][] = [
-      ["car", row => row.car],
+      ["car", row => String(row.car)],
       ...sprints.map((id): [string, (row: Row) => string] => [id, row => {
         const run = row.streets![id]!.clear;
         return run.seconds === null ? "DNF" : run.seconds.toFixed(2);
@@ -191,7 +191,7 @@ if (json) {
     console.log(`Clear totals use only sprints every measured car finished: ${rows[0]!.streetSummary!.sprints.join(", ") || "none"}. Minus means quicker.`);
     console.log("\nAI street incidents (traffic on): traffic minus clear seconds / reversing recoveries per sprint; DNF has no time cost.");
     const incidentColumns: [string, (row: Row) => string][] = [
-      ["car", row => row.car],
+      ["car", row => String(row.car)],
       ...sprints.map((id): [string, (row: Row) => string] => [id, row => {
         const run = row.streets![id]!;
         return `${run.traffic.seconds === null ? "DNF" : run.trafficCost?.toFixed(2) ?? "N/A"} / ${run.traffic.recoveries}`;

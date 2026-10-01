@@ -20,7 +20,7 @@ function gamepad(axes: number[] = [0], values: Record<number, number> = {}): Gam
     touched: (values[index] ?? 0) > 0,
     value: values[index] ?? 0,
   }));
-  return { axes, buttons } as Gamepad;
+  return { axes, buttons } as unknown as Gamepad;
 }
 
 test("shift taps survive between ticks, holds never repeat, and pause entry discards pending shifts", () => {

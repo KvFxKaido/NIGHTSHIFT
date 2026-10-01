@@ -50,7 +50,7 @@ test("every spawned traffic kind keeps trim and lamps attached through turns, hi
   assert.equal(view.root.children.length, 6 * Object.keys(TRAFFIC_KINDS).length, "draw sets scale with kinds, not vehicles");
   for (const kind of Object.keys(TRAFFIC_KINDS)) {
     assert.equal(view.root.getObjectByName(`traffic-ink-${kind}`), undefined, "traffic is undrawn unless asked for");
-    assert.equal(view.bodies.get(kind as TrafficKind)!.material.userData.cel, undefined);
+    assert.equal((view.bodies.get(kind as TrafficKind)!.material as THREE.Material).userData.cel, undefined);
   }
 });
 

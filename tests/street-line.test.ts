@@ -240,7 +240,7 @@ test("a gentle bend's line is an arc as large as the road allows, and it is take
   let line = Infinity, lane = Infinity;
   for (let k = window.from / STREET_LINE.spacing; k <= window.to / STREET_LINE.spacing; k++) {
     line = Math.min(line, shipped.line!.radius[k]!);
-    const a = sampleDrivingPath(rival, (k - 4) * STREET_LINE.spacing), b = sampleDrivingPath(rival, k * STREET_LINE.spacing), c = sampleDrivingPath(rival, (k + 4) * STREET_LINE.spacing);
+    const a = sampleDrivingPath(rival, (k - 4) * STREET_LINE.spacing), c = sampleDrivingPath(rival, (k + 4) * STREET_LINE.spacing);
     const turn = Math.abs(Math.atan2(a.ux * c.uz - a.uz * c.ux, a.ux * c.ux + a.uz * c.uz));
     if (turn > 1e-6) lane = Math.min(lane, Math.hypot(c.x - a.x, c.z - a.z) / (2 * Math.sin(turn / 2)));
   }

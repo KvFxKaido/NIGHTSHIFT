@@ -29,7 +29,7 @@ test("bindings save and reload; duplicates, reserved controls and corrupt saves 
 });
 
 function pad(values: Record<number, number> = {}): Gamepad {
-  return { axes: [0,0,0,0], buttons: Array.from({length:17}, (_, index) => ({value:values[index] ?? 0, pressed:(values[index] ?? 0) > .5, touched:false})), connected:true, mapping:"standard" } as Gamepad;
+  return { axes: [0,0,0,0], buttons: Array.from({length:17}, (_, index) => ({value:values[index] ?? 0, pressed:(values[index] ?? 0) > .5, touched:false})), connected:true, mapping:"standard" } as unknown as Gamepad;
 }
 
 test("old control saves retain remaps and allocate an unused headlight control", () => {

@@ -48,7 +48,7 @@ test("stable authored identities retain frontage ownership; moving an envelope f
 
 test("saved frontage data rejects overlapping openings, missing doors, unbounded textures and broken paths",()=>{
   for(const corrupt of [
-    (d:typeof DOC)=>{d.entries[0]!.plan.modules=[];},
+    (d:typeof DOC)=>{Object.assign(d.entries[0]!.plan,{modules:[]});},
     (d:typeof DOC)=>{(d.entries[0]!.plan.modules[0] as {x:number}).x=NaN;},
     (d:typeof DOC)=>{d.entries.push(d.entries[0]!);},
     (d:typeof DOC)=>{(d.entries[0]!.plan.paving[0] as {left:number}).left=20;},

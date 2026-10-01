@@ -203,7 +203,7 @@ test("a recording driven at another car revision is refused, not compared", () =
 // fewer, longer chains under one scripted driver.
 test("the NS-01 is the drift car by the card, and only rear drive slides like one", () => {
   const measured = Object.keys(CAR_TUNES).filter(car => car !== "blender")
-    .map(car => ({ car, ...measureCar(carHandling(car)) }))
+    .map(car => measureCar(carHandling(car)))
     .sort((a, b) => b.slideSeconds - a.slideSeconds);
   const names = measured.map(row => row.car);
   const shown = measured.map(row => `${row.car} ${row.slideSeconds}s/${row.slideAngle}°`).join(", ");
