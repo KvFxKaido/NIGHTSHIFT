@@ -34,6 +34,10 @@ half each:
 - **The city's meshes, 5.3 s** (`addAlder`): road surfaces and strips sample the terrain height vertex by vertex
   (`alderHeight` from `surface` and `strip`, 1.8 s of the 2.8 s that function takes, which is three hills of
   arithmetic called tens of millions of times), road markings 0.8 s, the fronts 0.6 s, chunking 0.4 s.
+  *Since 2026-10-01 not the arithmetic:* it was a V8 deopt loop on the JSON's hill objects, and with the hills in a
+  typed array `alderHeight`'s self time in the same profile fell from 2,435 ms to 140 (headless Chromium, no GPU;
+  `design/FIELD_NOTES.md`, "The hills on a retired hidden class"). Re-run `pnpm profile:load` on Shawn's machine for
+  the table above.
 - Smaller: junction dressing 0.7 s, re-validating frontage access 0.4 s, shader compilation about 0.3 s.
 
 All of it is a function of data that does not change between loads. None of it is the handling, and none of it
@@ -102,6 +106,8 @@ equal, bit for bit, to what the sim builds itself.
      revision and a fingerprint of the code that builds them; the load checks the key, and a test compares the bake
      with a fresh build. A stale bake would change traffic silently, so the test is the whole of the safety.
    - Cheap on the way: the surfaces sample the terrain once per shared vertex, not once per triangle corner.
+     *Tried 2026-10-01 and dropped:* once the deopt was fixed, sampling 302 K distinct vertices instead of 1.82 M
+     saved nothing measurable.
 6. **Use the PC.** Quality settings the phone reads down: render scale, how many 512 m chunks draw, shadows,
    anti-aliasing, haze. WebGPU (three.js has it) waits on knowing whether Android's WebView offers it on the
    RedMagic's GPU: a guess today either way.

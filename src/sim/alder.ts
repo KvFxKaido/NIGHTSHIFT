@@ -56,14 +56,23 @@ export const ALDER_GARAGE_SOLIDS = ALDER_GARAGE_SITE.planters;
 export const GENERATED_ALDER_BLOCKS: readonly BuildingBlock[] = [...scaleAlderSkyline(data.buildings),garageBuilding];
 export const ALDER_LAYOUT_BASELINE = layoutFingerprint({clearance,blocks:GENERATED_ALDER_BLOCKS.map(block=>
   Object.fromEntries(Object.entries(block).map(([key,value])=>[key,Math.round(value*1000)/1000])))});
+/**
+ * The hills as numbers, five to a hill (x, z, rx, rz, rise), not objects. Read as
+ * objects they sat on a hidden class V8 had retired (an object elsewhere with the
+ * same keys took a double), and optimized `alderHeight` bailed out on them over
+ * and over: 2,000 deopts building one city, ten times the cost of the arithmetic,
+ * and fresh copies were retired the same way. Same numbers, same order, same
+ * operations: every height is the same to the bit.
+ */
+const HILLS = Float64Array.from(terrain.hills.flatMap(hill => [hill.x, hill.z, hill.rx, hill.rz, hill.rise]));
 export function alderHeight(x: number, z: number): number {
   const smooth = (t: number) => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
   let height = 2 + 34 * smooth((x + 50) / 640) * smooth((330 - z) / 500);
   // Compact support keeps the released southwest's surface unchanged. Cubic
   // falloff reaches zero with continuous slope/curvature at each hill's edge.
-  for (const hill of terrain.hills) {
-    const r2 = ((x-hill.x)/hill.rx)**2 + ((z-hill.z)/hill.rz)**2;
-    if (r2 < 1) height += hill.rise * (1-r2)**3;
+  for (let i = 0; i < HILLS.length; i += 5) {
+    const r2 = ((x-HILLS[i]!)/HILLS[i+2]!)**2 + ((z-HILLS[i+1]!)/HILLS[i+3]!)**2;
+    if (r2 < 1) height += HILLS[i+4]! * (1-r2)**3;
   }
   return height;
 }

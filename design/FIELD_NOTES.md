@@ -10,6 +10,31 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## The hills on a retired hidden class (2026-10-01)
+
+The load profile in `design/TRANSITIONS.md` put 1.8 s of a warm reload in `alderHeight`, called from the road
+surfaces and strips, and called it "three hills of arithmetic called tens of millions of times". The plan's cheap item
+was to sample each shared vertex once: the surfaces are triangle soup, 1.82 M vertices of which 302 K are distinct.
+Built and measured in Node, that sampled 5.5 times fewer heights and saved a fifth of the time. So the time was not
+the arithmetic. Timed alone, `alderHeight` took about 500 ns a call, and the same source pasted into a bare script
+took 57.
+
+`--trace-deopt` said why: optimized `alderHeight` bailed out over 2,000 times in one pass over the surfaces,
+"insufficient type feedback for generic named access", and `--trace-deopt-verbose` showed the hill it was reading on
+a deprecated map. The JSON's hill objects (`{x, z, rx, rz, rise}`, integers) share a transition chain with some other
+object of those keys that took a double, which retired their hidden class; nothing migrated them, so every optimized
+version met the old map, threw itself away, and was rebuilt. Copying the hills into fresh objects did not help (the
+copies took the same retired chain), and an indexed loop over the JSON did not either. Packing them into a
+`Float64Array`, five numbers a hill, gave 0 deopts and about 30 ns a call, and the distinct-vertex cache was dropped,
+since it no longer bought anything.
+
+It is the same numbers in the same order through the same operations: 3.78 M points (every surface vertex and 2 M
+random ones over the map) are identical to the bit, and `pnpm golden` is 14 of 14. In Chrome's profile of a warm
+free-roam reload (headless, no GPU, unminified), `alderHeight`'s self time went from 2,435 ms to 140 and `addAlder`
+from 7.6 s to 5.1. Wall clocks on that machine were too noisy to quote. A function that reads plain objects in a hot
+loop can be paying for a hidden class nobody can see in the source; the profile names the function, not the reason.
+`--trace-deopt` does.
+
 ## The scenario helper (2026-09-28)
 
 Shawn brought a proposal for "personalizing the engine": explicit engine primitives, content as JSON, an agent-facing
