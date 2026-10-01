@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
-import recipes from "../src/sim/alder-site-grounds.json" with {type:"json"};
+import savedGrounds from "../src/sim/alder-site-grounds.json" with {type:"json"};
 import layout from "../src/sim/alder-layout.json" with {type:"json"};
-import { planSiteGrounds, groundsPavingQuery, groundsRect } from "../src/sim/site-grounds.ts";
+import { planSiteGrounds, groundsPavingQuery, groundsRect, type SiteGroundsRecipe } from "../src/sim/site-grounds.ts";
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { blockCorners, blockPenetration, pointFootprintDistance } from "../src/sim/building-footprint.ts";
 import { ALDER_SITE_GROUNDS as sites, ALDER_GROUNDS_ISSUES, ALDER_GROUNDS_FRONT_IDS, ALDER_FRONTAGE_ISSUES,
@@ -12,6 +12,9 @@ import { ALDER_SITE_GROUNDS as sites, ALDER_GROUNDS_ISSUES, ALDER_GROUNDS_FRONT_
 import { frontageAccessTools } from "../src/sim/frontage-generator.ts";
 import { addSiteGrounds } from "../src/render/site-grounds.ts";
 import { addBuildingFronts } from "../src/render/building-fronts.ts";
+
+// Read as recipes, as alder.ts reads them: JSON alone types `kind` as any string.
+const recipes = savedGrounds as SiteGroundsRecipe[];
 
 test("expanded saved grounds and the original pilots fit the released city without losing a frontage",()=>{
   assert.deepEqual(ALDER_GROUNDS_ISSUES,[]);assert.deepEqual(ALDER_FRONTAGE_ISSUES,[]);

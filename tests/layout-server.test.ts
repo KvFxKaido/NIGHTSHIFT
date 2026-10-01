@@ -9,7 +9,7 @@ import { layoutMiddleware } from "../scripts/layout-server.mjs";
 test("layout saves validate before replacing one file and reject stale or foreign writes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "nightshift-layout-")), file = join(dir, "layout.json");
   await writeFile(file, '{"height":8}\n');
-  const server = createServer(layoutMiddleware(file, value => {
+  const server = createServer(layoutMiddleware(file, (value: { height: number }) => {
     if (!(value.height >= 2 && value.height <= 100)) throw new Error("Invalid height");
     return value;
   }));

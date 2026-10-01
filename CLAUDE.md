@@ -830,6 +830,7 @@ on 4173 and serves whatever `dist/` holds, so `pnpm build` first.
 pnpm dev              # run
 pnpm test             # deterministic simulation checks (~7 min)
 pnpm build            # typecheck + build (what CI runs)
+pnpm typecheck        # src alone, then src + tests + scripts with Node's types (tsconfig.node.json); strip-types never reads them
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools

@@ -105,7 +105,7 @@ function driveLap(paced: boolean) {
       let throttle = 1;
       let brake = 0;
       if (paced) {
-        let targetSpeed = HANDLING.topSpeed;
+        let targetSpeed: number = HANDLING.topSpeed;
         for (let distance = lookAhead; distance < lookAhead + 105; distance += 10) {
           const sample = pointAtDistance(track.progress + distance);
           targetSpeed = Math.min(

@@ -140,7 +140,7 @@ function fakeLap(track: LapTrack, path: { distance: number; ground?: number }[])
   const recorder = createLapRecorder(track);
   const race: RaceState = { checkpoint: 0, collected: [], targetIndex: 0, countdown: 0, ticks: 0, splits: [], finished: false, next: null };
   const input = { throttle: 1, brake: 0, steer: 0, handbrake: 0 };
-  let finished = null;
+  let finished: ReturnType<typeof recordTick> = null;
   path.forEach((point, i) => {
     race.ticks = i + 1;
     if (i === path.length - 1) { race.splits = Array(track.gatesPerLap).fill(race.ticks); race.checkpoint = track.gatesPerLap; }

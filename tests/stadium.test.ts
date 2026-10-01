@@ -170,7 +170,7 @@ test("Sable is parked in the venue's free drive and can be challenged there", ()
   const sim = createSim("rwd", createStadiumWorld(), { parkedRivals: [SABLE] });
   try {
     step(sim, { throttle: 0, brake: 0, steer: 0, handbrake: 0 });
-    assert.equal(nearbyChallenge({ ...SABLE.start, x: SABLE.start.x - 8, speed: 0 }, null, sim.state.parkedRivals, false), "sable");
+    assert.equal(nearbyChallenge({ ...SABLE.start, x: SABLE.start.x - 8, forwardSpeed: 0, lateralSpeed: 0 }, null, sim.state.parkedRivals, false), "sable");
   } finally { sim.world.free(); }
 });
 

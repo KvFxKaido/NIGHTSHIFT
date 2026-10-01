@@ -54,7 +54,7 @@ export function everyTune(layouts: readonly Drivetrain[] = ["awd", "fwd", "rwd"]
  * wants more than the shared model's says so here, where review sees it, and the
  * number is a ceiling: exceeding it fails, so an unintended change still fails.
  */
-export const SHARED_PEAKS = { short: 15, city: 22, long: 32, highway: 12 } as const;
+export const SHARED_PEAKS: { readonly [K in "short" | "city" | "long" | "highway"]: number } = { short: 15, city: 22, long: 32, highway: 12 };
 export const CAR_PEAKS: Readonly<Record<string, Partial<typeof SHARED_PEAKS>>> = {
   // Sable's drift coupe (ns01 r2, and "blender", the same car she parks in the
   // yard). Measured 13.4 / 32.7 / 48.1 / 12.9; caught from every one of them.

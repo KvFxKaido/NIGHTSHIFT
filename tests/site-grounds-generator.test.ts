@@ -1,12 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
-import recipes from "../src/sim/alder-site-grounds.json" with {type:"json"};
+import savedGrounds from "../src/sim/alder-site-grounds.json" with {type:"json"};
 import { ALDER_BUILDING_FRONTS, ALDER_FRONTAGE_CONTEXT, ALDER_SITE_GROUNDS, alderHeight } from "../src/sim/alder.ts";
 import { generateSiteGrounds } from "../src/sim/site-grounds-generator.ts";
-import { planSiteGrounds, groundsRect, groundsPavingQuery } from "../src/sim/site-grounds.ts";
+import { planSiteGrounds, groundsRect, groundsPavingQuery, type SiteGroundsRecipe } from "../src/sim/site-grounds.ts";
 import { frontPoint } from "../src/sim/building-fronts.ts";
 import { addSiteGrounds } from "../src/render/site-grounds.ts";
+
+// Read as recipes, as alder.ts reads them: JSON alone types `kind` as any string.
+const recipes = savedGrounds as SiteGroundsRecipe[];
 
 test("generation is deterministic from the cleared sites, independent of frontage order",()=>{
   const pilots=recipes;
