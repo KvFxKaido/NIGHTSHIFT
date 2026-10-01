@@ -47,6 +47,8 @@ export interface CarAudio {
   readonly context: AudioContext;
   /** Music is mixed here so one master fader governs everything. */
   readonly musicBus: GainNode;
+  /** The cars' bus, under the engine fader: the other car's voice is mixed here too (`passby-audio.ts`). */
+  readonly carBus: GainNode;
   /** `topSpeed` is the car's own governor (`engineTone`); wind stays on the shared one. */
   /** `pedals` is how far past the tyres the pedals are (`PedalFeedback`): the driven tyres spinning, the braked ones locking. */
   update(vehicle: VehicleState, input: Input, active: boolean, topSpeed?: number, pedals?: { spin: number; lock: number }): void;
@@ -254,6 +256,7 @@ export function createCarAudio(context: AudioContext, initial: AudioLevels = DEF
   return {
     context,
     musicBus,
+    carBus,
     update(vehicle, input, active, topSpeed, pedals) {
       if (!active) {
         glide(exhaustMasterGain.gain, 0, .08);

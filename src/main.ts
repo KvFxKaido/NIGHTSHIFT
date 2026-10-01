@@ -48,7 +48,7 @@ import { CHASE_CAMERAS, nextChaseCamera } from "./render/camera.ts";
 import { loadCameraPreference, saveCameraPreference } from "./settings/camera-preference.ts";
 import { createCreaseInk } from "./render/crease-ink.ts";
 import { loadMusicPreference, saveMusicPreference } from "./settings/music-preference.ts";
-import { carHandling, createSim, resetSim, leaveGarage, step, DT, TICK_HZ,
+import { carHandling, createSim, handlingFor, resetSim, leaveGarage, step, DT, TICK_HZ,
   type CarHandling, type Drivetrain, type Input } from "./sim/sim.ts";
 import { createAlderWorld, ALDER_VERSION, ALDER_STREETS, ALDER_GARAGE, ALDER_GARAGE_EXIT, ALDER_RACE, ARENA_ROADS, ALDER_DRIVE_BOUNDS, alderHeight } from "./sim/alder.ts";
 import { generatorRevision, seedFromTick } from "./sim/race-generator.ts";
@@ -76,6 +76,7 @@ import { createOptionRow, rowAt } from "./ui/menu-rows.ts";
 import { createHud, type HudPolyline } from "./ui/hud.ts";
 import { formatRaceTime, racePosition, raceProgressLabel, type RaceDefinition } from "./sim/race.ts";
 import { createCarAudio, type CarAudio } from "./audio/engine-audio.ts";
+import { createPassByVoice, type OtherCar, type PassByVoice } from "./audio/passby-audio.ts";
 import { loadSoundtrack, type Soundtrack } from "./audio/soundtrack.ts";
 import { loadMenuTheme, type MenuTheme } from "./audio/menu-theme.ts";
 import { usesMenuTheme, type MenuScreen } from "./ui/menu-state.ts";
@@ -457,6 +458,7 @@ addEventListener("pagehide", savePaint);
 // whole stack is built on the first click or key and the game runs silent until
 // then rather than logging a failure nobody can act on.
 let audio: CarAudio | null = null;
+let passByVoice: PassByVoice | null = null;
 let soundtrack: Soundtrack | null = null;
 let menuTheme: MenuTheme | null = null;
 let radioBus: GainNode | null = null;
@@ -467,6 +469,16 @@ let radioStarted = false;
 let audioLevels: AudioLevels = restored.audio;
 let musicPreference = loadMusicPreference(() => window.localStorage);
 let lastInput: Input = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+
+/** The moving named cars the player can hear go by: parked rivals are handbraked and silent, traffic is not voiced. */
+function otherCars(): OtherCar[] {
+  const rival = sim.state.rival;
+  return [
+    ...(rival ? [{ vehicle: rival.vehicle, input: rival.input, topSpeed: rival.handling.topSpeed }] : []),
+    ...(sim.state.encounter ? [{ vehicle: sim.state.encounter, topSpeed: handlingFor(sim.encounterRoute ?? {}).topSpeed }] : []),
+    ...sim.state.cruisers.map((cruiser, i) => ({ vehicle: cruiser.vehicle, topSpeed: handlingFor(sim.cruiserDefinitions[i]!.route).topSpeed })),
+  ];
+}
 
 async function startAudio(): Promise<void> {
   if (audio) {
@@ -481,6 +493,7 @@ async function startAudio(): Promise<void> {
     // Chrome hands back a suspended context unless the gesture is still live.
     if (context.state === "suspended") void context.resume().catch(() => {});
     audio = createCarAudio(context, audioLevels);
+    passByVoice = createPassByVoice(context, audio.carBus);
     radioBus = context.createGain();
     radioBus.gain.value = frontEndMusic ? 0 : 1;
     radioBus.connect(audio.musicBus);
@@ -494,6 +507,7 @@ async function startAudio(): Promise<void> {
   } catch {
     // A blocked or unsupported AudioContext is not worth breaking a run over.
     audio = null;
+    passByVoice = null;
   } finally {
     audioStarting = false;
   }
@@ -1288,6 +1302,7 @@ function frame(now: number): void {
   audio?.update(sim.state.vehicle, lastInput, gameplayActive && !frozen, sim.state.handling.topSpeed,
     // Heard only under a preview: at the default the tyres forgive everything, and a spin nobody pays for is noise.
     sim.pedalAssist !== 1 ? sim.pedalFeedback : undefined);
+  passByVoice?.update(sim.state.vehicle, otherCars(), gameplayActive && !frozen);
   rumblePedals(gameplayActive && !frozen);
   const renderStart = measuring ? performance.now() : 0;
   render(
