@@ -524,6 +524,10 @@ fixtures outside the playable bundle, and old world links redirect.
 - `src/sim/alder-data.json` is 36 MB (2026-09-27), bundled as a 34.7 MB chunk. Fine on PC; a load-time question on
   the phone. Do not add to it casually. What a load does with it costs more than its size: about ten seconds on
   every reload rebuilding traffic's network and the city's meshes (`design/TRANSITIONS.md`, `pnpm profile:load`).
+- A hot function slower than its arithmetic may be deopting, not computing: `alderHeight` read the JSON's hill
+  objects on a hidden class V8 had retired and bailed out 2,000 times a load, 500 ns a call where the maths is 30
+  (2026-10-01, `design/FIELD_NOTES.md`). Its hills are a `Float64Array` now; keep hot loops off JSON objects, and ask
+  `node --trace-deopt` before a cache.
 - Sable's yard score cannot rank cars against each other: it is a chain game, so
   a car that banks fewer, longer chains beats one that drifts more in shorter ones
   (the Hammer 7,231 to the NS-01's 6,558 on identical clips, links and less raw
