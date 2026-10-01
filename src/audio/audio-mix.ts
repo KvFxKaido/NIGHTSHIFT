@@ -200,3 +200,73 @@ export const DEFAULT_LEVELS: AudioLevels = { master: .7, engine: .8, music: .5 }
 export function isLevel(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 }
+
+/** Speed of sound in air, m/s. */
+export const SPEED_OF_SOUND = 343;
+/**
+ * How much the pass-by bends the note past the real thing. A rival overtaking at
+ * 10 m/s over the player's speed bends a real note by 3%, half a semitone, which
+ * nobody hears over their own engine; MC3's rivals swept audibly as they went by.
+ * Two doubles every closing speed before the Doppler sum. Set by an assistant that
+ * cannot hear it (2026-10-01): judge it by ear, and 1 is the physics.
+ */
+export const DOPPLER_EXAGGERATION = 2;
+/** Full level inside this distance, metres. */
+export const PASSBY_NEAR = 8;
+/** Silent past this distance, metres. */
+export const PASSBY_FAR = 160;
+
+export interface PassBy {
+  /** Distance between the two cars, metres. */
+  distance: number;
+  /** Doppler ratio applied to the other car's note: above 1 closing, below 1 opening. */
+  pitch: number;
+  /** 0..1, by distance alone. */
+  gain: number;
+  /** -1 (left) .. 1 (right) of the listener's nose. */
+  pan: number;
+  /** 0..1 high-frequency air loss with distance: far cars are duller. */
+  muffle: number;
+}
+
+/** World velocity of a vehicle: forward is (-sin h, -cos h), right is (cos h, -sin h), as in the sim. */
+export function worldVelocity(vehicle: VehicleState): { x: number; z: number } {
+  const s = Math.sin(vehicle.heading), c = Math.cos(vehicle.heading);
+  return {
+    x: -s * vehicle.forwardSpeed + c * vehicle.lateralSpeed,
+    z: -c * vehicle.forwardSpeed - s * vehicle.lateralSpeed,
+  };
+}
+
+/**
+ * How another car sounds from the player's seat: the ear is the player's car, not
+ * the chase camera, so a pass is heard where it is felt. Pure, so a test can hold
+ * the sweep without a browser: higher closing, lower opening, level abeam.
+ */
+export function passBy(listener: VehicleState, source: VehicleState): PassBy {
+  const dx = source.x - listener.x, dz = source.z - listener.z;
+  const distance = Math.hypot(dx, dz);
+  // Unit vector from the listener to the source; abeam at zero distance is no shift at all.
+  const ux = distance > 1e-6 ? dx / distance : 0, uz = distance > 1e-6 ? dz / distance : 0;
+  const l = worldVelocity(listener), s = worldVelocity(source);
+  const towardSource = (l.x * ux + l.z * uz) * DOPPLER_EXAGGERATION;
+  const towardListener = -(s.x * ux + s.z * uz) * DOPPLER_EXAGGERATION;
+  // Neither speed may reach the speed of sound, which the exaggeration could at 170 m/s.
+  const limit = SPEED_OF_SOUND * .5;
+  const pitch = (SPEED_OF_SOUND + clamp(towardSource, -limit, limit)) / (SPEED_OF_SOUND - clamp(towardListener, -limit, limit));
+  const fade = 1 - smoothstep(PASSBY_NEAR, PASSBY_FAR, distance);
+  // Right of the nose is +: the sim's right vector is (cos h, -sin h).
+  const right = dx * Math.cos(listener.heading) - dz * Math.sin(listener.heading);
+  return {
+    distance,
+    pitch,
+    gain: fade * fade,
+    pan: distance > 1e-6 ? clamp(right / Math.max(distance, PASSBY_NEAR), -1, 1) * .85 : 0,
+    muffle: smoothstep(PASSBY_NEAR, PASSBY_FAR * .6, distance),
+  };
+}
+
+/** A car with no logged input (a cruiser, Moth) is heard on the gas while it gains speed. */
+export function impliedThrottle(vehicle: VehicleState): number {
+  return clamp(vehicle.longitudinalAcceleration / 3);
+}

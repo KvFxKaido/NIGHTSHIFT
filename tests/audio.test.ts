@@ -4,6 +4,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import {
   engineTone, tyreScrub, windLevel, smoothstep, DEFAULT_LEVELS, IDLE_RPM, REDLINE_RPM,
   GEAR_SHIFTS, SHIFT_RPM, FLAT_OUT_RPM, SCRUB_ONSET, SCRUB_FULL,
+  passBy, worldVelocity, PASSBY_FAR,
 } from "../src/audio/audio-mix.ts";
 import { decodeManifest, shuffleOrder, MUSIC_MANIFEST_VERSION } from "../src/audio/soundtrack.ts";
 import { decodeSettings, defaultSettings, createSettingsStore, SETTINGS_VERSION } from "../src/settings/settings.ts";
@@ -344,4 +345,48 @@ test("every engine tone layer stays finite and inside 0..1 across the envelope",
     }
   }
   assert.ok(checked > 500, `expected a dense sweep, only sampled ${checked} points`);
+});
+
+/** A car at (x, z) heading `heading`, moving forward at `speed`; only what passBy reads. */
+function carAt(x: number, z: number, heading: number, speed: number): VehicleState {
+  return { x, y: 0, z, heading, forwardSpeed: speed, lateralSpeed: 0, speed } as unknown as VehicleState;
+}
+
+test("world velocity matches the sim's forward vector", () => {
+  // Heading 0 drives toward -z in the sim.
+  const v = worldVelocity(carAt(0, 0, 0, 10));
+  assert.ok(Math.abs(v.x) < 1e-9 && Math.abs(v.z + 10) < 1e-9);
+});
+
+test("a car going by sweeps from above its note to below it, and is level abeam", () => {
+  // The player parked at the origin facing -z; the other car drives along x = 4, toward +z then past.
+  const listener = carAt(0, 0, 0, 0);
+  const coming = passBy(listener, carAt(4, -60, Math.PI, 30));
+  const abeam = passBy(listener, carAt(4, 0, Math.PI, 30));
+  const going = passBy(listener, carAt(4, 60, Math.PI, 30));
+  assert.ok(coming.pitch > 1.1, `closing ${coming.pitch}`);
+  assert.ok(Math.abs(abeam.pitch - 1) < 1e-9, `abeam ${abeam.pitch}`);
+  assert.ok(going.pitch < .9, `opening ${going.pitch}`);
+  assert.ok(abeam.gain > coming.gain && abeam.gain > going.gain);
+  // x = 4 is right of a car facing -z.
+  assert.ok(abeam.pan > .3, `pan ${abeam.pan}`);
+  assert.ok(passBy(listener, carAt(-4, 0, Math.PI, 30)).pan < -.3);
+});
+
+test("two cars at the same speed side by side hear no shift", () => {
+  const heard = passBy(carAt(0, 0, 0, 50), carAt(3, -10, 0, 50));
+  assert.ok(Math.abs(heard.pitch - 1) < 1e-9, `${heard.pitch}`);
+});
+
+test("a rival overtaking is heard rising behind and falling ahead", () => {
+  const player = carAt(0, 0, 0, 40);
+  const behind = passBy(player, carAt(3, 30, 0, 50));
+  const ahead = passBy(player, carAt(3, -30, 0, 50));
+  assert.ok(behind.pitch > 1 && ahead.pitch < 1);
+});
+
+test("a car out of earshot is silent and never past the speed of sound", () => {
+  assert.equal(passBy(carAt(0, 0, 0, 0), carAt(PASSBY_FAR + 1, 0, 0, 0)).gain, 0);
+  const extreme = passBy(carAt(0, 0, 0, 120), carAt(0, -20, Math.PI, 120));
+  assert.ok(Number.isFinite(extreme.pitch) && extreme.pitch > 0 && extreme.pitch < 4);
 });
