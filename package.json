@@ -36,6 +36,7 @@
     "rival:census": "node --experimental-strip-types --no-warnings scripts/rival-census.ts",
     "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
     "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts",
+    "alder:cuts": "node --experimental-strip-types --no-warnings scripts/alder-cuts.ts",
     "adopt:capture": "node scripts/adopt-capture.mjs",
     "profile:load": "node scripts/profile-load.mjs"
   },
