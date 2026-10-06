@@ -498,6 +498,37 @@ counted one, because it measures the carriageway and the ribbon is carriageway, 
 draws moved with the world (circuits and every turf kind; plain sprints and unordered races drew the same), and are
 re-pinned to it.
 
+### Free cuts (2026-10-01, `pnpm alder:cuts`)
+
+Racing gen-moth-92229 Shawn won by 9.0 s, 7.2 s of it on one leg: Moth took the streets and two 35 mph corners, he
+left a street where it ended and crossed 228 m of open grass to Fir Street at 96 to 119 mph, v6's ground cap for 2WD.
+The ground penalty worked, and the crossing was still the quickest way. Open racing makes any gap you can drive
+through legal, so a block that is mostly grass is a shortcut nobody drew.
+
+`pnpm alder:cuts` counts them. It resamples the street network to 15 m points, and for every pair within 250 m
+whose straight line beats the network by 60 m or more, it walks the line every 2 m: no closer than 1.8 m to any solid
+(`ALDER_SOLIDS`: buildings, yard and gate structures, fences, trees), not past the shore, and at least 30% of it on
+open ground (`alderGround`). Places whose midpoints are within 90 m count once. It measures length, not time, so ground
+pace, grade and the corners at each end are not in it, and the total moves with the merge distance: read it as
+hundreds, not as a census. A place's ends are usually mid-block, where `--try` cannot price it.
+
+On `alder-slice-v8`: **335 places**, 20 saving over 400 m, 68 over 250 m, 189 of them at least 70% open ground. Port
+Alder has no dead ends; the cuts run across blocks between parallel streets, longest where cross streets are far apart.
+The four residential hill districts hold 256 of the 335 and 160 of the 189 mostly-ground ones (Capitol Hill 100,
+Central District 63, Madrona Ridge 57, Queen Anne 36). Their buildings give it away: 1,725 in the city with the 10th
+and 50th percentile footprint both 324 m², one 18 × 18 m generated box, sprinkled thin where a Seattle block face holds
+about sixteen houses a side. The biggest single cuts are the waterfront diagonal (Alaskan Way, Western and 1st to 2nd
+Ave) and the SoDo strip between 1st and 4th Ave S, up to 749 m saved: those want port things, not houses. Gen-moth-92229's
+own cut, Madison Avenue to Yesler East, ranks 64th.
+
+A stronger ground penalty cannot close them: the top cuts are two to five times shorter than the street. What Shawn
+decided the same day: fill the hills with houses and apartments, houses first, trees and parked cars into what they
+leave; whatever is left over and worth keeping becomes an official shortcut, which is its own kind, not a street (Spruce
+Cut became a street because a rival's route could take nothing else, and got traffic with it); and rivals take
+shortcuts by personality, so a shortcut has to be something a route can carry from the start. The admission rule for
+an official shortcut is not settled. Run the scan before and after filling a district: the number it moves is the
+measure of the fill.
+
 Traffic moved with it too: it is placed by the metre of lane, and the alley is lane, so every car in the city starts
 somewhere else. `pnpm golden` moved every Port Alder run (8 of 14; the Blackglass fixtures are identical), and gen-40,
 the same course, now meets a car the pass planner passes cleanly where the reactive driver needed no pass, 81.6 s against

@@ -833,6 +833,7 @@ pnpm build            # typecheck + build (what CI runs)
 pnpm typecheck        # src alone, then src + tests + scripts with Node's types (tsconfig.node.json); strip-types never reads them
 pnpm alder:critique   # route-choice report; --json for agents, --try=x1,z1,x2,z2[,w] to price an alley
 pnpm alder:turf       # what each Blacklist turf does to the draw; --pull=, --radius=, --seeds=, --json
+pnpm alder:cuts       # free cuts across open ground that beat the streets, by neighbourhood; --top=, --reach=, --min-save=, --min-ground=, --json
 pnpm laps             # recorded circuit laps; --verify replays each session, --json for tools
 pnpm laps:compare     # you against the rival, gate by gate, from the newest raced session (a circuit or a generated sprint): replays it and records the rival too; --from= --to= traces the rival and what held it. A restart or leaving a race saves the attempt too (`ended`)
 pnpm pace             # fit the route-choice pace model to recorded Uptown laps; --json for tools
