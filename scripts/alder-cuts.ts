@@ -5,8 +5,9 @@
 //
 // First run 2026-10-01, from a race against Moth (gen-moth-92229) where 228 m of grass between Madison Avenue and Fir
 // Street won 7.2 s of a 9.0 s margin: 335 places, 256 of them in the four residential hill districts. This is that scan
-// moved out of a session scratchpad, unchanged in what it measures, so filling the hills can be judged as a before and
-// after number rather than by eye.
+// moved out of a session scratchpad so filling the hills can be judged as a before and after number rather than by eye,
+// with one fix: clearance is the line's own distance from each solid, where the first run sampled it every 2 m and
+// counted lines that pass a building closer than CLEAR between samples (333 places on the same map).
 //
 // It reads the map and changes nothing. Distances are metres along the street centrelines, not times: the line is
 // priced by length alone, so ground pace, grade and the corners at each end are not in it. `pnpm alder:critique
@@ -19,7 +20,7 @@
 //   pnpm alder:cuts --reach=250 --min-save=60 --min-ground=0.3
 import { ALDER_BLOCKS, ALDER_SOLIDS, ALDER_STREETS, alderGround } from "../src/sim/alder.ts";
 import { alderNeighbourhoodAt } from "../src/sim/alder-neighbourhoods.ts";
-import { pointFootprintDistance, type BuildingBlock } from "../src/sim/building-footprint.ts";
+import { segmentFootprintDistance, type BuildingBlock } from "../src/sim/building-footprint.ts";
 import data from "../src/sim/alder-data.json" with { type: "json" };
 
 const arg = (name: string) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -120,22 +121,23 @@ function distancesFrom(from: number, cap: number): Map<number, number> {
 }
 
 const solids = ALDER_SOLIDS as readonly BuildingBlock[];
-/** The line from a to b, sampled every 2 m: null when it passes within CLEAR of a solid or crosses the shore,
- *  otherwise its length and the share of it on open ground. */
+/** Each solid's centre and the radius of the circle round its footprint, for a pre-filter that can never drop a solid
+ *  the line might touch: a long fence's centre can be far from a line that crosses its end. */
+const solidReach = solids.map(s => ({ s, r: Math.hypot(s.width, s.depth) / 2 + CLEAR }));
+/** The line from a to b: null when it passes within CLEAR of a solid anywhere along it (the segment's own distance,
+ *  not samples: at 2 m samples a line read 1.801 m from a building it passes at 1.670) or crosses the shore,
+ *  otherwise its length and the share of it on open ground, sampled every 2 m. */
 function cutLine(a: Node, b: Node): { length: number; ground: number } | null {
   const length = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(length / 2);
-  const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
-  const near = solids.filter(s => {
-    if (Math.abs(s.x - mx) < 80 && Math.abs(s.z - mz) < 80) return true;
-    if (length <= 120) return false;
+  for (const { s, r } of solidReach) {
     const t = Math.max(0, Math.min(1, ((s.x - a.x) * (b.x - a.x) + (s.z - a.z) * (b.z - a.z)) / (length * length)));
-    return Math.hypot(s.x - a.x - t * (b.x - a.x), s.z - a.z - t * (b.z - a.z)) < 60;
-  });
+    if (Math.hypot(s.x - a.x - t * (b.x - a.x), s.z - a.z - t * (b.z - a.z)) >= r) continue;
+    if (segmentFootprintDistance(s, a, b) < CLEAR) return null;
+  }
   let ground = 0;
   for (let k = 0; k <= n; k++) {
     const x = a.x + (b.x - a.x) * k / n, z = a.z + (b.z - a.z) * k / n;
     if (x < data.shore) return null;
-    if (near.some(s => pointFootprintDistance(s, x, z) < CLEAR)) return null;
     if (alderGround(x, z)) ground++;
   }
   return { length, ground: ground / (n + 1) };

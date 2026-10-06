@@ -505,21 +505,24 @@ left a street where it ended and crossed 228 m of open grass to Fir Street at 96
 The ground penalty worked, and the crossing was still the quickest way. Open racing makes any gap you can drive
 through legal, so a block that is mostly grass is a shortcut nobody drew.
 
-`pnpm alder:cuts` counts them. It resamples the street network to 15 m points, and for every pair within 250 m
-whose straight line beats the network by 60 m or more, it walks the line every 2 m: no closer than 1.8 m to any solid
-(`ALDER_SOLIDS`: buildings, yard and gate structures, fences, trees), not past the shore, and at least 30% of it on
-open ground (`alderGround`). Places whose midpoints are within 90 m count once. It measures length, not time, so ground
-pace, grade and the corners at each end are not in it, and the total moves with the merge distance: read it as
-hundreds, not as a census. A place's ends are usually mid-block, where `--try` cannot price it.
+`pnpm alder:cuts` counts them. It resamples the street network to 15 m points, and for every pair within 250 m whose
+straight line beats the network by 60 m or more, the line must pass no closer than 1.8 m to any solid (`ALDER_SOLIDS`:
+buildings, yard and gate structures, fences, trees; the segment's own distance, `segmentFootprintDistance`), stay off
+the shore, and run at least 30% over open ground (`alderGround`, sampled every 2 m). Places whose midpoints are within
+90 m count once. It measures length, not time, so ground pace, grade and the corners at each end are not in it, and
+the total moves with the merge distance: read it as hundreds, not as a census. A place's ends are usually mid-block,
+where `--try` cannot price it.
 
-On `alder-slice-v8`: **335 places**, 20 saving over 400 m, 68 over 250 m, 189 of them at least 70% open ground. Port
-Alder has no dead ends; the cuts run across blocks between parallel streets, longest where cross streets are far apart.
-The four residential hill districts hold 256 of the 335 and 160 of the 189 mostly-ground ones (Capitol Hill 100,
-Central District 63, Madrona Ridge 57, Queen Anne 36). Their buildings give it away: 1,725 in the city with the 10th
-and 50th percentile footprint both 324 m², one 18 × 18 m generated box, sprinkled thin where a Seattle block face holds
-about sixteen houses a side. The biggest single cuts are the waterfront diagonal (Alaskan Way, Western and 1st to 2nd
-Ave) and the SoDo strip between 1st and 4th Ave S, up to 749 m saved: those want port things, not houses. Gen-moth-92229's
-own cut, Madison Avenue to Yesler East, ranks 64th.
+On `alder-slice-v8`: **333 places**, 20 saving over 400 m, 68 over 250 m, 187 of them at least 70% open ground. (The
+first run sampled clearance every 2 m and found 335; 18 of its lines passed a solid closer than 1.8 m between samples,
+and 16 others took their places when merged, eight of them within 17 m of a line they replace and all within 60 m.)
+Port Alder has no dead ends; the cuts run across blocks between parallel streets, longest where cross streets are far
+apart. The four residential hill districts hold 254 of the 333 and 159 of the 187 mostly-ground ones (Capitol Hill
+100, Central District 62, Madrona Ridge 57, Queen Anne 35). Their buildings give it away: 1,725 in the city with the
+10th and 50th percentile footprint both 324 m², one 18 × 18 m generated box, sprinkled thin where a Seattle block face
+holds about sixteen houses a side. The biggest single cuts are the waterfront diagonal (Alaskan Way, Western and 1st
+to 2nd Ave) and the SoDo strip between 1st and 4th Ave S, up to 749 m saved: those want port things, not houses.
+Gen-moth-92229's own cut, Madison Avenue to Yesler East, ranks 64th.
 
 A stronger ground penalty cannot close them: the top cuts are two to five times shorter than the street. What Shawn
 decided the same day: fill the hills with houses and apartments, houses first, trees and parked cars into what they
