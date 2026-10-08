@@ -1,0 +1,121 @@
+Flow,Career order,Field,Value
+MainFlow,1,ThrottleLimit,0.750000
+MainFlow,1,MinDist,20.000000
+MainFlow,1,MaxDist,65.000000
+MainFlow,1,MinThrottle,0.6000000
+MainFlow,1,BehindMaxThrottle,0.900000
+MainFlow,1,MinSpeed,60.000000
+MainFlow,1,BehindMinDist,10.000000
+MainFlow,1,BehindMaxDist,25.000000
+MainFlow,1,AheadDistOffsets,0 25 75 150 240 340 440 540
+MainFlow,1,BehindDistOffsets,0 50 100 130 180 280 380 480
+MainFlow,1,OutsideTrafficThresholdSpeed,0.75
+MainFlow,1,OutsideTrafficPenalty,0.75
+MainFlow,30,ThrottleLimit,0.850000
+MainFlow,30,MinDist,20.000000
+MainFlow,30,MaxDist,65.000000
+MainFlow,30,MinThrottle,0.6000000
+MainFlow,30,BehindMaxThrottle,1.000000
+MainFlow,30,MinSpeed,60.000000
+MainFlow,30,BehindMinDist,0.000000
+MainFlow,30,BehindMaxDist,15.000000
+MainFlow,30,AheadDistOffsets,0 25 75 150 240 340 440 540
+MainFlow,30,BehindDistOffsets,0 0 40 100 180 280 380 480
+MainFlow,30,OutsideTrafficThresholdSpeed,0.75
+MainFlow,30,OutsideTrafficPenalty,0.75
+MainFlow,200,ThrottleLimit,0.9500000
+MainFlow,200,MinDist,20.000000
+MainFlow,200,MaxDist,65.000000
+MainFlow,200,MinThrottle,0.6000000
+MainFlow,200,BehindMaxThrottle,1.000000
+MainFlow,200,MinSpeed,70.000000
+MainFlow,200,BehindMinDist,0.000000
+MainFlow,200,BehindMaxDist,15.000000
+MainFlow,200,AheadDistOffsets,0 75 125 200 275 375 475 575
+MainFlow,200,BehindDistOffsets,0 0 40 100 180 280 380 480
+MainFlow,200,OutsideTrafficThresholdSpeed,0.75
+MainFlow,200,OutsideTrafficPenalty,0.75
+SideQuests,1,ThrottleLimit,0.750000
+SideQuests,1,MinDist,20.000000
+SideQuests,1,MaxDist,65.000000
+SideQuests,1,MinThrottle,0.6000000
+SideQuests,1,BehindMaxThrottle,0.900000
+SideQuests,1,MinSpeed,60.000000
+SideQuests,1,BehindMinDist,5.000000
+SideQuests,1,BehindMaxDist,25.000000
+SideQuests,1,AheadDistOffsets,0 25 75 150 240 340 440 540
+SideQuests,1,BehindDistOffsets,0 0 40 100 180 280 380 480
+SideQuests,1,OutsideTrafficThresholdSpeed,0.75
+SideQuests,1,OutsideTrafficPenalty,0.75
+SideQuests,30,ThrottleLimit,0.850000
+SideQuests,30,MinDist,20.000000
+SideQuests,30,MaxDist,65.000000
+SideQuests,30,MinThrottle,0.6000000
+SideQuests,30,BehindMaxThrottle,1.000000
+SideQuests,30,MinSpeed,60.000000
+SideQuests,30,BehindMinDist,0.000000
+SideQuests,30,BehindMaxDist,15.000000
+SideQuests,30,AheadDistOffsets,0 25 75 150 240 340 440 540
+SideQuests,30,BehindDistOffsets,0 0 40 100 180 280 380 480
+SideQuests,30,OutsideTrafficThresholdSpeed,0.75
+SideQuests,30,OutsideTrafficPenalty,0.75
+SideQuests,200,ThrottleLimit,0.9500000
+SideQuests,200,MinDist,20.000000
+SideQuests,200,MaxDist,65.000000
+SideQuests,200,MinThrottle,0.6000000
+SideQuests,200,BehindMaxThrottle,1.000000
+SideQuests,200,MinSpeed,70.000000
+SideQuests,200,BehindMinDist,0.000000
+SideQuests,200,BehindMaxDist,15.000000
+SideQuests,200,AheadDistOffsets,0 75 125 200 275 375 475 575
+SideQuests,200,BehindDistOffsets,0 0 40 100 180 280 380 480
+SideQuests,200,OutsideTrafficThresholdSpeed,0.75
+SideQuests,200,OutsideTrafficPenalty,0.75
+FillerRaces,1,ThrottleLimit,0.750000
+FillerRaces,1,MinDist,20.000000
+FillerRaces,1,MaxDist,65.000000
+FillerRaces,1,MinThrottle,0.6000000
+FillerRaces,1,BehindMaxThrottle,0.900000
+FillerRaces,1,MinSpeed,60.000000
+FillerRaces,1,BehindMinDist,5.000000
+FillerRaces,1,BehindMaxDist,15.000000
+FillerRaces,1,AheadDistOffsets,0 25 75 150 240 340 440 540
+FillerRaces,1,BehindDistOffsets,0 0 40 100 180 280 380 480
+FillerRaces,1,OutsideTrafficThresholdSpeed,0.75
+FillerRaces,1,OutsideTrafficPenalty,0.75
+FillerRaces,200,ThrottleLimit,0.950000
+FillerRaces,200,MinDist,20.000000
+FillerRaces,200,MaxDist,65.000000
+FillerRaces,200,MinThrottle,0.6000000
+FillerRaces,200,BehindMaxThrottle,1.000000
+FillerRaces,200,MinSpeed,80.000000
+FillerRaces,200,BehindMinDist,0.000000
+FillerRaces,200,BehindMaxDist,15.000000
+FillerRaces,200,AheadDistOffsets,0 75 125 200 275 375 475 575
+FillerRaces,200,BehindDistOffsets,0 0 40 100 180 280 380 480
+FillerRaces,200,OutsideTrafficThresholdSpeed,0.75
+FillerRaces,200,OutsideTrafficPenalty,0.75
+FollowAndRaceToStart,1,ThrottleLimit,0.750000
+FollowAndRaceToStart,1,MinDist,10.000000
+FollowAndRaceToStart,1,MaxDist,65.000000
+FollowAndRaceToStart,1,MinThrottle,0.4000000
+FollowAndRaceToStart,1,BehindMaxThrottle,0.900000
+FollowAndRaceToStart,1,MinSpeed,40.000000
+FollowAndRaceToStart,1,BehindMinDist,5.000000
+FollowAndRaceToStart,1,BehindMaxDist,15.000000
+FollowAndRaceToStart,1,AheadDistOffsets,0 25 75 150 240 340 440 540
+FollowAndRaceToStart,1,BehindDistOffsets,0 0 40 100 180 280 380 480
+FollowAndRaceToStart,1,OutsideTrafficThresholdSpeed,0.75
+FollowAndRaceToStart,1,OutsideTrafficPenalty,0.75
+FollowAndRaceToStart,200,ThrottleLimit,0.750000
+FollowAndRaceToStart,200,MinDist,10.000000
+FollowAndRaceToStart,200,MaxDist,65.000000
+FollowAndRaceToStart,200,MinThrottle,0.4000000
+FollowAndRaceToStart,200,BehindMaxThrottle,0.900000
+FollowAndRaceToStart,200,MinSpeed,40.000000
+FollowAndRaceToStart,200,BehindMinDist,0.000000
+FollowAndRaceToStart,200,BehindMaxDist,15.000000
+FollowAndRaceToStart,200,AheadDistOffsets,0 75 125 200 275 375 475 575
+FollowAndRaceToStart,200,BehindDistOffsets,0 0 40 100 180 280 380 480
+FollowAndRaceToStart,200,OutsideTrafficThresholdSpeed,0.75
+FollowAndRaceToStart,200,OutsideTrafficPenalty,0.75

@@ -1,0 +1,226 @@
+City,Career order,Race,Type,Difficulty,Flags
+sd,1,drag/easy/sd_drag_easy_firstrace_race01,drag,easy,career-start rival-only
+sd,2,circuit/easy/sd_circuit_easy_firstrace_race01,circuit,easy,
+sd,4,ordered/hard/sd_ordered_hard_curbdogs_race02,ordered,hard,rival-only
+sd,5,circuit/med/sd_circuit_med_bay_race01,circuit,med,rival-only
+sd,6,blitz/easy/sd_blitz_easy_citytour_race02,blitz,easy,
+sd,8,circuit/easy/sd_circuit_easy_trolley_race01,circuit,easy,rival-locked
+sd,9,ordered/med/sd_ordered_med_shotgun_race02,ordered,med,
+sd,10,ordered/easy/sd_ordered_easy_freeway_race01,ordered,easy,rival-only rival-locked
+sd,11,ordered/easy/sd_ordered_easy_baypass_race01,ordered,easy,rival-only
+sd,12,ordered/easy/sd_ordered_easy_downtowntour_race01,ordered,easy,
+sd,13,ordered/easy/sd_ordered_easy_compound_race01,ordered,easy,tournament side-quest-filler
+sd,13,circuit/easy/sd_circuit_easy_compound_race02,circuit,easy,tournament side-quest-filler
+sd,13,ordered/easy/sd_ordered_easy_compound_race03,ordered,easy,tournament side-quest-filler
+sd,14,ordered/easy/sd_ordered_easy_compound_race_all,ordered,easy,tournament side-quest-filler
+sd,14,drag/easy/sd_drag_easy_bridges_race01,drag,easy,tournament side-quest-filler
+sd,15,circuit/easy/sd_circuit_easy_balboa_race01,circuit,easy,tournament side-quest-filler
+sd,16,ordered/med/sd_ordered_med_downtowndrive_race01,ordered,med,
+sd,20,circuit/med/sd_circuit_med_starofindia_race01,circuit,med,
+sd,22,circuit/med/sd_circuit_med_cityloop_race01,circuit,med,
+sd,26,drag/med/sd_drag_med_allhoods_race01,drag,med,
+sd,28,ordered/hard/sd_ordered_hard_curbdogs_race01,ordered,hard,rival-only rival-locked
+sd,30,ordered/easy/sd_ordered_easy_crystalpier_race01,ordered,easy,
+sd,32,ordered/med/sd_ordered_med_gaslamp_race01,ordered,med,rival-only rival-locked
+sd,34,ordered/med/sd_ordered_med_hortonhijinx_race01,ordered,med,rival-only
+sd,36,ordered/med/sd_ordered_med_fiftyfifty_race01,ordered,med,rival-locked
+sd,38,ordered/hard/sd_ordered_hard_shotgun_race01,ordered,hard,
+sd,40,ordered/easy/sd_ordered_easy_hellocarrier_race01,ordered,easy,rival-only
+sd,41,ordered/hard/sd_ordered_hard_beach_race03,ordered,hard,rival-only
+sd,42,circuit/easy/sd_circuit_easy_trolley_race02,circuit,easy,
+sd,43,circuit/easy/sd_circuit_easy_downtown_race01,circuit,easy,rival-locked side-quest-filler
+sd,44,blitz/easy/sd_blitz_easy_citytour_race03,blitz,easy,
+sd,46,ordered/med/sd_ordered_med_coastal_race02,ordered,med,rival-only
+sd,48,ordered/med/sd_ordered_med_rightleft_race01,ordered,med,
+sd,50,ordered/med/sd_ordered_med_go_race02,ordered,med,rival-only
+sd,52,ordered/med/sd_ordered_med_coasterrides_race01,ordered,med,
+sd,54,ordered/med/sd_ordered_med_upndown_race01,ordered,med,
+sd,55,ordered/hard/sd_ordered_hard_alleydrag_race01,ordered,hard,rival-only
+sd,56,drag/med/sd_drag_med_freeway_race01,drag,med,
+sd,58,ordered/hard/sd_ordered_hard_chopper_race01,ordered,hard,rival-only
+sd,59,circuit/easy/sd_circuit_easy_downtown_race03,circuit,easy,filler-only closed-track
+sd,62,ordered/med/sd_ordered_med_downtowndrive_race02,ordered,med,
+sd,64,ordered/med/sd_ordered_med_hispeedhills_race01,ordered,med,
+sd,66,ordered/med/sd_ordered_med_jumpsgalore_race02,ordered,med,rival-only rival-locked
+sd,68,drag/hard/sd_drag_hard_mrsparkle_race01,drag,hard,rival-only
+sd,70,drag/med/sd_drag_med_rupture_race01,drag,med,rival-only
+sd,72,ordered/hard/sd_ordered_hard_downtownfwy_race01,ordered,hard,
+sd,74,blitz/easy/sd_blitz_easy_citytour_race04,blitz,easy,
+sd,76,circuit/hard/sd_circuit_hard_cityloop_race04,circuit,hard,
+sd,78,ordered/hard/sd_ordered_hard_fiftyfifty_race02,ordered,hard,rival-only
+sd,81,ordered/hard/sd_ordered_hard_baybridges_race01,ordered,hard,
+sd,84,ordered/med/sd_ordered_med_doublecross_race01,ordered,med,
+sd,85,circuit/easy/sd_circuit_easy_beachcross_race01,circuit,easy,filler-only closed-track
+sd,87,ordered/med/sd_ordered_med_ohship_race03,ordered,med,
+sd,90,ordered/hard/sd_ordered_hard_hellofwy_race01,ordered,hard,
+sd,93,ordered/med/sd_ordered_med_cliffhanger_race01,ordered,med,
+sd,96,ordered/hard/sd_ordered_hard_balboa_race02,ordered,hard,tournament side-quest-filler
+sd,98,circuit/med/sd_circuit_med_oceanseleven_race01,circuit,med,filler-only closed-track
+sd,100,ordered/hard/sd_ordered_hard_eastside_race01,ordered,hard,rival-locked
+sd,180,ordered/hard/sd_ordered_hard_citytour_race02,ordered,hard,rival-only tournament
+sd,180,ordered/hard/sd_ordered_hard_citytour_race03,ordered,hard,tournament side-quest-filler
+sd,180,ordered/hard/sd_ordered_hard_citytour_race01,ordered,hard,rival-only tournament
+sd,180,circuit/hard/sd_circuit_hard_cityloop_race05,circuit,hard,rival-only rival-locked
+sd,180,ordered/med/sd_ordered_med_go_race03,ordered,med,rival-only rival-locked
+sd,180,ordered/med/sd_ordered_med_beach_race01,ordered,med,
+atlanta,80,ordered/easy/atl_ordered_easy_welcome_race01,ordered,easy,tournament
+atlanta,80,circuit/easy/atl_circuit_easy_parketary_race01,circuit,easy,tournament
+atlanta,80,circuit/med/atl_circuit_med_fastjumps_race01,circuit,med,
+atlanta,80,blitz/easy/atl_blitz_easy_thereandback_race02,blitz,easy,
+atlanta,80,circuit/easy/atl_circuit_easy_cityloop_race03,circuit,easy,
+atlanta,80,circuit/med/atl_circuit_med_cityloop_race06,circuit,med,
+atlanta,81,circuit/easy/atl_circuit_easy_westend_race02,circuit,easy,tournament
+atlanta,81,circuit/med/atl_circuit_med_bucktree_race01,circuit,med,
+atlanta,81,ordered/easy/atl_ordered_easy_fourfifths_race01,ordered,easy,
+atlanta,81,ordered/med/atl_ordered_med_joyrider_race01,ordered,med,
+atlanta,81,ordered/hard/atl_ordered_hard_decisions_race01,ordered,hard,
+atlanta,82,ordered/hard/atl_ordered_hard_whiplash_race01,ordered,hard,tournament
+atlanta,82,blitz/easy/atl_blitz_easy_thereandback_race01,blitz,easy,
+atlanta,82,ordered/easy/atl_ordered_easy_midtown_race01,ordered,easy,
+atlanta,83,circuit/hard/atl_circuit_hard_bigair_race01,circuit,hard,
+atlanta,83,ordered/hard/atl_ordered_hard_drops_race01,ordered,hard,
+atlanta,83,blitz/med/atl_blitz_med_adrenaline_race01,blitz,med,
+atlanta,83,ordered/hard/atl_ordered_hard_musclerace_race01,ordered,hard,
+atlanta,84,ordered/med/atl_ordered_med_haul_race01,ordered,med,rival-only rival-locked
+atlanta,85,ordered/med/atl_ordered_med_fearless_race01,ordered,med,
+atlanta,87,circuit/med/atl_circuit_med_shortcircuit_race01,circuit,med,rival-only
+atlanta,89,circuit/easy/atl_circuit_easy_freeway_race01,circuit,easy,rival-only
+atlanta,92,circuit/hard/atl_circuit_hard_copout_race02,circuit,hard,
+atlanta,94,ordered/easy/atl_ordered_easy_slingshot_race01,ordered,easy,rival-only
+atlanta,95,ordered/easy/atl_ordered_easy_spavisit_race01,ordered,easy,
+atlanta,96,circuit/easy/atl_circuit_easy_bucktown_race01,circuit,easy,rival-only
+atlanta,97,ordered/easy/atl_ordered_easy_streetrace_race01,ordered,easy,rival-locked
+atlanta,100,ordered/med/atl_ordered_med_aroundtheblock_race01,ordered,med,rival-only
+atlanta,101,ordered/med/atl_ordered_med_oldskool_race02,ordered,med,rival-only rival-locked
+atlanta,103,circuit/easy/atl_circuit_easy_cityloop_race04,circuit,easy,
+atlanta,104,circuit/easy/atl_circuit_easy_westend_race03,circuit,easy,rival-only
+atlanta,105,ordered/med/atl_ordered_med_vortex_race01,ordered,med,rival-only
+atlanta,106,ordered/med/atl_ordered_med_ontheedge_race01,ordered,med,
+atlanta,108,ordered/easy/atl_ordered_easy_convoy_race01,ordered,easy,rival-only
+atlanta,110,ordered/easy/atl_ordered_easy_smallblind_race01,ordered,easy,
+atlanta,112,ordered/easy/atl_ordered_easy_alf_race02,ordered,easy,rival-only
+atlanta,113,circuit/med/atl_circuit_med_twister_race01,circuit,med,filler-only closed-track
+atlanta,114,ordered/easy/atl_ordered_easy_parkandride_race01,ordered,easy,rival-only
+atlanta,117,circuit/easy/atl_circuit_easy_cityloop_race02,circuit,easy,
+atlanta,119,ordered/med/atl_ordered_med_findyourway_race01,ordered,med,rival-only
+atlanta,121,ordered/med/atl_ordered_med_oldskool_race01,ordered,med,rival-only
+atlanta,123,circuit/hard/atl_circuit_hard_downtown_race03,circuit,hard,filler-only closed-track
+atlanta,125,ordered/easy/atl_ordered_easy_peaches_race01,ordered,easy,rival-only
+atlanta,128,unordered/hard/atl_unordered_hard_4winds_race01,unordered,hard,rival-only
+atlanta,130,ordered/easy/atl_ordered_easy_bigblind_race01,ordered,easy,
+atlanta,132,ordered/hard/atl_ordered_hard_cemetarygates_race01,ordered,hard,rival-only
+atlanta,134,ordered/hard/atl_ordered_hard_marathon_race01,ordered,hard,
+atlanta,136,ordered/easy/atl_ordered_easy_cutthru_race01,ordered,easy,
+atlanta,138,blitz/med/atl_blitz_med_piedmontisland_race01,blitz,med,rival-only
+atlanta,142,ordered/med/atl_ordered_med_bikerace_race01,ordered,med,
+atlanta,144,ordered/med/atl_ordered_med_circles_race01,ordered,med,rival-only
+atlanta,145,circuit/med/atl_circuit_med_iceturn_race01,circuit,med,filler-only closed-track
+atlanta,146,ordered/easy/atl_ordered_easy_peaches_race03,ordered,easy,rival-only rival-locked
+atlanta,147,blitz/med/atl_blitz_med_crazycowboyz_race01,blitz,med,
+atlanta,148,ordered/med/atl_ordered_med_theflop_race01,ordered,med,rival-only rival-locked
+atlanta,149,circuit/hard/atl_circuit_hard_downtown_race01,circuit,hard,rival-locked
+atlanta,150,ordered/hard/atl_ordered_hard_throughthecity_race01,ordered,hard,rival-only rival-locked
+detroit,130,ordered/med/dt_ordered_med_cityrace_race02,ordered,med,rival-only rival-locked
+detroit,130,circuit/easy/dt_circuit_easy_railcircuit_race01,circuit,easy,rival-only rival-locked
+detroit,130,circuit/easy/dt_circuit_easy_brickyard_race01,circuit,easy,
+detroit,131,circuit/easy/dt_circuit_easy_citycircuit_race02,circuit,easy,
+detroit,131,drag/easy/dt_drag_easy_riverrougedrag_race01,drag,easy,tournament side-quest-filler
+detroit,131,ordered/hard/dt_ordered_hard_mrplow_race01,ordered,hard,rival-locked
+detroit,131,circuit/easy/dt_circuit_easy_freeway_race03,circuit,easy,
+detroit,132,ordered/hard/dt_ordered_hard_hockeytown_race01,ordered,hard,
+detroit,132,ordered/easy/dt_ordered_easy_downtown_race01,ordered,easy,rival-only
+detroit,132,ordered/med/dt_ordered_med_thruandcutback_race01,ordered,med,
+detroit,132,circuit/easy/dt_circuit_easy_citycircuit_race01,circuit,easy,tournament side-quest-filler
+detroit,133,ordered/easy/dt_ordered_easy_muscledrift_race01,ordered,easy,
+detroit,133,circuit/med/dt_circuit_med_figure8s_race01,circuit,med,
+detroit,133,ordered/med/dt_ordered_med_gasproblems_race01,ordered,med,
+detroit,133,ordered/easy/dt_ordered_easy_turnedout_race01,ordered,easy,
+detroit,134,ordered/hard/dt_ordered_hard_tightrope_race01,ordered,hard,tournament side-quest-filler
+detroit,134,ordered/med/dt_ordered_med_cityrace_race04,ordered,med,
+detroit,135,circuit/easy/dt_circuit_easy_weave_race01,circuit,easy,
+detroit,135,circuit/med/dt_circuit_med_aroundnback_race01,circuit,med,
+detroit,136,circuit/easy/dt_circuit_easy_freeway_race02,circuit,easy,
+detroit,138,ordered/easy/dt_ordered_easy_speed_race01,ordered,easy,rival-only tournament
+detroit,140,ordered/med/dt_ordered_med_cityrace_race03,ordered,med,rival-only
+detroit,142,ordered/easy/dt_ordered_easy_freewayspeed_race01,ordered,easy,
+detroit,144,unordered/easy/dt_unordered_easy_hook_race01,unordered,easy,rival-only
+detroit,146,drag/med/dt_drag_med_trainjump_race02,drag,med,rival-only rival-locked
+detroit,148,circuit/med/dt_circuit_med_haul_race01,circuit,med,rival-only
+detroit,150,blitz/easy/dt_blitz_easy_end2end_race01,blitz,easy,
+detroit,152,ordered/easy/dt_ordered_easy_riverdash_race01,ordered,easy,rival-only
+detroit,154,ordered/hard/dt_ordered_hard_plowking_race01,ordered,hard,
+detroit,156,ordered/hard/dt_ordered_hard_riverrougetour_race01,ordered,hard,rival-only
+detroit,158,unordered/easy/dt_unordered_easy_aroundthecity_race01,unordered,easy,rival-only
+detroit,160,ordered/med/dt_ordered_med_halfcircle_race01,ordered,med,
+detroit,162,ordered/med/dt_ordered_med_cityrace_race05,ordered,med,rival-only
+detroit,164,circuit/med/dt_circuit_med_theprojects_race01,circuit,med,filler-only closed-track
+detroit,166,ordered/easy/dt_ordered_easy_highwaymoments_race01,ordered,easy,rival-only
+detroit,168,ordered/easy/dt_ordered_easy_riverjumps_race01,ordered,easy,
+detroit,170,ordered/med/dt_ordered_med_nowayout_race01,ordered,med,rival-only
+detroit,172,ordered/med/dt_ordered_med_overtheriver_race01,ordered,med,side-quest-filler
+detroit,174,drag/med/dt_drag_med_spiralout_race01,drag,med,rival-only
+detroit,176,circuit/hard/dt_circuit_hard_toughturns_race01,circuit,hard,filler-only closed-track
+detroit,178,circuit/hard/dt_circuit_hard_allin_race01,circuit,hard,rival-locked side-quest-filler
+detroit,180,ordered/hard/dt_ordered_hard_rivercity_race01,ordered,hard,rival-only
+detroit,182,circuit/easy/dt_circuit_easy_highland_race01,circuit,easy,filler-only closed-track
+detroit,184,circuit/med/dt_circuit_med_ghetto_race01,circuit,med,side-quest-filler
+detroit,186,ordered/hard/dt_ordered_hard_starman_race01,ordered,hard,rival-only rival-locked
+detroit,188,ordered/hard/dt_ordered_hard_eliminator_race01,ordered,hard,rival-only
+detroit,190,ordered/hard/dt_ordered_hard_sluminit_race01,ordered,hard,side-quest-filler
+detroit,192,ordered/med/dt_ordered_med_open_race01,ordered,med,rival-only rival-locked
+detroit,194,ordered/med/dt_ordered_med_inthecity_race01,ordered,med,side-quest-filler
+detroit,196,ordered/hard/dt_ordered_hard_champ_race01,ordered,hard,rival-only rival-locked
+detroit,198,ordered/med/dt_ordered_med_tigerrace_race01,ordered,med,rival-only
+detroit,200,ordered/hard/dt_ordered_hard_tls_race01,ordered,hard,rival-locked side-quest-filler
+detroit,200,ordered/hard/dt_ordered_hard_ballzout_Race0,ordered,hard,rival-only rival-locked
+tokyo,3,circuit/easy/circuit_easy01_sumidabridges_race01,circuit,easy,
+tokyo,1,circuit/easy/circuit_easy03_bridgestobabylon_race02,circuit,easy,
+tokyo,3,ordered/easy/ordered_easy04_highroad_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy03_gofish_race02,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy03_zeedfree_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy02_compound_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy02_compound_race03,ordered,easy,
+tokyo,3,circuit/easy/circuit_easy01_templecircuit_race01,circuit,easy,
+tokyo,1,circuit/easy/circuit_easy01_crazytown_race01,circuit,easy,
+tokyo,3,ordered/easy/ordered_easy01_tokyowarf_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy04_drift_race01,ordered,easy,
+tokyo,1,circuit/easy/circuit_easy03_moattown_race01,circuit,easy,
+tokyo,3,circuit/easy/circuit_easy04_dome_race01,circuit,easy,
+tokyo,3,ordered/easy/ordered_easy03_warfrunner_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy04_asakusa_race01,ordered,easy,
+tokyo,3,circuit/easy/circuit_easy02_asakusacircuit_race01,circuit,easy,
+tokyo,1,ordered/easy/ordered_easy01_train_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy06_bit_race02,ordered,easy,
+tokyo,3,circuit/easy/circuit_easy04_airborne_race01,circuit,easy,
+tokyo,3,ordered/easy/ordered_easy01_ginzastop_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy04_haul_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy02_americanninja_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy02_jackdaw_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy02_shortcuts_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy02_superjoy_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy02_thruthecity_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy03_jackdaw_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy01_passageways_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy06_zeed_race01,ordered,easy,
+tokyo,1,ordered/easy/ordered_easy04_freeways_race01,ordered,easy,
+tokyo,2,unordered/easy/unordered_easy03_templeofdoobz_race01,unordered,easy,
+tokyo,1,ordered/easy/ordered_easy02_chopsuey_race01,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy04_chopsuey_race02,ordered,easy,
+tokyo,3,circuit/easy/circuit_easy02_compound_race02,circuit,easy,
+tokyo,3,ordered/easy/ordered_easy02_compound_race04,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy04_wharf_race01,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy01_lotsofluck_race0,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy01_adrenaline_race01,ordered,easy,
+tokyo,1,unordered/easy/unordered_easy01_alleywayrush_race01,unordered,easy,
+tokyo,1,ordered/easy/ordered_easy06_powerslide_race01,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy03_iguana_race01,ordered,easy,
+tokyo,2,ordered/easy/ordered_easy04_iguana_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy06_iguana_race01,ordered,easy,
+tokyo,3,ordered/easy/ordered_easy06_jackdaw_race06,ordered,easy,
+tokyo,2,unordered/easy/unordered_easy04_4points_race01,unordered,easy,
+tokyo,2,circuit/easy/circuit_easy03_wickedgarden_race01,circuit,easy,
+tokyo,2,circuit/easy/circuit_easy06_ginza_race02,circuit,easy,
+tokyo,3,circuit/easy/circuit_easy06_ginza_race03,circuit,easy,
+tokyo,1,circuit/easy/circuit_easy06_buyatribe_race02,circuit,easy,
+tokyo,2,ordered/easy/ordered_easy03_shindojo_race01,ordered,easy,
+tokyo,1,unordered/easy/unordered_easy02_choices_race01,unordered,easy,
