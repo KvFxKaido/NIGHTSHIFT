@@ -390,7 +390,7 @@ fixtures outside the playable bundle, and old world links redirect.
 | Menu rules: rows not tiles, shoulder sections, hint bars, hold-to-repeat, focus memory | `src/ui/menu.ts`, `menu-rows.ts`, `prompts.ts`, `src/input/input.ts` | `design/MENUS.md` (read it before adding any menu or option) |
 | Debug API (`window.__ns`) | `src/debug/debug.ts` | below |
 | Car and course assets | `assets/` | `assets/cars/README.md`, `assets/tracks/blackglass/README.md` |
-| MC3 / MCLA rosters, unlocks, REP economy (research data, csv); MC3's own unlock, money and AI tuning read off the disc | `design/reference/midnight-club/`, `gamedata/` beside it | its `README.md`, then `digest.md`; `gamedata/README.md` |
+| MC3 / MCLA rosters, unlocks, REP economy (research data, csv); MC3's and MCLA's own unlock, money, REP and AI tuning read off the discs | `design/reference/midnight-club/`, `gamedata/` beside it | its `README.md`, then `digest.md`; `gamedata/README.md` |
 | The yard by the start, and the chaos it is meant to prove | — | `design/CHAOS.md` |
 | What a change in one layer moves in another, and what each tuned number was measured on | — | `design/COUPLINGS.md` |
 | Adopted places: the routine, its record, each place's drawing and activity (Holgate Cold Store first) | `render/cold-storage.ts`, `render/place-activity.ts`, `design/adoptions/` | `design/CITY_ADOPTION.md` |

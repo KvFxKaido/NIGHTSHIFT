@@ -52,10 +52,11 @@ NIGHTSHIFT design: GDD §5 is where decisions live.
 | `mcla-design-notes.csv` | pattern (10) | MCLA patterns phrased as NIGHTSHIFT experiments |
 | `mcla-sources.csv`, `mcla-conflicts.csv` | source, conflict | provenance and the disagreements behind a value |
 
-`gamedata/` is not from the workbook: it is MC3 REMIX's own tuning files, read
-off the disc by `gamedata.py` (with `dave.py`, the archive reader), graded A. Its
-README says what each table holds and which `mc3-unlocks.csv` rows it confirms,
-corrects or leaves open. `export.py` never touches it.
+`gamedata/` is not from the workbook: it is the games' own files, read off the
+discs and graded A. `mc3_gamedata.py` (with `dave.py`) reads MC3 REMIX's tuning,
+`mcla_gamedata.py` (with `rpf3.py`) MCLA's career. Its README says what each table
+holds and which workbook rows it confirms, corrects or leaves open. `export.py`
+never touches it.
 
 The workbook computes some `mc3-vehicles.csv` columns; the csv holds its
 results. **Stock / Max Composite** is the unweighted mean of the three bars,

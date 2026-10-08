@@ -1,0 +1,180 @@
+Career,System,Max amount,Increment,Threshold,Percent,Amount (percent x max),Reward type,Reward
+base,Progression,33500,100,Progression_0,0.015,502,Script,ScriptName game\Career\RaceDifficultyTip
+base,Progression,33500,100,Progression_1,0.02,670,Script,ScriptName game\Career\OpponentDifficultyTip
+base,Progression,33500,100,Progression_2,0.035,1172,Script,ScriptName game\Career\ProgressionTip_01
+base,Progression,33500,100,Progression_3,0.045,1508,Script,ScriptName game\Career\MeetMeThereTip
+base,Progression,33500,100,Progression_4,0.05,1675,Mission,"MissionId BESTOF_GH_04, TransitionState READY_TO_START"
+base,Progression,33500,100,Progression_5,0.06,2010,Mission,"MissionId TUNER_REP, TransitionState READY_TO_START"
+base,Progression,33500,100,Progression_5,0.06,2010,Mission,"MissionId MUSCLE_REP, TransitionState READY_TO_START"
+base,Progression,33500,100,Progression_6,0.08,2680,Mission,"MissionId HANGOUT_SERIES_HOLLYWOODB, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_6,0.08,2680,Script,ScriptName game\Career\TicketTip
+base,Progression,33500,100,Progression_6,0.08,2680,Script,ScriptName game\Career\CarsWinningTip
+base,Progression,33500,100,Progression_7,0.1,3350,Script,ScriptName game\Career\ProgressionTip_02
+base,Progression,33500,100,Progression_8,0.11,3685,Mission,"MissionId TIMETRIAL_HOLLYWOOD, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_8,0.11,3685,Script,ScriptName game\Career\AirControlsTip
+base,Progression,33500,100,Progression_9,0.13,4355,Mission,"MissionId FIND_SH_03, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_10,0.14,4690,Mission,"MissionId INSTALL_ABILITY, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_10,0.14,4690,Script,ScriptName game\Career\CopEvasionTip
+base,Progression,33500,100,Progression_11,0.15,5025,Mission,"MissionId TOURNAMENT_HOLLYWOOD, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_11,0.15,5025,Script,ScriptName game\Career\RateMyRideTip
+base,Progression,33500,100,Progression_12,0.16,5360,Script,ScriptName game\Career\TwoWheelDrivingTip
+base,Progression,33500,100,Progression_12,0.16,5360,Script,ScriptName game\Career\OnlineTip
+base,Progression,33500,100,Progression_13,0.18,6030,Mission,"MissionId DELIVERY, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_14,0.2,6700,Mission,"MissionId TOURNAMENT_HILLS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_14,0.2,6700,Script,ScriptName game\Career\RaceEditorTip
+base,Progression,33500,100,Progression_15,0.24,8040,Mission,"MissionId FIND_SH_03B, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_16,0.30,10050,Mission,"MissionId HANGOUT_PINKSLIP_BEACHES, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_17,0.31,10385,Mission,"MissionId TOURNAMENT_BEACHES, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_18,0.33,11055,Mission,"MissionId GARAGE_BEACHES, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_19,0.34,11390,Mission,"MissionId BEAT_FREEWAY, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_20,0.35,11725,Mission,"MissionId BEAT_SH_02_BCLASS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_20,0.35,11725,Mission,"MissionId LUXURY_REP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_21,0.40,13400,Mission,"MissionId TOURNAMENT_DOWNTOWN, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_22,0.44,14740,Mission,"MissionId BEAT_SH_03, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_23,0.48,16080,Mission,"MissionId FIND_SH_02, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId FIND_SH_01, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Script,ScriptName game\Career\unlock_unordered_races
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId TUNER_CHAMP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId MUSCLE_CHAMP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId LUXURY_CHAMP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId EXOTIC_CHAMP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_24,0.50,16750,Mission,"MissionId MOTORCYCLE_CHAMP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_25,0.57,19095,Mission,"MissionId TIMETRIAL_DOWNTOWN, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_26,0.60,20100,Mission,"MissionId FIND_SH_05, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_26,0.60,20100,Mission,"MissionId BESTOF_SH_02, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_27,0.63,21105,Mission,"MissionId BEAT_SH_04_BCLASS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_28,0.71,23785,Mission,"MissionId PAYBACK_GH_18, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_29,0.74,24790,Mission,"MissionId TIMETRIAL_HILLS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_30,0.75,25125,Mission,"MissionId HANGOUT_WAGER_BEACHES, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_31,0.76,25460,Mission,"MissionId EXOTIC_REP, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_32,0.78,26130,Mission,"MissionId RACES_IN_DOWNTOWN, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_33,0.8,26800,Mission,"MissionId BEAT_SH_03_ACLASS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_34,0.85,28475,Mission,"MissionId BEAT_SH_05_ACLASS, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_34,0.85,28475,Mission,"MissionId BEAT_SH_04B, TransitionState CHECKING_PREREQUISITES"
+base,Progression,33500,100,Progression_35,0.9,30150,Mission,"MissionId BESTOF_GH_22, TransitionState CHECKING_PREREQUISITES"
+base,Unlocking,33500,100,Unlocking_0,0.04,1340,PerformanceLevel,PerformanceId D1
+base,Unlocking,33500,100,Unlocking_0,0.04,1340,Script,ScriptName game\Career\PerformanceUnlockTip_01
+base,Unlocking,33500,100,Unlocking_1,0.05,1675,Script,ScriptName game\Career\CarsUnlockingTip
+base,Unlocking,33500,100,Unlocking_2,0.07,2345,Script,ScriptName game\Career\PerformanceUpgradeTip_01
+base,Unlocking,33500,100,Unlocking_3,0.1,3350,PerformanceLevel,PerformanceId C0
+base,Unlocking,33500,100,Unlocking_3,0.1,3350,Script,ScriptName game\Career\CarsUnlockTip_02
+base,Unlocking,33500,100,Unlocking_3,0.1,3350,Script,ScriptName game\Career\PerformanceUpgradeTip_02
+base,Unlocking,33500,100,Unlocking_4,0.17,5695,PerformanceLevel,PerformanceId D2
+base,Unlocking,33500,100,Unlocking_4,0.17,5695,Script,ScriptName game\Career\PerformanceUnlockTip_02
+base,Unlocking,33500,100,Unlocking_5,0.25,8375,PerformanceLevel,PerformanceId C1
+base,Unlocking,33500,100,Unlocking_5,0.25,8375,Script,ScriptName game\Career\PerformanceUnlockTip_03
+base,Unlocking,33500,100,Unlocking_6,0.34,11390,PerformanceLevel,PerformanceId B0
+base,Unlocking,33500,100,Unlocking_6,0.34,11390,Script,ScriptName game\Career\CarsUnlockTip_03
+base,Unlocking,33500,100,Unlocking_7,0.43,14405,PerformanceLevel,PerformanceId C2
+base,Unlocking,33500,100,Unlocking_7,0.43,14405,Script,ScriptName game\Career\PerformanceUnlockTip_04
+base,Unlocking,33500,100,Unlocking_8,0.52,17420,PerformanceLevel,PerformanceId B1
+base,Unlocking,33500,100,Unlocking_8,0.52,17420,Script,ScriptName game\Career\PerformanceUnlockTip_05
+base,Unlocking,33500,100,Unlocking_9,0.6,20100,PerformanceLevel,PerformanceId A0
+base,Unlocking,33500,100,Unlocking_9,0.6,20100,Script,ScriptName game\Career\CarsUnlockTip_04
+base,Unlocking,33500,100,Unlocking_10,0.68,22780,PerformanceLevel,PerformanceId B2
+base,Unlocking,33500,100,Unlocking_10,0.68,22780,Script,ScriptName game\Career\PerformanceUnlockTip_06
+base,Unlocking,33500,100,Unlocking_11,0.76,25460,PerformanceLevel,PerformanceId A1
+base,Unlocking,33500,100,Unlocking_11,0.76,25460,Script,ScriptName game\Career\PerformanceUnlockTip_07
+base,Unlocking,33500,100,Unlocking_12,0.84,28140,PerformanceLevel,PerformanceId A2
+base,Unlocking,33500,100,Unlocking_12,0.84,28140,Script,ScriptName game\Career\PerformanceUnlockTip_08
+base,Zone,40,1,Zone_0,0.5,20,AbilityLevel,"AbilityId Zone, Level 1"
+base,Zone,40,1,Zone_1,1.0,40,AbilityLevel,"AbilityId Zone, Level 2"
+base,Zone,40,1,Zone_1,1.0,40,Achievement,Name aZON
+base,Agro,40,1,Agro_0,0.5,20,AbilityLevel,"AbilityId Agro, Level 1"
+base,Agro,40,1,Agro_1,1.0,40,AbilityLevel,"AbilityId Agro, Level 2"
+base,Agro,40,1,Agro_1,1.0,40,Achievement,Name aAGR
+base,Roar,40,1,Roar_0,0.5,20,AbilityLevel,"AbilityId Roar, Level 1"
+base,Roar,40,1,Roar_1,1.0,40,AbilityLevel,"AbilityId Roar, Level 2"
+base,Roar,40,1,Roar_1,1.0,40,Achievement,Name aROR
+base,Pulse,40,1,Pulse_0,0.5,20,AbilityLevel,"AbilityId Pulse, Level 1"
+base,Pulse,40,1,Pulse_1,1.0,40,AbilityLevel,"AbilityId Pulse, Level 2"
+base,Pulse,40,1,Pulse_1,1.0,40,Achievement,Name aPUL
+base,Tuner,45,1,Tuner_0,0.2,9,PartUnlock,Name FrontBumper
+base,Tuner,45,1,Tuner_0,0.2,9,PartUnlock,Name Skirts
+base,Tuner,45,1,Tuner_1,0.4,18,PartUnlock,Name RearBumper
+base,Tuner,45,1,Tuner_1,0.4,18,PartUnlock,Name Spoiler
+base,Tuner,45,1,Tuner_2,0.6,27,PartUnlock,Name FrontSeat
+base,Tuner,45,1,Tuner_2,0.6,27,PartUnlock,Name SteeringWheel
+base,Tuner,45,1,Tuner_2,0.6,27,PartUnlock,Name PostGauge
+base,Tuner,45,1,Tuner_3,0.8,36,PartUnlock,Name Taillight
+base,Tuner,45,1,Tuner_3,0.8,36,PartUnlock,Name Headlight
+base,Tuner,45,1,Tuner_3,0.8,36,PartUnlock,Name Hood
+base,Tuner,45,1,Tuner_4,1.0,45,PartUnlock,Name Exhaust
+base,Tuner,45,1,Tuner_4,1.0,45,PartUnlock,Name Intercooler
+base,Tuner,45,1,Tuner_4,1.0,45,PartUnlock,Name WideBody
+base,Muscle,45,1,Muscle_0,0.2,9,PartUnlock,Name FrontBumper
+base,Muscle,45,1,Muscle_0,0.2,9,PartUnlock,Name Skirts
+base,Muscle,45,1,Muscle_1,0.4,18,PartUnlock,Name RearBumper
+base,Muscle,45,1,Muscle_1,0.4,18,PartUnlock,Name Spoiler
+base,Muscle,45,1,Muscle_2,0.6,27,PartUnlock,Name FrontSeat
+base,Muscle,45,1,Muscle_2,0.6,27,PartUnlock,Name SteeringWheel
+base,Muscle,45,1,Muscle_2,0.6,27,PartUnlock,Name PostGauge
+base,Muscle,45,1,Muscle_3,0.8,36,PartUnlock,Name Taillight
+base,Muscle,45,1,Muscle_3,0.8,36,PartUnlock,Name Headlight
+base,Muscle,45,1,Muscle_3,0.8,36,PartUnlock,Name Hood
+base,Muscle,45,1,Muscle_4,1.0,45,PartUnlock,Name Blower
+base,Muscle,45,1,Muscle_4,1.0,45,PartUnlock,Name Exhaust
+base,Muscle,45,1,Muscle_4,1.0,45,PartUnlock,Name Intercooler
+base,Muscle,45,1,Muscle_4,1.0,45,PartUnlock,Name WideBody
+base,Luxury,45,1,Luxury_0,0.2,9,PartUnlock,Name FrontBumper
+base,Luxury,45,1,Luxury_0,0.2,9,PartUnlock,Name Skirts
+base,Luxury,45,1,Luxury_1,0.4,18,PartUnlock,Name RearBumper
+base,Luxury,45,1,Luxury_1,0.4,18,PartUnlock,Name Spoiler
+base,Luxury,45,1,Luxury_2,0.6,27,PartUnlock,Name FrontSeat
+base,Luxury,45,1,Luxury_2,0.6,27,PartUnlock,Name SteeringWheel
+base,Luxury,45,1,Luxury_2,0.6,27,PartUnlock,Name PostGauge
+base,Luxury,45,1,Luxury_3,0.8,36,PartUnlock,Name Taillight
+base,Luxury,45,1,Luxury_3,0.8,36,PartUnlock,Name Headlight
+base,Luxury,45,1,Luxury_3,0.8,36,PartUnlock,Name Hood
+base,Luxury,45,1,Luxury_4,1.0,45,PartUnlock,Name Exhaust
+base,Luxury,45,1,Luxury_4,1.0,45,PartUnlock,Name Intercooler
+base,Luxury,45,1,Luxury_4,1.0,45,PartUnlock,Name WideBody
+base,Exotic,45,1,Exotic_0,0.2,9,PartUnlock,Name FrontBumper
+base,Exotic,45,1,Exotic_0,0.2,9,PartUnlock,Name Skirts
+base,Exotic,45,1,Exotic_1,0.4,18,PartUnlock,Name RearBumper
+base,Exotic,45,1,Exotic_1,0.4,18,PartUnlock,Name Spoiler
+base,Exotic,45,1,Exotic_2,0.6,27,PartUnlock,Name FrontSeat
+base,Exotic,45,1,Exotic_2,0.6,27,PartUnlock,Name SteeringWheel
+base,Exotic,45,1,Exotic_2,0.6,27,PartUnlock,Name PostGauge
+base,Exotic,45,1,Exotic_3,0.8,36,PartUnlock,Name Taillight
+base,Exotic,45,1,Exotic_3,0.8,36,PartUnlock,Name Headlight
+base,Exotic,45,1,Exotic_3,0.8,36,PartUnlock,Name Hood
+base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name Exhaust
+base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name Intercooler
+base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name WideBody
+base,SportBike,36,1,SportBike_0,0.4,14,PartUnlock,Name BikeTail
+base,SportBike,36,1,SportBike_1,0.6,22,PartUnlock,Name BikeTank
+base,SportBike,36,1,SportBike_2,1.0,36,PartUnlock,Name BikeCowl
+south central,Progression,33500,100,Progression_37,0.12,4020,Mission,"MissionId GARAGE_SC, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_38,0.18,6030,Mission,"MissionId BESTOF_GH_31, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_39,0.19,6365,Mission,"MissionId LOWRIDER_REP, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_40,0.30,10050,Mission,"MissionId DELIVERY_SC, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_41,0.38,12730,Mission,"MissionId SUV_REP, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_42,0.50,16750,Mission,"MissionId TOURNAMENT_SC, TransitionState CHECKING_PREREQUISITES"
+south central,Progression,33500,100,Progression_43,0.60,20100,Mission,"MissionId RACES_IN_SC, TransitionState CHECKING_PREREQUISITES"
+south central,SUV,45,1,Exotic_0,0.2,9,PartUnlock,Name FrontBumper
+south central,SUV,45,1,Exotic_0,0.2,9,PartUnlock,Name Skirts
+south central,SUV,45,1,Exotic_1,0.4,18,PartUnlock,Name RearBumper
+south central,SUV,45,1,Exotic_1,0.4,18,PartUnlock,Name Spoiler
+south central,SUV,45,1,Exotic_2,0.6,27,PartUnlock,Name FrontSeat
+south central,SUV,45,1,Exotic_2,0.6,27,PartUnlock,Name SteeringWheel
+south central,SUV,45,1,Exotic_2,0.6,27,PartUnlock,Name PostGauge
+south central,SUV,45,1,Exotic_3,0.8,36,PartUnlock,Name Taillight
+south central,SUV,45,1,Exotic_3,0.8,36,PartUnlock,Name Headlight
+south central,SUV,45,1,Exotic_3,0.8,36,PartUnlock,Name Hood
+south central,SUV,45,1,Exotic_4,1.0,45,PartUnlock,Name Exhaust
+south central,SUV,45,1,Exotic_4,1.0,45,PartUnlock,Name Intercooler
+south central,SUV,45,1,Exotic_4,1.0,45,PartUnlock,Name WideBody
+south central,LowRider,45,1,Exotic_0,0.2,9,PartUnlock,Name FrontBumper
+south central,LowRider,45,1,Exotic_0,0.2,9,PartUnlock,Name Skirts
+south central,LowRider,45,1,Exotic_1,0.4,18,PartUnlock,Name RearBumper
+south central,LowRider,45,1,Exotic_1,0.4,18,PartUnlock,Name Spoiler
+south central,LowRider,45,1,Exotic_2,0.6,27,PartUnlock,Name FrontSeat
+south central,LowRider,45,1,Exotic_2,0.6,27,PartUnlock,Name SteeringWheel
+south central,LowRider,45,1,Exotic_2,0.6,27,PartUnlock,Name PostGauge
+south central,LowRider,45,1,Exotic_3,0.8,36,PartUnlock,Name Taillight
+south central,LowRider,45,1,Exotic_3,0.8,36,PartUnlock,Name Headlight
+south central,LowRider,45,1,Exotic_3,0.8,36,PartUnlock,Name Hood
+south central,LowRider,45,1,Exotic_4,1.0,45,PartUnlock,Name Exhaust
+south central,LowRider,45,1,Exotic_4,1.0,45,PartUnlock,Name Intercooler
+south central,LowRider,45,1,Exotic_4,1.0,45,PartUnlock,Name WideBody

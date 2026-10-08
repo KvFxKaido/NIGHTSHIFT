@@ -1,19 +1,24 @@
-# MC3 game data
+# Game data
 
-Tables derived from Midnight Club 3: DUB Edition Remix's own tuning files, read
-off the USA disc (`ASSETS.DAT`, an Angel Studios "Dave" archive) on 2026-10-07.
-Everything in `../data/` comes from fan wikis, FAQs and a guide; this comes from
-the game. On the workbook's scale it is **A (game data)**, with one limit: it is
-the REMIX disc. Where the original MC3 differs, nothing here says so.
+Tables derived from the games' own files, read off Shawn's discs on 2026-10-07:
+Midnight Club 3: DUB Edition Remix (`mc3-gd-*`) and Midnight Club: Los Angeles
+Complete Edition (`mcla-gd-*`, [below](#mcla)). Everything in `../data/` comes from
+fan wikis, FAQs and a guide; this comes from the games. On the workbook's scale
+it is **A (game data)**, with one limit each: the MC3 tables are the REMIX disc,
+and where the original MC3 differs nothing here says so; the MCLA tables are the
+Complete Edition, with South Central's files beside the base game's.
 
-`../gamedata.py` writes every csv here from the archive (`../dave.py` reads it):
+Do not hand-edit the csv files, and do not commit a disc, an archive, a key or
+anything extracted: the tables hold the values and structure the files give, not
+the designers' comments. This README is written by hand.
 
-    python design/reference/midnight-club/gamedata.py <ASSETS.DAT>
+# MC3
 
-Copy `ASSETS.DAT` off your own disc (7-Zip opens the .iso). Do not hand-edit the
-csv files, and do not commit the archive or anything extracted from it: the
-tables hold the values and structure the files give, not the designers' comments.
-This README is written by hand.
+`../mc3_gamedata.py` writes the `mc3-gd-*` files from `ASSETS.DAT` (an Angel
+Studios "Dave" archive, read by `../dave.py`), copied off your own disc (7-Zip
+opens the .iso):
+
+    python design/reference/midnight-club/mc3_gamedata.py <ASSETS.DAT>
 
 ## Files
 
@@ -105,3 +110,92 @@ changing them when the workbook is next revised and exported.
   window, keeps up to 10 races delayed, and sets a rivals-done target per city:
   0.85 for San Diego and Atlanta, 1.0 for Detroit. `races-available` sets how many races
   are on the map at once, 5 to 8 by career order.
+
+<a id="mcla"></a>
+# MCLA
+
+`../mcla_gamedata.py` writes the `mcla-gd-*` files straight from the 360 disc
+image (or `xarchive_cache.rpf` copied off it), read by `../rpf3.py`:
+
+    python design/reference/midnight-club/mcla_gamedata.py <disc.iso> <keyfile>
+
+The archive's table of contents is AES-encrypted; `rpf3.py` says where the key
+comes from and checks it against a SHA-1, and the key itself is never committed.
+RPF3 stores only hashes of names, so the tools find files by hashing the paths
+they expect; nothing needs CodeX's name list.
+
+## Files
+
+| File | One row per | From |
+|---|---|---|
+| `mcla-gd-experience.csv` | threshold reward (179) | `tune/career/experiencesystem_0.lst` (base) and `_1.lst` (South Central): every experience system, its cap, each threshold's percent of it, and what it gives |
+| `mcla-gd-event-rewards.csv` | event, difficulty, reward (65) | `tune/career/rewards_0.lst` and `_1.lst`: hangout series, tournaments, deliveries |
+| `mcla-gd-missions.csv` | mission (166) | every `tune/career/missions/**/*.xml`: district, rival, prerequisites, objectives, the missions it starts, cars it gives |
+| `mcla-gd-rubber-banding.csv` | field per tuning (231) | `tune/career/rubberbandtune00.xml` to `10.xml` |
+
+Conditions and rewards in the missions table are written `Type(field=value)`
+with the files' Hungarian prefixes (`sz`, `n`, `b`) taken off.
+
+## Two experience systems, one cap
+
+The base career has a **Progression** system and an **Unlocking** system, both
+capped at 33,500 in steps of 100, alongside small per-ability (Zone, Agro, Roar,
+Pulse, 40 each) and per-type (Tuner, Muscle, Luxury, Exotic 45, SportBike 36;
+South Central adds SUV and LowRider) systems that unlock parts and ability levels.
+Progression's thresholds start missions (`Mission` rewards) and show tips.
+Unlocking's give the performance levels: `D1` at 4%, `C0` at 10%, then D2, C1, B0,
+C2, B1, A0, B2, A1, A2 up to 84%. 33,500 is the guide's Idol threshold (`../data/mcla-ranks.csv`).
+`rewards_0.lst` pays `be_payback` in Unlocking experience by name, so the two are
+separate totals. *Not known:* which events feed which, beyond that one. The amounts
+are `DynamicMoney` / `DynamicExperience`, computed in code; the guide's payout rule
+(`../README.md`) is still the only evidence for them.
+
+**The guide's ranks are these thresholds, through a curve.** Read `C0` as "group
+2 vehicles" and `D1` as "group 1, level 1", and the eleven Unlocking rewards come in
+exactly the order of ranks 2 to 12 in `mcla-ranks.csv`. Their REP is not the
+percent of 33,500, though:
+
+| Rank | Guide REP | Game | Percent | Percent x 33,500 |
+|---|---|---|---|---|
+| Navigator | 800 | D1 | 0.04 | 1,340 |
+| Student Driver | 2,000 | C0 | 0.10 | 3,350 |
+| Rookie | 3,610 | D2 | 0.17 | 5,695 |
+| Driver | 5,600 | C1 | 0.25 | 8,375 |
+| Racer | 8,060 | B0 | 0.34 | 11,390 |
+| Veteran | 10,760 | C2 | 0.43 | 14,405 |
+| Elite Racer | 13,700 | B1 | 0.52 | 17,420 |
+| Champion | 16,500 | A0 | 0.60 | 20,100 |
+| Legend | 19,540 | B2 | 0.68 | 22,780 |
+| Savant | 22,760 | A1 | 0.76 | 25,460 |
+| Hero | 26,160 | A2 | 0.84 | 28,140 |
+| Idol | 33,500 | (cap) | 1.00 | 33,500 |
+
+*Inference:* the guide's REP is 33,500 x (0.556 p + 0.444 p^2) for percent p, within
+31 REP at all twelve points, so the game turns a threshold's percent into REP along a
+curve that is gentle early and steep late. The fit is ours; the curve is in the code.
+The rank names and the Idol mission are not in these files.
+
+## What it settles in `../data/`
+
+| Workbook | Game data | Verdict |
+|---|---|---|
+| `mcla-ranks.csv`, 13 ranks, A | the Unlocking thresholds above | Order and unlock content agree; REP agrees through the fitted curve |
+| `mcla-rewards.csv`, time trials (LR-004, 009, 010, 011, 017) | `TIMETRIAL_*C` missions give the Eclipse GSX, Boss 302, 3000GT, Miura and (South Central) Impala | Agree |
+| best of 3, rival race (LR-001, 002, 003) | `BESTOF_GH_04` the Camaro SS 69, `BESTOF_GH_05` the Focus, `BEAT_SH_02_DCLASS` the 280Z | Agree; the 280Z as a rival prize, as `mcla-conflicts.csv` decided |
+| DUB tournaments (LR-012 to 015), "win on Hard" | `hw_`, `hl_`, `be_`, `dt_tournament1` give the Camaro Concept, Challenger Concept, S600 and Murciélago Roadster DUB on **Hard**; Easy, Medium and Impossible pay money only | Agree, and new: Impossible does not give the car. The workbook's "Valley" is the files' Hills |
+| Ballerz tournament (LR-018) | `sc_tournament1` on Hard gives `SC_tournament_vpd_lr_sport_08` | Agrees |
+| pink slips (LR-005, 006, 007, 016), Jin's 350Z (LR-008) | no reward entry | *Inference:* the car comes from the opponent, in code |
+| (not in the workbook) | `BEAT_GH_05_TUNER` gives a 1983 Golf, `BEAT_GH_04_MUSCLE` a 1970 Challenger | New; both in Hollywood against `SH_01` |
+
+## What bears on NIGHTSHIFT
+
+- **Eleven rubber-band tunings in a straight ladder.** `rubberbandtune00` to `10`
+  raise the AI's throttle ceiling from 0.75 to 1.0 and floor from 0.15 to 0.5,
+  let it go flat out when behind from step 5, and start its unlimited nitro from
+  550 m behind the player down to 200. Which tuning a race uses is not in these
+  files. NIGHTSHIFT's rival takes none of it (CLAUDE.md); it is what MCLA chose.
+- **Experience starts the next missions, not just parts.** The base Progression
+  system's 36 thresholds (South Central's adds 7) start missions at given shares of
+  the cap: the Hollywood tournament at 15%, the five class championships together
+  at 50%. Missions mostly wait on other missions; only two name an experience
+  condition themselves.

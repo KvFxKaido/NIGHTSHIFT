@@ -4,7 +4,7 @@
     python design/reference/midnight-club/dave.py extract <ASSETS.DAT> <out-dir> [prefix]
 
 Bring your own disc: this reads a file you extracted from your own copy, and
-nothing it extracts belongs in this repository. gamedata.py uses it to derive
+nothing it extracts belongs in this repository. mc3_gamedata.py uses it to derive
 the tables in gamedata/ straight from the archive, without extracting anything.
 
 Format (worked out on the MC3 DUB Edition Remix USA disc, 2026-10-07; every

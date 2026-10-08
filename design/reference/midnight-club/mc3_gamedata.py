@@ -1,6 +1,6 @@
 """Derive the gamedata/ tables from Midnight Club 3's own tuning files.
 
-    python design/reference/midnight-club/gamedata.py <ASSETS.DAT>
+    python design/reference/midnight-club/mc3_gamedata.py <ASSETS.DAT>
 
 ASSETS.DAT is the file of that name on the MC3 DUB Edition Remix disc, copied
 from your own copy (7-Zip opens the .iso). Everything is read straight out of

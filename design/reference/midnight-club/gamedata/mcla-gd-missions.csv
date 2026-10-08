@@ -1,0 +1,167 @@
+Mission,Career,District,Rival id,Prerequisites,Objectives,Starts missions,Reward cars,Other rewards,Repeatable
+EXOTIC_CHAMP,base,Hollywood,GH_03,"Stat(StatId=kEXW, StatSubId=0, StatValue=35, StatType=Tally); Mission(MissionId=CITY_CHAMP)",String(Identifier=EXOTIC_CHAMP_OBJ_01_COMPLETE),,,,false
+TIMETRIAL_HILLSC,base,Hills,GH_05,,String(Identifier=TIMETRIAL_HL),,timetrial_vp_lam_miura_71,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/hl_unlock_time_trial)",false
+REPEAT_TOURNAMENT_HILLS_PRE,base,Hills,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",REPEAT_TOURNAMENT_HILLS,,,true
+DOWNTOWN_TOURNAMENT,base,Downtown,SH_01,,String(Identifier=dt_tournament1),,,,false
+BEAT_SH_06_SUV,south central,SouthCentral,SH_02,,String(Identifier=BEAT_SH_06_SUV_RACE_COMPLETE),HANGOUT_WAGER_SC,,,false
+REPEAT_HANGOUT_WAGER_SC,south central,SouthCentral,GH_28,"TallyMission(Heuristic=LessThan, Tally=2, District=SouthCentral); Mission(MissionId=HANGOUT_WAGER_SC)","TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=SouthCentral)",REPEAT_BESTOF_SC,,,true
+HANGOUT_PINKSLIP_SC,south central,SouthCentral,GH_26,,String(Identifier=sc_wager_hangout1),,,,false
+TIMETRIAL_SCB_PRE,south central,SouthCentral,GH_30,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_SCB,,,false
+HANGOUT_WAGER_SC,south central,SouthCentral,GH_26,,"Stat(StatId=k$WA, StatSubId=541, StatValue=5000, StatType=Money)",HANGOUT_PINKSLIP_SC,,"Achievement(Hidden=true, GiveImmediately=true, StatName=aWSC)",false
+TIMETRIAL_SCC,south central,SouthCentral,GH_30,,String(Identifier=TIMETRIAL_SC),,SC_timetrial_vpd_chv_impala_64,"Script(Hidden=true, GiveImmediately=true, ScriptName=sc/Career/sc_unlock_time_trial); Achievement(Hidden=true, GiveImmediately=true, StatName=aLSC)",false
+TOURNAMENT_SC,south central,SouthCentral,GH_33,Mission(MissionId=HANGOUT_SERIES_SC),String(Identifier=sc_tournament1),TOURNAMENT_SCB_PRE,,"Achievement(Hidden=true, GiveImmediately=true, StatName=aTSC)",false
+BESTOF_SC,south central,SouthCentral,SH_01,,String(Identifier=BESTOF_SC_SERIES),REPEAT_HANGOUT_WAGER_SC,,,false
+BESTOF_SH_07,south central,SouthCentral,SH_02,,String(Identifier=BESTOF_SH_07_SERIES),,,,false
+BESTOF_GH_27,south central,SouthCentral,GH_27,,String(Identifier=BESTOF_GH_27_SERIES),,,"Script(Hidden=true, GiveImmediately=true, ScriptName=sc/Career/Events/BESTOF_GH_27_POST); Achievement(Hidden=true, GiveImmediately=true, StatName=aBSC)",false
+TOURNAMENT_SCB_PRE,south central,SouthCentral,GH_33,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_SCB,,,false
+BESTOF_SH_06,south central,SouthCentral,SH_01,,String(Identifier=BESTOF_SH_06_SERIES),TIMETRIAL_SC,,,false
+GARAGE_SC,south central,SouthCentral,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=sc_garage),HANGOUT_SERIES_SC,,"Achievement(Hidden=true, GiveImmediately=true, StatName=aMSC)",false
+REPEAT_BESTOF_SC,south central,SouthCentral,GH_34,"TallyMission(Heuristic=LessThan, Tally=2, District=SouthCentral)",String(Identifier=REPEAT_BESTOF_SC_SERIES),REPEAT_HANGOUT_WAGER_SC,,,true
+HANGOUT_SERIES_SC,south central,SouthCentral,GH_26,,String(Identifier=sc_local_hangout1_series),,,,false
+TIMETRIAL_SCC_PRE,south central,SouthCentral,GH_30,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_SCC,,,false
+DELIVERY_SC,south central,SouthCentral,GH_26,Mission(MissionId=GARAGE_SC); Mission(MissionId=DELIVERY),"Stat(StatId=xCDL, StatSubId=542, StatValue=5, StatType=Tally)",,,,false
+RACES_IN_SC,south central,SouthCentral,GH_27,Mission(MissionId=HANGOUT_SERIES_SC); Mission(MissionId=HANGOUT_PINKSLIP_SC),"TallyRace(Tally=6, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=SouthCentral)",BESTOF_GH_27,,,false
+REP_ON_SC_STRIP,south central,SouthCentral,SH_02,,"Experience(ExperienceSystem=Progression, ExperienceAmount=400)",BESTOF_GH_27,,,false
+SUV_REP,south central,SouthCentral,GH_26,,"Stat(StatId=kSUW, StatSubId=0, StatValue=6, StatType=Tally)",BEAT_GH_26_SUV,,,false
+BESTOF_GH_26,south central,SouthCentral,GH_26,,String(Identifier=BESTOF_GH_26_SERIES),TIMETRIAL_SC,,,false
+TOURNAMENT_SCB,south central,SouthCentral,GH_33,,String(Identifier=sc_tournament1),REPEAT_TOURNAMENT_SC_PRE,,"UserInterface(Hidden=false, GiveImmediately=false, StringId=SC_tournament_vpd_lr_sport_08, TextureName=SC_tournament_vpd_lr_sport_08)",false
+BEAT_SH_06_BCLASS,south central,SouthCentral,SH_02,,String(Identifier=BEAT_SH_06_BCLASS_RACE_COMPLETE),HANGOUT_WAGER_SC,,,false
+REPEAT_TOURNAMENT_SC_PRE,south central,SouthCentral,GH_33,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",REPEAT_TOURNAMENT_SC,,,true
+TIMETRIAL_SC,south central,SouthCentral,GH_26,,String(Identifier=TIMETRIAL_SC),TIMETRIAL_SCB_PRE,,,false
+TEST_MISSION,south central,Unknown,SH_01,,String(Identifier=TEST_MISSION_RACE_COMPLETE),TEST_MISSION2,,,false
+BESTOF_GH_31,south central,SouthCentral,GH_31,Mission(MissionId=DELIVERY),String(Identifier=BESTOF_GH_31_SERIES),REPEAT_HANGOUT_WAGER_SC,,,false
+BEAT_GH_26_SUV,south central,SouthCentral,GH_26,,String(Identifier=BEAT_GH_26_SUV_RACE_COMPLETE),HANGOUT_WAGER_SC,,,false
+TIMETRIAL_SCB,south central,SouthCentral,GH_30,,String(Identifier=TIMETRIAL_SC),TIMETRIAL_SCC_PRE,,,false
+FIND_GH_27,south central,SouthCentral,SH_02,Mission(MissionId=HANGOUT_SERIES_SC),String(Identifier=FIND_GH_27_OBJ_01_COMPLETE),SUV_REP,,,false
+REPEAT_TOURNAMENT_SC,south central,SouthCentral,GH_33,,String(Identifier=sc_tournament1),REPEAT_TOURNAMENT_SC_PRE,,,true
+LOWRIDER_REP,south central,SouthCentral,GH_26,Mission(MissionId=GARAGE_SC),"Stat(StatId=kLOW, StatSubId=0, StatValue=6, StatType=Tally)",BESTOF_GH_26,,,false
+TOURNAMENT_DOWNTOWNB_PRE,base,Downtown,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_DOWNTOWNB,,,false
+RACES_IN_BEACHES,base,Beaches,SH_03,,"TallyRace(Tally=6, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Beaches)",BEAT_SH_03_CCLASS,,,false
+TOURNAMENT_HOLLYWOODB,base,Hollywood,SH_02,,String(Identifier=hw_tournament1),REPEAT_TOURNAMENT_HOLLYWOOD_PRE,,"UserInterface(Hidden=false, GiveImmediately=false, StringId=vp_chv_camaro_06_DUB, TextureName=vp_chv_camaro_06_DUB)",false
+HANGOUT_SERIES_HOLLYWOODC,base,Hollywood,SH_03,,String(Identifier=hw_local_hangout3_series),HANGOUT_WAGER_HOLLYWOOD,,,false
+BEAT_SH_04_BCLASS,base,Downtown,SH_04,Mission(MissionId=BEAT_SH_04),String(Identifier=BEAT_SH_04_BCLASS_RACE_COMPLETE),MOTORCYCLE_REP,,,false
+RACES_IN_DOWNTOWN,base,Downtown,SH_05,Mission(MissionId=FIND_SH_05),"TallyRace(Tally=6, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Downtown)",BESTOF_SH_05,,,false
+MUSCLE_REP,base,Hollywood,SH_01,,"Stat(StatId=kMUW, StatSubId=0, StatValue=6, StatType=Tally)",BESTOF_GH_05,,,false
+HANGOUT_PINKSLIP_HILLS,base,Hills,SH_02,,String(Identifier=hl_wager_hangout1),,,,false
+FIND_SH_03,base,Hollywood,SH_01,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=FIND_SH_03_OBJ_01_COMPLETE),HANGOUT_SERIES_HOLLYWOODC; REPEAT_BESTOF_BEACHES,,,false
+DISTRICT_CHAMPS_DOWNTOWN,base,Beaches,SH_01,,String(Identifier=DISTRICT_CHAMPS_DOWNTOWN_SERIES),,,,false
+REPEAT_BESTOF_BEACHES,base,Beaches,GH_10,"TallyMission(Heuristic=LessThan, Tally=2, District=Beaches)",String(Identifier=REPEAT_BESTOF_BE_SERIES),REPEAT_HANGOUT_WAGER_BEACHES,,,true
+EXOTIC_REP,base,Beaches,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),"Stat(StatId=kEXW, StatSubId=0, StatValue=6, StatType=Tally)",BEAT_SH_02_EXOTIC,,,false
+HANGOUT_SERIES_HILLS,base,Hills,SH_04,,String(Identifier=hl_local_hangout1_series),BEAT_SH_04_MOTORCYCLE,,,false
+REPEAT_HANGOUT_WAGER_DOWNTOWN,base,Downtown,SH_05,"TallyMission(Heuristic=LessThan, Tally=2, District=Downtown); Mission(MissionId=HANGOUT_WAGER_DOWNTOWN)","TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Downtown)",REPEAT_BESTOF_DOWNTOWN,,,true
+REP_ON_HW_STRIP,base,Hollywood,SH_01,,"Experience(ExperienceSystem=Progression, ExperienceAmount=400)",HANGOUT_SERIES_HOLLYWOOD,,,false
+DISTRICT_CHAMPS_BEACHES,base,Beaches,SH_01,,String(Identifier=DISTRICT_CHAMPS_BEACHES_SERIES),,,,false
+REPEAT_BESTOF_HOLLYWOOD,base,Hollywood,GH_21,"TallyMission(Heuristic=LessThan, Tally=2, District=Hollywood)",String(Identifier=REPEAT_BESTOF_HW_SERIES),REPEAT_HANGOUT_WAGER_HOLLYWOOD,,,true
+MOTORCYCLE_REP,base,Downtown,SH_04,,"Stat(StatId=kMOW, StatSubId=0, StatValue=6, StatType=Tally)",RACE_SH_04_MOTORCYCLE,,,false
+REPEAT_TOURNAMENT_BEACHES,base,Beaches,GH_06,,String(Identifier=be_tournament1),REPEAT_TOURNAMENT_BEACHES_PRE,,,true
+PAYBACK_INTRO,base,Hollywood,SH_02,,String(Identifier=be_payback),PAYBACK,,,false
+TIMETRIAL_DOWNTOWNC,base,Downtown,GH_25,,String(Identifier=TIMETRIAL_DT),,timetrial_vp_mit_3000gt_99,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/dt_unlock_time_trial)",false
+TOURNAMENT_BEACHESB_PRE,base,Beaches,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_BEACHESB,,,false
+HANGOUT_SERIES_HOLLYWOOD,base,Hollywood,SH_01,,String(Identifier=hw_local_hangout1_series),,,,false
+DISTRICT_CHAMPS_HILLS,base,Hills,SH_01,,String(Identifier=DISTRICT_CHAMPS_HILLS_SERIES),,,,false
+REPEAT_TOURNAMENT_DOWNTOWN_PRE,base,Downtown,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",REPEAT_TOURNAMENT_DOWNTOWN,,,true
+TIMETRIAL_HOLLYWOODB_PRE,base,Hollywood,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_HOLLYWOODB,,,false
+BESTOF_SH_02,base,Beaches,SH_02,Mission(MissionId=FIND_SH_02),String(Identifier=BESTOF_SH_02_SERIES),,,,false
+BEAT_SH_05_ACLASS,base,Downtown,SH_05,Mission(MissionId=BESTOF_SH_05),String(Identifier=BEAT_SH_05_ACLASS_COMPLETE),,,,false
+BEAT_FREEWAY,base,Unknown,SH_01,,"Stat(StatId=kFWN, StatSubId=0, StatValue=10, StatType=Tally)",,,,false
+CITY_CHAMP,base,Downtown,SH_01,Mission(MissionId=DISTRICT_CHAMPS_BEACHES); Mission(MissionId=DISTRICT_CHAMPS_DOWNTOWN); Mission(MissionId=DISTRICT_CHAMPS_HILLS),String(Identifier=CITY_CHAMP_OBJ_01_COMPLETE); String(Identifier=CITY_CHAMP_SERIES),EARN_1MILLION,,"Achievement(Hidden=true, GiveImmediately=true, StatName=aBCC)",false
+TOURNAMENT_HILLS,base,Hills,SH_01,,String(Identifier=hl_tournament1),TOURNAMENT_HILLSB_PRE; REPEAT_BESTOF_HILLS,,,false
+FIND_SH_02C,base,Hollywood,SH_02,,String(Identifier=FIND_SH_02C_OBJ_01_COMPLETE),,,,false
+RACE_GH_06,base,Hollywood,SH_01,,String(Identifier=RACE_GH_06_COMPLETE),RACE_GH_02,,,false
+MOTORCYCLE_CHAMP,base,Hollywood,GH_23,"Stat(StatId=kMOW, StatSubId=0, StatValue=35, StatType=Tally); Mission(MissionId=CITY_CHAMP)",String(Identifier=MOTO_CHAMP_OBJ_01_COMPLETE),,,,false
+BESTOF_SH_03_LUXURY,base,Hollywood,SH_03,Mission(MissionId=BESTOF_SH_03); Mission(MissionId=BEAT_SH_03_CCLASS),String(Identifier=BESTOF_SH_03_LUXURY_SERIES),,,,false
+TIMETRIAL_DOWNTOWNB_PRE,base,Downtown,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_DOWNTOWNB,,,false
+TIMETRIAL_HILLSC_PRE,base,Hills,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_HILLSC,,,false
+FIND_SH_02B,base,Beaches,SH_02,Mission(MissionId=BESTOF_SH_02),String(Identifier=FIND_SH_02B_OBJ_01_COMPLETE),BEAT_SH_02_EXOTIC,,,false
+RACE_FREEWAY,base,Unknown,SH_01,,"Stat(StatId=kFWN, StatSubId=0, StatValue=1, StatType=Tally)",,,,false
+LUXURY_CHAMP,base,Hollywood,GH_07,"Stat(StatId=kLUW, StatSubId=0, StatValue=35, StatType=Tally); Mission(MissionId=CITY_CHAMP)",String(Identifier=LUXURY_CHAMP_OBJ_01_COMPLETE),,,,false
+RACE_GH_02,base,Hollywood,SH_01,,String(Identifier=RACE_GH_02_RACE_COMPLETE),REP_ON_HW_STRIP; GARAGE_HOLLYWOOD,,,false
+BESTOF_SH_03,base,Hollywood,SH_03,,String(Identifier=BESTOF_SH_03_SERIES),HANGOUT_PINKSLIP_HOLLYWOOD,,,false
+PAYBACK,base,Beaches,SH_02,,String(Identifier=be_payback),,,,false
+HANGOUT_SERIES_DOWNTOWN,base,Downtown,SH_05,,String(Identifier=HANGOUT_SERIES_DT_COMPLETE),HANGOUT_WAGER_DOWNTOWN,,,false
+TIMETRIAL_HILLSB_PRE,base,Hills,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_HILLSB,,,false
+BEAT_SH_04_MOTORCYCLE,base,Hills,SH_04,,String(Identifier=BEAT_SH_04_MOTORCYCLE_COMPLETE),,,,false
+BEAT_SH_02_BCLASS,base,Beaches,SH_02,Mission(MissionId=BEAT_SH_02_CCLASS),String(Identifier=BEAT_SH_02_BCLASS_RACE_COMPLETE),TIMETRIAL_BEACHES,,,false
+HANGOUT_WAGER_BEACHES,base,Beaches,SH_03,Mission(MissionId=FIND_SH_03),"Stat(StatId=k$WA, StatSubId=511, StatValue=30000, StatType=Money)",,,,false
+ESCAPE_POLICE,base,Downtown,SH_01,,String(Identifier=COP_EVADE),FIND_SH_01B,,,false
+HILLS_TOURNAMENT,base,Hills,SH_01,,String(Identifier=hl_tournament1),hl_tournament_pre,,,false
+TIMETRIAL_BEACHESC_PRE,base,Beaches,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_BEACHESC,,,false
+FIND_SH_04,base,Hollywood,SH_01,,String(Identifier=dt_wager_hangout1),HANGOUT_PINKSLIP_DOWNTOWN,,,false
+FIND_SH_02,base,Beaches,SH_02,Mission(MissionId=BEAT_SH_02_BCLASS),String(Identifier=FIND_SH_02_OBJ_01_COMPLETE),HANGOUT_PINKSLIP_HILLS,,,false
+HANGOUT_PINKSLIP_BEACHES,base,Beaches,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=be_wager_hangout1),,,,false
+TIMETRIAL_BEACHESB,base,Beaches,GH_09,,String(Identifier=TIMETRIAL_BE),TIMETRIAL_BEACHESC_PRE,,,false
+REPEAT_TOURNAMENT_HOLLYWOOD_PRE,base,Hollywood,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",REPEAT_TOURNAMENT_HOLLYWOOD,,,true
+FIND_SH_01,base,Hollywood,SH_01,Mission(MissionId=FIND_SH_03),String(Identifier=FIND_SH_01_OBJ_01_COMPLETE),FIND_SH_04; REPEAT_BESTOF_DOWNTOWN,,,false
+BEAT_GH_05_TUNER,base,Hollywood,SH_01,,String(Identifier=BEAT_TUNER_GH_05_RACE_COMPLETE),BESTOF_SH_01_MUSCLE,vp_vw_golf_83,,false
+HANGOUT_WAGER_HILLS,base,Hills,SH_03,,"Stat(StatId=k$WA, StatSubId=521, StatValue=5000, StatType=Money)",,,,false
+REPEAT_HANGOUT_WAGER_HILLS,base,Hills,GH_04,"TallyMission(Heuristic=LessThan, Tally=2, District=Hills)","TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Hills)",REPEAT_BESTOF_HILLS,,,true
+MUSCLE_CHAMP,base,Hollywood,GH_05,"Stat(StatId=kMUW, StatSubId=0, StatValue=35, StatType=Tally); Mission(MissionId=CITY_CHAMP)",String(Identifier=MUSCLE_CHAMP_OBJ_01_COMPLETE),,,,false
+REPEAT_TOURNAMENT_DOWNTOWN,base,Downtown,GH_24,,String(Identifier=dt_tournament1),REPEAT_TOURNAMENT_DOWNTOWN_PRE,,,true
+REPEAT_HANGOUT_WAGER_BEACHES,base,Beaches,GH_08,"TallyMission(Heuristic=LessThan, Tally=2, District=Beaches); Mission(MissionId=HANGOUT_WAGER_BEACHES)","TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Beaches)",REPEAT_BESTOF_BEACHES,,,true
+PAYBACK_GH_18,base,Beaches,SH_01,Mission(MissionId=BEAT_SH_04),String(Identifier=be_payback),,,,false
+GARAGE_BEACHES,base,Beaches,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=GARAGE_BEACHES_OBJ_01_COMPLETE),PAYBACK_INTRO,,,false
+REPEAT_BESTOF_HILLS,base,Hills,GH_13,"TallyMission(Heuristic=LessThan, Tally=2, District=Hills)",String(Identifier=REPEAT_BESTOF_HL_SERIES),REPEAT_HANGOUT_WAGER_HILLS,,,true
+TOURNAMENT_DOWNTOWNB,base,Downtown,SH_01,,String(Identifier=dt_tournament1),REPEAT_TOURNAMENT_DOWNTOWN_PRE,,"UserInterface(Hidden=false, GiveImmediately=true, StringId=vp_lam_murcielago_06_DUB, TextureName=vp_lam_murcielago_06_DUB)",false
+INSTALL_ABILITY,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=ABILITY_EQUIPPED),,,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/Events/INSTALL_ABILITY_CONFIRM)",false
+REPEAT_TOURNAMENT_HILLS,base,Hills,GH_20,,String(Identifier=hl_tournament1),REPEAT_TOURNAMENT_HILLS_PRE,,,true
+BEAT_SH_02_DCLASS,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=BEAT_SH_02_DCLASS_RACE_COMPLETE),,SH_02_0_vp_dsn_280z_75,,false
+RACE_SH_01,base,Hollywood,SH_01,,String(Identifier=RACE_SH_01_OBJ_01_COMPLETE); String(Identifier=RACE_SH_02_RACE_COMPLETE),REP_ON_HW_STRIP; GARAGE_HOLLYWOOD,,,false
+global,base,Unknown,None,Mission(MissionId=false_mission),,,,,false
+BESTOF_SH_05,base,Downtown,SH_05,,String(Identifier=BESTOF_SH_05_OBJ_01_COMPLETE); String(Identifier=BESTOF_SH_05_SERIES),,,,false
+TOURNAMENT_BEACHES,base,Beaches,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=be_tournament1),TOURNAMENT_BEACHESB_PRE,,,false
+DELIVERY,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),"Stat(StatId=xCDL, StatSubId=504, StatValue=5, StatType=Tally)",,,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/Events/DELIVERY_CONFIRM)",false
+TOURNAMENT_SOUTH_CENTRALB_PRE,base,SouthCentral,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_SOUTH_CENTRALB,,,false
+HANGOUT_WAGER_HOLLYWOOD,base,Hollywood,SH_03,,"Stat(StatId=k$WA, StatSubId=503, StatValue=5000, StatType=Money)",BESTOF_SH_03,,,false
+REPEAT_TOURNAMENT_BEACHES_PRE,base,Beaches,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",REPEAT_TOURNAMENT_BEACHES,,,true
+HANGOUT_WAGER_DOWNTOWN,base,Downtown,SH_05,,"Stat(StatId=k$WA, StatSubId=531, StatValue=20000, StatType=Money)",,,,false
+TOURNAMENT_HILLSB_PRE,base,Hills,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_HILLSB,,,false
+REPEAT_HANGOUT_WAGER_HOLLYWOOD,base,Hollywood,GH_12,"TallyMission(Heuristic=LessThan, Tally=2, District=Hollywood); Mission(MissionId=HANGOUT_WAGER_HOLLYWOOD)","TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=1, District=Hollywood)",REPEAT_BESTOF_HOLLYWOOD,,,true
+TOURNAMENT_BEACHESB,base,Beaches,SH_02,,String(Identifier=be_tournament1),REPEAT_TOURNAMENT_BEACHES_PRE,,"UserInterface(Hidden=false, GiveImmediately=false, StringId=vp_mbz_s600_07_DUB, TextureName=vp_mbz_s600_07_DUB)",false
+HANGOUT_SERIES_BEACHES,base,Beaches,SH_03,,String(Identifier=be_local_hangout1_series),,,,false
+TIMETRIAL_HOLLYWOODB,base,Hollywood,GH_23,,String(Identifier=TIMETRIAL_HW),TIMETRIAL_HOLLYWOODC_PRE,,,false
+TIMETRIAL_DOWNTOWNB,base,Downtown,GH_25,,String(Identifier=TIMETRIAL_DT),TIMETRIAL_DOWNTOWNC_PRE,,,false
+TOURNAMENT_DOWNTOWN,base,Downtown,SH_01,,String(Identifier=dt_tournament1),TOURNAMENT_DOWNTOWNB_PRE,,,false
+BESTOF_GH_04,base,Hollywood,SH_01,,String(Identifier=BESTOF_GH_04_SERIES),,GH_04_1_vp_chv_camaross_69,,false
+BESTOF_GH_22,base,Downtown,SH_05,Mission(MissionId=FIND_SH_05),String(Identifier=BESTOF_GH_22_SERIES),,,,false
+BEAT_SH_03,base,Beaches,SH_03,Mission(MissionId=BESTOF_SH_03_LUXURY),String(Identifier=BEAT_SH_03_RACE_COMPLETE),,,,false
+FIND_SH_01B,base,Hollywood,SH_02,"TallyRace(Tally=15, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",String(Identifier=FIND_SH_01B_OBJ_01_COMPLETE),DISTRICT_CHAMPS_DOWNTOWN; DISTRICT_CHAMPS_BEACHES; DISTRICT_CHAMPS_HILLS; CITY_CHAMP,,,false
+LUXURY_REP,base,Hollywood,SH_03,Mission(MissionId=FIND_SH_03),"Stat(StatId=kLUW, StatSubId=0, StatValue=6, StatType=Tally)",BESTOF_SH_03_LUXURY,,,false
+REDLIGHT_GH_01,base,Hollywood,SH_02,,String(Identifier=RED_LIGHT_GH_01_COMPLETE),REPEAT_BESTOF_HOLLYWOOD,,,false
+TOURNAMENT_HOLLYWOOD,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=hw_tournament1),TOURNAMENT_HOLLYWOODB_PRE,,,false
+RACE_SH_04_MOTORCYCLE,base,Hills,SH_04,,String(Identifier=RACE_SH_04_MOTORCYCLE_COMPLETE),HANGOUT_SERIES_HILLS,,,false
+TIMETRIAL_HILLS,base,Hills,SH_04,Mission(MissionId=HANGOUT_PINKSLIP_DOWNTOWN),String(Identifier=TIMETRIAL_HL),TIMETRIAL_HILLSB_PRE,,,false
+TOURNAMENT_HILLSB,base,Hills,SH_01,,String(Identifier=hl_tournament1),REPEAT_TOURNAMENT_HILLS_PRE,,"UserInterface(Hidden=false, GiveImmediately=true, StringId=vp_dge_challenger_06_DUB, TextureName=vp_dge_challenger_06_DUB)",false
+DISTRICT_CHAMPS,base,Unknown,SH_02,,String(Identifier=DISTRICT_CHAMPS_DOWNTOWN_SERIES); String(Identifier=DISTRICT_CHAMPS_HILLS_SERIES); String(Identifier=DISTRICT_CHAMPS_BEACHES_SERIES),CITY_CHAMP,,,false
+TUNER_CHAMP,base,Hollywood,GH_16,"Stat(StatId=kTUW, StatSubId=0, StatValue=35, StatType=Tally); Mission(MissionId=CITY_CHAMP)",String(Identifier=TUNER_CHAMP_OBJ_01_COMPLETE),,,,false
+TIMETRIAL_HOLLYWOODC_PRE,base,Hollywood,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_HOLLYWOODC,,,false
+TIMETRIAL_HILLSB,base,Hills,GH_05,,String(Identifier=TIMETRIAL_HL),TIMETRIAL_HILLSC_PRE,,,false
+TIMETRIAL_HOLLYWOODC,base,Hollywood,GH_23,,String(Identifier=TIMETRIAL_HW),,timetrial_vp_mit_eclipse_99,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/hw_unlock_time_trial)",false
+EARN_1MILLION,base,Hollywood,SH_02,,"Stat(StatId=tPUR, StatSubId=0, StatValue=1000000, StatType=Purse)",FIND_SH_02C,,,false
+BESTOF_SH_01_TUNER,base,Hollywood,SH_01,,String(Identifier=BESTOF_SH_01_TUNER_SERIES),,,,false
+FIND_SH_03B,base,Beaches,SH_03,Mission(MissionId=BESTOF_SH_03),String(Identifier=FIND_SH_03B_OBJ_01_COMPLETE),RACES_IN_BEACHES,,,false
+FIND_SH_05,base,Downtown,SH_01,,String(Identifier=dt_local_hangout1),HANGOUT_SERIES_DOWNTOWN,,,false
+TIMETRIAL_DOWNTOWN,base,Downtown,SH_01,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=TIMETRIAL_DT),TIMETRIAL_DOWNTOWNB_PRE,,,false
+REPEAT_TOURNAMENT_HOLLYWOOD,base,Hollywood,GH_11,,String(Identifier=hw_tournament1),REPEAT_TOURNAMENT_HOLLYWOOD_PRE,,,true
+BEAT_SH_02_EXOTIC,base,Beaches,SH_02,Mission(MissionId=BESTOF_SH_02),String(Identifier=BEAT_SH_02_EX_OBJ_01_COMPLETE); String(Identifier=BEAT_SH_02_EXOTIC_SERIES),,,,false
+TIMETRIAL_BEACHESC,base,Beaches,GH_09,,String(Identifier=TIMETRIAL_BE),,timetrial_vp_frd_boss302_69,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/be_unlock_time_trial)",false
+BESTOF_GH_05,base,Hollywood,SH_01,,String(Identifier=BESTOF_GH_05_SERIES),,GH_05_0_vp_frd_focus_04,,false
+BEAT_SH_05,base,Downtown,SH_05,,String(Identifier=BEAT_SH_05_COMPLETE),BESTOF_SH_05,,,false
+BEAT_SH_04B,base,Downtown,SH_01,Mission(MissionId=PAYBACK_GH_18),String(Identifier=BEAT_SH_04B_RACE_COMPLETE),FIND_SH_01B,,,false
+TIMETRIAL_HOLLYWOOD,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=TIMETRIAL_HW),TIMETRIAL_HOLLYWOODB_PRE,,,false
+HANGOUT_SERIES_HOLLYWOODB,base,Hollywood,SH_02,Mission(MissionId=GARAGE_HOLLYWOOD),String(Identifier=hw_local_hangout2_series),BEAT_SH_02_CCLASS,,,false
+GARAGE_HOLLYWOOD,base,Hollywood,SH_01,,String(Identifier=hw_garage),REDLIGHT_GH_01,,"Script(Hidden=true, GiveImmediately=true, ScriptName=Game/Career/Police_Tutorial)",false
+BESTOF_SH_01_MUSCLE,base,Hollywood,SH_01,,String(Identifier=BESTOF_SH_01_MUSCLE_SERIES),,,,false
+BEAT_SH_02_CCLASS,base,Hollywood,SH_02,Mission(MissionId=BEAT_SH_02_DCLASS),String(Identifier=BEAT_SH_02_CCLASS_RACE_COMPLETE),,,,false
+TIMETRIAL_BEACHES,base,Beaches,SH_02,,String(Identifier=TIMETRIAL_BE),TIMETRIAL_BEACHESB_PRE,,,false
+TOURNAMENT_HOLLYWOODB_PRE,base,Hollywood,None,,"TallyRace(Tally=30, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TOURNAMENT_HOLLYWOODB,,,false
+BEAT_SH_03_ACLASS,base,Beaches,SH_03,Mission(MissionId=BEAT_SH_03),String(Identifier=BEAT_SH_03_ACLASS_RACE_COMPLETE),,,,false
+BEAT_SH_03_CCLASS,base,Beaches,SH_03,,String(Identifier=BEAT_SH_03_CCLASS_RACE_COMPLETE),HANGOUT_SERIES_BEACHES,,,false
+TOURNAMENT_SOUTH_CENTRALB,base,SouthCentral,SH_02,,String(Identifier=sc_tournament1),REPEAT_TOURNAMENT_SC_PRE,,"UserInterface(Hidden=false, GiveImmediately=true, StringId=TOURNAMENT_SC_REWARD_01, TextureName=TOURNAMENT_SC_REWARD_01)",false
+TIMETRIAL_BEACHESB_PRE,base,Beaches,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_BEACHESB,,,false
+TUNER_REP,base,Hollywood,SH_01,,"Stat(StatId=kTUW, StatSubId=0, StatValue=6, StatType=Tally)",BEAT_SH_02_DCLASS,,,false
+HANGOUT_PINKSLIP_HOLLYWOOD,base,Hollywood,SH_03,,String(Identifier=hw_wager_hangout1),,,,false
+BEAT_GH_04_MUSCLE,base,Hollywood,SH_01,,String(Identifier=BEAT_GH_04_MUSCLE_RACE_COMPLETE),BESTOF_SH_01_TUNER,vp_dge_challenger_70,,false
+BEAT_SH_04,base,Downtown,SH_04,,String(Identifier=BEAT_SH_04_RACE_COMPLETE),,,,false
+REPEAT_BESTOF_DOWNTOWN,base,Downtown,GH_17,"TallyMission(Heuristic=LessThan, Tally=2, District=Downtown)",String(Identifier=REPEAT_BESTOF_DT_SERIES),REPEAT_HANGOUT_WAGER_DOWNTOWN,,,true
+TIMETRIAL_DOWNTOWNC_PRE,base,Downtown,SH_01,,"TallyRace(Tally=3, RaceType=None, RaceSubType=Unknown, MinimumPlacement=0, District=Unknown)",TIMETRIAL_DOWNTOWNC,,,false
+HANGOUT_PINKSLIP_DOWNTOWN,base,Downtown,SH_04,,String(Identifier=HANGOUT_PINK_DT_OBJ_01_COMPLETE),BEAT_SH_04,,,false

@@ -1,0 +1,232 @@
+File,Field,Value
+rubberbandtune00.xml,MaxThrottle,0.750000
+rubberbandtune00.xml,MinSpeed,0.440000
+rubberbandtune00.xml,MinDist,20.000000
+rubberbandtune00.xml,MaxDist,65.000000
+rubberbandtune00.xml,MinThrottle,0.150000
+rubberbandtune00.xml,BehindMinDist,5.000000
+rubberbandtune00.xml,BehindMaxDist,20.000000
+rubberbandtune00.xml,BehindMaxThrottle,0.800000
+rubberbandtune00.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune00.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune00.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune00.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune00.xml,UseNitroMinDistFromFinish,350.000000
+rubberbandtune00.xml,UseNitroMinDistBehindPlayer,100.000000
+rubberbandtune00.xml,UnlimitedNitroMinDistBehindPlayer,550.000000
+rubberbandtune00.xml,HomeStretchBehindMaxThrottle,0.750000
+rubberbandtune00.xml,HomeStretchDistance,300.000000
+rubberbandtune00.xml,PlayerCloseMaxThrottle,0.750000
+rubberbandtune00.xml,PlayerCloseDistance,0.000000
+rubberbandtune00.xml,AheadDistOffsets,0.000000 25.000000 50.000000 100.000000 150.000000 250.000000 375.000000 500.000000
+rubberbandtune00.xml,BehindDistOffsets,0.000000 0.000000 40.000000 80.000000 125.000000 200.000000 275.000000 375.000000
+rubberbandtune01.xml,MaxThrottle,0.775000
+rubberbandtune01.xml,MinSpeed,0.460000
+rubberbandtune01.xml,MinDist,20.000000
+rubberbandtune01.xml,MaxDist,65.000000
+rubberbandtune01.xml,MinThrottle,0.185000
+rubberbandtune01.xml,BehindMinDist,4.500000
+rubberbandtune01.xml,BehindMaxDist,19.000000
+rubberbandtune01.xml,BehindMaxThrottle,0.850000
+rubberbandtune01.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune01.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune01.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune01.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune01.xml,UseNitroMinDistFromFinish,300.000000
+rubberbandtune01.xml,UseNitroMinDistBehindPlayer,90.000000
+rubberbandtune01.xml,UnlimitedNitroMinDistBehindPlayer,500.000000
+rubberbandtune01.xml,HomeStretchBehindMaxThrottle,0.750000
+rubberbandtune01.xml,HomeStretchDistance,250.000000
+rubberbandtune01.xml,PlayerCloseMaxThrottle,0.800000
+rubberbandtune01.xml,PlayerCloseDistance,20.000000
+rubberbandtune01.xml,AheadDistOffsets,5.000000 35.000000 65.000000 120.000000 177.500000 282.500000 407.500000 550.000000
+rubberbandtune01.xml,BehindDistOffsets,0.000000 0.000000 36.000000 72.000000 115.000000 185.000000 255.000000 347.500000
+rubberbandtune02.xml,MaxThrottle,0.800000
+rubberbandtune02.xml,MinSpeed,0.480000
+rubberbandtune02.xml,MinDist,20.000000
+rubberbandtune02.xml,MaxDist,65.000000
+rubberbandtune02.xml,MinThrottle,0.220000
+rubberbandtune02.xml,BehindMinDist,4.000000
+rubberbandtune02.xml,BehindMaxDist,18.000000
+rubberbandtune02.xml,BehindMaxThrottle,0.900000
+rubberbandtune02.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune02.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune02.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune02.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune02.xml,UseNitroMinDistFromFinish,300.000000
+rubberbandtune02.xml,UseNitroMinDistBehindPlayer,80.000000
+rubberbandtune02.xml,UnlimitedNitroMinDistBehindPlayer,450.000000
+rubberbandtune02.xml,HomeStretchBehindMaxThrottle,0.750000
+rubberbandtune02.xml,HomeStretchDistance,250.000000
+rubberbandtune02.xml,PlayerCloseMaxThrottle,0.900000
+rubberbandtune02.xml,PlayerCloseDistance,20.000000
+rubberbandtune02.xml,AheadDistOffsets,10.000000 45.000000 80.000000 140.000000 205.000000 315.000000 440.000000 600.000000
+rubberbandtune02.xml,BehindDistOffsets,0.000000 0.000000 32.000000 64.000000 105.000000 170.000000 235.000000 320.000000
+rubberbandtune03.xml,MaxThrottle,0.825000
+rubberbandtune03.xml,MinSpeed,0.500000
+rubberbandtune03.xml,MinDist,20.000000
+rubberbandtune03.xml,MaxDist,65.000000
+rubberbandtune03.xml,MinThrottle,0.255000
+rubberbandtune03.xml,BehindMinDist,3.500000
+rubberbandtune03.xml,BehindMaxDist,17.000000
+rubberbandtune03.xml,BehindMaxThrottle,0.925000
+rubberbandtune03.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune03.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune03.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune03.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune03.xml,UseNitroMinDistFromFinish,300.000000
+rubberbandtune03.xml,UseNitroMinDistBehindPlayer,70.000000
+rubberbandtune03.xml,UnlimitedNitroMinDistBehindPlayer,400.000000
+rubberbandtune03.xml,HomeStretchBehindMaxThrottle,0.775000
+rubberbandtune03.xml,HomeStretchDistance,250.000000
+rubberbandtune03.xml,PlayerCloseMaxThrottle,0.980000
+rubberbandtune03.xml,PlayerCloseDistance,20.000000
+rubberbandtune03.xml,AheadDistOffsets,15.000001 55.000000 95.000000 160.000000 232.500000 347.500000 472.500000 650.000000
+rubberbandtune03.xml,BehindDistOffsets,0.000000 0.000000 28.000000 56.000000 95.000000 155.000000 215.000000 292.500000
+rubberbandtune04.xml,MaxThrottle,0.850000
+rubberbandtune04.xml,MinSpeed,0.510000
+rubberbandtune04.xml,MinDist,20.000000
+rubberbandtune04.xml,MaxDist,65.000000
+rubberbandtune04.xml,MinThrottle,0.290000
+rubberbandtune04.xml,BehindMinDist,3.000000
+rubberbandtune04.xml,BehindMaxDist,16.000000
+rubberbandtune04.xml,BehindMaxThrottle,0.950000
+rubberbandtune04.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune04.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune04.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune04.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune04.xml,UseNitroMinDistFromFinish,250.000000
+rubberbandtune04.xml,UseNitroMinDistBehindPlayer,60.000000
+rubberbandtune04.xml,UnlimitedNitroMinDistBehindPlayer,350.000000
+rubberbandtune04.xml,HomeStretchBehindMaxThrottle,0.780000
+rubberbandtune04.xml,HomeStretchDistance,225.000000
+rubberbandtune04.xml,PlayerCloseMaxThrottle,0.995000
+rubberbandtune04.xml,PlayerCloseDistance,20.000000
+rubberbandtune04.xml,AheadDistOffsets,20.000000 65.000000 110.000000 180.000000 260.000000 380.000000 505.000000 700.000000
+rubberbandtune04.xml,BehindDistOffsets,0.000000 0.000000 24.000000 48.000000 85.000000 140.000000 195.000000 265.000000
+rubberbandtune05.xml,MaxThrottle,0.875000
+rubberbandtune05.xml,MinSpeed,0.520000
+rubberbandtune05.xml,MinDist,20.000000
+rubberbandtune05.xml,MaxDist,65.000000
+rubberbandtune05.xml,MinThrottle,0.325000
+rubberbandtune05.xml,BehindMinDist,2.500000
+rubberbandtune05.xml,BehindMaxDist,15.000000
+rubberbandtune05.xml,BehindMaxThrottle,1.000000
+rubberbandtune05.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune05.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune05.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune05.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune05.xml,UseNitroMinDistFromFinish,250.000000
+rubberbandtune05.xml,UseNitroMinDistBehindPlayer,50.000000
+rubberbandtune05.xml,UnlimitedNitroMinDistBehindPlayer,300.000000
+rubberbandtune05.xml,HomeStretchBehindMaxThrottle,0.790000
+rubberbandtune05.xml,HomeStretchDistance,200.000000
+rubberbandtune05.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune05.xml,PlayerCloseDistance,20.000000
+rubberbandtune05.xml,AheadDistOffsets,25.000000 75.000000 125.000000 200.000000 287.500000 412.500000 537.500000 750.000000
+rubberbandtune05.xml,BehindDistOffsets,0.000000 0.000000 20.000000 40.000000 75.000000 125.000000 175.000000 237.500000
+rubberbandtune06.xml,MaxThrottle,0.900000
+rubberbandtune06.xml,MinSpeed,0.530000
+rubberbandtune06.xml,MinDist,20.000000
+rubberbandtune06.xml,MaxDist,65.000000
+rubberbandtune06.xml,MinThrottle,0.360000
+rubberbandtune06.xml,BehindMinDist,2.000000
+rubberbandtune06.xml,BehindMaxDist,14.000000
+rubberbandtune06.xml,BehindMaxThrottle,1.000000
+rubberbandtune06.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune06.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune06.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune06.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune06.xml,UseNitroMinDistFromFinish,225.000000
+rubberbandtune06.xml,UseNitroMinDistBehindPlayer,40.000000
+rubberbandtune06.xml,UnlimitedNitroMinDistBehindPlayer,250.000000
+rubberbandtune06.xml,HomeStretchBehindMaxThrottle,0.800000
+rubberbandtune06.xml,HomeStretchDistance,200.000000
+rubberbandtune06.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune06.xml,PlayerCloseDistance,20.000000
+rubberbandtune06.xml,AheadDistOffsets,30.000002 85.000000 140.000000 220.000000 315.000000 445.000000 570.000000 800.000000
+rubberbandtune06.xml,BehindDistOffsets,0.000000 0.000000 0.000000 15.999999 31.999998 65.000000 110.000000 155.000000
+rubberbandtune07.xml,MaxThrottle,0.925000
+rubberbandtune07.xml,MinSpeed,0.540000
+rubberbandtune07.xml,MinDist,20.000000
+rubberbandtune07.xml,MaxDist,65.000000
+rubberbandtune07.xml,MinThrottle,0.395000
+rubberbandtune07.xml,BehindMinDist,1.500000
+rubberbandtune07.xml,BehindMaxDist,13.000000
+rubberbandtune07.xml,BehindMaxThrottle,1.000000
+rubberbandtune07.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune07.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune07.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune07.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune07.xml,UseNitroMinDistFromFinish,200.000000
+rubberbandtune07.xml,UseNitroMinDistBehindPlayer,30.000000
+rubberbandtune07.xml,UnlimitedNitroMinDistBehindPlayer,200.000000
+rubberbandtune07.xml,HomeStretchBehindMaxThrottle,0.800000
+rubberbandtune07.xml,HomeStretchDistance,200.000000
+rubberbandtune07.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune07.xml,PlayerCloseDistance,20.000000
+rubberbandtune07.xml,AheadDistOffsets,35.000000 95.000000 155.000000 240.000000 342.500000 477.500000 602.500000 850.000000
+rubberbandtune07.xml,BehindDistOffsets,-35.000000 0.000000 0.000000 12.000000 24.000000 55.000000 95.000000 135.000000
+rubberbandtune08.xml,MaxThrottle,0.950000
+rubberbandtune08.xml,MinSpeed,0.550000
+rubberbandtune08.xml,MinDist,20.000000
+rubberbandtune08.xml,MaxDist,65.000000
+rubberbandtune08.xml,MinThrottle,0.430000
+rubberbandtune08.xml,BehindMinDist,1.000000
+rubberbandtune08.xml,BehindMaxDist,12.000000
+rubberbandtune08.xml,BehindMaxThrottle,1.000000
+rubberbandtune08.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune08.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune08.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune08.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune08.xml,UseNitroMinDistFromFinish,200.000000
+rubberbandtune08.xml,UseNitroMinDistBehindPlayer,25.000000
+rubberbandtune08.xml,UnlimitedNitroMinDistBehindPlayer,200.000000
+rubberbandtune08.xml,HomeStretchBehindMaxThrottle,0.800000
+rubberbandtune08.xml,HomeStretchDistance,150.000000
+rubberbandtune08.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune08.xml,PlayerCloseDistance,30.000000
+rubberbandtune08.xml,AheadDistOffsets,40.000000 105.000000 170.000000 260.000000 370.000000 510.000000 635.000000 900.000000
+rubberbandtune08.xml,BehindDistOffsets,-40.000000 0.000000 0.000000 8.000000 15.999999 45.000000 80.000000 115.000000
+rubberbandtune09.xml,MaxThrottle,0.975000
+rubberbandtune09.xml,MinSpeed,0.560000
+rubberbandtune09.xml,MinDist,20.000000
+rubberbandtune09.xml,MaxDist,65.000000
+rubberbandtune09.xml,MinThrottle,0.465000
+rubberbandtune09.xml,BehindMinDist,0.500000
+rubberbandtune09.xml,BehindMaxDist,11.000000
+rubberbandtune09.xml,BehindMaxThrottle,1.000000
+rubberbandtune09.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune09.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune09.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune09.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune09.xml,UseNitroMinDistFromFinish,100.000000
+rubberbandtune09.xml,UseNitroMinDistBehindPlayer,20.000000
+rubberbandtune09.xml,UnlimitedNitroMinDistBehindPlayer,200.000000
+rubberbandtune09.xml,HomeStretchBehindMaxThrottle,0.850000
+rubberbandtune09.xml,HomeStretchDistance,125.000000
+rubberbandtune09.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune09.xml,PlayerCloseDistance,40.000000
+rubberbandtune09.xml,AheadDistOffsets,45.000000 115.000000 185.000000 280.000000 397.500000 542.500000 667.500000 950.000000
+rubberbandtune09.xml,BehindDistOffsets,-45.000000 0.000000 0.000000 0.000000 3.999999 7.999997 34.999996 64.999992
+rubberbandtune10.xml,MaxThrottle,1.000000
+rubberbandtune10.xml,MinSpeed,0.750000
+rubberbandtune10.xml,MinDist,20.000000
+rubberbandtune10.xml,MaxDist,65.000000
+rubberbandtune10.xml,MinThrottle,0.500000
+rubberbandtune10.xml,BehindMinDist,0.000000
+rubberbandtune10.xml,BehindMaxDist,10.000000
+rubberbandtune10.xml,BehindMaxThrottle,1.000000
+rubberbandtune10.xml,OutsideTrafficBubbleThresholdSpeed,0.750000
+rubberbandtune10.xml,OutsideTrafficBubbleThrottlePenalty,0.750000
+rubberbandtune10.xml,DistBehindBeforeTakingShortcuts,100.000000
+rubberbandtune10.xml,UseNitroMinDistFromStart,100.000000
+rubberbandtune10.xml,UseNitroMinDistFromFinish,100.000000
+rubberbandtune10.xml,UseNitroMinDistBehindPlayer,10.000000
+rubberbandtune10.xml,UnlimitedNitroMinDistBehindPlayer,200.000000
+rubberbandtune10.xml,HomeStretchBehindMaxThrottle,0.900000
+rubberbandtune10.xml,HomeStretchDistance,100.000000
+rubberbandtune10.xml,PlayerCloseMaxThrottle,1.000000
+rubberbandtune10.xml,PlayerCloseDistance,50.000000
+rubberbandtune10.xml,AheadDistOffsets,50.000000 125.000000 200.000000 300.000000 425.000000 575.000000 700.000000 1000.000000
+rubberbandtune10.xml,BehindDistOffsets,-50.000000 0.000000 0.000000 0.000000 0.000000 25.000000 50.000000 75.000000
