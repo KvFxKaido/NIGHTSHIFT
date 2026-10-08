@@ -1,0 +1,10 @@
+Money set,Career order,Prize lower,Prize upper
+CareerStart,1,500,750
+CareerStart,35,1000,1500
+PastFirstTournament,35,1000,1500
+PastFirstTournament,80,2000,3000
+FirstAtlantaEventBeaten,80,2000,3000
+FirstAtlantaEventBeaten,130,3500,5500
+FirstDetroitEventBeaten,130,3500,5500
+FirstDetroitEventBeaten,200,7000,10000
+WorldChampBeaten,200,12000,20000

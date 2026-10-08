@@ -1,0 +1,484 @@
+Source row,Reward type,Reward id,Conditions,"Conditions, rivals named"
+24,H,Culture_1_part_1,CareerStart CareerStart,CareerStart CareerStart
+25,H,Culture_1_part_2,Tournament SDAutoX; H Chopper_1_part_1,Tournament SDAutoX; Phil (Chopper_1_part_1) beaten
+26,H,Culture_1_part_2,Tournament SDCompound; H Chopper_1_part_1; H Culture_1_part_1,Tournament SDCompound; Phil (Chopper_1_part_1) beaten; Vanessa (Culture_1_part_1) beaten
+27,H,Culture_1_part_2,Tournament SDBalboa; H Chopper_1_part_1; H Culture_1_part_1,Tournament SDBalboa; Phil (Chopper_1_part_1) beaten; Vanessa (Culture_1_part_1) beaten
+28,H,Luxury_1_part_1,CareerStart CareerStart,CareerStart CareerStart
+29,H,Muscle_1_part_1,CareerStart CareerStart,CareerStart CareerStart
+30,H,Chopper_1_part_1,H Luxury_1_part_1; H Muscle_1_part_1,Bishop (Luxury_1_part_1) beaten; Carlos (Muscle_1_part_1) beaten
+31,H,Chopper_1_part_1,H Luxury_1_part_1; H Culture_1_part_1,Bishop (Luxury_1_part_1) beaten; Vanessa (Culture_1_part_1) beaten
+32,H,Chopper_1_part_1,H Muscle_1_part_1; H Culture_1_part_1,Carlos (Muscle_1_part_1) beaten; Vanessa (Culture_1_part_1) beaten
+33,H,SportBike_1_part_1,C Atlanta,C Atlanta
+34,H,Muscle_2_part_1,C Atlanta,C Atlanta
+35,H,SUV_1_part_1,C Atlanta,C Atlanta
+36,H,Culture_2_part_1,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+37,H,Chopper_2_part_1,H Muscle_2_part_1; H SportBike_1_part_1,Roy (Muscle_2_part_1) beaten; Vito (SportBike_1_part_1) beaten
+38,H,SUV_2_part_1,H Muscle_2_part_1,Roy (Muscle_2_part_1) beaten
+39,H,Muscle_2_part_2,H SUV_2_part_1,Lamont (SUV_2_part_1) beaten
+40,H,Chopper_3_part_1,C Detroit,C Detroit
+41,H,Muscle_1_part_2,C Detroit,C Detroit
+42,H,Muscle_2_part_3,C Detroit,C Detroit
+43,H,HighEnd_1_part_1,H Muscle_1_part_2,Leo (Muscle_1_part_2) beaten
+44,H,HighEnd_1_part_2,H HighEnd_1_part_1; H SportBike_2_part_1,Ceasar (HighEnd_1_part_1) beaten; Kioshi (SportBike_2_part_1) beaten
+45,H,SportBike_2_part_1,H Chopper_3_part_1,Spider (Chopper_3_part_1) beaten
+46,H,HighEnd_2_part_1,H SportBike_2_part_1; H Muscle_2_part_3,Kioshi (SportBike_2_part_1) beaten; Roy (Muscle_2_part_3) beaten
+47,H,WorldChamp_1_part_1,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+48,H,WorldChamp_1_part_2,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+49,H,WorldChamp_1_part_3,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+50,H,WorldChamp_1_part_4,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+51,H,WorldChamp_1_part_5,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+52,H,WorldChamp_1_part_6,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+53,H,WorldChamp_1_part_7,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+54,Movie,WorldChampUnlocked,H HighEnd_1_part_2; H HighEnd_2_part_1,Ceasar (HighEnd_1_part_2) beaten; Angel (HighEnd_2_part_1) beaten
+55,Movie,WorldChampBeaten,H WorldChamp_1_part_1; H WorldChamp_1_part_2; H WorldChamp_1_part_3; H WorldChamp_1_part_4; H WorldChamp_1_part_5; H WorldChamp_1_part_6; H WorldChamp_1_part_7,Vanessa (championship) (WorldChamp_1_part_1) beaten; Spider (championship) (WorldChamp_1_part_2) beaten; Lamont (championship) (WorldChamp_1_part_3) beaten; Angel (championship) (WorldChamp_1_part_4) beaten; Roy (championship) (WorldChamp_1_part_5) beaten; Kioshi (championship) (WorldChamp_1_part_6) beaten; Ceasar (championship) (WorldChamp_1_part_7) beaten
+56,Tournament,SDCompound,H Muscle_1_part_1,Carlos (Muscle_1_part_1) beaten
+57,Tournament,SDAutoX,H Culture_1_part_1,Vanessa (Culture_1_part_1) beaten
+58,Tournament,SDBalboa,H Luxury_1_part_1,Bishop (Luxury_1_part_1) beaten
+59,Tournament,AtlDubOne,C Atlanta,C Atlanta
+60,Tournament,AtlDubTwo,H Sportbike_1_part_1,Vito (Sportbike_1_part_1) beaten
+61,Tournament,DetMuscle,C Detroit,C Detroit
+62,Tournament,DetAutoX,H HighEnd_1_part_1,Ceasar (HighEnd_1_part_1) beaten
+63,Tournament,SDDub,H Muscle_1_part_2,Leo (Muscle_1_part_2) beaten
+64,TokyoTournament,TKExoticClub,FILLER Tokyo 0,FILLER Tokyo 0
+65,TokyoTournament,TKAClass1,FILLER Tokyo 3,FILLER Tokyo 3
+66,TokyoTournament,TKCClass1,FILLER Tokyo 6,FILLER Tokyo 6
+67,TokyoTournament,TKTunerClub,FILLER Tokyo 8,FILLER Tokyo 8
+68,TokyoTournament,TKChopperClub,FILLER Tokyo 13,FILLER Tokyo 13
+69,TokyoTournament,TKBClass1,FILLER Tokyo 16,FILLER Tokyo 16
+70,TokyoTournament,TKMuscleClub,FILLER Tokyo 20,FILLER Tokyo 20
+71,TokyoTournament,TKLuxuryClub,FILLER Tokyo 22,FILLER Tokyo 22
+72,TokyoTournament,TKSuvClub,FILLER Tokyo 27,FILLER Tokyo 27
+73,TokyoTournament,TKSportsBikeClub,FILLER Tokyo 30,FILLER Tokyo 30
+74,TokyoTournament,TKDClass1,FILLER Tokyo 34,FILLER Tokyo 34
+75,GENERIC,TokyoRacesComplete,FILLER Tokyo 34,FILLER Tokyo 34
+76,C,Detroit,H Muscle_2_part_2; H Culture_2_part_1,Roy (Muscle_2_part_2) beaten; Cheng (Culture_2_part_1) beaten
+77,C,Detroit,H Muscle_2_part_2; H Chopper_2_part_1,Roy (Muscle_2_part_2) beaten; Naomi (Chopper_2_part_1) beaten
+78,C,Atlanta,H Culture_1_part_2,Vanessa (Culture_1_part_2) beaten
+79,Movie,AtlantaUnlocked,C Atlanta,C Atlanta
+80,Movie,DetroitUnlocked,C Detroit,C Detroit
+81,Movie,MoversTutorial,Movie AtlantaUnlocked,Movie AtlantaUnlocked
+82,MovieInNewCity,Atlanta,C Atlanta,C Atlanta
+83,MovieInNewCity,Detroit,C Detroit,C Detroit
+84,CLOUDY_C,0,CO_MIN 20,CO_MIN 20
+85,RAINY_C,0,CO_MIN 40,CO_MIN 40
+86,Movie,CareerIntro,CO_MIN 1,CO_MIN 1
+87,Movie,TokyoIntro,CO_MIN 1,CO_MIN 1
+88,Movie,CustomizationTutorial,Movie CareerIntro,Movie CareerIntro
+89,Movie,CustomizationTutorial,Movie TokyoIntro,Movie TokyoIntro
+90,Movie,NavIntro,CareerStart CareerStart,CareerStart CareerStart
+91,Movie,TokyoNavIntro,GoToGarage GarageAtCareerStart; Movie TokyoIntro,GoToGarage GarageAtCareerStart; Movie TokyoIntro
+92,GoToGarage,GarageAtCareerStart,Movie CustomizationTutorial,Movie CustomizationTutorial
+93,MovieFirstOrdered,OrderedTutorial,GoToGarage GarageAtCareerStart,GoToGarage GarageAtCareerStart
+94,CareerStart,CareerStart,GoToGarage GarageAtCareerStart; Movie CareerIntro; MovieFirstOrdered OrderedTutorial,GoToGarage GarageAtCareerStart; Movie CareerIntro; MovieFirstOrdered OrderedTutorial
+95,RACE_C,drag\easy\sd_drag_easy_firstrace_race01,CareerStart CareerStart,CareerStart CareerStart
+96,Movie,RLogoCollected,LOGO 1,LOGO 1
+97,Movie,TokyoRacesComplete,GENERIC TokyoRacesComplete,GENERIC TokyoRacesComplete
+98,Movie,100PercentTokyo,TCPC_MIN 100,TCPC_MIN 100
+99,CruiseInGivenCity,ForceToDetroit,CO_MIN 240,CO_MIN 240
+100,CruiseInGivenCity,ForceToSD,CO_MIN 240,CO_MIN 240
+101,RACE_C,ordered\med\sd_ordered_med_gaslamp_race01,H Culture_1_part_2,Vanessa (Culture_1_part_2) beaten
+102,RACE_C,ordered\hard\sd_ordered_hard_curbdogs_race02,H Culture_1_part_1,Vanessa (Culture_1_part_1) beaten
+103,RACE_C,ordered\med\sd_ordered_med_fiftyfifty_race01,H Chopper_1_part_1,Phil (Chopper_1_part_1) beaten
+104,RACE_C,ordered\easy\sd_ordered_easy_freeway_race01,H Muscle_1_part_1,Carlos (Muscle_1_part_1) beaten
+105,RACE_C,circuit\easy\sd_circuit_easy_trolley_race02,H Luxury_1_part_1,Bishop (Luxury_1_part_1) beaten
+106,RACE_C,ordered\med\sd_ordered_med_jumpsgalore_race02,H WorldChamp_1_part_1,Vanessa (championship) (WorldChamp_1_part_1) beaten
+107,RACE_C,ordered\hard\sd_ordered_hard_eastside_race01,H WorldChamp_1_part_1,Vanessa (championship) (WorldChamp_1_part_1) beaten
+108,RACE_C,ordered\med\sd_ordered_med_go_race03,H WorldChamp_1_part_2,Spider (championship) (WorldChamp_1_part_2) beaten
+109,RACE_C,circuit\hard\sd_circuit_hard_cityloop_race05,H WorldChamp_1_part_2,Spider (championship) (WorldChamp_1_part_2) beaten
+110,RACE_C,ordered\easy\atl_ordered_easy_streetrace_race01,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+111,RACE_C,ordered\med\atl_ordered_med_oldskool_race02,H Muscle_2_part_1,Roy (Muscle_2_part_1) beaten
+112,RACE_C,ordered\med\atl_ordered_med_haul_race01,H SportBike_1_part_1,Vito (SportBike_1_part_1) beaten
+113,RACE_C,ordered\med\atl_ordered_med_theflop_race01,H WorldChamp_1_part_3,Lamont (championship) (WorldChamp_1_part_3) beaten
+114,RACE_C,ordered\easy\atl_ordered_easy_peaches_race03,H WorldChamp_1_part_3,Lamont (championship) (WorldChamp_1_part_3) beaten
+115,RACE_C,circuit\hard\atl_circuit_hard_downtown_race01,H WorldChamp_1_part_4,Angel (championship) (WorldChamp_1_part_4) beaten
+116,RACE_C,ordered\hard\atl_ordered_hard_throughthecity_race01,H WorldChamp_1_part_4,Angel (championship) (WorldChamp_1_part_4) beaten
+117,RACE_C,circuit\easy\dt_circuit_easy_railcircuit_race01,H Chopper_3_part_1,Spider (Chopper_3_part_1) beaten
+118,RACE_C,ordered\hard\dt_ordered_hard_mrplow_race01,H Muscle_2_part_3,Roy (Muscle_2_part_3) beaten
+119,RACE_C,ordered\med\dt_ordered_med_cityrace_race02,H HighEnd_1_part_1,Ceasar (HighEnd_1_part_1) beaten
+120,RACE_C,drag\med\dt_drag_med_trainjump_race02,H SportBike_2_part_1,Kioshi (SportBike_2_part_1) beaten
+121,RACE_C,ordered\hard\dt_ordered_hard_starman_race01,H WorldChamp_1_part_5,Roy (championship) (WorldChamp_1_part_5) beaten
+122,RACE_C,ordered\hard\dt_ordered_hard_tls_race01,H WorldChamp_1_part_5,Roy (championship) (WorldChamp_1_part_5) beaten
+123,RACE_C,ordered\med\dt_ordered_med_open_race01,H WorldChamp_1_part_6,Kioshi (championship) (WorldChamp_1_part_6) beaten
+124,RACE_C,circuit\hard\dt_circuit_hard_allin_race01,H WorldChamp_1_part_6,Kioshi (championship) (WorldChamp_1_part_6) beaten
+125,RACE_C,ordered\hard\dt_ordered_hard_champ_race01,H WorldChamp_1_part_7,Ceasar (championship) (WorldChamp_1_part_7) beaten
+126,RACE_C,ordered\hard\dt_ordered_hard_ballzout_Race0,H WorldChamp_1_part_7,Ceasar (championship) (WorldChamp_1_part_7) beaten
+127,RACE_C,ordered\easy\sd_ordered_easy_compound_race01,Tournament SDCompound,Tournament SDCompound
+128,RACE_C,circuit\easy\sd_circuit_easy_compound_race02,Tournament SDCompound,Tournament SDCompound
+129,RACE_C,ordered\easy\sd_ordered_easy_compound_race03,Tournament SDCompound,Tournament SDCompound
+130,RACE_C,ordered\easy\sd_ordered_easy_compound_race_all,Tournament SDCompound,Tournament SDCompound
+131,RACE_C,autox\easy\sd_autox_easy_downtown_race01,Tournament SDAutoX,Tournament SDAutoX
+132,RACE_C,autox\med\sd_autox_med_oceanseleven_race01,Tournament SDAutoX,Tournament SDAutoX
+133,RACE_C,autox\easy\sd_autox_easy_beachcross_race01,Tournament SDAutoX,Tournament SDAutoX
+134,RACE_C,circuit\easy\sd_circuit_easy_downtown_race03,Tournament SDAutoX,Tournament SDAutoX
+135,RACE_C,circuit\med\sd_circuit_med_oceanseleven_race01,Tournament SDAutoX,Tournament SDAutoX
+136,RACE_C,circuit\easy\sd_circuit_easy_beachcross_race01,Tournament SDAutoX,Tournament SDAutoX
+137,RACE_C,circuit\easy\sd_circuit_easy_balboa_race01,Tournament SDBalboa,Tournament SDBalboa
+138,RACE_C,ordered\hard\sd_ordered_hard_balboa_race02,Tournament SDBalboa,Tournament SDBalboa
+139,RACE_C,drag\easy\sd_drag_easy_bridges_race01,Tournament SDBalboa,Tournament SDBalboa
+140,RACE_C,circuit\easy\atl_circuit_easy_parketary_race01,Tournament AtlDubOne,Tournament AtlDubOne
+141,RACE_C,ordered\easy\atl_ordered_easy_welcome_race01,Tournament AtlDubOne,Tournament AtlDubOne
+142,RACE_C,ordered\hard\atl_ordered_hard_whiplash_race01,Tournament AtlDubOne,Tournament AtlDubOne
+143,RACE_C,circuit\easy\atl_circuit_easy_westend_race02,Tournament AtlDubOne,Tournament AtlDubOne
+144,RACE_C,autox\hard\atl_autox_hard_downtown_race01,Tournament AtlDubTwo,Tournament AtlDubTwo
+145,RACE_C,autox\med\atl_autox_med_twister_race01,Tournament AtlDubTwo,Tournament AtlDubTwo
+146,RACE_C,autox\med\atl_autox_med_iceturn_race01,Tournament AtlDubTwo,Tournament AtlDubTwo
+147,RACE_C,circuit\hard\atl_circuit_hard_downtown_race03,Tournament AtlDubTwo,Tournament AtlDubTwo
+148,RACE_C,circuit\med\atl_circuit_med_twister_race01,Tournament AtlDubTwo,Tournament AtlDubTwo
+149,RACE_C,circuit\med\atl_circuit_med_iceturn_race01,Tournament AtlDubTwo,Tournament AtlDubTwo
+150,RACE_C,circuit\easy\dt_circuit_easy_citycircuit_race01,Tournament DetMuscle,Tournament DetMuscle
+151,RACE_C,drag\easy\dt_drag_easy_riverrougedrag_race01,Tournament DetMuscle,Tournament DetMuscle
+152,RACE_C,ordered\easy\dt_ordered_easy_speed_race01,Tournament DetMuscle,Tournament DetMuscle
+153,RACE_C,ordered\hard\dt_ordered_hard_tightrope_race01,Tournament DetMuscle,Tournament DetMuscle
+154,RACE_C,autox\med\dt_autox_med_theprojects_race01,Tournament DetAutoX,Tournament DetAutoX
+155,RACE_C,autox\hard\dt_autox_hard_toughturns_race01,Tournament DetAutoX,Tournament DetAutoX
+156,RACE_C,autox\easy\dt_autox_easy_highland_race01,Tournament DetAutoX,Tournament DetAutoX
+157,RACE_C,circuit\med\dt_circuit_med_theprojects_race01,Tournament DetAutoX,Tournament DetAutoX
+158,RACE_C,circuit\hard\dt_circuit_hard_toughturns_race01,Tournament DetAutoX,Tournament DetAutoX
+159,RACE_C,circuit\easy\dt_circuit_easy_highland_race01,Tournament DetAutoX,Tournament DetAutoX
+160,RACE_C,ordered\hard\sd_ordered_hard_citytour_race01,Tournament SDDub,Tournament SDDub
+161,RACE_C,ordered\hard\sd_ordered_hard_citytour_race02,Tournament SDDub,Tournament SDDub
+162,RACE_C,ordered\hard\sd_ordered_hard_citytour_race03,Tournament SDDub,Tournament SDDub
+163,RACE_C,ordered\easy\ordered_easy04_asakusa_race01,TokyoTournament TKDClass1,TokyoTournament TKDClass1
+164,RACE_C,circuit\easy\circuit_easy06_ginza_race03,TokyoTournament TKCClass1,TokyoTournament TKCClass1
+165,RACE_C,circuit\easy\circuit_easy04_airborne_race01,TokyoTournament TKBClass1,TokyoTournament TKBClass1
+166,RACE_C,ordered\easy\ordered_easy02_compound_race01,TokyoTournament TKAClass1; TokyoTournament TKBClass1,TokyoTournament TKAClass1; TokyoTournament TKBClass1
+167,RACE_C,circuit\easy\circuit_easy02_compound_race02,TokyoTournament TKAClass1; TokyoTournament TKBClass1,TokyoTournament TKAClass1; TokyoTournament TKBClass1
+168,RACE_C,ordered\easy\ordered_easy02_compound_race03,TokyoTournament TKAClass1; TokyoTournament TKBClass1,TokyoTournament TKAClass1; TokyoTournament TKBClass1
+169,RACE_C,ordered\easy\ordered_easy02_compound_race04,TokyoTournament TKAClass1; TokyoTournament TKBClass1,TokyoTournament TKAClass1; TokyoTournament TKBClass1
+170,RACE_C,ordered\easy\ordered_easy01_tokyowarf_race01,TokyoTournament TKChopperClub,TokyoTournament TKChopperClub
+171,RACE_C,ordered\easy\ordered_easy02_superjoy_race01,TokyoTournament TKExoticClub,TokyoTournament TKExoticClub
+172,RACE_C,circuit\easy\circuit_easy02_asakusacircuit_race01,TokyoTournament TKLuxuryClub,TokyoTournament TKLuxuryClub
+173,RACE_C,ordered\easy\ordered_easy04_drift_race01,TokyoTournament TKMuscleClub,TokyoTournament TKMuscleClub
+174,RACE_C,ordered\easy\ordered_easy04_haul_race01,TokyoTournament TKSportsBikeClub,TokyoTournament TKSportsBikeClub
+175,RACE_C,ordered\easy\ordered_easy02_shortcuts_race01,TokyoTournament TKSuvClub,TokyoTournament TKSuvClub
+176,RACE_C,ordered\easy\ordered_easy06_zeed_race01,TokyoTournament TKTunerClub,TokyoTournament TKTunerClub
+177,MONEY,PastFirstTournament,Tournament SDCompound,Tournament SDCompound
+178,MONEY,PastFirstTournament,Tournament SDAutoX,Tournament SDAutoX
+179,MONEY,PastFirstTournament,Tournament SDBalboa,Tournament SDBalboa
+180,MONEY,FirstAtlantaEventBeaten,H SportBike_1_part_1,Vito (SportBike_1_part_1) beaten
+181,MONEY,FirstAtlantaEventBeaten,H Muscle_2_part_1,Roy (Muscle_2_part_1) beaten
+182,MONEY,FirstAtlantaEventBeaten,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+183,MONEY,FirstAtlantaEventBeaten,Tournament AtlDubOne,Tournament AtlDubOne
+184,MONEY,FirstDetroitEventBeaten,H Chopper_3_part_1,Spider (Chopper_3_part_1) beaten
+185,MONEY,FirstDetroitEventBeaten,H Muscle_1_part_2,Leo (Muscle_1_part_2) beaten
+186,MONEY,FirstDetroitEventBeaten,Tournament DetMuscle,Tournament DetMuscle
+187,MONEY,WorldChampBeaten,Movie WorldChampBeaten,Movie WorldChampBeaten
+188,AI_NITRO,0,CareerStart CareerStart,CareerStart CareerStart
+189,SST,0,CO_MIN 1,CO_MIN 1
+190,BO,0,CO_MIN 1,CO_MIN 1
+191,IAC,0,CO_MIN 1,CO_MIN 1
+192,2WD,0,CO_MIN 1,CO_MIN 1
+193,NITRO,0,CO_MIN 1,CO_MIN 1
+194,ZONEAGROROAR,culture,SQ culture 3,SQ culture 3
+195,ZONEAGROROAR,performance,SQ performance 3,SQ performance 3
+196,ZONEAGROROAR,sportbike,SQ sportbike 3,SQ sportbike 3
+197,ZONEAGROROAR,suv,SQ suv 3,SQ suv 3
+198,ZONEAGROROAR,luxury,SQ luxury 3,SQ luxury 3
+199,ZONEAGROROAR,muscle,SQ muscle 3,SQ muscle 3
+200,ZONEAGROROAR,chopper,SQ chopper 3,SQ chopper 3
+201,GENERIC,CultureAbilityMsg,SQ culture 3,SQ culture 3
+202,GENERIC,PerformanceAbilityMsg,SQ performance 3,SQ performance 3
+203,GENERIC,SportbikeAbilityMsg,SQ sportbike 3,SQ sportbike 3
+204,GENERIC,SUVAbilityMsg,SQ suv 3,SQ suv 3
+205,GENERIC,LuxuryAbilityMsg,SQ luxury 3,SQ luxury 3
+206,GENERIC,MuscleAbilityMsg,SQ muscle 3,SQ muscle 3
+207,GENERIC,ChopperAbilityMsg,SQ chopper 3,SQ chopper 3
+208,Movie,CultureAbility,SQ culture 3,SQ culture 3
+209,Movie,PerformanceAbility,SQ performance 3,SQ performance 3
+210,Movie,SportbikeAbility,SQ sportbike 3,SQ sportbike 3
+211,Movie,SUVAbility,SQ suv 3,SQ suv 3
+212,Movie,LuxuryAbility,SQ luxury 3,SQ luxury 3
+213,Movie,MuscleAbility,SQ muscle 3,SQ muscle 3
+214,Movie,ChopperAbility,SQ chopper 3,SQ chopper 3
+215,MovieNitrous,FirstNitrousUse,CO_MIN 1,CO_MIN 1
+216,MovieHydraulics,FirstHydraulicsUse,CO_MIN 1,CO_MIN 1
+217,MovieMotorcycle,FirstMotorcycleUse,CO_MIN 1,CO_MIN 1
+218,Movie,BurnOutTutorial,CPC_MIN 1,CPC_MIN 1
+219,Movie,BurnOutTutorial,TCPC_MIN 3,TCPC_MIN 3
+220,Movie,SSTTutorial,CPC_MIN 2,CPC_MIN 2
+221,Movie,SSTTutorial,TCPC_MIN 6,TCPC_MIN 6
+222,Movie,UserCamTutorial,CPC_MIN 3,CPC_MIN 3
+223,Movie,UserCamTutorial,TCPC_MIN 10,TCPC_MIN 10
+224,MovieFirstUnordered,FirstUnordered,CareerStart CareerStart,CareerStart CareerStart
+225,SQ,culture,H Culture_1_part_1,Vanessa (Culture_1_part_1) beaten
+226,SQ,suv,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+227,SQ,suv,H SUV_2_part_1,Lamont (SUV_2_part_1) beaten
+228,SQ,performance,H HighEnd_1_part_1,Ceasar (HighEnd_1_part_1) beaten
+229,SQ,luxury,H Luxury_1_part_1,Bishop (Luxury_1_part_1) beaten
+230,SQ,muscle,H Muscle_1_part_1,Carlos (Muscle_1_part_1) beaten
+231,SQ,chopper,H Chopper_1_part_1,Phil (Chopper_1_part_1) beaten
+232,SQ,sportbike,H Sportbike_1_part_1,Vito (Sportbike_1_part_1) beaten
+233,GENERIC,SQ_culture,SQ culture,SQ culture
+234,GENERIC,SQ_suv,SQ suv,SQ suv
+235,GENERIC,SQ_performance,SQ performance,SQ performance
+236,GENERIC,SQ_luxury,SQ luxury,SQ luxury
+237,GENERIC,SQ_muscle,SQ muscle,SQ muscle
+238,GENERIC,SQ_chopper,SQ chopper,SQ chopper
+239,GENERIC,SQ_sportbike,SQ sportbike,SQ sportbike
+240,Movie,SQCultureOpen,SQ culture,SQ culture
+241,Movie,SQSUVOpen,SQ suv,SQ suv
+242,Movie,SQPerformanceOpen,SQ performance,SQ performance
+243,Movie,SQLuxuryOpen,SQ luxury,SQ luxury
+244,Movie,SQMuscleOpen,SQ muscle,SQ muscle
+245,Movie,SQSportbikeOpen,SQ sportbike,SQ sportbike
+246,Movie,FirstSQUnlocked,Movie SQCultureOpen,Movie SQCultureOpen
+247,Movie,FirstSQUnlocked,Movie SQSUVOpen,Movie SQSUVOpen
+248,Movie,FirstSQUnlocked,Movie SQPerformanceOpen,Movie SQPerformanceOpen
+249,Movie,FirstSQUnlocked,Movie SQLuxuryOpen,Movie SQLuxuryOpen
+250,Movie,FirstSQUnlocked,Movie SQMuscleOpen,Movie SQMuscleOpen
+251,Movie,FirstSQUnlocked,SQ chopper,SQ chopper
+252,Movie,FirstSQUnlocked,Movie SQSportbikeOpen,Movie SQSportbikeOpen
+253,Movie,SQCultureEnd,SQ culture 13,SQ culture 13
+254,Movie,SQSUVEnd,SQ suv 15,SQ suv 15
+255,Movie,SQPerformanceEnd,SQ performance 16,SQ performance 16
+256,Movie,SQLuxuryEnd,SQ luxury 14,SQ luxury 14
+257,Movie,SQMuscleEnd,SQ muscle 15,SQ muscle 15
+258,Movie,SQChopperEnd,SQ chopper 15,SQ chopper 15
+259,Movie,SQSportbikeEnd,SQ sportbike 14,SQ sportbike 14
+260,Movie,SQChopperChallenge,H Chopper_1_part_1 0,Phil (Chopper_1_part_1) unlocked
+261,VP,vp_jetta_03,CO_MIN 1,CO_MIN 1
+262,VP,vp_srt4_04,CO_MIN 1,CO_MIN 1
+263,VP,vp_eclipse_04,CO_MIN 1,CO_MIN 1
+264,VP,vp_golfr32_04,CO_MIN 1,CO_MIN 1
+265,VP,vp_is300_04,Tournament SDAutoX,Tournament SDAutoX
+266,VP,vp_montecarlo_78,CO_MIN 1,CO_MIN 1
+267,VP,vp_impala_64,CO_MIN 1,CO_MIN 1
+268,VP,vp_belair_57,Tournament SDCompound,Tournament SDCompound
+269,VP,vp_hummer_02,CO_MIN 1,CO_MIN 1
+270,VP,vp_chrysler300c_05,Tournament SDBalboa,Tournament SDBalboa
+271,VP,vp_gs430_04,CO_MIN 1,CO_MIN 1
+272,VP,vp_ctsv_04,CO_MIN 1,CO_MIN 1
+273,VP,vp_d_scion_tc_05,CO_MIN 1,CO_MIN 1
+274,VP,vp_d_cobalt_05,TokyoTournament TKTunerClub,TokyoTournament TKTunerClub
+275,VP,vp_d_magnum_05,TokyoTournament TKAClass1,TokyoTournament TKAClass1
+276,VP,vp_d_g35_05,TokyoTournament TKLuxuryClub,TokyoTournament TKLuxuryClub
+277,GENERIC,vp_is300_04,Tournament SDAutoX,Tournament SDAutoX
+278,GENERIC,vp_belair_57,Tournament SDCompound,Tournament SDCompound
+279,GENERIC,vp_chrysler300c_05,Tournament SDBalboa,Tournament SDBalboa
+280,GENERIC,vp_d_cobalt_05,TokyoTournament TKTunerClub,TokyoTournament TKTunerClub
+281,GENERIC,vp_d_magnum_05,TokyoTournament TKAClass1,TokyoTournament TKAClass1
+282,GENERIC,vp_d_g35_05,TokyoTournament TKLuxuryClub,TokyoTournament TKLuxuryClub
+283,VISUAL,a 2,C SD,C SD
+284,PERF,a 2,CO_MIN 70,CO_MIN 70
+285,PERF,a 3,CO_MIN 88,CO_MIN 88
+286,GENERIC,Visual_A_2,CO_MIN 1,CO_MIN 1
+287,GENERIC,Performance_A_2,CO_MIN 70,CO_MIN 70
+288,GENERIC,Performance_A_3,CO_MIN 88,CO_MIN 88
+289,VP,vp_lancer_04,CO_MIN 50,CO_MIN 50
+290,VP,vp_350z_04,CO_MIN 50,CO_MIN 50
+291,VP,vp_supra_98,CO_MIN 50,CO_MIN 50
+292,VP,vp_elise_04,CO_MIN 50,CO_MIN 50
+293,VP,vp_impalass_96,CO_MIN 50,CO_MIN 50
+294,VP,vp_elcamino_70,CO_MIN 50,CO_MIN 50
+295,VP,vp_charger_69,CO_MIN 50,CO_MIN 50
+296,VP,vp_gto_68,CO_MIN 50,CO_MIN 50
+297,VP,vp_fleetline_49,Tournament DetMuscle,Tournament DetMuscle
+298,VP,vp_ext_03,Tournament AtlDubOne,Tournament AtlDubOne
+299,VP,vp_escalade_03,CO_MIN 50,CO_MIN 50
+300,VP,vp_h2_03,CO_MIN 50,CO_MIN 50
+301,VP,vp_g500_03,CO_MIN 50,CO_MIN 50
+302,VP,vp_g55_amg_03,SQ suv 15,SQ suv 15
+303,GENERIC,vp_g55_amg_03,SQ suv 15,SQ suv 15
+304,VP,vp_cuevito_99,H Chopper_1_part_1,Phil (Chopper_1_part_1) beaten
+305,VP,vp_wcc_cfl_03,CO_MIN 50,CO_MIN 50
+306,VP,vp_wcc_eldiablo_st_00,CO_MIN 50,CO_MIN 50
+307,VP,vp_sc430_04,CO_MIN 50,CO_MIN 50
+308,VP,vp_cl500_04,CO_MIN 50,CO_MIN 50
+309,VP,vp_phaeton_04,CO_MIN 50,CO_MIN 50
+310,VP,vp_cl55_amg_04,SQ luxury 14,SQ luxury 14
+311,GENERIC,vp_cl55_amg_04,SQ luxury 14,SQ luxury 14
+312,VP,vp_skyline_02,SQ culture 13,SQ culture 13
+313,VP,vp_d_chevelle_70,CO_MIN 50,CO_MIN 50
+314,VP,vp_d_eldorado_70,CO_MIN 50,CO_MIN 50
+315,VP,vp_d_fx45_05,CO_MIN 50,CO_MIN 50
+316,VP,vp_d_ssr_05,CO_MIN 50,CO_MIN 50
+317,VP,vp_d_superhemi_01,CO_MIN 50,CO_MIN 50
+318,VP,vp_d_xlr_04,CO_MIN 50,CO_MIN 50
+319,VP,vp_d_yukon_05,CO_MIN 50,CO_MIN 50
+320,VP,vp_d_h3t_05,TokyoTournament TKSuvClub,TokyoTournament TKSuvClub
+321,VP,vp_d_deville_66,TokyoTournament TKMuscleClub,TokyoTournament TKMuscleClub
+322,VP,vp_d_chingon_04,TokyoTournament TKChopperClub,TokyoTournament TKChopperClub
+323,VP,vp_d_sportconcept_05,TokyoTournament TKBClass1,TokyoTournament TKBClass1
+324,GENERIC,vp_skyline_02,SQ culture 13,SQ culture 13
+325,GENERIC,Vehicle_Group_B,CO_MIN 50,CO_MIN 50
+326,GENERIC,vp_fleetline_49,Tournament DetMuscle,Tournament DetMuscle
+327,GENERIC,vp_ext_03,Tournament AtlDubOne,Tournament AtlDubOne
+328,GENERIC,vp_cuevito_99,H Chopper_1_part_1,Phil (Chopper_1_part_1) beaten
+329,GENERIC,vp_d_h3t_05,TokyoTournament TKSuvClub,TokyoTournament TKSuvClub
+330,GENERIC,vp_d_deville_66,TokyoTournament TKMuscleClub,TokyoTournament TKMuscleClub
+331,GENERIC,vp_d_chingon_04,TokyoTournament TKChopperClub,TokyoTournament TKChopperClub
+332,GENERIC,vp_d_sportconcept_05,TokyoTournament TKBClass1,TokyoTournament TKBClass1
+333,Movie,Cuevito,H Chopper_1_part_1,Phil (Chopper_1_part_1) beaten
+334,Movie,GroupBCarsUnlocked,CO_MIN 50,CO_MIN 50
+335,VISUAL,b 2,C SD,C SD
+336,PERF,b 1,CO_MIN 80,CO_MIN 80
+337,PERF,b 2,CO_MIN 115,CO_MIN 115
+338,PERF,b 3,CO_MIN 140,CO_MIN 140
+339,GENERIC,Visual_B_2,CO_MIN 1,CO_MIN 1
+340,GENERIC,Performance_B_1,CO_MIN 80,CO_MIN 80
+341,GENERIC,Performance_B_2,CO_MIN 115,CO_MIN 115
+342,GENERIC,Performance_B_3,CO_MIN 140,CO_MIN 140
+343,VP,vp_gto_70,CO_MIN 105,CO_MIN 105
+344,VP,vp_z28_69,CO_MIN 105,CO_MIN 105
+345,VP,vp_z28_81,CO_MIN 105,CO_MIN 105
+346,VP,vp_corvette_68,SQ muscle 15,SQ muscle 15
+347,GENERIC,vp_corvette_68,SQ muscle 15,SQ muscle 15
+348,VP,vp_charger_99,CO_MIN 105,CO_MIN 105
+349,VP,vp_silverado_ss_04,CO_MIN 105,CO_MIN 105
+350,VP,vp_ram_04,CO_MIN 105,CO_MIN 105
+351,VP,vp_delegance_03,CO_MIN 105,CO_MIN 105
+352,VP,vp_Skully_01,SQ chopper 15,SQ chopper 15
+353,GENERIC,vp_Skully_01,SQ chopper 15,SQ chopper 15
+354,VP,vp_wcc_eldiablo_r_03,CO_MIN 105,CO_MIN 105
+355,VP,vp_ducati_ss1000_04,Tournament AtlDubTwo,Tournament AtlDubTwo
+356,VP,vp_monster_sr4_04,CO_MIN 105,CO_MIN 105
+357,VP,vp_sl500_04,CO_MIN 105,CO_MIN 105
+358,VP,vp_sl55_amg_04,Tournament SDDub,Tournament SDDub
+359,VP,vp_cad16_04,CPC_MIN 100,CPC_MIN 100
+360,GENERIC,vp_cad16_04,CPC_MIN 100,CPC_MIN 100
+361,VP,vp_corvettez06_03,CO_MIN 105,CO_MIN 105
+362,VP,vp_esprit_04,CO_MIN 105,CO_MIN 105
+363,VP,vp_viper_03,CO_MIN 105,CO_MIN 105
+364,VP,vp_saleen_sr_00,CO_MIN 105,CO_MIN 105
+365,VP,vp_d_cls55_05,CO_MIN 105,CO_MIN 105
+366,VP,vp_d_corvette_63,CO_MIN 105,CO_MIN 105
+367,VP,vp_d_gt750_04,CO_MIN 105,CO_MIN 105
+368,VP,vp_d_lux_05,CO_MIN 105,CO_MIN 105
+369,VP,vp_d_duc_smart_05,TokyoTournament TKSportsBikeClub,TokyoTournament TKSportsBikeClub
+370,VP,vp_d_charger_06,TokyoTournament TKCClass1,TokyoTournament TKCClass1
+371,GENERIC,Vehicle_Group_C,CO_MIN 105,CO_MIN 105
+372,GENERIC,vp_sl55_amg_04,Tournament SDDub,Tournament SDDub
+373,GENERIC,vp_ducati_ss1000_04,Tournament AtlDubTwo,Tournament AtlDubTwo
+374,GENERIC,vp_d_duc_smart_05,TokyoTournament TKSportsBikeClub,TokyoTournament TKSportsBikeClub
+375,GENERIC,vp_d_charger_06,TokyoTournament TKCClass1,TokyoTournament TKCClass1
+376,Movie,GroupCCarsUnlocked,CO_MIN 105,CO_MIN 105
+377,Movie,100PercentCareer,CPC_MIN 100,CPC_MIN 100
+378,VAI,vp_cad16_04,CO_MIN 240,CO_MIN 240
+379,VISUAL,c 2,C SD,C SD
+380,PERF,c 1,CO_MIN 135,CO_MIN 135
+381,PERF,c 2,CO_MIN 165,CO_MIN 165
+382,PERF,c 3,CO_MIN 180,CO_MIN 180
+383,GENERIC,Visual_C_2,CO_MIN 1,CO_MIN 1
+384,GENERIC,Performance_C_1,CO_MIN 135,CO_MIN 135
+385,GENERIC,Performance_C_2,CO_MIN 165,CO_MIN 165
+386,GENERIC,Performance_C_3,CO_MIN 180,CO_MIN 180
+387,VP,vp_ninja_03,SQ sportbike 14,SQ sportbike 14
+388,GENERIC,vp_ninja_03,SQ sportbike 14,SQ sportbike 14
+389,VP,vp_aprilia_mille_04,CO_MIN 175,CO_MIN 175
+390,VP,vp_ducati_999r_04,CO_MIN 175,CO_MIN 175
+391,VP,vp_cien_02,Tournament DetAutoX,Tournament DetAutoX
+392,GENERIC,vp_cien_02,Tournament DetAutoX,Tournament DetAutoX
+393,VP,vp_gemballa_04,CO_MIN 175,CO_MIN 175
+394,VP,vp_me412_04,SQ performance 16,SQ performance 16
+395,GENERIC,vp_me412_04,SQ performance 16,SQ performance 16
+396,VP,vp_gallardo_04,CO_MIN 175,CO_MIN 175
+397,VP,vp_mclaren_f1_95,CO_MIN 175,CO_MIN 175
+398,VP,vp_murcielago_04,H WorldChamp_1_part_1; H WorldChamp_1_part_2; H WorldChamp_1_part_3; H WorldChamp_1_part_4; H WorldChamp_1_part_5; H WorldChamp_1_part_6; H WorldChamp_1_part_7,Vanessa (championship) (WorldChamp_1_part_1) beaten; Spider (championship) (WorldChamp_1_part_2) beaten; Lamont (championship) (WorldChamp_1_part_3) beaten; Angel (championship) (WorldChamp_1_part_4) beaten; Roy (championship) (WorldChamp_1_part_5) beaten; Kioshi (championship) (WorldChamp_1_part_6) beaten; Ceasar (championship) (WorldChamp_1_part_7) beaten
+399,GENERIC,vp_murcielago_04,H WorldChamp_1_part_1; H WorldChamp_1_part_2; H WorldChamp_1_part_3; H WorldChamp_1_part_4; H WorldChamp_1_part_5; H WorldChamp_1_part_6; H WorldChamp_1_part_7,Vanessa (championship) (WorldChamp_1_part_1) beaten; Spider (championship) (WorldChamp_1_part_2) beaten; Lamont (championship) (WorldChamp_1_part_3) beaten; Angel (championship) (WorldChamp_1_part_4) beaten; Roy (championship) (WorldChamp_1_part_5) beaten; Kioshi (championship) (WorldChamp_1_part_6) beaten; Ceasar (championship) (WorldChamp_1_part_7) beaten
+400,VP,vp_saleens7_04,CO_MIN 175,CO_MIN 175
+401,VP,vp_clk_gtr_03,CO_MIN 175,CO_MIN 175
+402,VP,vp_slr_mclaren_04,CO_MIN 175,CO_MIN 175
+403,VP,vp_d_diablo_98,CO_MIN 175,CO_MIN 175
+404,VP,vp_d_f355_98,TokyoTournament TKExoticClub,TokyoTournament TKExoticClub
+405,VP,vp_d_zonda_04,TokyoTournament TKDClass1,TokyoTournament TKDClass1
+406,GENERIC,vp_d_f355_98,TokyoTournament TKExoticClub,TokyoTournament TKExoticClub
+407,GENERIC,vp_d_zonda_04,TokyoTournament TKDClass1,TokyoTournament TKDClass1
+408,GENERIC,Vehicle_Group_D,CO_MIN 175,CO_MIN 175
+409,Movie,GroupDCarsUnlocked,CO_MIN 175,CO_MIN 175
+410,VISUAL,d 2,C SD,C SD
+411,PERF,d 1,CO_MIN 185,CO_MIN 185
+412,PERF,d 2,CO_MIN 198,CO_MIN 198
+413,PERF,d 3,CO_MIN 240,CO_MIN 240
+414,GENERIC,Visual_D_2,CO_MIN 1,CO_MIN 1
+415,GENERIC,Performance_D_1,CO_MIN 185,CO_MIN 185
+416,GENERIC,Performance_D_2,CO_MIN 198,CO_MIN 198
+417,GENERIC,Performance_D_3,CO_MIN 240,CO_MIN 240
+418,VP,vp_kwz_cop_98,SQ chopper 15; SQ sportbike 14,SQ chopper 15; SQ sportbike 14
+419,VP,vp_impalass_cop_s_96,C Atlanta,C Atlanta
+420,VP,vp_impalass_cop_a_96,C Detroit,C Detroit
+421,VP,vp_impalass_cop_d_96,H WorldChamp_1_part_1 0,Vanessa (championship) (WorldChamp_1_part_1) unlocked
+422,VP,vp_d_tokyo_cop_01,TCPC_MIN 100,TCPC_MIN 100
+423,GENERIC,Cop_Bike_reward,SQ chopper 15; SQ sportbike 14,SQ chopper 15; SQ sportbike 14
+424,GENERIC,Cop_SD_reward,C Atlanta,C Atlanta
+425,GENERIC,Cop_ATL_reward,C Detroit,C Detroit
+426,GENERIC,Cop_DT_reward,H WorldChamp_1_part_1 0,Vanessa (championship) (WorldChamp_1_part_1) unlocked
+427,GENERIC,Cop_Tokyo_reward,TCPC_MIN 100,TCPC_MIN 100
+428,VAI,vp_kwz_cop_98,CO_MIN 240,CO_MIN 240
+429,VAI,vp_impalass_cop_s_96,CO_MIN 240,CO_MIN 240
+430,VAI,vp_impalass_cop_a_96,CO_MIN 240,CO_MIN 240
+431,VAI,vp_impalass_cop_d_96,CO_MIN 240,CO_MIN 240
+432,VAI,vp_d_tokyo_cop_01,CO_MIN 240,CO_MIN 240
+433,GENERIC,Pearlescent_reward,H Culture_1_part_2,Vanessa (Culture_1_part_2) beaten
+434,GENERIC,ColorShift_reward,H Muscle_2_part_1,Roy (Muscle_2_part_1) beaten
+435,GENERIC,Rips_Vinyls,CO_MIN 1,CO_MIN 1
+436,GENERIC,Stripes_Vinyls,CO_MIN 1,CO_MIN 1
+437,GENERIC,Modern_Vinyls,CO_MIN 1,CO_MIN 1
+438,GENERIC,Flames_Vinyls,H Muscle_1_part_1,Carlos (Muscle_1_part_1) beaten
+439,GENERIC,Flames_Vinyls,H Luxury_1_part_1,Bishop (Luxury_1_part_1) beaten
+440,GENERIC,Tribal_Vinyls,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+441,GENERIC,Wild_Vinyls,H Culture_2_part_1,Cheng (Culture_2_part_1) beaten
+442,GENERIC,Graphixs_Vinyls,H Muscle_2_part_2,Roy (Muscle_2_part_2) beaten
+443,GENERIC,Splash_Vinyls,H Muscle_1_part_2,Leo (Muscle_1_part_2) beaten
+444,GENERIC,Flags_Vinyls,LOGO 12,LOGO 12
+445,GENERIC,VinylManufacturer_Vinyls,H Culture_1_part_1,Vanessa (Culture_1_part_1) beaten
+446,GENERIC,Sportbike_Vinyls0,H Sportbike_2_part_1,Kioshi (Sportbike_2_part_1) beaten
+447,GENERIC,Rims0,CO_MIN 1,CO_MIN 1
+448,GENERIC,Rims1,H Culture_1_part_1,Vanessa (Culture_1_part_1) beaten
+449,GENERIC,Rims2,H Luxury_1_part_1,Bishop (Luxury_1_part_1) beaten
+450,GENERIC,Rims2,H Muscle_1_part_1,Carlos (Muscle_1_part_1) beaten
+451,GENERIC,Rims3,H SUV_1_part_1,Dre (SUV_1_part_1) beaten
+452,GENERIC,Rims3,H SUV_2_part_1,Lamont (SUV_2_part_1) beaten
+453,GENERIC,Rims4,H Muscle_2_part_2,Roy (Muscle_2_part_2) beaten
+454,GENERIC,Rims5,H Muscle_2_part_3,Roy (Muscle_2_part_3) beaten
+455,GENERIC,Rims6,H HighEnd_1_part_1,Ceasar (HighEnd_1_part_1) beaten
+456,GENERIC,Rims7,H HighEnd_2_part_1,Angel (HighEnd_2_part_1) beaten
+457,GENERIC,Rims8,H HighEnd_1_part_2,Ceasar (HighEnd_1_part_2) beaten
+458,GENERIC,ChopperRims0,CO_MIN 1,CO_MIN 1
+459,GENERIC,ChopperRims1,H Chopper_2_part_1,Naomi (Chopper_2_part_1) beaten
+460,GENERIC,ChopperRims2,H Chopper_3_part_1,Spider (Chopper_3_part_1) beaten
+461,GENERIC,SportBikeRims0,CO_MIN 1,CO_MIN 1
+462,GENERIC,SportBikeRims1,H Sportbike_1_part_1,Vito (Sportbike_1_part_1) beaten
+463,GENERIC,Rider_CJ,CO_MIN 1,CO_MIN 1
+464,GENERIC,Rider_Gomez,CO_MIN 1,CO_MIN 1
+465,GENERIC,Rider_Enzo,H Chopper_3_part_1,Spider (Chopper_3_part_1) beaten
+466,GENERIC,Rider_Kioshi,H Sportbike_2_part_1,Kioshi (Sportbike_2_part_1) beaten
+467,GENERIC,Rider_Lil,H Chopper_2_part_1,Naomi (Chopper_2_part_1) beaten
+468,GENERIC,Rider_Malik,CO_MIN 1,CO_MIN 1
+469,GENERIC,Rider_Ron,CO_MIN 1,CO_MIN 1
+470,GENERIC,Rider_Vito,H Sportbike_1_part_1,Vito (Sportbike_1_part_1) beaten
+471,GENERIC,Rider_Mike,CO_MIN 1,CO_MIN 1
+472,GENERIC,Rider_Mary,CO_MIN 1,CO_MIN 1
+473,GENERIC,Rider_Cop,LOGO 36,LOGO 36
+474,GENERIC,Rider_Starter,LOGO 36,LOGO 36
+475,GENERIC,RockstarPlates,LOGO 24,LOGO 24
+476,GENERIC,Rider_Skins1,SQ chopper 1,SQ chopper 1
+477,GENERIC,Rider_Skins1,SQ sportbike 1,SQ sportbike 1
+478,GENERIC,Rider_Skins2,SQ chopper 8,SQ chopper 8
+479,GENERIC,Rider_Skins2,SQ sportbike 8,SQ sportbike 8
+480,GENERIC,Chopper_Vinyls0,SQ chopper 12,SQ chopper 12
+481,GENERIC,Luxury_Sedanexhaust,SQ luxury 1,SQ luxury 1
+482,GENERIC,Luxury_Sedanfrontbumper,SQ luxury 5,SQ luxury 5
+483,GENERIC,Luxury_Sedanskirt,SQ luxury 7,SQ luxury 7
+484,GENERIC,Luxury_Sedanrearbumper,SQ luxury 9,SQ luxury 9
+485,GENERIC,Luxury_Sedanspoiler,SQ luxury 11,SQ luxury 11
+486,GENERIC,SUV_Truckexhaust,SQ suv 1,SQ suv 1
+487,GENERIC,SUV_Trucktaillight,SQ suv 2,SQ suv 2
+488,GENERIC,SUV_Truckfrontbumper,SQ suv 5,SQ suv 5
+489,GENERIC,SUV_Truckskirt,SQ suv 6,SQ suv 6
+490,GENERIC,SUV_Truckrearbumper,SQ suv 7,SQ suv 7
+491,GENERIC,SUV_Truckhood,SQ suv 10,SQ suv 10
+492,GENERIC,SUV_Truckspoiler,SQ suv 11,SQ suv 11
+493,GENERIC,SUV_Truckfrontgrill,SQ suv 12,SQ suv 12
+494,GENERIC,Cultureexhaust,SQ culture 1,SQ culture 1
+495,GENERIC,Culturetaillight,SQ culture 2,SQ culture 2
+496,GENERIC,Culturefrontbumper,SQ culture 6,SQ culture 6
+497,GENERIC,Cultureskirt,SQ culture 7,SQ culture 7
+498,GENERIC,Culturerearbumper,SQ culture 8,SQ culture 8
+499,GENERIC,Culturehood,SQ culture 9,SQ culture 9
+500,GENERIC,Culturespoiler,SQ culture 10,SQ culture 10
+501,GENERIC,Classic_Muscleexhaust,SQ muscle 1,SQ muscle 1
+502,GENERIC,Classic_Musclespoiler,SQ muscle 5,SQ muscle 5
+503,GENERIC,Classic_Musclefrontbumper,SQ muscle 7,SQ muscle 7
+504,GENERIC,Classic_Muscleskirt,SQ muscle 9,SQ muscle 9
+505,GENERIC,Classic_Musclerearbumper,SQ muscle 11,SQ muscle 11
+506,GENERIC,Classic_Musclehood,SQ muscle 13,SQ muscle 13

@@ -1,0 +1,27 @@
+Rival id,Rival,City,Vehicle,Races,Forced races (index race)
+Culture_1_part_1,Vanessa,sd,vp_eclipse_04,3,0 ordered/hard/sd_ordered_hard_curbdogs_race02
+Culture_1_part_2,Vanessa,sd,vp_eclipse_04,3,0 ordered/med/sd_ordered_med_gaslamp_race01
+Luxury_1_part_1,Bishop,sd,vp_gs430_04,3,0 circuit/easy/sd_circuit_easy_trolley_race02
+Muscle_1_part_1,Carlos,sd,vp_montecarlo_78,3,0 ordered/easy/sd_ordered_easy_freeway_race01
+Chopper_1_part_1,Phil,sd,vp_cuevito_99,4,3 ordered/med/sd_ordered_med_fiftyfifty_race01
+WorldChamp_1_part_1,Vanessa (championship),sd,vp_murcielago_04,2,0 ordered/hard/sd_ordered_hard_eastside_race01; 1 ordered/med/sd_ordered_med_jumpsgalore_race02
+WorldChamp_1_part_2,Spider (championship),sd,vp_skully_01,2,0 ordered/med/sd_ordered_med_go_race03; 1 circuit/hard/sd_circuit_hard_cityloop_race05
+SUV_1_part_1,Dre,atlanta,vp_escalade_03,3,0 ordered/easy/atl_ordered_easy_streetrace_race01
+Muscle_2_part_1,Roy,atlanta,vp_charger_69,4,0 ordered/med/atl_ordered_med_oldskool_race02
+SportBike_1_part_1,Vito,atlanta,vp_monster_sr4_04,3,0 ordered/med/atl_ordered_med_haul_race01
+Culture_2_part_1,Cheng,atlanta,vp_lancer_04,3 (written numRace),
+Chopper_2_part_1,Naomi,atlanta,vp_skully_01,3,
+SUV_2_part_1,Lamont,atlanta,vp_silverado_ss_04,3,
+Muscle_2_part_2,Roy,atlanta,vp_charger_99,3,
+WorldChamp_1_part_3,Lamont (championship),atlanta,vp_clk_gtr_03,2,0 ordered/med/atl_ordered_med_theflop_race01; 1 ordered/easy/atl_ordered_easy_peaches_race03
+WorldChamp_1_part_4,Angel (championship),atlanta,vp_cien_02,2,0 circuit/hard/atl_circuit_hard_downtown_race01; 1 ordered/hard/atl_ordered_hard_throughthecity_race01
+Muscle_1_part_2,Leo,detroit,vp_z28_81,3,
+Chopper_3_part_1,Spider,detroit,vp_delegance_03,3,0 circuit/easy/dt_circuit_easy_railcircuit_race01
+Muscle_2_part_3,Roy,detroit,vp_viper_03,3,0 ordered/hard/dt_ordered_hard_mrplow_race01
+HighEnd_1_part_1,Ceasar,detroit,vp_slr_mclaren_04,3,0 ordered/med/dt_ordered_med_cityrace_race02
+HighEnd_1_part_2,Ceasar,detroit,vp_gallardo_04,3,
+HighEnd_2_part_1,Angel,detroit,vp_saleens7_04,3,
+SportBike_2_part_1,Kioshi,detroit,vp_aprilia_mille_04,3,0 drag/med/dt_drag_med_trainjump_race02
+WorldChamp_1_part_5,Roy (championship),detroit,vp_mclaren_f1_95,2,0 ordered/hard/dt_ordered_hard_starman_race01; 1 ordered/hard/dt_ordered_hard_tls_race01
+WorldChamp_1_part_6,Kioshi (championship),detroit,vp_ninja_03,2,0 ordered/med/dt_ordered_med_open_race01; 1 circuit/hard/dt_circuit_hard_allin_race01
+WorldChamp_1_part_7,Ceasar (championship),detroit,vp_me412_04,2,0 ordered/hard/dt_ordered_hard_champ_race01; 1 ordered/hard/dt_ordered_hard_ballzout_Race0

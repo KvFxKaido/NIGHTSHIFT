@@ -29,8 +29,9 @@ NIGHTSHIFT design: GDD §5 is where decisions live.
   official bars carry no numbers, and none were digitized.
 - Money is in-game dollars. Prize share of a roster is coverage, not how often
   rewards arrive, and MCLA reward row order is not chronology.
-- All sources are fan wikis, FAQs and one official guide sample. Nothing was
-  checked on an emulator or console. Conflicts are kept, not resolved:
+- All workbook sources are fan wikis, FAQs and one official guide sample.
+  Nothing in it was checked on an emulator or console; `gamedata/` is the game's
+  own files. Conflicts are kept, not resolved:
   `mcla-conflicts.csv`, and the D rows in `mc3-unlocks.csv`.
 
 ## Files
@@ -50,6 +51,12 @@ NIGHTSHIFT design: GDD §5 is where decisions live.
 | `mcla-rep-payouts.csv` | class, subrank, difficulty (80) | estimated REP for a first-place finish |
 | `mcla-design-notes.csv` | pattern (10) | MCLA patterns phrased as NIGHTSHIFT experiments |
 | `mcla-sources.csv`, `mcla-conflicts.csv` | source, conflict | provenance and the disagreements behind a value |
+
+`gamedata/` is not from the workbook: it is the games' own files, read off the
+discs and graded A. `mc3_gamedata.py` (with `dave.py`) reads MC3 REMIX's tuning,
+`mcla_gamedata.py` (with `rpf3.py`) MCLA's career. Its README says what each table
+holds and which workbook rows it confirms, corrects or leaves open. `export.py`
+never touches it.
 
 The workbook computes some `mc3-vehicles.csv` columns; the csv holds its
 results. **Stock / Max Composite** is the unweighted mean of the three bars,
