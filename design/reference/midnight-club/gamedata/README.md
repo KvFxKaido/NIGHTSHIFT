@@ -32,7 +32,7 @@ opens the .iso):
 | `mc3-gd-prizes.csv` | reward item (138) | `IndividualRewards` in the same file: prize cars' cash value and config |
 | `mc3-gd-rubber-banding.csv` | rubber-band field (120) | `definitions.rubberbanding`, four flows by career order |
 | `mc3-gd-races-available.csv` | city band (32) | `RacesAvailable` in `tune/progress/<city>.progress` |
-| `mc3-gd-parameters.csv` | tuning value (235) | the small key/value files: knowledge base, flow, dynamic difficulty, side quests, filler races, race setup, time of day, mediators |
+| `mc3-gd-parameters.csv` | tuning value (235) | the small key/value files: knowledge base, rewards, flow, dynamic difficulty, side quests, filler races, race setup, time of day, vehicle setup, race select, mediators |
 
 ## Reading the unlock rules
 
@@ -109,7 +109,9 @@ changing them when the workbook is next revised and exported.
 - **The career paces itself.** `flow.progress` aims at 12 races in a career-order
   window, keeps up to 10 races delayed, and sets a rivals-done target per city:
   0.85 for San Diego and Atlanta, 1.0 for Detroit. `races-available` sets how many races
-  are on the map at once, 5 to 8 by career order.
+  are on the map at once by career order: none in San Diego at CO 1 and 2 (*inference*:
+  the career's first two races are placed for you), 4 in Detroit from CO 129 to
+  159, and 5 to 8 otherwise.
 
 <a id="mcla"></a>
 # MCLA
@@ -134,7 +136,7 @@ they expect; nothing needs CodeX's name list.
 | `mcla-gd-rubber-banding.csv` | field per tuning (231) | `tune/career/rubberbandtune00.xml` to `10.xml` |
 
 Conditions and rewards in the missions table are written `Type(field=value)`
-with the files' Hungarian prefixes (`sz`, `n`, `b`) taken off.
+with the files' Hungarian prefixes (`sz`, `n`, `b`, `f`, before a capital) taken off.
 
 ## Two experience systems, one cap
 

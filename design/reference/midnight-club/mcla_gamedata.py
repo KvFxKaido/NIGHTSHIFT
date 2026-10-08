@@ -4,12 +4,14 @@
 
 The disc is the Complete Edition (360) image of your own copy; the key file
 holds the RPF3 key (rpf3.py says where it comes from; it is checked against a
-SHA-1 and never stored here). Everything is read from tune/career in the
+SHA-1 and never stored here). Needs the cryptography package. Everything is read from tune/career in the
 archive; nothing is extracted. Writes only mcla-gd-*.csv; the MC3 tables are
 mc3_gamedata.py's.
 """
 
+import re
 import sys
+from decimal import Decimal
 import xml.etree.ElementTree as ET
 
 from mc3_gamedata import parse, values, write
@@ -22,12 +24,18 @@ RUBBER_BANDING = [f"tune/career/rubberbandtune{n:02d}.xml" for n in range(11)]
 SKIPPED_FIELDS = {"szDescriptionId", "szEventId"}
 
 
+def exact(amount):
+    """The product as written, never rounded: 0.015 of 33500 is 502.5."""
+    text = f"{amount:f}"
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
 def experience(archive):
     rows = []
     for career, path in EXPERIENCE:
         for system in parse(archive.read(archive.find(path)).decode("cp1252")):
             header = values(system["children"])
-            top = float(header["MaxAmount"])
+            top = Decimal(header["MaxAmount"])
             for threshold in system["children"]:
                 if threshold["key"] != "Threshold":
                     continue
@@ -38,7 +46,7 @@ def experience(archive):
                     kind = reward.pop("Type", "")
                     detail = ", ".join(f"{k} {v}" for k, v in reward.items() if k not in ("Hidden", "GiveImmediately"))
                     rows.append([career, header["Type"], header["MaxAmount"], header["IncrementValue"], fields["Id"],
-                                 percent, round(float(percent) * top), kind, detail])
+                                 percent, exact(Decimal(percent) * top), kind, detail])
     write("mcla-gd-experience",
           ["Career", "System", "Max amount", "Increment", "Threshold", "Percent", "Amount (percent x max)",
            "Reward type", "Reward"], rows)
@@ -71,7 +79,7 @@ def leaves(item):
         if len(child) or child.tag in SKIPPED_FIELDS:
             continue
         value = child.get("value", child.text or "")
-        fields.append(f"{child.tag.lstrip('szbnf') or child.tag}={value}")
+        fields.append(f"{re.sub(r'^(sz|n|b|f)(?=[A-Z])', '', child.tag)}={value}")
     return f"{kind}({', '.join(fields)})"
 
 

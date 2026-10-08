@@ -7,7 +7,8 @@ this repository. mcla_gamedata.py uses it to derive the tables in gamedata/.
 
 The archive's table of contents is AES-256 encrypted with a key the game
 carries in its executable. The key is not here, only its SHA-1 (KEY_SHA1): pass
-a file holding the 32 bytes, raw or as hex. CodeX.Games.MCLA publishes it
+a file holding the 32 bytes, raw or as hex. Needs the cryptography package
+(pip install cryptography). CodeX.Games.MCLA publishes it
 (RPF3/Rpf3Crypto.cs); it can also be read out of the decrypted default.xex.
 
 Format (MCLA Complete Edition, USA disc, 2026-10-07; the layout follows
@@ -49,8 +50,9 @@ def joaat(name):
 
 def read_key(path):
     with open(path, "rb") as f:
-        raw = f.read().strip()
-    key = raw if len(raw) == 32 else bytes.fromhex(raw.decode("ascii"))
+        raw = f.read()
+    # Only the hex form is stripped: a raw key may begin or end with a whitespace byte.
+    key = raw if len(raw) == 32 else bytes.fromhex(raw.decode("ascii").strip())
     if hashlib.sha1(key).hexdigest() != KEY_SHA1:
         raise ValueError(f"{path}: not the MCLA RPF3 key (SHA-1 mismatch)")
     return key

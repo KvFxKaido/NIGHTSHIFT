@@ -1,8 +1,8 @@
 Career,System,Max amount,Increment,Threshold,Percent,Amount (percent x max),Reward type,Reward
-base,Progression,33500,100,Progression_0,0.015,502,Script,ScriptName game\Career\RaceDifficultyTip
+base,Progression,33500,100,Progression_0,0.015,502.5,Script,ScriptName game\Career\RaceDifficultyTip
 base,Progression,33500,100,Progression_1,0.02,670,Script,ScriptName game\Career\OpponentDifficultyTip
-base,Progression,33500,100,Progression_2,0.035,1172,Script,ScriptName game\Career\ProgressionTip_01
-base,Progression,33500,100,Progression_3,0.045,1508,Script,ScriptName game\Career\MeetMeThereTip
+base,Progression,33500,100,Progression_2,0.035,1172.5,Script,ScriptName game\Career\ProgressionTip_01
+base,Progression,33500,100,Progression_3,0.045,1507.5,Script,ScriptName game\Career\MeetMeThereTip
 base,Progression,33500,100,Progression_4,0.05,1675,Mission,"MissionId BESTOF_GH_04, TransitionState READY_TO_START"
 base,Progression,33500,100,Progression_5,0.06,2010,Mission,"MissionId TUNER_REP, TransitionState READY_TO_START"
 base,Progression,33500,100,Progression_5,0.06,2010,Mission,"MissionId MUSCLE_REP, TransitionState READY_TO_START"
@@ -142,8 +142,8 @@ base,Exotic,45,1,Exotic_3,0.8,36,PartUnlock,Name Hood
 base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name Exhaust
 base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name Intercooler
 base,Exotic,45,1,Exotic_4,1.0,45,PartUnlock,Name WideBody
-base,SportBike,36,1,SportBike_0,0.4,14,PartUnlock,Name BikeTail
-base,SportBike,36,1,SportBike_1,0.6,22,PartUnlock,Name BikeTank
+base,SportBike,36,1,SportBike_0,0.4,14.4,PartUnlock,Name BikeTail
+base,SportBike,36,1,SportBike_1,0.6,21.6,PartUnlock,Name BikeTank
 base,SportBike,36,1,SportBike_2,1.0,36,PartUnlock,Name BikeCowl
 south central,Progression,33500,100,Progression_37,0.12,4020,Mission,"MissionId GARAGE_SC, TransitionState CHECKING_PREREQUISITES"
 south central,Progression,33500,100,Progression_38,0.18,6030,Mission,"MissionId BESTOF_GH_31, TransitionState CHECKING_PREREQUISITES"

@@ -97,6 +97,8 @@ def main(args):
         for path in archive.entries:
             if path.startswith(prefix):
                 target = out.joinpath(*path.split("/"))
+                if not target.resolve().is_relative_to(out.resolve()):
+                    raise ValueError(f"{path}: outside {out}")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(archive.read(path))
                 count += 1
