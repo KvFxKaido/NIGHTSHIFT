@@ -10,22 +10,33 @@ import { slowdownTracker } from "./rival-slowdowns.ts";
 
 await RAPIER.init();
 const withLine = process.argv.includes("--line"), trace = process.argv.includes("--trace"), census = process.argv.includes("--census");
+// --physics-contacts: contact as Rapier reports it (a manifold with an impulse), beside the box test below, which is a
+// second late to a hit on a stopped car and has read nothing through a 30,000 N s hit in a committed pass
+// (design/RACEABILITY_EXPERIMENT.md, gen-77). Read after the step and changes nothing: every other field of a row is
+// the same with and without it. The gate (rival-gate.ts) always asks for it.
+const physicsContacts = process.argv.includes("--physics-contacts");
 const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9);
 // The driver's knobs (SLIP, FOLLOW, FRAME) and the line's (PLAN, REACH, BEND, BENDTANGENT, WORTH): batch-race.ts.
 applyDriverKnobs();
 if (output) writeFileSync(output, "");
 const ids = process.argv.includes("--all") ? ["street-uptown", ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`)]
   : process.argv.slice(2).filter(a => !a.startsWith("--"));
-if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --census for slowdowns, --output=path.jsonl to save rows.");
+if (!ids.length) throw new Error("Pass race ids or --all; add --line for corner lines and planned passes, --legacy-pass for v29 passing, --trace for events, --census for slowdowns, --physics-contacts for Rapier's own contacts, --car=<id> for another rival car, --output=path.jsonl to save rows.");
 for (const id of ids) {
   // TRAFFIC_SEED=n runs every race against another traffic (createTraffic): the rival alone across traffic layouts.
-  const scenario = batchRace(id, { line: withLine, seed: Number(process.env.TRAFFIC_SEED ?? 0) });
+  const scenario = batchRace(id, { line: withLine, seed: Number(process.env.TRAFFIC_SEED ?? 0), car: process.argv.find(a => a.startsWith("--car="))?.slice(6) });
   if (!scenario) continue;
   const rival = scenario.options.rival!;
   if (process.argv.includes("--legacy-pass")) (rival as { trafficPassing?: boolean }).trafficPassing = false;
   const sim = openScenario(scenario);
   let aborts = 0, wasGo = false, contactOnLine = 0; let contact = 0, off = 0, stray = 0, onLine = 0, racing = 0, jumps = 0, lastAlong = 0, goCorners = 0, lastCorner = -1, wentGo = false, corners = 0;
   const events: string[] = [];
+  // Ticks with an impulse on the rival's body from anything; from traffic; from traffic in a committed pass; on a line.
+  let impulseTicks = 0, impulseTraffic = 0, impulsePass = 0, impulseOnLine = 0;
+  // An onset: the first impulse from a body after 30 ticks without one. `other` is the traffic vehicle's id, null for
+  // anything that is not traffic (a wall); `speed` is after the step, so after the hit, never the closing speed.
+  const physicalEvents: { tick: number; along: number; speed: number; other: number | null; impulse: number; pass: boolean; line: boolean }[] = [];
+  const lastImpulse = new Map<number, number>();
   let passTicks = 0, passes = 0, passContact = 0, lastPass = -1;
   // How far it runs from where it means to be, at speed, in its lane or on a line: not in a pass, whose path is its
   // own, and not within 4 s of touching anything, which throws it further than it ever drives.
@@ -38,6 +49,24 @@ for (const id of ids) {
       slowdowns?.tick(sim);
       const r = sim.state.rival!, car = r.vehicle, d = r.driver;
       if (r.race.countdown > 0) continue;
+      if (physicsContacts) {
+        const collider = sim.rivalBody!.collider(0), inPass = !!d.trafficPass, onLine = (d.lineBlend ?? 0) > 0.05;
+        let hit = false, hitTraffic = false;
+        sim.world.contactPairsWith(collider, other => sim.world.contactPair(collider, other, manifold => {
+          let impulse = 0;
+          for (let i = 0; i < manifold.numContacts(); i++) impulse += manifold.contactImpulse(i);
+          if (impulse <= 0) return;
+          hit = true;
+          const index = sim.trafficBodies.findIndex(body => body.collider(0).handle === other.handle);
+          if (index >= 0) hitTraffic = true;
+          if (r.race.ticks - (lastImpulse.get(other.handle) ?? -Infinity) > 30)
+            physicalEvents.push({ tick: r.race.ticks, along: d.along, speed: car.speed,
+              other: index < 0 ? null : sim.state.traffic!.vehicles[index]!.id, impulse, pass: inPass, line: onLine });
+          lastImpulse.set(other.handle, r.race.ticks);
+        }));
+        if (hit) impulseTicks++;
+        if (hitTraffic) { impulseTraffic++; if (inPass) impulsePass++; if (onLine) impulseOnLine++; }
+      }
       racing++;
       if (d.trafficPass) { passTicks++; if (d.trafficPass.from !== lastPass) { passes++; lastPass = d.trafficPass.from; if (trace) events.push(`pass t=${(r.race.ticks / TICK_HZ).toFixed(1)} target=${d.trafficPass.target} from=${d.trafficPass.from.toFixed(0)} to=${d.trafficPass.to.toFixed(0)} offset=${d.trafficPass.offset.toFixed(1)}`); } }
       const fx = -Math.sin(car.heading), fz = -Math.cos(car.heading);
@@ -69,7 +98,7 @@ for (const id of ids) {
     }
     const r = sim.state.rival!;
     const result = JSON.stringify({ id, line: withLine, seconds: r.race.finished ? +(r.race.ticks / TICK_HZ).toFixed(2) : null, contact, resets: r.driver.resets, unseen: r.driver.unseenResets,
-      passTicks, passes, passContact, reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), wide: +wide.toFixed(1), wideAt, onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}), ...(slowdowns ? { slowdowns: slowdowns.done() } : {}) });
+      passTicks, passes, passContact, reversals: r.driver.recoveries, off, stray: +stray.toFixed(1), wide: +wide.toFixed(1), wideAt, onLine: +(onLine / Math.max(1, racing)).toFixed(3), corners, goCorners, aborts, contactOnLine, jumps, ...(trace ? { events: events.filter(e => e !== "clear") } : {}), ...(slowdowns ? { slowdowns: slowdowns.done() } : {}), ...(physicsContacts ? { impulseTicks, impulseTraffic, impulsePass, impulseOnLine, physicalEvents } : {}) });
     if (output) appendFileSync(output, result + "\n"); else console.log(result);
   } finally { sim.world.free(); }
 }

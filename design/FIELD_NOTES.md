@@ -10,6 +10,82 @@ what was first assumed, and why the assumption was wrong.
 Read a section before touching the system it describes. The lessons are in the
 past tense, but the traps are still in the code.
 
+## Mapping the existing diagnostics (2026-11-09)
+
+The reference-race report (`RACEABILITY.md`) adds a map to existing census episodes
+and matched traffic/clear observations without changing the sim. Two details mattered:
+the gate's comment called its rival a Cinder but unnamed courses currently draw a
+Kestrel, and the rival route extends beyond the finish checkpoint. Explicit
+`--car=cinder` instrumentation makes the reference comparison reproducible; an
+unvisited route tail is not a failure to finish. The gate's defaults stay unchanged.
+Ordinary resets and out-of-sight resets are separate counters: gen-22 / seed 314159
+finished with zero ordinary resets but one out-of-sight reset. Both need event markers.
+
+The follow-up tick trace (`RACEABILITY_TRACES.md`) found the approximate contact
+marker late by a second: sedan #11 physically hit the stopped rival at 65.183 s,
+before the box test fired at 66.2 s. Its recovery reset fired while it was moving
+again, still short of the four-metre progress threshold. On gen-56, traffic refused
+the fast bend lines; their refusal timers expired after entry, where the late-join
+guard kept the rival on the slower lane. A lower corner plan is outside the census's
+below-plan loss metric. No driving rules were changed by the investigation.
+
+The isolated footprint-stopping experiment (`RACEABILITY_EXPERIMENT.md`) then
+removed the gen-22 contact and reset: 76.0667 to 74.05 s, identical state up to
+the 60 s fork. It passed 12 paired reference runs but was not promoted into the
+game. The exact-state cooldown audit found no fresh clearance before entry at
+either gen-56 hotspot: the shorter-timer idea would not recover a missed safe
+opportunity there. One earlier stale hold was real, but no saving was established.
+
+The full 498-pair gate then rejected promotion. Despite reducing physical contact
+ticks 3320 to 2936, it added stopped-car contact/reset failures on gen-70 and
+gen-53 / seed 314159, plus downstream truck contacts on Uptown / seed 1. All three
+reproduced independently. A swept lane forecast is not proof that the actual car
+will stop somewhere safe, especially when it is already inside the conflict
+after recovery. Higher post-physics speed is also not proof of a harder impact:
+two other flagged encounters had substantially smaller impulses. The complete
+results and case distinctions are in `RACEABILITY_EXPERIMENT.md`; production
+AI, road, reset and cooldown code stay unchanged.
+
+V2 then retained the existing hazard branch but carried the actual car's tracking
+and heading errors into its footprint and required braking room before the
+forecast conflict. A pass-planner braking assumption was too restrictive: a
+clean full gen-22 run initially hid a failed identical-state fork. The car's
+existing service-brake capability restored the fork, and reverting a broader
+hazard scan removed another timing regression. The retained version passes 28
+focused pairs: gen-53 matches current AI exactly, gen-70 has no impact/reset,
+and Cinder gen-22 finishes the original fork in 74.10 s without either. Uptown's
+additional truck encounters disappear too. It remains an experiment pending
+its own full gate; no reset/cooldown or road changes were needed.
+
+The full v2 gate completed all 996 runs and again withheld promotion. Physical
+contact ticks improved 3320 to 2903 with resets/recoveries unchanged at 17/1,
+but gen-77 / 271828 added a box-truck collision during a committed pass. Earlier
+braking changed arrival timing; the truck was now moving, the pass planner kept
+approving full speed, and emergency pass-hold braking was late. This is a separate
+downstream pass failure, not the old stopped-car case. Gen-42's 9.03 s delay,
+by contrast, came from existing crossing/no-side/oncoming rules without new
+contact. A trace-capture bug surfaced too: shallow driver copies retained a
+mutable pass object. Deep snapshots fixed that diagnostic; repeated gen-77
+replays reproduced the gate exactly. Full evidence: `RACEABILITY_EXPERIMENT.md`
+and `measurements/raceability-full-gate-v2.json` (shelved with the experiment, on the branch
+`codex/raceability-stopping-experiment`). No production AI changed.
+
+What was kept (2026-11-10, Shawn and Claude): the instruments, not the fix. The map, `--car` and the impulse contact
+reader are on `main`; both stopping revisions, their loaders and their gates' rows are shelved on the branch
+`codex/raceability-stopping-experiment`, and the pass is left alone, because the rival in traffic is not open work and
+each fix here had found the next latent failure at forty minutes a gate. The assumption that was wrong was older than
+the session: that the gate's contact counts say what touched. Read from Rapier's impulses on the same 498 unchanged
+races, 99 touch traffic where the box test says 63, and the pass, zero by the box since it shipped, has three hits
+(`COUPLINGS.md`, the gate's baseline). v2's rejection on gen-77 is, by the gate's own noise rule, a latent pass failure
+drawn out by a changed arrival time; gen-77's trace is gen-46's failure again, as far as it was read
+(`RACEABILITY_PASS_TRACE.md`, its head).
+
+On gen-56 / seed 314159 the Cinder finished 8.45 s slower than clear, but the census
+estimated only 0.37 s below its own plan. A census marker is not a complete inventory
+of pace loss: it excludes the corner plan itself. The map therefore also shows signed
+time differences in directed 50 m route bins, with no data remaining grey. Neither
+the map nor the table establishes that a road needs redesigning.
+
 ## The hills on a retired hidden class (2026-10-01)
 
 The load profile in `design/TRANSITIONS.md` put 1.8 s of a warm reload in `alderHeight`, called from the road

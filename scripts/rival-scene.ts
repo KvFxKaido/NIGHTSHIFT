@@ -1,5 +1,5 @@
 // One race of the rival gate, reproduced (2026-09-23): the batch's own set-up (street-line-batch.ts: the rival in the
-// Cinder, its route's line redrawn, the player parked at Wharf Garage) at one traffic seed, so an incident the gate
+// drawn car, its route's line redrawn, the player parked at Wharf Garage) at one traffic seed, so an incident the gate
 // lists is a scene read in seconds rather than a gate run. The sim is deterministic, so the race id and the seed are
 // the whole scene.
 //
@@ -9,6 +9,7 @@
 //   pnpm rival:scene gen-56 --seed=314159 --from=2700 --to=2800   the rival every 0.2 s between two route metres,
 //                                                             with the traffic near it (--every= seconds)
 //   pnpm rival:scene street-uptown --seed=42 --until=120      stop after that many race seconds
+//   pnpm rival:scene gen-30 --car=cinder --seed=0             the map report's explicit common car
 //
 // The batch's knobs (PLAN, REACH, BEND, BENDTANGENT, WORTH, SLIP, FRAME, FOLLOW) are read from the environment as it reads
 // them, and the race is the batch's own set-up (batch-race.ts). A contact is the batch's own test (a box against a box,
@@ -29,7 +30,7 @@ const seed = Number(arg("seed") ?? 0), until = Number(arg("until") ?? 330), ever
 const from = arg("from") === undefined ? null : Number(arg("from")), to = Number(arg("to") ?? Infinity);
 applyDriverKnobs();
 
-const scenario = batchRace(id, { seed });
+const scenario = batchRace(id, { seed, car: arg("car") });
 if (!scenario) throw new Error(`${id} draws no race`);
 const rival = scenario.options.rival!;
 const sim = openScenario(scenario);

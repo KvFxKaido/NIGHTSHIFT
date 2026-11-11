@@ -34,6 +34,8 @@
     "rival:gate": "node --experimental-strip-types --no-warnings scripts/rival-gate.ts",
     "rival:scene": "node --experimental-strip-types --no-warnings scripts/rival-scene.ts",
     "rival:census": "node --experimental-strip-types --no-warnings scripts/rival-census.ts",
+    "rival:map": "node --experimental-strip-types --no-warnings scripts/raceability-map.ts",
+    "rival:catalog": "node --experimental-strip-types --no-warnings scripts/raceability-catalog.ts",
     "alder:critique": "node --experimental-strip-types --no-warnings scripts/critique-alder.ts",
     "alder:turf": "node --experimental-strip-types --no-warnings scripts/turf-report.ts",
     "alder:cuts": "node --experimental-strip-types --no-warnings scripts/alder-cuts.ts",
