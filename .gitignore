@@ -56,3 +56,6 @@ ASSETS.DAT
 /mc inspiration/
 # Other games' screenshots collected as art direction; not ours to redistribute.
 /art style inspiration/
+
+# Assistants' probe scratch: logs, captures, throwaway scripts, half a gigabyte. Evidence worth keeping goes in design/.
+/.probe/
