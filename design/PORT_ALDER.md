@@ -3612,3 +3612,11 @@ Expansion validation: all **703 tests pass**, production build passes, and all
 18 expanded browser captures are free of console/page errors. The expanded
 editor preview and undo were checked on Alder Rooms without writing saved data.
 `git diff --check` is clean. The build retains its existing large-chunk warning.
+
+## Mapped reference diagnostics
+
+The read-only [reference-race report](RACEABILITY.md) maps current rival measurements
+and selects three existing sprints: gen-30 (high-speed), gen-22 (technical), and
+gen-56 (traffic stress). `pnpm rival:map` collects matched clear/traffic runs;
+the saved baseline can be rendered without simulation. This diagnostic work changes
+no road, handling, traffic rule or AI behaviour.

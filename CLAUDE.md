@@ -842,8 +842,10 @@ pnpm cars             # every car's measured card; before and after a tune. --la
 pnpm golden           # 14 hashed runs through every vehicle kind: --save before a change, then compare
 pnpm traffic:soak     # traffic alone for ten minutes per traffic seed: what stood over a minute. Seeds as args, --json
 pnpm rival:gate       # the rival alone in traffic, 83 races at six traffic seeds (~20 min), against its baseline; --save re-pins it
-pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick (and what held it)
+pnpm rival:scene      # one gate race at one seed: every contact dissected, or --from= --to= the rival tick by tick (and what held it); --car=<id> puts the rival in another car (the gate's unnamed courses draw a Kestrel)
 pnpm rival:census     # the gate's races: every stretch the rival is held below its own corner plan, by the rule that held it and what it cost; --rows=, --keep=, --json=
+pnpm rival:map        # reference races on a map, traffic against clear in 50 m route bins (design/RACEABILITY.md); --render --input=design/measurements/raceability-reference.json redraws the saved one without a sim; --races=, --seeds=, --output=
+pnpm rival:catalog    # the batch's 82 sprints ranked by turning per kilometre: geometry, not a pace score
 pnpm car:export       # export saved Blender car edits (see assets/cars/README.md)
 pnpm adopt:capture    # an adopted place's evidence from its shots.json: poses before/after (--before=<tree>), driven passes, moments; design/CITY_ADOPTION.md
 pnpm profile:load     # after pnpm build: cold launch and warm reload per scenario, CPU x1 and x4; --profile for where the time goes; design/TRANSITIONS.md

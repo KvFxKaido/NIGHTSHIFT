@@ -1,5 +1,5 @@
 // The rival gate's set-up, as one scenario (scenario.ts): a race id's race and its rival's route as drawn, the shipped
-// line stripped and the batch's own put on under the knobs it reads from the environment, in the Cinder, in traffic
+// line stripped and the batch's own put on under the knobs it reads from the environment, in the drawn rival's car, in traffic
 // under one seed, with the player parked where the world starts, across town. street-line-batch.ts and
 // rival-scene.ts had it twice, verbatim, and a scene must count what the gate counted, so it is one function.
 //
@@ -11,7 +11,7 @@ import { circuitEvent } from "../src/sim/circuits.ts";
 import type { RaceDefinition } from "../src/sim/race.ts";
 import { RIVAL_RACING, RIVAL_STEERING, RIVAL_STREET_LINE, RIVAL_TRAFFIC_FRAME, type RivalDefinition } from "../src/sim/rival.ts";
 import type { Scenario } from "../src/sim/scenario.ts";
-import { carHandling } from "../src/sim/sim.ts";
+import { carHandling, handlingFor } from "../src/sim/sim.ts";
 import { STREET_CIRCUIT_LINE } from "../src/sim/street-circuit.ts";
 import { withStreetLine } from "../src/sim/street-line.ts";
 
@@ -29,8 +29,9 @@ export function applyDriverKnobs(env: NodeJS.ProcessEnv = process.env): void {
  * The race the gate drives for an id: `street-uptown`, or a generated race, or null for one that draws no race.
  * With `line` the rival carries the batch's street line, drawn under the environment's knobs; without it, its bare
  * route. `seed` is the traffic it meets (createTraffic): the rival alone across traffic layouts.
+ * `car` explicitly overrides the drawn rival's car for matched reference measurements; absent preserves the gate.
  */
-export function batchRace(id: string, { line = true, seed = 0, env = process.env }: { line?: boolean; seed?: number; env?: NodeJS.ProcessEnv } = {}): Scenario | null {
+export function batchRace(id: string, { line = true, seed = 0, env = process.env, car }: { line?: boolean; seed?: number; env?: NodeJS.ProcessEnv; car?: string } = {}): Scenario | null {
   let route: RivalDefinition, race: RaceDefinition;
   if (id.startsWith("street-")) { const event = circuitEvent(id, 3)!; route = event.rival!; race = event.race; }
   else { if (!alderCourseDraws(id, null)) return null; const course = drawAlderCourse(id, null); route = { ...course.rival }; race = course.race; }
@@ -38,5 +39,6 @@ export function batchRace(id: string, { line = true, seed = 0, env = process.env
   const rival = line ? withStreetLine(bare, STREET_CIRCUIT_LINE, Number(env.PLAN ?? RIVAL_STREET_LINE.speedFactor),
     { ...(env.REACH ? { reach: Number(env.REACH) } : {}), ...(env.BEND ? { bendFrom: Number(env.BEND) } : {}),
       ...(env.BENDTANGENT ? { bendTangent: Number(env.BENDTANGENT) } : {}), ...(env.WORTH ? { worth: Number(env.WORTH) } : {}) }) : bare;
-  return { name: id, handling: carHandling("cinder", "rwd"), world: createAlderWorld(true), options: { race, rival, traffic: true, trafficSeed: seed } };
+  const measuredRival = car ? { ...rival, car, drivetrain: handlingFor({ car }).drivetrain } : rival;
+  return { name: id, handling: carHandling("cinder", "rwd"), world: createAlderWorld(true), options: { race, rival: measuredRival, traffic: true, trafficSeed: seed } };
 }
