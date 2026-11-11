@@ -1,9 +1,0 @@
-{
-  "place": "Port Alder depth study — existing baseline, staged views",
-  "viewport": [1440, 900],
-  "poses": [
-    { "id": "01-freight", "label": "BASELINE / First Ave north toward Holgate", "at": [-4, 720], "toward": [0, -1] },
-    { "id": "02-jackson", "label": "BASELINE / Jackson east from First Ave", "at": [30, -63], "toward": [1, 0] },
-    { "id": "03-yesler", "label": "BASELINE / Yesler East toward the hill", "at": [600, -34], "toward": [1, 0.036] }
-  ]
-}
