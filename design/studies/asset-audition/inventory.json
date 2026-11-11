@@ -1,0 +1,88 @@
+[
+  {
+    "name": "shop_front14",
+    "sourceBlend": "Buildings pack3.blend",
+    "vertices": 467,
+    "triangles": 750,
+    "sourceDimensionsXYZ": [
+      5.000000476837158,
+      3.9805691242218018,
+      4.248034954071045
+    ],
+    "materials": [
+      {
+        "name": "shop_front14",
+        "images": [
+          "shop_front14.png",
+          "shop_front14 - NORMAL.png"
+        ]
+      },
+      {
+        "name": "TRANSPARENT-GLASS",
+        "images": []
+      },
+      {
+        "name": "shop_front15",
+        "images": [
+          "shop_front15.png",
+          "shop_front15 - NORMAL.png"
+        ]
+      },
+      {
+        "name": "room1",
+        "images": [
+          "room1"
+        ]
+      }
+    ],
+    "glbBytes": 4979060
+  },
+  {
+    "name": "warehouse_front",
+    "sourceBlend": "Buildings pack3.blend",
+    "vertices": 310,
+    "triangles": 522,
+    "sourceDimensionsXYZ": [
+      22.491390228271484,
+      0.18507394194602966,
+      6.114980697631836
+    ],
+    "materials": [
+      {
+        "name": "warehouse_front.png",
+        "images": [
+          "warehouse_front - copia.png",
+          "warehouse_front - copia - NORMAL.png"
+        ]
+      }
+    ],
+    "glbBytes": 4391412
+  },
+  {
+    "name": "apartment_block8",
+    "sourceBlend": "Buildings pack part 2.blend",
+    "vertices": 1512,
+    "triangles": 2380,
+    "sourceDimensionsXYZ": [
+      5.0014753341674805,
+      0.6338143944740295,
+      2.499739646911621
+    ],
+    "materials": [
+      {
+        "name": "apartment_block8",
+        "images": [
+          "apartment_block8 - FIXED-UPSCALED.png",
+          "apartment_block8 - FIXED-NORMAL.png"
+        ]
+      },
+      {
+        "name": "apartment_block8_GLASS",
+        "images": [
+          "apartment_block8 - FIXED-UPSCALED.png"
+        ]
+      }
+    ],
+    "glbBytes": 3700800
+  }
+]

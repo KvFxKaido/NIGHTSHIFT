@@ -1,0 +1,101 @@
+{
+  "shop_front14": {
+    "numErrors": 0,
+    "numWarnings": 2,
+    "numInfos": 3,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+        "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
+        "severity": 1,
+        "pointer": "/meshes/0/primitives/0/material"
+      },
+      {
+        "code": "UNUSED_OBJECT",
+        "message": "This object may be unused.",
+        "severity": 2,
+        "pointer": "/meshes/0/primitives/1/attributes/TEXCOORD_0"
+      },
+      {
+        "code": "IMAGE_NPOT_DIMENSIONS",
+        "message": "Image has non-power-of-two dimensions: 1024x870.",
+        "severity": 2,
+        "pointer": "/images/0"
+      },
+      {
+        "code": "IMAGE_FEATURES_UNSUPPORTED",
+        "message": "Image contains unsupported features like non-default colorspace information, non-square pixels, or animation.",
+        "severity": 1,
+        "pointer": "/images/0"
+      },
+      {
+        "code": "IMAGE_NPOT_DIMENSIONS",
+        "message": "Image has non-power-of-two dimensions: 1024x870.",
+        "severity": 2,
+        "pointer": "/images/1"
+      }
+    ],
+    "truncated": false
+  },
+  "warehouse_front": {
+    "numErrors": 0,
+    "numWarnings": 3,
+    "numInfos": 2,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+        "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
+        "severity": 1,
+        "pointer": "/meshes/0/primitives/0/material"
+      },
+      {
+        "code": "IMAGE_NPOT_DIMENSIONS",
+        "message": "Image has non-power-of-two dimensions: 2048x580.",
+        "severity": 2,
+        "pointer": "/images/0"
+      },
+      {
+        "code": "IMAGE_FEATURES_UNSUPPORTED",
+        "message": "Image contains unsupported features like non-default colorspace information, non-square pixels, or animation.",
+        "severity": 1,
+        "pointer": "/images/0"
+      },
+      {
+        "code": "IMAGE_NPOT_DIMENSIONS",
+        "message": "Image has non-power-of-two dimensions: 2048x580.",
+        "severity": 2,
+        "pointer": "/images/1"
+      },
+      {
+        "code": "IMAGE_FEATURES_UNSUPPORTED",
+        "message": "Image contains unsupported features like non-default colorspace information, non-square pixels, or animation.",
+        "severity": 1,
+        "pointer": "/images/1"
+      }
+    ],
+    "truncated": false
+  },
+  "apartment_block8": {
+    "numErrors": 0,
+    "numWarnings": 2,
+    "numInfos": 0,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+        "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
+        "severity": 1,
+        "pointer": "/meshes/0/primitives/0/material"
+      },
+      {
+        "code": "IMAGE_FEATURES_UNSUPPORTED",
+        "message": "Image contains unsupported features like non-default colorspace information, non-square pixels, or animation.",
+        "severity": 1,
+        "pointer": "/images/0"
+      }
+    ],
+    "truncated": false
+  }
+}

@@ -19,6 +19,34 @@ Read-only investigation, 2026-11-09. Standard drawn Kestrel, parked player,
 stopping v2 enabled from tick zero. No production behavior changed. v2 remains
 opt-in and its full-gate promotion remains rejected.
 
+## The three hits on the shipped driver (2026-11-10, read only)
+
+The gate's impulses (`COUPLINGS.md`, the gate's baseline) found three hits in committed passes with no loader at
+all, at `driver-v11` / `pass-v5`. Each read once with `pnpm rival:scene <id> --seed=<n> --from= --to=` at 0.2 s;
+nothing was changed and nothing below is a fix.
+
+| Race / seed | Pass admitted | What it hit | Across the road at the hit | `pass-hold` |
+|---|---|---|---|---|
+| gen-39 / 0 | t=54.3, 106 mph, van #12 at 23 mph 40 m ahead, holding a junction claim | the van, t=55.5 at 82 mph, 17,831 N s | 3.0 m, aiming 5.1 | 0.6 s after admission, 24 m out |
+| gen-68 / 271828 | t=62.2, 121 mph, sedan #207 at 40 mph 39 m ahead and moving across the road the same way | the sedan, t=63.7 at 68 mph, 6,219 N s | -0.1 m, aiming -3.3 | 0.4 s after, 26 m out |
+| gen-54 / 42 | t=74.8, 82 mph on an 8 m road, round van #140 with box truck #161 oncoming at 35 mph 32 m ahead | the truck, head on, t=75.4 at 40 mph, 51,525 N s | 0.4 m, aiming 3.4 | 0.2 s after, 22 m out |
+
+**Fact:** in all three the car is 2 to 3.3 m short of the path its pass is aiming for when it hits, a second or so
+after the pass was admitted 32 to 40 m from what it hit, closing at 30 to 37 m/s; and `pass-hold` fires each time,
+0.2 to 0.6 s after admission, at full brake, too late. In two of the three (gen-39, gen-54) the rival was already
+braking hard for that same vehicle under the `crossing` / `oncoming` rule, and the pass's admission replaced that
+brake with the pass plan's speed for the 0.2 to 0.6 s it took `pass-hold` to take it back.
+
+**Inference:** this is one kind, and it is gen-46's and gen-77's: a pass admitted on a path the car cannot be on in
+the time it has, checked as if it were on it. That agrees with this page's finding below (the evaluator certifies an
+ideal trajectory) and with the head's (`PASS_ASTRAY` is the existing guard and is late); they are the same
+observation from two ends. What these three add to gen-77 is that the failure is at ADMISSION, in the first second,
+not in a long pass that drifts, and that an admission can take a working brake off. Three reads at 0.2 s are not a
+trace: the evaluator's inputs were not captured here as they were for gen-77.
+
+`pnpm rival:scene`'s "every contact" is still the box test and lists none of these three; it finishes gen-54 and
+gen-68 at "0 contacts". It wants the impulse reader when the rival is next open.
+
 ## Finding
 
 The pass evaluator certifies an ideal path, then keeps certifying it after the
