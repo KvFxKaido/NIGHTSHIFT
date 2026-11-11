@@ -67,7 +67,8 @@ by contrast, came from existing crossing/no-side/oncoming rules without new
 contact. A trace-capture bug surfaced too: shallow driver copies retained a
 mutable pass object. Deep snapshots fixed that diagnostic; repeated gen-77
 replays reproduced the gate exactly. Full evidence: `RACEABILITY_EXPERIMENT.md`
-and `measurements/raceability-full-gate-v2.json`. No production AI changed.
+and `measurements/raceability-full-gate-v2.json` (shelved with the experiment, on the branch
+`codex/raceability-stopping-experiment`). No production AI changed.
 
 What was kept (2026-11-10, Shawn and Claude): the instruments, not the fix. The map, `--car` and the impulse contact
 reader are on `main`; both stopping revisions, their loaders and their gates' rows are shelved on the branch

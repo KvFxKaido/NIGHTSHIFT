@@ -10,7 +10,8 @@ first gen-22 impact at 65.183 s, earlier than the approximate marker below.
 
 ## Open the map
 
-`artifacts/raceability/index.html` is a self-contained interactive report. Open it
+`artifacts/` is git-ignored, so the report is built before it is opened: the `--render` command below writes
+`artifacts/raceability/index.html`, a self-contained interactive page. Open it
 in a browser, or serve the directory locally. It has course and traffic-seed
 selectors, pan/zoom, per-stretch time differences, braking, speed, approximate
 traffic contact, ground contact, slowdown episodes and scene reproduction commands.
@@ -58,7 +59,7 @@ followed fresh simulation of `gen-56`, `gen-39` and `gen-24`, rather than assumi
 historical incident still occurs. The latter two finished all four runs without
 approximate traffic contact; gen-39 / seed 42 had one out-of-sight reset. Their traffic ranges were 109.35–113.40 s against 106.32 s
 clear, and 126.75–130.95 s against 124.12 s clear, respectively. The complete local
-survey is retained in `artifacts/raceability-survey/data.json`.
+survey is `measurements/raceability-survey.json` (render it with `--input=` as above).
 
 These three overlap near the common grid. They are focused reference routes,
 not representative coverage of every district, an AI ranking, or a human pace gate.
@@ -74,8 +75,9 @@ not representative coverage of every district, an AI ranking, or a human pace ga
 2. **Alder Service Road into Jackson East, `gen-56`, seed 314159, roughly
    2350–2700 m.** Several of the largest bin differences occur here. The whole
    run is 8.45 s slower, without approximate contact, while the census reports
-   only 0.37 s below the rival's own plan. The current evidence does not establish
-   the cause; line availability and downstream speed recovery need a trace.
+   only 0.37 s below the rival's own plan. The map alone does not show the
+   cause; the trace does (`RACEABILITY_TRACES.md`, "gen-56"): traffic refuses the fast bend lines, the refusals
+   expire after entry, and the late-join guard keeps the rival on the slower lane plan.
 3. **Yesler Way, `gen-30`, seed 42, route 1150–1200 m.** The largest local
    increase is 1.20 s; the complete run is 3.42 s slower. On seed 314159 the
    race is instead 0.30 s faster than clear. Signed differences matter.

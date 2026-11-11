@@ -134,7 +134,7 @@ the full 498-pair gate against current AI and inspect new physical encounters.
 
 ## Evidence and reproduction
 
-`artifacts/raceability-pass-probe/` holds exact evaluator inputs/results,
+`artifacts/raceability-pass-probe/` (git-ignored: on the machine that ran it, never committed) holds exact evaluator inputs/results,
 steering terms, geometric analysis, counterfactual results and the audit.
 `scripts/raceability-pass-probe-loader.mjs` only observes decisions; the separate
 envelope loader is for offline captured-call analysis, never installed in the

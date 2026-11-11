@@ -128,7 +128,8 @@ contact ticks improve 3320 to 2903, resets/recoveries stay 17/1, but gen-77 / se
 after an earlier arrival-time change. Gen-42 / 271828 loses 9.03 s to traffic
 without a new contact. V2 remains opt-in; live cost is unmeasured. These checks
 do not adopt its admission assumptions or revalidate any production ledger entry
-(`measurements/raceability-full-gate-v2.json`).
+(`measurements/raceability-full-gate-v2.json`, on the branch
+`codex/raceability-stopping-experiment` with the rest of the experiment's rows, not on `main`).
 
 A rejection is a measurement too, and it goes stale the same way: an idea dropped on
 09-13 was dropped on the steering, traffic and frames of 09-13. Most of the rules the

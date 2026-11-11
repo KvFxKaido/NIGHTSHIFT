@@ -37,7 +37,7 @@ function renderReport() {
   }
   const json = JSON.stringify(report).replaceAll("<", "\\u003c");
   writeFileSync(`${output}/data.json`, JSON.stringify(report));
-  writeFileSync(`${output}/index.html`, readFileSync("scripts/raceability-view.html", "utf8").replace("/*REPORT_DATA*/null", json));
+  writeFileSync(`${output}/index.html`, readFileSync("scripts/raceability-view.html", "utf8").replace("/*REPORT_DATA*/null", () => json));
 }
 if (process.argv.includes("--render")) { renderReport(); process.exit(0); }
 await RAPIER.init();
