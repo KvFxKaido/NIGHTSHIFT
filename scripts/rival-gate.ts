@@ -12,6 +12,12 @@
 // The batch's knobs (PLAN, REACH, BEND, BENDTANGENT, WORTH, SLIP, FRAME, FOLLOW) pass through the environment to every
 // process. Races are compared by id; a distinct incident is one (time, route metres) pair, because races from the grid
 // share their first kilometres and one incident can be many rows.
+//
+// Contact is counted twice (2026-11-10). `contact`, `contactOnLine` and `passContact` are the batch's box test, which
+// every gate to that date was read on; `impulse*` and `onsets` are Rapier's own contacts on the rival's body
+// (street-line-batch.ts --physics-contacts), which is what touched. The box test reads a near miss as contact and
+// is late to, or misses, a real one; where the two disagree the impulse is right. A baseline saved before then has
+// no impulse fields and they compare as n/a.
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -27,7 +33,9 @@ const BASELINE = arg("baseline") ?? "design/measurements/rival-gate.json";
 const GROUPS = 4;
 const SOURCES = ["src/sim/traffic.ts", "src/sim/rival.ts", "src/sim/sim.ts", "src/sim/traffic-pass.ts", "src/sim/street-line.ts", "src/sim/car-handling.ts", "src/sim/scenario.ts", "scripts/batch-race.ts", "scripts/street-line-batch.ts"];
 
-type Row = { id: string; seconds: number | null; contact: number; contactOnLine: number; passContact: number; off: number; resets: number; unseen: number; reversals: number; events?: string[] };
+type Onset = { tick: number; along: number; speed: number; other: number | null; impulse: number; pass: boolean; line: boolean };
+type Row = { id: string; seconds: number | null; contact: number; contactOnLine: number; passContact: number; off: number; resets: number; unseen: number; reversals: number; events?: string[];
+  impulseTicks?: number; impulseTraffic?: number; impulsePass?: number; impulseOnLine?: number; physicalEvents?: Onset[] };
 const group = (k: number) => [...(k === 0 ? ["street-uptown"] : []), ...Array.from({ length: 82 }, (_, i) => `gen-${i + 1}`).filter((_, i) => (i + 1) % GROUPS === k)];
 
 async function run(): Promise<Map<number, Row[]>> {
@@ -38,7 +46,7 @@ async function run(): Promise<Map<number, Row[]>> {
   const started = Date.now();
   try {
     await Promise.all(SEEDS.flatMap(seed => Array.from({ length: GROUPS }, (_, k) => new Promise<void>((resolve, reject) => {
-      const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", "scripts/street-line-batch.ts", ...group(k), "--line", "--trace", `--output=${join(dir, `${seed}-${k}.jsonl`)}`],
+      const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", "scripts/street-line-batch.ts", ...group(k), "--line", "--trace", "--physics-contacts", `--output=${join(dir, `${seed}-${k}.jsonl`)}`],
         { env: { ...process.env, TRAFFIC_SEED: String(seed) }, stdio: ["ignore", "ignore", "pipe"] });
       let errors = "";
       child.stderr.on("data", chunk => { errors += chunk; });
@@ -59,6 +67,17 @@ const incidents = (rows: Row[]) => {
   }
   return [...found.values()];
 };
+// Onsets with traffic, one per (tick, route metre, vehicle): the shared first kilometres again.
+const onsets = (rows: Row[]) => {
+  const found = new Map<string, Onset & { races: string[] }>();
+  for (const row of rows) for (const e of row.physicalEvents ?? []) {
+    if (e.other === null) continue;
+    const key = `${e.tick}@${Math.round(e.along)}@${e.other}`, seen = found.get(key);
+    if (seen) seen.races.push(row.id); else found.set(key, { ...e, races: [row.id] });
+  }
+  return [...found.values()];
+};
+const sum = (rows: Row[], key: "impulseTicks" | "impulseTraffic" | "impulsePass" | "impulseOnLine") => rows.reduce((s, r) => s + (r[key] ?? NaN), 0);
 const summary = (rows: Row[]) => ({
   races: rows.length,
   seconds: +rows.reduce((s, r) => s + (r.seconds ?? 0), 0).toFixed(2),
@@ -71,9 +90,16 @@ const summary = (rows: Row[]) => ({
   off: rows.reduce((s, r) => s + r.off, 0),
   resets: rows.reduce((s, r) => s + r.resets + r.unseen, 0),
   reversals: rows.reduce((s, r) => s + r.reversals, 0),
+  impulseTicks: sum(rows, "impulseTicks"),
+  impulseTraffic: sum(rows, "impulseTraffic"),
+  racesWithImpulse: rows.some(r => r.impulseTraffic === undefined) ? NaN : rows.filter(r => r.impulseTraffic! > 0).length,
+  onsets: rows.some(r => r.physicalEvents === undefined) ? NaN : onsets(rows).length,
+  impulseOnLine: sum(rows, "impulseOnLine"),
+  impulsePass: sum(rows, "impulsePass"),
 });
 type Summary = ReturnType<typeof summary>;
-const KEYS: (keyof Summary)[] = ["seconds", "dnf", "contact", "racesWithContact", "distinctIncidents", "contactOnLine", "passContact", "off", "resets", "reversals"];
+const KEYS: (keyof Summary)[] = ["seconds", "dnf", "contact", "racesWithContact", "distinctIncidents", "contactOnLine", "passContact", "off", "resets", "reversals", "impulseTicks", "impulseTraffic", "racesWithImpulse", "onsets", "impulseOnLine", "impulsePass"];
+const show = (k: keyof Summary, v: number) => Number.isNaN(v) ? "n/a" : k === "seconds" ? v.toFixed(0) : String(v);
 
 const results = await run();
 let baseline: { seeds: Record<string, { rows: Row[] }> } | null = null;
@@ -87,10 +113,11 @@ for (const seed of SEEDS) {
   const a = summary(old), b = summary(shared);
   for (const k of KEYS) { totals.was[k] = (totals.was[k] ?? 0) + a[k]; totals.now[k] = (totals.now[k] ?? 0) + b[k]; }
   const same = shared.filter(r => { const o = old.find(w => w.id === r.id)!; return o.seconds === r.seconds && o.contact === r.contact; }).length;
-  console.log(`seed ${String(seed).padStart(7)} (${shared.length} races, ${same} identical): ${KEYS.map(k => `${k} ${k === "seconds" ? a[k].toFixed(0) : a[k]}->${k === "seconds" ? b[k].toFixed(0) : b[k]}`).join(", ")}`);
+  console.log(`seed ${String(seed).padStart(7)} (${shared.length} races, ${same} identical): ${KEYS.map(k => `${k} ${show(k, a[k])}->${show(k, b[k])}`).join(", ")}`);
+  for (const e of onsets(shared).filter(e => e.pass || e.line)) console.log(`      impulse ${e.pass ? "in a pass" : "on a line"}: t=${(e.tick / 60).toFixed(1)} along ${e.along.toFixed(0)} vehicle ${e.other} ${e.impulse.toFixed(0)} N s: ${e.races.join(" ")}`);
   for (const incident of incidents(shared)) console.log(`      ${incident.at} ${incident.mph} mph: ${incident.races.length > 4 ? `${incident.races.slice(0, 4).join(" ")} +${incident.races.length - 4}` : incident.races.join(" ")}`);
 }
-if (Object.keys(totals.was).length) console.log(`all compared: ${KEYS.map(k => `${k} ${k === "seconds" ? totals.was[k]!.toFixed(0) : totals.was[k]}->${k === "seconds" ? totals.now[k]!.toFixed(0) : totals.now[k]}`).join(", ")}`);
+if (Object.keys(totals.was).length) console.log(`all compared: ${KEYS.map(k => `${k} ${show(k, totals.was[k]!)}->${show(k, totals.now[k]!)}`).join(", ")}`);
 
 const save = arg("save") ?? (process.argv.includes("--save") ? BASELINE : undefined);
 if (save) {
@@ -98,9 +125,9 @@ if (save) {
   writeFileSync(save, JSON.stringify({
     provenance: `pnpm rival:gate, ${new Date().toISOString().slice(0, 10)}`,
     revisions: { physics: PHYSICS_VERSION, traffic: TRAFFIC_REVISION, ...RIVAL_REVISIONS },
-    method: "scripts/street-line-batch.ts --line --trace per traffic seed, four processes a seed, the player parked at Wharf Garage. A distinct incident is one (time, route metres) pair.",
+    method: "scripts/street-line-batch.ts --line --trace --physics-contacts per traffic seed, four processes a seed, the player parked at Wharf Garage. A distinct incident is one (time, route metres) pair of the box test's; an onset is one (tick, route metre, vehicle) of Rapier's contact impulses with traffic, and the impulse* counts are ticks of them.",
     sourceHashes: Object.fromEntries(SOURCES.map(path => [path, hash(path)])),
-    seeds: Object.fromEntries(SEEDS.map(seed => { const rows = results.get(seed)!; return [String(seed), { summary: summary(rows), incidents: incidents(rows), rows }]; })),
+    seeds: Object.fromEntries(SEEDS.map(seed => { const rows = results.get(seed)!; return [String(seed), { summary: summary(rows), incidents: incidents(rows), onsets: onsets(rows), rows }]; })),
   }, null, 1) + "\n");
   console.log(`saved ${save}`);
 }

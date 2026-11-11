@@ -567,6 +567,15 @@ fixtures outside the playable bundle, and old world links redirect.
   is what it was. Gate the whole thing on `pnpm rival:gate`, the 83-race batch at six traffic seeds, against its
   baseline: contact on a line or in a pass is zero at seed 0 and not across six (11 and 27 ticks at `traffic-v8`), so a
   change must not add to it. Read total contact as incidents per race, never ticks: which races touch traffic is a lottery.
+- The gate counts contact twice since 2026-11-10, and where they disagree the impulse is right. `contact`, `contactOnLine`
+  and `passContact` are a box test (a centre inside a grown box): it is a second late to a car that drives into a stopped
+  rival, reads a near miss as contact (14 ticks on gen-22 with no impulse at all), and read nothing through three hits in
+  committed passes on the shipped driver, one of 51,525 N s. `impulse*` and `onsets` are Rapier's manifolds on the rival's
+  body. Every older "zero contact in a pass" is the box test's zero (`design/COUPLINGS.md`, the gate's baseline). An onset's
+  `speed` is after the step, so after the hit: never read it as a closing speed.
+- The slowdown census measures time below the rival's own plan, so a line traffic refused costs nothing in it: the plan
+  itself drops to the lane's (gen-56, 8.45 s lost to traffic, 0.37 s in the census). `pnpm rival:map` shows the time
+  against the clear run instead (`design/RACEABILITY.md`).
 - That batch parks the player, so it gates the rival ALONE and cannot see what only happens in a race: Wake sat beside
   a sedan at its speed for 5 s against Shawn, and the batch is identical to the tick with and without the fix. And the
   pass planner read a player catching her from behind as in its corridor and braked her to let him by (`pass-v2`: the

@@ -69,6 +69,16 @@ mutable pass object. Deep snapshots fixed that diagnostic; repeated gen-77
 replays reproduced the gate exactly. Full evidence: `RACEABILITY_EXPERIMENT.md`
 and `measurements/raceability-full-gate-v2.json`. No production AI changed.
 
+What was kept (2026-11-10, Shawn and Claude): the instruments, not the fix. The map, `--car` and the impulse contact
+reader are on `main`; both stopping revisions, their loaders and their gates' rows are shelved on the branch
+`codex/raceability-stopping-experiment`, and the pass is left alone, because the rival in traffic is not open work and
+each fix here had found the next latent failure at forty minutes a gate. The assumption that was wrong was older than
+the session: that the gate's contact counts say what touched. Read from Rapier's impulses on the same 498 unchanged
+races, 99 touch traffic where the box test says 63, and the pass, zero by the box since it shipped, has three hits
+(`COUPLINGS.md`, the gate's baseline). v2's rejection on gen-77 is, by the gate's own noise rule, a latent pass failure
+drawn out by a changed arrival time; gen-77's trace is gen-46's failure again, as far as it was read
+(`RACEABILITY_PASS_TRACE.md`, its head).
+
 On gen-56 / seed 314159 the Cinder finished 8.45 s slower than clear, but the census
 estimated only 0.37 s below its own plan. A census marker is not a complete inventory
 of pace loss: it excludes the corner plan itself. The map therefore also shows signed
