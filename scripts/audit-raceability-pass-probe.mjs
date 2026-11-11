@@ -1,0 +1,14 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import assert from 'node:assert/strict';
+const read=p=>JSON.parse(readFileSync(p,'utf8'));
+const root='artifacts/raceability-full-gate/cases/gen-77-271828-';
+const original=read(root+'v2gate-exact-swept.json'),probe=read(root+'pass-probe.json');
+delete original.label;delete probe.label;
+assert.deepEqual(probe,original);
+const manifest=read('artifacts/raceability-full-gate-v2/manifest.json');
+const files=Object.keys(manifest.sourceHashes).filter(p=>p.startsWith('src/')||p==='scripts/raceability-footprint-stop.ts'||p==='scripts/raceability-experiment-loader.mjs');
+for(const p of files)assert.equal(createHash('sha256').update(readFileSync(p)).digest('hex'),manifest.sourceHashes[p],p);
+const result={exactReplayEqual:true,rows:probe.rows.length,unchangedGateSources:files.length,seconds:probe.seconds,impulseTicks:probe.impulseTicks};
+writeFileSync('artifacts/raceability-pass-probe/audit.json',JSON.stringify(result,null,2));
+console.log(result);

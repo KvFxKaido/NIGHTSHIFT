@@ -108,6 +108,28 @@ As of 2026-09-24: `four-wheel-v6`, `traffic-v12` with seeds (stop and dwell at 1
 
 ## What was ruled out, and on what
 
+2026-11-09 diagnostic follow-up: [footprint-aware stopping](RACEABILITY_EXPERIMENT.md)
+passes 12 paired reference checks, including a same-state gen-22 fork, but is
+not promoted after the full 498-pair gate: gen-70 and gen-53 / seed 314159 add
+contact/reset failures, and Uptown / seed 1 adds two encounters. Physical contact
+ticks improve 3320 to 2936 but resets rise 17 to 18 and recoveries 1 to 2.
+It remains a process-local experiment. Its horizon/margin assumptions
+are not adopted tuning and no live ledger entry is revalidated by it. The gen-56
+cooldown audit finds zero fresh approvals in 43 pre-entry checks at its two problem
+bends; no cooldown/late-join change is recommended from those observations.
+
+The v2 stopping refinement passes 28 focused pairs plus the identical-state Cinder
+gen-22 fork. It carries current tracking/heading error into sampled footprints
+and refuses an added stop without braking room before the swept conflict.
+Gen-53's trace matches current AI, gen-70 is clean, and the gen-22 contact/reset
+improvement survives. Its full 498-pair gate then rejects promotion: physical
+contact ticks improve 3320 to 2903, resets/recoveries stay 17/1, but gen-77 / seed
+271828 adds a substantial collision with box truck #171 during a committed pass
+after an earlier arrival-time change. Gen-42 / 271828 loses 9.03 s to traffic
+without a new contact. V2 remains opt-in; live cost is unmeasured. These checks
+do not adopt its admission assumptions or revalidate any production ledger entry
+(`measurements/raceability-full-gate-v2.json`).
+
 A rejection is a measurement too, and it goes stale the same way: an idea dropped on
 09-13 was dropped on the steering, traffic and frames of 09-13. Most of the rules the
 rival and traffic still carry were made that day, on a rival that rode the centreline,

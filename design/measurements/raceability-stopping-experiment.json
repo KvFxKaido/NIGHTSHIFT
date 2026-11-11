@@ -1,0 +1,2313 @@
+{
+  "date": "2026-11-09",
+  "decision": "Retain opt-in experiment only; no shipped AI change. Full 498-run gate not performed.",
+  "method": "Cinder RWD, parked player. Footprint cap from race start; initial gen-22 fork at tick 3600. Core source unmodified.",
+  "sourceHashes": {
+    "src/sim/rival.ts": "a6e1ba42a604c9f98b07934c90dfc525057db55c18455b0171c83c579f809199",
+    "src/sim/sim.ts": "aca68fc3638c5de068277ce7b009f8c3f9897b2f9ec5efdd5e5c1e2629360508",
+    "src/sim/street-line.ts": "ff3331c18e6d4751a3957c210d74706d37378b3652edb2ed561cdfe17d2834a2",
+    "src/sim/traffic.ts": "b0b6b1fae47aeaa539b8fcef660d3715bd35596bc5e4f06dd2430d52f31e1e2b",
+    "scripts/raceability-experiment-loader.mjs": "54105526fd9442481767c261c1a2af75efe7277890d54a865ed43462e919a6b9",
+    "scripts/raceability-footprint-stop.ts": "a0d019a6925e4416a259de7bc6a2da31048c5595295dac13c2ea4ec628d26667",
+    "scripts/raceability-cooldown-audit.ts": "f56f4164428e008ab6b9ea9e9489819d01fc733af934a78390d05d2d970bc45e",
+    "scripts/raceability-experiment.ts": "c557b97e0d811e42214a1195f4ffbb92d06bea890cdd005fa92e7102353eef94"
+  },
+  "fork": {
+    "prefixHash": "08310a49b33a6eb8a8055af8cb3b13502c74438ff5d5bbf9090112614dce8439",
+    "rapierSnapshot": "cc636246437a52e79a8c321743b9bb07e72715de1e4f7d99d516c38325a423ed",
+    "oldSeconds": 76.06666666666666,
+    "newSeconds": 74.05
+  },
+  "comparisons": [
+    {
+      "id": "gen-30",
+      "seed": 0,
+      "currentSeconds": 45.1,
+      "experimentSeconds": 45.15,
+      "delta": 0.04999999999999716,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "b4374b6ed9dc6ab0e293893d364a51e002a510731ed610e7d91bcf2f8792b59e",
+      "experimentStateHash": "281577098f3857f2bc0a2147b704d96c3d77a6084c41ad122856a5f7a75a99f5"
+    },
+    {
+      "id": "gen-30",
+      "seed": 42,
+      "currentSeconds": 47.96666666666667,
+      "experimentSeconds": 47.96666666666667,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "fc47fe4f2b0864266cbed3124ff19a1ef524898542130f077eb45b4bf7a5dfb3",
+      "experimentStateHash": "fc47fe4f2b0864266cbed3124ff19a1ef524898542130f077eb45b4bf7a5dfb3"
+    },
+    {
+      "id": "gen-30",
+      "seed": 314159,
+      "currentSeconds": 44.25,
+      "experimentSeconds": 44.25,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "39b819d33eb21438370860966f2fdb3b1ddc92d1c673cfff5332b35c84bd65d4",
+      "experimentStateHash": "39b819d33eb21438370860966f2fdb3b1ddc92d1c673cfff5332b35c84bd65d4"
+    },
+    {
+      "id": "gen-22",
+      "seed": 0,
+      "currentSeconds": 72.1,
+      "experimentSeconds": 72.1,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "80e996c1e8cf9fb3ce5bce7cb6a77efa00530f24a444f4fd14ebbb926e757ff5",
+      "experimentStateHash": "80e996c1e8cf9fb3ce5bce7cb6a77efa00530f24a444f4fd14ebbb926e757ff5"
+    },
+    {
+      "id": "gen-22",
+      "seed": 1000,
+      "currentSeconds": 70.86666666666666,
+      "experimentSeconds": 70.86666666666666,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "83bb90403be47b7885d62c5670890707c68052bb9780d1814929d3c0c04ca880",
+      "experimentStateHash": "83bb90403be47b7885d62c5670890707c68052bb9780d1814929d3c0c04ca880"
+    },
+    {
+      "id": "gen-22",
+      "seed": 271828,
+      "currentSeconds": 70.26666666666667,
+      "experimentSeconds": 70.26666666666667,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "1a86e064ee6235ea05fe1717db8a29058b9ab360d466baa6eb4f695cb684b8e6",
+      "experimentStateHash": "25dc5d64507c6a71c576ba7fc8519ea7d221c5cfbdeb7e7160505b0022126701"
+    },
+    {
+      "id": "gen-22",
+      "seed": 1,
+      "currentSeconds": 72.03333333333333,
+      "experimentSeconds": 72.13333333333334,
+      "delta": 0.10000000000000853,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "3076e258db3f68e5c2868122a6323714eff362ca108eaa6dffb3d6af96cf91d3",
+      "experimentStateHash": "06c3ab0ae8f7093e4e24a5c8c7a8a2e235ea045b376e1e30ed60beee90affd3b"
+    },
+    {
+      "id": "gen-22",
+      "seed": 42,
+      "currentSeconds": 71.05,
+      "experimentSeconds": 71.23333333333333,
+      "delta": 0.18333333333333712,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "f20fbe774896f3b9b4db5d641ba35a386291e9cc322edc7ea1f7db91bd3c7060",
+      "experimentStateHash": "741e08813a7875828b7dfe7747af6880c92d0abf2c076440b5acc86dc9f11243"
+    },
+    {
+      "id": "gen-22",
+      "seed": 314159,
+      "currentSeconds": 76.06666666666666,
+      "experimentSeconds": 74.05,
+      "delta": -2.0166666666666657,
+      "currentImpulseTicks": 36,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 1,
+      "experimentUnseen": 0,
+      "currentStateHash": "ed4380fead60d91e09a687f6b7bcfacaa07bc02b70abd1faec8da66ae60638d3",
+      "experimentStateHash": "8abe44b16651a5f85b948b56beabb4e25803f1bdfca57d92640e4dd9aa039c65"
+    },
+    {
+      "id": "gen-56",
+      "seed": 0,
+      "currentSeconds": 87.7,
+      "experimentSeconds": 87.68333333333334,
+      "delta": -0.01666666666666572,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "c06d718996907cc883df74215a337269d3dbbd25d2aef3c3aeaa84bbbf12591c",
+      "experimentStateHash": "1315f02344d471159cf7930aa9a1fc584e60c7246573525a131b6ae4b4f6aacf"
+    },
+    {
+      "id": "gen-56",
+      "seed": 42,
+      "currentSeconds": 85.35,
+      "experimentSeconds": 85.35,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "cfb4dca839752175fed689bc0d56c91110ac94aaeaee45fd694c3bc9bdae0a06",
+      "experimentStateHash": "cfb4dca839752175fed689bc0d56c91110ac94aaeaee45fd694c3bc9bdae0a06"
+    },
+    {
+      "id": "gen-56",
+      "seed": 314159,
+      "currentSeconds": 93.36666666666666,
+      "experimentSeconds": 93.36666666666666,
+      "delta": 0,
+      "currentImpulseTicks": 0,
+      "experimentImpulseTicks": 0,
+      "currentUnseen": 0,
+      "experimentUnseen": 0,
+      "currentStateHash": "532b4cc6640408e209c982a1ec7b319b7f39031a0c65aced0ddfb84b6ba03ac3",
+      "experimentStateHash": "4840dfa58e927e671b8549b43f95e7e07209245da994da9f9d03a7d6938b20fd"
+    }
+  ],
+  "cooldown": {
+    "stateHash": "532b4cc6640408e209c982a1ec7b319b7f39031a0c65aced0ddfb84b6ba03ac3",
+    "controlStateHash": "532b4cc6640408e209c982a1ec7b319b7f39031a0c65aced0ddfb84b6ba03ac3",
+    "probes": [
+      {
+        "tick": 1626,
+        "along": 985.9949386712615,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1632,
+        "along": 992.1096141445873,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1638,
+        "along": 998.1391670475501,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1644,
+        "along": 1004.086294678413,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1650,
+        "along": 1009.952682815949,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1656,
+        "along": 1015.7343619022739,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1662,
+        "along": 1021.4072831736775,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1668,
+        "along": 1026.988667604635,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1674,
+        "along": 1032.487484853155,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1680,
+        "along": 1037.8987796374552,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1686,
+        "along": 1043.221216869821,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1692,
+        "along": 1048.4535371991053,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1698,
+        "along": 1053.5936826503726,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1704,
+        "along": 1058.6423074998154,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": true,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 1842,
+        "along": 1153.7035352048542,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.555011355522584
+      },
+      {
+        "tick": 1848,
+        "along": 1156.2869463435136,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.511763218128768
+      },
+      {
+        "tick": 1854,
+        "along": 1158.6692958754873,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.5328476614387085
+      },
+      {
+        "tick": 1860,
+        "along": 1160.8577930907004,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.5715077253049055
+      },
+      {
+        "tick": 1866,
+        "along": 1162.8583223927508,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.580567118450932
+      },
+      {
+        "tick": 1872,
+        "along": 1164.6849717753444,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.597960253156373
+      },
+      {
+        "tick": 1878,
+        "along": 1166.3562298457598,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.64332005408582
+      },
+      {
+        "tick": 1884,
+        "along": 1168.0421373643173,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.702173711473168
+      },
+      {
+        "tick": 1890,
+        "along": 1169.9316484727158,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.770726581697401
+      },
+      {
+        "tick": 1896,
+        "along": 1171.7120210923447,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.821786233945642
+      },
+      {
+        "tick": 1902,
+        "along": 1173.3801500596298,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.885293268826273
+      },
+      {
+        "tick": 1908,
+        "along": 1175.0767039114794,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.9862536347687385
+      },
+      {
+        "tick": 1914,
+        "along": 1177.3584474286497,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.1796887278925405
+      },
+      {
+        "tick": 1920,
+        "along": 1179.5890719432036,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.4124331055702495
+      },
+      {
+        "tick": 1932,
+        "along": 1183.9111400345646,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.1953152194779895
+      },
+      {
+        "tick": 1938,
+        "along": 1186.022005133503,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.511456554901059
+      },
+      {
+        "tick": 1944,
+        "along": 1188.1279803068303,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.832674326361033
+      },
+      {
+        "tick": 1950,
+        "along": 1190.2270155669644,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.158496824243166
+      },
+      {
+        "tick": 1956,
+        "along": 1192.317818461405,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.476883189296551
+      },
+      {
+        "tick": 1962,
+        "along": 1194.3990677446534,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.798611707886231
+      },
+      {
+        "tick": 1968,
+        "along": 1196.4671887316224,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.121525007155576
+      },
+      {
+        "tick": 1974,
+        "along": 1198.526473683254,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.470967166216264
+      },
+      {
+        "tick": 1980,
+        "along": 1200.5985817598412,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.814802468827667
+      },
+      {
+        "tick": 1986,
+        "along": 1202.7084985961658,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.758139776235074
+      },
+      {
+        "tick": 1992,
+        "along": 1204.8496720019286,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.621580900254916
+      },
+      {
+        "tick": 1998,
+        "along": 1206.9908040924292,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.50287906072844
+      },
+      {
+        "tick": 2004,
+        "along": 1209.1041997763912,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.387163059263786
+      },
+      {
+        "tick": 2010,
+        "along": 1211.1815376157347,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.265400596801083
+      },
+      {
+        "tick": 2022,
+        "along": 1214.1894686021103,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 8.028546762417712
+      },
+      {
+        "tick": 2028,
+        "along": 1215.6948091782822,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.890623874106984
+      },
+      {
+        "tick": 2034,
+        "along": 1217.262405613829,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.73950890045574
+      },
+      {
+        "tick": 2040,
+        "along": 1218.8918611802353,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.5814757090404905
+      },
+      {
+        "tick": 2046,
+        "along": 1220.5825044907822,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.41528926851633
+      },
+      {
+        "tick": 2052,
+        "along": 1222.3337557114853,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.246386994032663
+      },
+      {
+        "tick": 2058,
+        "along": 1224.1447756089462,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.076028265566358
+      },
+      {
+        "tick": 2064,
+        "along": 1226.014602879454,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.90760247060056
+      },
+      {
+        "tick": 2070,
+        "along": 1227.9423830308212,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 6.7426231910975325
+      },
+      {
+        "tick": 2076,
+        "along": 1229.9272768296494,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.582514746368888
+      },
+      {
+        "tick": 2082,
+        "along": 1231.9685060776962,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.426309511730858
+      },
+      {
+        "tick": 2088,
+        "along": 1234.0654604233994,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.273913555718327
+      },
+      {
+        "tick": 2094,
+        "along": 1236.2175295151962,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.125178907596841
+      },
+      {
+        "tick": 2100,
+        "along": 1238.4241640366806,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.985013591297335
+      },
+      {
+        "tick": 2112,
+        "along": 1242.9992372788681,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.752983623626161
+      },
+      {
+        "tick": 2118,
+        "along": 1245.3667909898056,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.633765642614715
+      },
+      {
+        "tick": 2124,
+        "along": 1247.7866213120712,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.51028471273138
+      },
+      {
+        "tick": 2130,
+        "along": 1250.2582094468369,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.380797440735773
+      },
+      {
+        "tick": 2136,
+        "along": 1252.7807314194931,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.2435981937973155
+      },
+      {
+        "tick": 2142,
+        "along": 1255.3533327378525,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.098096406052883
+      },
+      {
+        "tick": 2148,
+        "along": 1257.9975983314157,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.940890129487619
+      },
+      {
+        "tick": 2154,
+        "along": 1260.6970107401155,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.774077893439999
+      },
+      {
+        "tick": 2160,
+        "along": 1263.4448383543709,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.598120603435443
+      },
+      {
+        "tick": 2166,
+        "along": 1266.240500102462,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.414895623764303
+      },
+      {
+        "tick": 2172,
+        "along": 1269.0833943567445,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.227202833660921
+      },
+      {
+        "tick": 2178,
+        "along": 1271.9729232793425,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.039028965526932
+      },
+      {
+        "tick": 2184,
+        "along": 1274.9087075950117,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.851944035719009
+      },
+      {
+        "tick": 2190,
+        "along": 1277.8903684136828,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.668160636987253
+      },
+      {
+        "tick": 2202,
+        "along": 1283.990421553637,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.3140870395089967
+      },
+      {
+        "tick": 2208,
+        "along": 1287.1083461401251,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.1429571069771547
+      },
+      {
+        "tick": 2214,
+        "along": 1290.2713958605705,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.9755193406344627
+      },
+      {
+        "tick": 2220,
+        "along": 1293.4794518275821,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.8115339320133814
+      },
+      {
+        "tick": 2226,
+        "along": 1296.7324558453904,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.649951235111871
+      },
+      {
+        "tick": 2232,
+        "along": 1300.0304346559149,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.48856441360185
+      },
+      {
+        "tick": 2238,
+        "along": 1303.3733586546111,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.324187721540317
+      },
+      {
+        "tick": 2244,
+        "along": 1306.7639349226872,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.1500977051724144
+      },
+      {
+        "tick": 2250,
+        "along": 1310.207217563958,
+        "corner": 2,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.9169403337244484
+      },
+      {
+        "tick": 2256,
+        "along": 1313.7028761574747,
+        "corner": 2,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.7187999952666986
+      },
+      {
+        "tick": 2262,
+        "along": 1317.2462859235388,
+        "corner": 2,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.5095961898253996
+      },
+      {
+        "tick": 2268,
+        "along": 1320.8360462180456,
+        "corner": 2,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.288124742657111
+      },
+      {
+        "tick": 2274,
+        "along": 1324.4720860254918,
+        "corner": 2,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.05542425712389
+      },
+      {
+        "tick": 2280,
+        "along": 1328.1543309901872,
+        "corner": 2,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 0.6935082447431328
+      },
+      {
+        "tick": 2292,
+        "along": 1335.6573178358328,
+        "corner": 2,
+        "remaining": 84,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.00875252230061679
+      },
+      {
+        "tick": 2298,
+        "along": 1339.4786604705548,
+        "corner": 2,
+        "remaining": 78,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2304,
+        "along": 1343.346911227654,
+        "corner": 2,
+        "remaining": 72,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2310,
+        "along": 1347.262889969018,
+        "corner": 2,
+        "remaining": 66,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2316,
+        "along": 1351.2277208326761,
+        "corner": 2,
+        "remaining": 60,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2322,
+        "along": 1355.244320619526,
+        "corner": 2,
+        "remaining": 54,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2328,
+        "along": 1359.3070359283527,
+        "corner": 2,
+        "remaining": 48,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2334,
+        "along": 1363.3929625278922,
+        "corner": 2,
+        "remaining": 42,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0
+      },
+      {
+        "tick": 2346,
+        "along": 1371.745231974896,
+        "corner": 3,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2352,
+        "along": 1376.01373446663,
+        "corner": 3,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2358,
+        "along": 1380.3438573214614,
+        "corner": 3,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2364,
+        "along": 1384.734667277288,
+        "corner": 3,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2370,
+        "along": 1389.1852175661338,
+        "corner": 3,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2376,
+        "along": 1393.694332496322,
+        "corner": 3,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.03354335699863289
+      },
+      {
+        "tick": 2382,
+        "along": 1398.2613814739016,
+        "corner": 3,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0093168528291476
+      },
+      {
+        "tick": 2388,
+        "along": 1402.8849598527609,
+        "corner": 3,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0252726621645079
+      },
+      {
+        "tick": 2394,
+        "along": 1407.5642619543378,
+        "corner": 3,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0446630836639768
+      },
+      {
+        "tick": 2400,
+        "along": 1412.2982958783796,
+        "corner": 3,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0720448154700755
+      },
+      {
+        "tick": 2406,
+        "along": 1417.0861482681462,
+        "corner": 3,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.1139374752367122
+      },
+      {
+        "tick": 2412,
+        "along": 1421.9268121871146,
+        "corner": 3,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.1780959770988244
+      },
+      {
+        "tick": 2418,
+        "along": 1426.8194005358866,
+        "corner": 3,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.271791642574548
+      },
+      {
+        "tick": 2424,
+        "along": 1431.762943866057,
+        "corner": 3,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.4018057261671817
+      },
+      {
+        "tick": 2646,
+        "along": 1616.767146100463,
+        "corner": 3,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 0.6176846014353611
+      },
+      {
+        "tick": 2652,
+        "along": 1621.91829958303,
+        "corner": 3,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 0.5964998407676125
+      },
+      {
+        "tick": 2658,
+        "along": 1627.1179814513164,
+        "corner": 3,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 0.5991537302214884
+      },
+      {
+        "tick": 2664,
+        "along": 1632.3647527107767,
+        "corner": 3,
+        "remaining": 66,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6129537917373487
+      },
+      {
+        "tick": 2670,
+        "along": 1637.657446671634,
+        "corner": 3,
+        "remaining": 60,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2676,
+        "along": 1642.9949783355416,
+        "corner": 3,
+        "remaining": 54,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2682,
+        "along": 1648.376276455543,
+        "corner": 3,
+        "remaining": 48,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2688,
+        "along": 1653.8001544636127,
+        "corner": 3,
+        "remaining": 42,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2694,
+        "along": 1659.2656729083028,
+        "corner": 3,
+        "remaining": 36,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2700,
+        "along": 1664.7720170537477,
+        "corner": 3,
+        "remaining": 30,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2706,
+        "along": 1670.3181291320777,
+        "corner": 3,
+        "remaining": 24,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2712,
+        "along": 1675.9030736402633,
+        "corner": 3,
+        "remaining": 18,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 0.6290873025288446
+      },
+      {
+        "tick": 2928,
+        "along": 1888.1951019573805,
+        "corner": 4,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2934,
+        "along": 1893.2757300532255,
+        "corner": 4,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2940,
+        "along": 1898.2367570949998,
+        "corner": 4,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2946,
+        "along": 1903.0852893407623,
+        "corner": 4,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2952,
+        "along": 1907.8265705213353,
+        "corner": 4,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 2958,
+        "along": 1912.4642623917946,
+        "corner": 4,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.06415943905739357
+      },
+      {
+        "tick": 2964,
+        "along": 1916.9992218680454,
+        "corner": 4,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.34867602475916637
+      },
+      {
+        "tick": 2970,
+        "along": 1921.4153568634558,
+        "corner": 4,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.8300641344438542
+      },
+      {
+        "tick": 2976,
+        "along": 1925.7328740149694,
+        "corner": 4,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.1355564181988456
+      },
+      {
+        "tick": 2982,
+        "along": 1929.9525637760892,
+        "corner": 4,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.4327883545455604
+      },
+      {
+        "tick": 2988,
+        "along": 1934.0747723526636,
+        "corner": 4,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.7216935059843823
+      },
+      {
+        "tick": 2994,
+        "along": 1938.0995277078023,
+        "corner": 4,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 2.002438671861751
+      },
+      {
+        "tick": 3000,
+        "along": 1942.0268598953298,
+        "corner": 4,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 2.27583515649353
+      },
+      {
+        "tick": 3006,
+        "along": 1945.8563333804889,
+        "corner": 4,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.543348722778925
+      },
+      {
+        "tick": 3018,
+        "along": 1953.2205259658535,
+        "corner": 4,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.0701998979125653
+      },
+      {
+        "tick": 3024,
+        "along": 1956.7541722419785,
+        "corner": 4,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.340653636731875
+      },
+      {
+        "tick": 3030,
+        "along": 1960.1881263267173,
+        "corner": 4,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.620480370550022
+      },
+      {
+        "tick": 3036,
+        "along": 1963.5215512319319,
+        "corner": 4,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.914611978044408
+      },
+      {
+        "tick": 3042,
+        "along": 1966.7537380324632,
+        "corner": 4,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.238214139824508
+      },
+      {
+        "tick": 3048,
+        "along": 1969.883919541988,
+        "corner": 4,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.583232907784347
+      },
+      {
+        "tick": 3054,
+        "along": 1972.9113788605048,
+        "corner": 4,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.967586205676652
+      },
+      {
+        "tick": 3060,
+        "along": 1975.8354740911643,
+        "corner": 4,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.379487082300158
+      },
+      {
+        "tick": 3066,
+        "along": 1978.6546118620356,
+        "corner": 4,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.83316791888331
+      },
+      {
+        "tick": 3072,
+        "along": 1981.3685446419693,
+        "corner": 4,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.303843813718682
+      },
+      {
+        "tick": 3078,
+        "along": 1983.9763349737823,
+        "corner": 4,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.734015621300244
+      },
+      {
+        "tick": 3084,
+        "along": 1986.476183686597,
+        "corner": 4,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.956004101683665
+      },
+      {
+        "tick": 3090,
+        "along": 1988.8672686279454,
+        "corner": 4,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.117501915748029
+      },
+      {
+        "tick": 3096,
+        "along": 1991.1488109792726,
+        "corner": 4,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.262966631959801
+      },
+      {
+        "tick": 3108,
+        "along": 1995.3752732091714,
+        "corner": 4,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.453081545430585
+      },
+      {
+        "tick": 3114,
+        "along": 1997.3167531215595,
+        "corner": 4,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.5036411028229075
+      },
+      {
+        "tick": 3120,
+        "along": 1999.1460636311065,
+        "corner": 4,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.5246842947109425
+      },
+      {
+        "tick": 3126,
+        "along": 2000.8636943796548,
+        "corner": 4,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.539685325091435
+      },
+      {
+        "tick": 3132,
+        "along": 2002.4686624928881,
+        "corner": 4,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.52852043839003
+      },
+      {
+        "tick": 3138,
+        "along": 2003.993539844655,
+        "corner": 4,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.51828801166654
+      },
+      {
+        "tick": 3144,
+        "along": 2005.9378947685934,
+        "corner": 4,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.308892892277149
+      },
+      {
+        "tick": 3150,
+        "along": 2007.8530018410675,
+        "corner": 4,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.119467558761998
+      },
+      {
+        "tick": 3156,
+        "along": 2009.746190680028,
+        "corner": 4,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.979614483807542
+      },
+      {
+        "tick": 3162,
+        "along": 2011.6233243290499,
+        "corner": 4,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.791514634618632
+      },
+      {
+        "tick": 3168,
+        "along": 2013.4905457967284,
+        "corner": 4,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.539774277496567
+      },
+      {
+        "tick": 3174,
+        "along": 2015.3796957288953,
+        "corner": 4,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.245411326160248
+      },
+      {
+        "tick": 3180,
+        "along": 2017.3142246861473,
+        "corner": 4,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.923838227472937
+      },
+      {
+        "tick": 3186,
+        "along": 2019.3295723417189,
+        "corner": 4,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.277860898289338
+      },
+      {
+        "tick": 3198,
+        "along": 2023.6282463473408,
+        "corner": 4,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.164935551932397
+      },
+      {
+        "tick": 3204,
+        "along": 2025.846411746385,
+        "corner": 4,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.8144060485368625
+      },
+      {
+        "tick": 3210,
+        "along": 2028.0620909786037,
+        "corner": 4,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.581547926834
+      },
+      {
+        "tick": 3216,
+        "along": 2029.7004218821357,
+        "corner": 4,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.4429888461703735
+      },
+      {
+        "tick": 3222,
+        "along": 2031.2783781414996,
+        "corner": 4,
+        "remaining": 60,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 3.3274838624805336
+      },
+      {
+        "tick": 3228,
+        "along": 2032.9285287005146,
+        "corner": 4,
+        "remaining": 54,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 3.2301467563803175
+      },
+      {
+        "tick": 3234,
+        "along": 2034.6550689252554,
+        "corner": 4,
+        "remaining": 48,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 3.131378411377476
+      },
+      {
+        "tick": 3240,
+        "along": 2036.4584186709556,
+        "corner": 4,
+        "remaining": 42,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 3.025821056040186
+      },
+      {
+        "tick": 3246,
+        "along": 2038.3380995308924,
+        "corner": 4,
+        "remaining": 36,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 2.9099142254394477
+      },
+      {
+        "tick": 3252,
+        "along": 2040.29327422365,
+        "corner": 4,
+        "remaining": 30,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 2.751446732621655
+      },
+      {
+        "tick": 3258,
+        "along": 2042.3230825022526,
+        "corner": 4,
+        "remaining": 24,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 2.5725883585302154
+      },
+      {
+        "tick": 3264,
+        "along": 2044.426280648804,
+        "corner": 4,
+        "remaining": 18,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 2.3600281588141145
+      },
+      {
+        "tick": 3270,
+        "along": 2046.601787166421,
+        "corner": 4,
+        "remaining": 12,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 2.1044363526549295
+      },
+      {
+        "tick": 3276,
+        "along": 2048.8484928834964,
+        "corner": 4,
+        "remaining": 6,
+        "freshGo": true,
+        "beforeEntry": false,
+        "joinShift": 1.824185658948153
+      },
+      {
+        "tick": 3522,
+        "along": 2198.3495022202587,
+        "corner": 5,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3528,
+        "along": 2203.41141376858,
+        "corner": 5,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3534,
+        "along": 2208.5312865870255,
+        "corner": 5,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3540,
+        "along": 2213.7076465047235,
+        "corner": 5,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3546,
+        "along": 2218.938963700431,
+        "corner": 5,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3552,
+        "along": 2224.223737802657,
+        "corner": 5,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3558,
+        "along": 2229.560408648815,
+        "corner": 5,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3564,
+        "along": 2234.9475422309392,
+        "corner": 5,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3570,
+        "along": 2240.383624291433,
+        "corner": 5,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3576,
+        "along": 2245.8673817230415,
+        "corner": 5,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3582,
+        "along": 2251.3972140905594,
+        "corner": 5,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3588,
+        "along": 2256.9690551631097,
+        "corner": 5,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3594,
+        "along": 2262.559850492212,
+        "corner": 5,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3600,
+        "along": 2268.1434911795573,
+        "corner": 5,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3612,
+        "along": 2279.2129260355377,
+        "corner": 5,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3618,
+        "along": 2284.6717325013246,
+        "corner": 5,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3624,
+        "along": 2290.0658241460346,
+        "corner": 5,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3630,
+        "along": 2295.381969963245,
+        "corner": 5,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3636,
+        "along": 2300.604869549985,
+        "corner": 5,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0278958023889042
+      },
+      {
+        "tick": 3642,
+        "along": 2305.734555151052,
+        "corner": 5,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.0944281576604153
+      },
+      {
+        "tick": 3648,
+        "along": 2310.771206286137,
+        "corner": 5,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.1723198876045602
+      },
+      {
+        "tick": 3654,
+        "along": 2315.715832457507,
+        "corner": 5,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.2771280735240627
+      },
+      {
+        "tick": 3660,
+        "along": 2320.569397295554,
+        "corner": 5,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.4238151387127178
+      },
+      {
+        "tick": 3666,
+        "along": 2325.3317974386387,
+        "corner": 5,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.6229461762702346
+      },
+      {
+        "tick": 3672,
+        "along": 2330.0028172748625,
+        "corner": 5,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.878709509167325
+      },
+      {
+        "tick": 3678,
+        "along": 2334.5822022963475,
+        "corner": 5,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 2.189874571462332
+      },
+      {
+        "tick": 3684,
+        "along": 2339.0696679878515,
+        "corner": 5,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.5515363368845434
+      },
+      {
+        "tick": 3690,
+        "along": 2343.464554187379,
+        "corner": 5,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.9583502580224112
+      },
+      {
+        "tick": 3990,
+        "along": 2501.94906800755,
+        "corner": 6,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 3996,
+        "along": 2505.6852932585234,
+        "corner": 6,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4002,
+        "along": 2509.473168663787,
+        "corner": 6,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4008,
+        "along": 2513.3136364742077,
+        "corner": 6,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4014,
+        "along": 2517.2091303891652,
+        "corner": 6,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4020,
+        "along": 2521.16190104216,
+        "corner": 6,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4026,
+        "along": 2525.174314828939,
+        "corner": 6,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4032,
+        "along": 2529.2490760094893,
+        "corner": 6,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4038,
+        "along": 2533.3886963554073,
+        "corner": 6,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4044,
+        "along": 2537.594799230328,
+        "corner": 6,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0
+      },
+      {
+        "tick": 4050,
+        "along": 2541.862809333259,
+        "corner": 6,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.009593344615911003
+      },
+      {
+        "tick": 4056,
+        "along": 2546.069793885777,
+        "corner": 6,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.1203264096622616
+      },
+      {
+        "tick": 4062,
+        "along": 2550.2003807380293,
+        "corner": 6,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.25260927833592944
+      },
+      {
+        "tick": 4068,
+        "along": 2554.2539816562607,
+        "corner": 6,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.4170565046336705
+      },
+      {
+        "tick": 4080,
+        "along": 2562.049793810614,
+        "corner": 6,
+        "remaining": 84,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 0.8993569129363241
+      },
+      {
+        "tick": 4086,
+        "along": 2565.898683997709,
+        "corner": 6,
+        "remaining": 78,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.1811801753935212
+      },
+      {
+        "tick": 4092,
+        "along": 2569.610129396963,
+        "corner": 6,
+        "remaining": 72,
+        "freshGo": false,
+        "beforeEntry": true,
+        "joinShift": 1.489395589386631
+      },
+      {
+        "tick": 4098,
+        "along": 2573.3010202665982,
+        "corner": 6,
+        "remaining": 66,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 1.9736948388860178
+      },
+      {
+        "tick": 4104,
+        "along": 2577.029735778165,
+        "corner": 6,
+        "remaining": 60,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 2.5019725558345955
+      },
+      {
+        "tick": 4110,
+        "along": 2580.768506452551,
+        "corner": 6,
+        "remaining": 54,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.0654514178653023
+      },
+      {
+        "tick": 4116,
+        "along": 2584.4951059378855,
+        "corner": 6,
+        "remaining": 48,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 3.6521951929776635
+      },
+      {
+        "tick": 4122,
+        "along": 2588.180141391421,
+        "corner": 6,
+        "remaining": 42,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.239626559299837
+      },
+      {
+        "tick": 4128,
+        "along": 2591.803655939802,
+        "corner": 6,
+        "remaining": 36,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 4.8479801158763784
+      },
+      {
+        "tick": 4134,
+        "along": 2595.3596784046795,
+        "corner": 6,
+        "remaining": 30,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 5.47300855950238
+      },
+      {
+        "tick": 4140,
+        "along": 2598.8420518496773,
+        "corner": 6,
+        "remaining": 24,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.103112586076048
+      },
+      {
+        "tick": 4146,
+        "along": 2602.245133538176,
+        "corner": 6,
+        "remaining": 18,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 6.671038304597618
+      },
+      {
+        "tick": 4152,
+        "along": 2605.5640641478494,
+        "corner": 6,
+        "remaining": 12,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.137580760749979
+      },
+      {
+        "tick": 4158,
+        "along": 2608.7943854860264,
+        "corner": 6,
+        "remaining": 6,
+        "freshGo": false,
+        "beforeEntry": false,
+        "joinShift": 7.506920506017657
+      }
+    ],
+    "summary": [
+      {
+        "corner": 2,
+        "probes": 92,
+        "freshClearBeforeEntry": 11,
+        "first": {
+          "tick": 1644,
+          "along": 1004.086294678413,
+          "corner": 2,
+          "remaining": 66,
+          "freshGo": true,
+          "beforeEntry": true,
+          "joinShift": 0
+        },
+        "last": {
+          "tick": 1704,
+          "along": 1058.6423074998154,
+          "corner": 2,
+          "remaining": 6,
+          "freshGo": true,
+          "beforeEntry": true,
+          "joinShift": 0
+        },
+        "beforeEntryProbes": 14
+      },
+      {
+        "corner": 3,
+        "probes": 26,
+        "freshClearBeforeEntry": 0,
+        "first": null,
+        "last": null,
+        "beforeEntryProbes": 13
+      },
+      {
+        "corner": 4,
+        "probes": 56,
+        "freshClearBeforeEntry": 0,
+        "first": null,
+        "last": null,
+        "beforeEntryProbes": 13
+      },
+      {
+        "corner": 5,
+        "probes": 28,
+        "freshClearBeforeEntry": 0,
+        "first": null,
+        "last": null,
+        "beforeEntryProbes": 26
+      },
+      {
+        "corner": 6,
+        "probes": 28,
+        "freshClearBeforeEntry": 0,
+        "first": null,
+        "last": null,
+        "beforeEntryProbes": 17
+      }
+    ]
+  }
+}
