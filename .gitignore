@@ -59,3 +59,6 @@ ASSETS.DAT
 
 # Assistants' probe scratch: logs, captures, throwaway scripts, half a gigabyte. Evidence worth keeping goes in design/.
 /.probe/
+# Visual studies and asset auditions: proposals with large renders, kept local.
+# Swept into a commit once by a broad git add (132eec7 took it back out).
+/design/studies/
